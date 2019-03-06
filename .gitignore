@@ -1,2 +1,4 @@
 .vscode
 \.idea/
+dataset/preprocessed/*.csv
+dataset/original/*.csv
