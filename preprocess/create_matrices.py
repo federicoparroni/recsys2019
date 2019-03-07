@@ -19,7 +19,7 @@ def urm(train_df, test_df, accomodations_array, clickout_score=5, impressions_sc
   df_impressions = session_groups.impressions.apply(lambda x: list(map(int, x.values[0].split('|')))).reset_index(name='impressions')
   
   # one hot of references and impressions
-  mlb = MultiLabelBinarizer(accomodations, sparse_output=True)
+  mlb = MultiLabelBinarizer(accomodations_array, sparse_output=True)
 
   clickout_onehot = mlb.fit_transform(df_references.references)
   
