@@ -9,6 +9,7 @@ from bayes_opt import BayesianOptimization
 import time
 import utils.dated_directory as datedir
 import scipy.sparse as sps
+import out
 
 class CFItemBased(DistanceBasedRecommender):
     """
@@ -20,7 +21,7 @@ class CFItemBased(DistanceBasedRecommender):
         super(CFItemBased, self).__init__()
         self.name = 'CFitem'
 
-    def fit(self, urm_train, k, distance, shrink=0, threshold=0, implicit=True, alpha=None, beta=None, l=None, c=None, verbose=False):
+    def fit(self, urm_train, k, distance, shrink=0, threshold=0, implicit=True, alpha=None, beta=None, l=None, c=None, verbose=False, urm=None):
         """
         Initialize the model and compute the Similarity_MFD matrix S with a distance metric.
         Access the Similarity_MFD matrix using: self._sim_matrix
@@ -46,7 +47,7 @@ class CFItemBased(DistanceBasedRecommender):
         """
         self.urm = urm_train
         return super(CFItemBased, self).fit(urm_train.T, k=k, distance=distance, shrink=shrink, threshold=threshold,
-                                            implicit=implicit, alpha=alpha, beta=beta, l=l, c=c, verbose=verbose)
+                                            implicit=implicit, alpha=alpha, beta=beta, l=l, c=c, urm=urm)
 
     def get_r_hat(self, verbose=False):
         """
@@ -54,7 +55,6 @@ class CFItemBased(DistanceBasedRecommender):
         """
         return super(CFItemBased, self).get_r_hat(verbose=verbose)
     
-
     def run(self, distance, urm_train=None, urm_test=None, targetids=None, k=100, shrink=10, threshold=0,
             implicit=True, alpha=None, beta=None, l=None, c=None, with_scores=False, export=True, verbose=True):
         """
@@ -100,14 +100,12 @@ class CFItemBased(DistanceBasedRecommender):
         
         return recs, map10
 
-
     #def test(self, distance=DistanceBasedRecommender.SIM_SPLUS, k=200, shrink=0, threshold=0, implicit=True, alpha=0.5, beta=0.5, l=0.5, c=0.5):
     def test(self, distance=DistanceBasedRecommender.SIM_SPLUS, k=600, shrink=10, threshold=0, implicit=True, alpha=0.25, beta=0.5, l=0.25, c=0.5):
         """
         Test the model without saving the results. Default distance: SPLUS
         """
         return self.run(distance=distance, k=k, shrink=shrink, threshold=threshold, implicit=implicit, alpha=alpha, beta=beta, l=l, c=c, export=False)
-
 
     def validateStep(self, k, shrink, alpha, beta, l, c, threshold):
         # gather saved parameters from self
@@ -185,12 +183,16 @@ If this file is executed, test the SPLUS distance metric
 if __name__ == '__main__':
     import pandas as pd
     import data
+    import scipy.sparse as sps
     from preprocess.create_matrices import urm
-    train_df = pd.read_csv('dataset/preprocessed/local_train.csv')
-    test_df = pd.read_csv('dataset/preprocessed/local_test.csv')
-    accomodations = data.accomodations_df()['item_id']
-    urm_, session_ids = urm(train_df, test_df, accomodations)
+    handle_df = data.handle_df()
+    urm_train = data.train_urm()
+    dictionary_row = data.dictionary_row()
+    dictionary_col = data.dictionary_col()
     ib = CFItemBased()
+    ib.fit(urm_train, 50, ib.SIM_JACCARD, shrink=10, threshold=0, implicit=False, alpha=0.5, beta=0.5, l=0.5, c=0.5, urm=urm_train)
+    predictions = ib.recommend_batch(handle_df, dictionary_row, dictionary_col)
+    out.create_sub(predictions, handle_df)
 
     # print()
     # log.success('++ What do you want to do? ++')

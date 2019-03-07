@@ -16,9 +16,9 @@ def split(df, perc_train=80):
         df_test.at[e[1], 'reference'] = np.nan
     
     # save them all
-    df_train.to_csv('dataset/preprocessed/local_train.csv')
-    df_test.to_csv('dataset/preprocessed/local_test.csv')
-    df_handle.to_csv('dataset/preprocessed/local_handle.csv')
+    df_train.to_csv('dataset/preprocessed/local_train.csv', index=False)
+    df_test.to_csv('dataset/preprocessed/local_test.csv', index=False)
+    df_handle.to_csv('dataset/preprocessed/local_handle.csv', index=False)
 
 if __name__== "__main__":
-    split(pd.read_csv('dataset/original/train.csv'))
+    split(pd.read_csv('dataset/preprocessed/train_small.csv'))

@@ -9,7 +9,7 @@ from recommenders.recommender_base import RecommenderBase
 import utils.log as log
 import numpy as np
 import similaripy as sim
-# import data.data as data
+import data
 
 class DistanceBasedRecommender(RecommenderBase):
     """
@@ -35,7 +35,7 @@ class DistanceBasedRecommender(RecommenderBase):
         self._sim_matrix = None
         self._matrix_mul_order = 'standard' # if you want R•R', or 'inverse' if you want to compute R'•R
 
-    def fit(self, matrix, k, distance, shrink=0, threshold=0, implicit=True, alpha=None, beta=None, l=None, c=None, verbose=False):
+    def fit(self, matrix, k, distance, shrink=0, threshold=0, implicit=True, alpha=0.5, beta=0.5, l=0.5, c=0.5, urm=None):
         """
         Initialize the model and compute the Similarity_MFD matrix S with a distance metric.
         Access the Similarity_MFD matrix using: self._sim_matrix
@@ -58,7 +58,9 @@ class DistanceBasedRecommender(RecommenderBase):
         beta: float, optional, included in [0,1]
         l: float, optional, balance coefficient used in s_plus distance, included in [0,1]
         c: float, optional, cosine coefficient, included in [0,1]
+        urm: urm that has to be multiplied by the similarity matrix
         """
+        self.urm = urm
         alpha = -1 if alpha is None else alpha
         beta = -1 if beta is None else beta
         l = -1 if l is None else l
@@ -110,7 +112,6 @@ class DistanceBasedRecommender(RecommenderBase):
             return False
         else:
             return True
-
     def get_r_hat(self, verbose=False):
         """
         Return the r_hat matrix as: R^ = R•S or R^ = S•R
@@ -129,37 +130,28 @@ class DistanceBasedRecommender(RecommenderBase):
         else:
             print('NOT TRAINED')
 
-    def recommend_batch(self, df_handle, dict):
+    def recommend_batch(self, df_handle, dict_row, dict_col):
         if not self._has_fit():
             return None
-
-        R = data.get_urm_train_1() if urm is None else urm
-
-        if userids is None or not len(userids) > 0:
-            print('Recommending for all users...')
-            
+        
+        R = self.urm
+        
         # compute the R^ by multiplying: R•S or S•R 
         if self._matrix_mul_order == 'inverse':
             R_hat = self._sim_matrix * R
         else:
             R_hat = R * self._sim_matrix
         
-        if filter_already_liked:
-            # remove from the R^ the items already in the R
-            R_hat[R.nonzero()] = -np.inf
-        if len(items_to_exclude)>0:
-            # TO-DO: test this part because it does not work!
-            R_hat = R_hat.T
-            R_hat[items_to_exclude] = -np.inf
-            R_hat = R_hat.T
+        predictions = []
+        for index, row in df_handle.iterrows():
+            idx = dict_row[row['session_id']]
+            impr = list(map(int, row['impressions'].split('|')))
+            urm_row = R_hat.getrow(idx)
+            l = [[i, urm_row[0, dict_col[i]]] for i in impr]
+            l.sort(key=lambda tup: tup[1], reverse=True)
+            predictions.append((row['session_id'], [e[0] for e in l]))
 
-        # make recommendations only for the target rows
-        if len(userids) > 0: 
-            R_hat = R_hat[userids]
-        else:
-            userids = [i for i in range(R_hat.shape[0])]
-        recommendations = self._extract_top_items(R_hat, N=N)
-        return self._insert_userids_as_first_col(userids, recommendations).tolist()
+        return predictions
     
     def _extract_top_items(self, r_hat, N):
         # convert to np matrix

@@ -1,13 +1,14 @@
 import pandas as pd
 import numpy as np
+import scipy.sparse as sps
 from sklearn.preprocessing import MultiLabelBinarizer
 
-def urm(train_df, test_df, accomodations_array, clickout_score=5, impressions_score=1):
+def urm(train_df, test_df, accomodations_array, save=True, clickout_score=5, impressions_score=1):
   # Return a sparse matrix (sessions, accomodations) and the association dict sessionId-urm_row
   assert clickout_score > impressions_score
   
-  train_df = train_df[(train_df['action_type'] == 'clickout item') & np.logical_not(train_df['reference'].isnull())]
-  test_df = test_df[(test_df['action_type'] == 'clickout item') & np.logical_not(test_df['reference'].isnull())]
+  train_df = train_df[train_df['action_type'] == 'clickout item'].fillna(0)
+  test_df = test_df[test_df['action_type'] == 'clickout item'].fillna(0)
 
   df = pd.concat([train_df, test_df])[['session_id','reference','impressions']]
   session_groups = df.groupby('session_id')
@@ -37,15 +38,19 @@ def urm(train_df, test_df, accomodations_array, clickout_score=5, impressions_sc
   for i in range(len(mlb.classes)):
     col_of_accomodation[mlb.classes[i]] = i
   
-  return urm, row_of_sessionid
+  if save == True:
+    sps.save_npz('dataset/matrices/train_urm.npz', urm)
+    np.save('dataset/matrices/dict_row.npy', row_of_sessionid)
+    np.save('dataset/matrices/dict_col.npy', col_of_accomodation)
+  return urm, row_of_sessionid, col_of_accomodation
 
 
 if __name__ == "__main__":
   import data
-  train_df = pd.read_csv('dataset/preprocessed/train_small.csv')
-  test_df = pd.read_csv('dataset/preprocessed/test_small.csv')
+  train_df = pd.read_csv('dataset/preprocessed/local_train.csv')
+  test_df = pd.read_csv('dataset/preprocessed/local_test.csv')
   accomodations = data.accomodations_df()['item_id']
-  u, session_ids = urm(train_df, test_df, accomodations)
+  u, session_ids, col_of_accomodation = urm(train_df, test_df, accomodations)
 
   print(u.shape)
   print(session_ids)
