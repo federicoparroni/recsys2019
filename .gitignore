@@ -2,3 +2,9 @@
 \.idea/
 dataset/preprocessed/*.csv
 dataset/original/*.csv
+
+build/
+
+evaluate_C\.c
+
+evaluate_C\.cpython-37m-x86_64-linux-gnu\.so
