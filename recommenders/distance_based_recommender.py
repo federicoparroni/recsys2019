@@ -9,7 +9,7 @@ from recommenders.recommender_base import RecommenderBase
 import utils.log as log
 import numpy as np
 import similaripy as sim
-import data.data as data
+# import data.data as data
 
 class DistanceBasedRecommender(RecommenderBase):
     """
@@ -129,7 +129,7 @@ class DistanceBasedRecommender(RecommenderBase):
         else:
             print('NOT TRAINED')
 
-    def recommend_batch(self, userids, N=10, urm=None, filter_already_liked=True, with_scores=False, items_to_exclude=[], verbose=False):
+    def recommend_batch(self, df_handle, dict):
         if not self._has_fit():
             return None
 

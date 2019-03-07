@@ -23,7 +23,7 @@ class RecommenderBase(ABC):
         """
         pass
 
-    def recommend_batch(self, userids, urm,  N=10, filter_already_liked=True, with_scores=True, items_to_exclude=[], verbose=False):
+    def recommend_batch(self, df_handle, dict):
         pass
 
     def evaluate(self, recommendations, test_urm, at_k=10, single_ap=False, verbose=True):

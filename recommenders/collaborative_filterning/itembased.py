@@ -1,14 +1,11 @@
 """
 Collaborative filtering recommender.
 """
-
 from recommenders.distance_based_recommender import DistanceBasedRecommender
-import data.data as data
-import utils.log as log
 import similaripy as sim
 import numpy as np
 from bayes_opt import BayesianOptimization
-from inout.importexport import exportcsv
+# from inout.importexport import exportcsv
 import time
 import utils.dated_directory as datedir
 import scipy.sparse as sps
@@ -186,39 +183,48 @@ class CFItemBased(DistanceBasedRecommender):
 If this file is executed, test the SPLUS distance metric
 """
 if __name__ == '__main__':
-    print()
-    log.success('++ What do you want to do? ++')
-    log.warning('(t) Test the model with some default params')
-    log.warning('(r) Save the R^')
-    log.warning('(s) Save the similarity matrix')
-    log.warning('(v) Validate the model')
-    log.warning('(x) Exit')
-    arg = input()[0]
-    print()
+    import pandas as pd
+    import data
+    from preprocess.create_matrices import urm
+    train_df = pd.read_csv('dataset/preprocessed/local_train.csv')
+    test_df = pd.read_csv('dataset/preprocessed/local_test.csv')
+    accomodations = data.accomodations_df()['item_id']
+    urm_, session_ids = urm(train_df, test_df, accomodations)
+    ib = CFItemBased()
+
+    # print()
+    # log.success('++ What do you want to do? ++')
+    # log.warning('(t) Test the model with some default params')
+    # log.warning('(r) Save the R^')
+    # log.warning('(s) Save the similarity matrix')
+    # log.warning('(v) Validate the model')
+    # log.warning('(x) Exit')
+    # arg = input()[0]
+    # print()
     
-    model = CFItemBased()
-    if arg == 't':
-        # recs = model.recommend_batch(userids=data.get_target_playlists(), urm=data.get_urm_train())
-        # model.evaluate(recommendations=recs, test_urm=data.get_urm_test())
-        model.test(distance=CFItemBased.SIM_P3ALPHA, k=500,alpha=1.7,beta=0.5,shrink=0,l=0.25,c=0.5)
-    elif arg == 'r':
-        log.info('Wanna save for evaluation (y/n)?')
-        choice = input()[0] == 'y'
-        model.fit(data.get_urm_train_2(), distance=model.SIM_SPLUS,k=600,alpha=0.25,beta=0.5,shrink=10,l=0.25,c=0.5)
-        print('Saving the R^...')
-        model.save_r_hat(evaluation=choice)
-    elif arg == 's':
-        model.fit(data.get_urm_train_2(), distance=model.SIM_SPLUS,k=600,alpha=0.25,beta=0.5,shrink=10,l=0.25,c=0.5)
-        print('Saving the similarity matrix...')
-        sps.save_npz('raw_data/saved_sim_matrix_evaluation_2/{}'.format(model.name), model.get_sim_matrix())
-    elif arg == 'v':
-        # model.validate(iterations=10, urm_train=data.get_urm_train_1(), urm_test=data.get_urm_test_1(), targetids=data.get_target_playlists(),
-        #          distance=model.SIM_SPLUS, k=(100, 600), alpha=(0,2), beta=(0,2),shrink=(0,100),l=(0,1),c=(0,1))
-        model.validate(iterations=10, urm_train=data.get_urm_train_1(), urm_test=data.get_urm_test_1(), targetids=data.get_target_playlists(),
-                 distance=model.SIM_RP3BETA, k=(100, 600), alpha=(0,2), beta=(0,2),shrink=(0,100),l=1,c=1)
-        #model.test(distance=CFItemBased.SIM_P3ALPHA, k=300,alpha=(0,2),shrink=(0,100))
-    elif arg == 'x':
-        pass
-    else:
-        log.error('Wrong option!')
+    # model = CFItemBased()
+    # if arg == 't':
+    #     # recs = model.recommend_batch(userids=data.get_target_playlists(), urm=data.get_urm_train())
+    #     # model.evaluate(recommendations=recs, test_urm=data.get_urm_test())
+    #     model.test(distance=CFItemBased.SIM_P3ALPHA, k=500,alpha=1.7,beta=0.5,shrink=0,l=0.25,c=0.5)
+    # elif arg == 'r':
+    #     log.info('Wanna save for evaluation (y/n)?')
+    #     choice = input()[0] == 'y'
+    #     model.fit(data.get_urm_train_2(), distance=model.SIM_SPLUS,k=600,alpha=0.25,beta=0.5,shrink=10,l=0.25,c=0.5)
+    #     print('Saving the R^...')
+    #     model.save_r_hat(evaluation=choice)
+    # elif arg == 's':
+    #     model.fit(data.get_urm_train_2(), distance=model.SIM_SPLUS,k=600,alpha=0.25,beta=0.5,shrink=10,l=0.25,c=0.5)
+    #     print('Saving the similarity matrix...')
+    #     sps.save_npz('raw_data/saved_sim_matrix_evaluation_2/{}'.format(model.name), model.get_sim_matrix())
+    # elif arg == 'v':
+    #     # model.validate(iterations=10, urm_train=data.get_urm_train_1(), urm_test=data.get_urm_test_1(), targetids=data.get_target_playlists(),
+    #     #          distance=model.SIM_SPLUS, k=(100, 600), alpha=(0,2), beta=(0,2),shrink=(0,100),l=(0,1),c=(0,1))
+    #     model.validate(iterations=10, urm_train=data.get_urm_train_1(), urm_test=data.get_urm_test_1(), targetids=data.get_target_playlists(),
+    #              distance=model.SIM_RP3BETA, k=(100, 600), alpha=(0,2), beta=(0,2),shrink=(0,100),l=1,c=1)
+    #     #model.test(distance=CFItemBased.SIM_P3ALPHA, k=300,alpha=(0,2),shrink=(0,100))
+    # elif arg == 'x':
+    #     pass
+    # else:
+    #     log.error('Wrong option!')
 
