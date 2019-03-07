@@ -23,13 +23,16 @@ def urm(train_df, test_df, accomodations_array, clickout_score=5, impressions_sc
   
   impr_onehot = mlb.fit_transform(df_impressions.impressions)
 
-  return (clickout_score - impressions_score) * clickout_onehot + impressions_score * impr_onehot
+  urm = (clickout_score - impressions_score) * clickout_onehot + impressions_score * impr_onehot
+  return urm, session_ids
 
 
 if __name__ == "__main__":
+  import data
   train_df = pd.read_csv('dataset/preprocessed/train_small.csv')
   test_df = pd.read_csv('dataset/preprocessed/test_small.csv')
-  accomodations = pd.read_csv('dataset/original/item_metadata.csv')['item_id']
-  u = urm(train_df, test_df, accomodations)
+  accomodations = data.accomodations_df()['item_id']
+  u, session_ids = urm(train_df, test_df, accomodations)
 
   print(u.shape)
+  print(session_ids[:30])
