@@ -31,6 +31,11 @@ def urm(train_df, test_df, accomodations_array, clickout_score=5, impressions_sc
   row_of_sessionid = {}
   for i in range(len(session_ids)):
     row_of_sessionid[session_ids[i]] = i
+
+  # create dictionary (k: accomodationId - v: urm col)
+  col_of_accomodation = {}
+  for i in range(len(mlb.classes)):
+    col_of_accomodation[mlb.classes[i]] = i
   
   return urm, row_of_sessionid
 
