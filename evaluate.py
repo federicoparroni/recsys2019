@@ -31,13 +31,6 @@ def evaluate(test_df, predictions):
     return RR/target_session_count
 
 
-# def evaluate_Cython(test_df, predictions):
-#     start = time.time()
-#     MRR = e.evaluate(test_df, predictions)
-#     print("s to complete: {}".format(time.time() - start))
-#     return MRR
-
-
 if __name__ == '__main__':
     evaluate_C.evaluate(test_df,predictions_sample)
     evaluate(test_df,predictions_sample)
