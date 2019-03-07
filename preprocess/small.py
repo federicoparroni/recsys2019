@@ -1,8 +1,6 @@
-def create(N=1000, insert_index_col=False):
-  folder = 'dataset/'
-
-  inp = '{}/original/train.csv'.format(folder)
-  dest = '{}/preprocessed/train_small.csv'.format(folder)
+def create(filename, N=1000, folder='dataset', insert_index_col=False):
+  inp = '{}/original/{}.csv'.format(folder, filename)
+  dest = '{}/preprocessed/{}_small.csv'.format(folder, filename)
 
   with open(inp, 'r') as file:
     with open(dest, 'w+') as out:
@@ -23,4 +21,5 @@ def create(N=1000, insert_index_col=False):
           break
 
 if __name__ == "__main__":
-    create()
+  create('train')
+  create('test')
