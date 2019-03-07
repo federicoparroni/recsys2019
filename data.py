@@ -23,5 +23,5 @@ def test_df():
 def accomodations_df():
   global _cache_df_items
   if _cache_df_items is None:
-    _cache_df_items = pd.read_csv(pd.read_csv(ITEMS_CSV_PATH))
+    _cache_df_items = pd.read_csv(ITEMS_CSV_PATH)
   return _cache_df_items
