@@ -17,7 +17,7 @@ def train_df():
 def test_df():
   global _cache_df_test
   if _cache_df_train is None:
-    _cache_df_test = pd.read_csv(pd.read_csv(TEST_CSV_PATH))
+    _cache_df_test = pd.read_csv(TEST_CSV_PATH)
   return _cache_df_test
 
 def accomodations_df():
