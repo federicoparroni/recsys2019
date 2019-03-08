@@ -47,7 +47,7 @@ def train_df():
 
 def test_df():
   global _df_test
-  if _df_train is None:
+  if _df_test is None:
     _df_test = pd.read_csv(TEST_PATH)
   return _df_test
 
