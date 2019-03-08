@@ -107,5 +107,17 @@ def dictionary_col():
     _dict_col = np.load(DICT_COL_PATH).item()
   return _dict_col
 
+def local_dictionary_row():
+  global _local_dict_row
+  if _local_dict_row is None:
+    _local_dict_row = np.load(LOCAL_DICT_ROW_PATH).item()
+  return _local_dict_row
+
+def local_dictionary_col():
+  global _local_dict_col
+  if _local_dict_col is None:
+    _local_dict_col = np.load(LOCAL_DICT_COL_PATH).item()
+  return _local_dict_col
+
   
   
