@@ -44,7 +44,7 @@ def urm(train_df, test_df, accomodations_array, save=True, clickout_score=5, imp
   if save == True:
     if not os.path.exists('dataset/matrices'):
       os.mkdir('dataset/matrices')
-    sps.save_npz('dataset/matrices/train_urm.npz', urm)
+    sps.save_npz('dataset/matrices/urm.npz', urm)
     np.save('dataset/matrices/dict_row.npy', row_of_sessionid)
     np.save('dataset/matrices/dict_col.npy', col_of_accomodation)
   

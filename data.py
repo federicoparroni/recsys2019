@@ -80,7 +80,7 @@ def local_handle_df():
 def urm():
   global _urm
   if _urm is None:
-    _urm = np.load(URM_PATH).item()
+    _urm = sps.load_npz(URM_PATH)
   return _urm
 
 def accomodations_df():
