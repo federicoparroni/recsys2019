@@ -6,6 +6,7 @@ TRAIN_CSV_PATH = 'dataset/preprocessed/local_train.csv'
 TEST_CSV_PATH = 'dataset/preprocessed/local_test.csv'
 HANDLE_CSV_PATH = 'dataset/preprocessed/local_handle.csv'
 ITEMS_CSV_PATH = 'dataset/original/item_metadata.csv'
+URM_PATH = 'dataset/matrices/urm.npz'
 URM_TRAIN_PATH = 'dataset/matrices/train_urm.npz'
 DICT_ROW_PATH = 'dataset/matrices/dict_row.npy'
 DICT_COL_PATH = 'dataset/matrices/dict_col.npy'
@@ -13,6 +14,7 @@ DICT_COL_PATH = 'dataset/matrices/dict_col.npy'
 _cache_df_train = None
 _cache_df_test = None
 _cache_df_handle = None
+_cache_urm = None
 _cache_df_items = None
 _cache_urm_train = None
 _cache_dict_row = None
@@ -29,6 +31,12 @@ def test_df():
   if _cache_df_train is None:
     _cache_df_test = pd.read_csv(TEST_CSV_PATH)
   return _cache_df_test
+
+def urm():
+  global _cache_urm
+  if _cache_urm is None:
+    _cache_urm = np.load(URM_PATH).item()
+  return _cache_urm
 
 def handle_df():
   global _cache_df_handle

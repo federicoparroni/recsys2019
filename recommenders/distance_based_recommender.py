@@ -4,6 +4,9 @@ Supports several distance metrics, thanks to similaripy library.
 See https://github.com/bogliosimone/similaripy/blob/master/guide/temp_guide.md
 for documentation and distance formulas
 """
+import os
+import sys
+sys.path.append(os.getcwd())
 
 from recommenders.recommender_base import RecommenderBase
 import utils.log as log

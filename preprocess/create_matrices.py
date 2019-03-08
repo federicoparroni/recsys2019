@@ -7,6 +7,8 @@ def urm(train_df, test_df, accomodations_array, save=True, clickout_score=5, imp
   # Return a sparse matrix (sessions, accomodations) and the association dict sessionId-urm_row
   assert clickout_score > impressions_score
   
+  handle = create_handle(test_df, save=save)
+
   train_df = train_df[train_df['action_type'] == 'clickout item'].fillna(0)
   test_df = test_df[test_df['action_type'] == 'clickout item'].fillna(0)
 
@@ -42,15 +44,31 @@ def urm(train_df, test_df, accomodations_array, save=True, clickout_score=5, imp
     sps.save_npz('dataset/matrices/train_urm.npz', urm)
     np.save('dataset/matrices/dict_row.npy', row_of_sessionid)
     np.save('dataset/matrices/dict_col.npy', col_of_accomodation)
-  return urm, row_of_sessionid, col_of_accomodation
+  
+  return urm, row_of_sessionid, col_of_accomodation, handle
+
+def create_handle(test_df, save=True, name='handle.csv', folder='dataset/preprocessed'):
+  # user_id,session_id,timestamp,step,reference,impressions
+  df_handle = test_df[['user_id','session_id','timestamp','step','impressions']]
+  df_handle = df_handle[(test_df['action_type'] == 'clickout item') & (test_df['reference'].isnull())]
+  
+  df_handle.to_csv('{}/{}'.format(folder,name), index=False)
+  return df_handle
 
 
 if __name__ == "__main__":
+  import os
+  import sys
+  sys.path.append(os.getcwd())
+
   import data
   train_df = pd.read_csv('dataset/preprocessed/local_train.csv')
   test_df = pd.read_csv('dataset/preprocessed/local_test.csv')
   accomodations = data.accomodations_df()['item_id']
-  u, session_ids, col_of_accomodation = urm(train_df, test_df, accomodations)
+  u, session_ids, col_of_accomodation, handle = urm(train_df, test_df, accomodations, save=False)
 
   print(u.shape)
+  print()
   print(session_ids)
+  print()
+  print(handle)
