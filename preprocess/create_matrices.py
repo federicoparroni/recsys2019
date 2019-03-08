@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import scipy.sparse as sps
 from sklearn.preprocessing import MultiLabelBinarizer
+import os
 
 def urm(train_df, test_df, accomodations_array, save=True, clickout_score=5, impressions_score=1):
   # Return a sparse matrix (sessions, accomodations) and the association dict sessionId-urm_row
@@ -41,6 +42,8 @@ def urm(train_df, test_df, accomodations_array, save=True, clickout_score=5, imp
     col_of_accomodation[mlb.classes[i]] = i
   
   if save == True:
+    if not os.path.exists('dataset/matrices'):
+      os.mkdir('dataset/matrices')
     sps.save_npz('dataset/matrices/train_urm.npz', urm)
     np.save('dataset/matrices/dict_row.npy', row_of_sessionid)
     np.save('dataset/matrices/dict_col.npy', col_of_accomodation)
@@ -57,7 +60,6 @@ def create_handle(test_df, save=True, name='handle.csv', folder='dataset/preproc
 
 
 if __name__ == "__main__":
-  import os
   import sys
   sys.path.append(os.getcwd())
 

@@ -4,7 +4,8 @@ import numpy as np
 
 TRAIN_CSV_PATH = 'dataset/preprocessed/local_train.csv'
 TEST_CSV_PATH = 'dataset/preprocessed/local_test.csv'
-HANDLE_CSV_PATH = 'dataset/preprocessed/local_handle.csv'
+HANDLE_CSV_PATH = 'dataset/preprocessed/handle.csv'
+LOCAL_HANDLE_CSV_PATH = 'dataset/preprocessed/local_handle.csv'
 ITEMS_CSV_PATH = 'dataset/original/item_metadata.csv'
 URM_PATH = 'dataset/matrices/urm.npz'
 URM_TRAIN_PATH = 'dataset/matrices/train_urm.npz'
@@ -14,6 +15,7 @@ DICT_COL_PATH = 'dataset/matrices/dict_col.npy'
 _cache_df_train = None
 _cache_df_test = None
 _cache_df_handle = None
+_cache_df_localhandle = None
 _cache_urm = None
 _cache_df_items = None
 _cache_urm_train = None
@@ -43,6 +45,12 @@ def handle_df():
   if _cache_df_handle is None:
     _cache_df_handle = pd.read_csv(HANDLE_CSV_PATH)
   return _cache_df_handle
+
+def local_handle_df():
+  global _cache_df_localhandle
+  if _cache_df_localhandle is None:
+    _cache_df_localhandle = pd.read_csv(LOCAL_HANDLE_CSV_PATH)
+  return _cache_df_localhandle
 
 def accomodations_df():
   global _cache_df_items
