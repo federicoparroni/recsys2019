@@ -1,4 +1,4 @@
-def create(filename, N=1000, folder='dataset', insert_index_col=False):
+def create(filename, N=1010, folder='dataset', insert_index_col=False):
   inp = '{}/original/{}.csv'.format(folder, filename)
   dest = '{}/preprocessed/{}_small.csv'.format(folder, filename)
 
