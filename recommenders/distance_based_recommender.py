@@ -120,7 +120,7 @@ class DistanceBasedRecommender(RecommenderBase):
         Return the r_hat matrix as: R^ = R•S or R^ = S•R
         """
         R = self.urm
-        targetids = data.get_target_playlists()
+        targetids = data.target_urm_rows()
         if self._matrix_mul_order == 'inverse':
             return sim.dot_product(self._sim_matrix, R, target_rows=targetids, k=R.shape[0],
                                     format_output='csr', verbose=verbose)
@@ -133,21 +133,17 @@ class DistanceBasedRecommender(RecommenderBase):
         else:
             print('NOT TRAINED')
 
-    def recommend_batch(self, df_handle, dict_row, dict_col):
+    def recommend_batch(self, df_handle, dict_row, dict_col, verbose=False):
         if not self._has_fit():
             return None
+                
+        # compute the R^ by multiplying: R•S or S•R
+        R_hat = self.get_r_hat(verbose)
         
-        R = self.urm
-        
-        # compute the R^ by multiplying: R•S or S•R 
-        if self._matrix_mul_order == 'inverse':
-            R_hat = self._sim_matrix * R
-        else:
-            R_hat = R * self._sim_matrix
-        
+        target_rows = data.target_urm_rows()
         predictions = []
         for index, row in df_handle.iterrows():
-            idx = dict_row[row['session_id']]
+            idx = target_rows[index]
             impr = list(map(int, row['impressions'].split('|')))
             urm_row = R_hat.getrow(idx)
             l = [[i, urm_row[0, dict_col[i]]] for i in impr]
