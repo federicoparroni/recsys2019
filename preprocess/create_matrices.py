@@ -64,13 +64,28 @@ if __name__ == "__main__":
   sys.path.append(os.getcwd())
 
   import data
-  train_df = pd.read_csv('dataset/preprocessed/local_train.csv')
-  test_df = pd.read_csv('dataset/preprocessed/local_test.csv')
+  print()
+  print('(1) Create matrices from LOCAL dataset')
+  print('(2) Create matrices from ORIGINAL dataset')
+  choice = input()[0]
+
+  if choice == '1':
+    train_df = data.local_train_df()
+    test_df = data.local_test_df
+
+  elif choice == '2':
+    train_df = data.train_df()
+    test_df = data.test_df()
+  
+  else:
+    print('Invalid option')
+    exit(0)
+
   accomodations = data.accomodations_df()['item_id']
-  u, session_ids, col_of_accomodation, handle = urm(train_df, test_df, accomodations, save=False)
+  u, session_ids, col_of_accomodation, handle = urm(train_df, test_df, accomodations, save=True)
 
   print(u.shape)
   print()
-  print(session_ids)
+  print('Sessions: {}'.format(len(session_ids)))
   print()
   print(handle)
