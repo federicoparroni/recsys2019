@@ -14,3 +14,7 @@ preprocess/__pycache__/*
 recommenders/__pycache__/*
 submissions/*
 utils/__pycache__/*
+
+\.ipynb_checkpoints/
+
+*.ipynb
