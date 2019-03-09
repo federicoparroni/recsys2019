@@ -36,7 +36,7 @@ class DistanceBasedRecommender(RecommenderBase):
         super(DistanceBasedRecommender, self).__init__()
         self.name = 'distancebased'
         self._sim_matrix = None
-        self._matrix_mul_order = 'standard' # if you want R•R', or 'inverse' if you want to compute R'•R
+        self._matrix_mul_order = 'standard' # if you want R•R', or 'inverse' if you want to compute S•R
 
     def fit(self, matrix, k, distance, shrink=0, threshold=0, implicit=True, alpha=0.5, beta=0.5, l=0.5, c=0.5, urm=None):
         """
@@ -123,10 +123,10 @@ class DistanceBasedRecommender(RecommenderBase):
         targetids = data.target_urm_rows()
         if self._matrix_mul_order == 'inverse':
             return sim.dot_product(self._sim_matrix, R, target_rows=targetids, k=R.shape[0],
-                                    format_output='csr', verbose=verbose)
+                                    verbose=verbose)
         else:
             return sim.dot_product(R, self._sim_matrix, target_rows=targetids, k=R.shape[0],
-                                    format_output='csr', verbose=verbose)
+                                    verbose=verbose)
     def get_sim_matrix(self):
         if self._sim_matrix is not None:
             return self._sim_matrix
