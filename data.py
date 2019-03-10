@@ -31,6 +31,7 @@ _df_localtest = None
 _df_localhandle = None
 
 _df_items = None
+_target_urm_rows = None
 
 _urm = None
 _urm_train = None
@@ -50,6 +51,16 @@ def test_df():
   if _df_test is None:
     _df_test = pd.read_csv(TEST_PATH)
   return _df_test
+
+def target_urm_rows():
+  global _target_urm_rows
+  dictionary_row()
+  if _target_urm_rows is None:
+    _target_urm_rows = []
+    for r in handle_df().session_id.values:
+      _target_urm_rows.append(_dict_row[r])
+  return _target_urm_rows
+
 
 def handle_df():
   global _df_handle
@@ -119,11 +130,11 @@ def local_dictionary_row():
     _local_dict_row = np.load(LOCAL_DICT_ROW_PATH).item()
   return _local_dict_row
 
-def local_dictionary_col():
-  global _local_dict_col
-  if _local_dict_col is None:
-    _local_dict_col = np.load(LOCAL_DICT_COL_PATH).item()
-  return _local_dict_col
+# def local_dictionary_col():
+#   global _local_dict_col
+#   if _local_dict_col is None:
+#     _local_dict_col = np.load(LOCAL_DICT_COL_PATH).item()
+#   return _local_dict_col
 
   
   

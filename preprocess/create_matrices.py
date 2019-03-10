@@ -8,12 +8,28 @@ from sklearn.preprocessing import MultiLabelBinarizer
 import utils.get_action_score as gas
 import data
 
-def urm(train_df, test_df, save=True, clickout_score=5, impressions_score=1):
+
+def handle(test_df, local, save=True, name='handle.csv', folder='dataset/preprocessed'):
+  # user_id,session_id,timestamp,step,reference,impressions
+  df_handle = test_df[['user_id','session_id','timestamp','step','impressions']]
+  df_handle = df_handle[(test_df['action_type'] == 'clickout item') & (test_df['reference'].isnull())]
+  
+  if local:
+    name = 'local_{}'.format(name)
+  df_handle.to_csv('{}/{}'.format(folder,name), index=False)
+
+  return df_handle
+
+
+def urm(train_df, test_df, accomodations_array, local, clickout_score=5, impressions_score=1, save=True):
   # Return a sparse matrix (sessions, accomodations) and the association dict sessionId-urm_row
-  accomodations_array = data.accomodations_id()
+  # PARAMS
+  # local: operate wether using local or original dataset
+  # clickout_score: score to assign to clickout items
+  # impressions_score: score to assign to impressions accomodations, must be greater than clickout_score
   assert clickout_score > impressions_score
   
-  handle = create_handle(test_df, save=save)
+  hnd = handle(test_df, local, save=save)
 
   train_df = train_df[train_df['action_type'] == 'clickout item'].fillna(-1)
   test_df = test_df[test_df['action_type'] == 'clickout item'].fillna(-1)
@@ -47,15 +63,28 @@ def urm(train_df, test_df, save=True, clickout_score=5, impressions_score=1):
     col_of_accomodation[mlb.classes[i]] = i
   
   if save == True:
-    if not os.path.exists('dataset/matrices'):
-      os.mkdir('dataset/matrices')
-    sps.save_npz('dataset/matrices/urm.npz', urm)
-    np.save('dataset/matrices/dict_row.npy', row_of_sessionid)
-    np.save('dataset/matrices/dict_col.npy', col_of_accomodation)
+    path = 'dataset/matrices'
+    if not os.path.exists(path):
+      os.mkdir(path)
+    path += '/'
+    if local:
+      path += 'local_'
+
+    # save all
+    print('Saving urm matrix... ', end='\t')
+    sps.save_npz('{}urm.npz'.format(path), urm)
+    print('done!')
+
+    print('Saving row dictionary... ', end='\t')
+    np.save('{}dict_row.npy'.format(path), row_of_sessionid)
+    print('done!')
+
+    print('Saving col dictionary... ', end='\t')
+    np.save('dataset/matrices/dict_col.npy'.format(path), col_of_accomodation)
+    print('done!')
+
   
-  return urm, row_of_sessionid, col_of_accomodation, handle
-
-
+  return urm, row_of_sessionid, col_of_accomodation, hnd
 
 
 def urm_session_aware(train_df, test_df, time_weight, save=True):
@@ -63,7 +92,7 @@ def urm_session_aware(train_df, test_df, time_weight, save=True):
   tw = time_weight
 
   accomodations_array = data.accomodations_id()
-  handle = create_handle(test_df, save=save)
+  hnd = handle(test_df, save=save)
 
   # fill missing clickout_item on the test dataframe
   test_df.fillna({'reference': -1}, inplace=True)
@@ -111,7 +140,7 @@ def urm_session_aware(train_df, test_df, time_weight, save=True):
     np.save('dataset/matrices/dict_row.npy', row_of_sessionid)
     np.save('dataset/matrices/dict_col.npy', col_of_accomodation)
     print("dictionaries saved")
-
+  #TODO: RETURN STATEMENT
 
 
 def _compute_session_score(df):
@@ -148,19 +177,34 @@ def _compute_session_score(df):
   return scores
 
 
-
-def create_handle(test_df, save=True, name='handle.csv', folder='dataset/preprocessed'):
-  # user_id,session_id,timestamp,step,reference,impressions
-  df_handle = test_df[['user_id','session_id','timestamp','step','impressions']]
-  df_handle = df_handle[(test_df['action_type'] == 'clickout item') & (test_df['reference'].isnull())]
-  
-  df_handle.to_csv('{}/{}'.format(folder,name), index=False)
-  return df_handle
-
-
 if __name__ == "__main__":
-  train_df = pd.read_csv('dataset/preprocessed/local_train.csv')
-  test_df = pd.read_csv('dataset/preprocessed/local_test.csv')
-  #u, session_ids, col_of_accomodation, handle = urm(train_df, test_df, save=False)
+  import sys
+  sys.path.append(os.getcwd())
 
-  urm_session_aware(train_df, test_df, 'lin', save=False)
+  import data
+  print()
+  print('(1) Create matrices from LOCAL dataset')
+  print('(2) Create matrices from ORIGINAL dataset')
+  choice = input()[0]
+
+  if choice == '1':
+    train_df = data.local_train_df()
+    test_df = data.local_test_df()
+    local = True
+  elif choice == '2':
+    train_df = data.train_df()
+    test_df = data.test_df()
+    local = False
+  else:
+    print('Invalid option')
+    exit(0)
+  
+  accomodations = data.accomodations_df()['item_id']
+  u, session_ids, col_of_accomodation, handle = urm(train_df, test_df, accomodations, local, save=True)
+
+  print('URM shape: ', u.shape)
+  print()
+  print('Sessions: {}'.format(len(session_ids)))
+  print()
+  print('All tasks completed!')
+
