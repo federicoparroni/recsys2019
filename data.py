@@ -89,6 +89,12 @@ def accomodations_df():
     _df_items = pd.read_csv(ITEMS_PATH)
   return _df_items
 
+def accomodations_id():
+  global _df_items
+  if _df_items is None:
+    _df_items = pd.read_csv(ITEMS_PATH)
+  return _df_items['item_id']
+
 def train_urm():
   global _urm_train
   if _urm_train is None:
