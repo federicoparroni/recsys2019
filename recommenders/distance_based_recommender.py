@@ -63,7 +63,7 @@ class DistanceBasedRecommender(RecommenderBase):
         c: float, optional, cosine coefficient, included in [0,1]
         urm: urm that has to be multiplied by the similarity matrix
         """
-        self.urm = urm
+        self.urm = urm.tocsc() # debug
         alpha = -1 if alpha is None else alpha
         beta = -1 if beta is None else beta
         l = -1 if l is None else l
@@ -123,10 +123,10 @@ class DistanceBasedRecommender(RecommenderBase):
         targetids = data.target_urm_rows()
         if self._matrix_mul_order == 'inverse':
             return sim.dot_product(self._sim_matrix, R, target_rows=targetids, k=R.shape[0],
-                                    verbose=verbose)
+                                    format_output='csr', verbose=verbose)
         else:
             return sim.dot_product(R, self._sim_matrix, target_rows=targetids, k=R.shape[0],
-                                    verbose=verbose)
+                                    format_output='csr', verbose=verbose)
     def get_sim_matrix(self):
         if self._sim_matrix is not None:
             return self._sim_matrix
@@ -149,6 +149,30 @@ class DistanceBasedRecommender(RecommenderBase):
             l = [[i, urm_row[0, dict_col[i]]] for i in impr]
             l.sort(key=lambda tup: tup[1], reverse=True)
             predictions.append((row['session_id'], [e[0] for e in l]))
+
+        return predictions
+    
+    def recommend_only_target(self, df_handle, dict_row, dict_col, verbose=False):
+        # Compute S•R only for the target rows and columns
+        if not self._has_fit():
+            return None
+        
+        self._sim_matrix = self._sim_matrix.tocsr()
+
+        predictions = []
+        target_rows = data.target_urm_rows()    # get the row indices of the target sessions
+        for index, row_df in df_handle.iterrows():
+            row_idx = target_rows[index]        # row index of current target session
+            row = self._sim_matrix[row_idx]     # sim matrix row of current target session
+            imprs = list(map(int, row_df['impressions'].split('|')))
+            scores_for_session = []             # compute scores ...
+            for imp in imprs:                   # for each accomodation in impressions
+                col = dict_col[imp]
+                score = row * col
+                scores_for_session.append((imp, score))
+            # sort scores based
+            scores_for_session.sort(key=lambda tup: tup[1], reverse=True)
+            predictions.append((row_df['session_id'], [e[0] for e in scores_for_session]))
 
         return predictions
     
