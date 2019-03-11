@@ -13,6 +13,7 @@ import utils.log as log
 import numpy as np
 import similaripy as sim
 import data
+from tqdm import tqdm
 
 class DistanceBasedRecommender(RecommenderBase):
     """
@@ -134,15 +135,16 @@ class DistanceBasedRecommender(RecommenderBase):
             print('NOT TRAINED')
 
     def recommend_batch(self, df_handle, dict_row, dict_col, verbose=False):
-        if not self._has_fit():
-            return None
-                
+       	print('recommending batch')
+	# if not self._has_fit():
+	# return None
+
         # compute the R^ by multiplying: R•S or S•R
         R_hat = self.get_r_hat(verbose)
         
         target_rows = data.target_urm_rows()
         predictions = []
-        for index, row in df_handle.iterrows():
+        for index, row in tqdm(df_handle.iterrows()):
             idx = target_rows[index]
             impr = list(map(int, row['impressions'].split('|')))
             urm_row = R_hat.getrow(idx)
