@@ -21,13 +21,15 @@ def handle(test_df, local, save=True, name='handle.csv', folder='dataset/preproc
   return df_handle
 
 
-def urm(train_df, test_df, accomodations_array, local, clickout_score=5, impressions_score=1, save=True):
+def urm(train_df, test_df, local, clickout_score=5, impressions_score=1, save=True):
   # Return a sparse matrix (sessions, accomodations) and the association dict sessionId-urm_row
   # PARAMS
   # local: operate wether using local or original dataset
   # clickout_score: score to assign to clickout items
   # impressions_score: score to assign to impressions accomodations, must be greater than clickout_score
   assert clickout_score > impressions_score
+
+  accomodations_array = data.accomodations_id()
   
   hnd = handle(test_df, local, save=save)
 
@@ -80,7 +82,7 @@ def urm(train_df, test_df, accomodations_array, local, clickout_score=5, impress
     print('done!')
 
     print('Saving col dictionary... ', end='\t')
-    np.save('dataset/matrices/dict_col.npy'.format(path), col_of_accomodation)
+    np.save('dataset/matrices/dict_col.npy', col_of_accomodation)
     print('done!')
 
   

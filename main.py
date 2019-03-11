@@ -6,6 +6,7 @@ import data
 from recommenders.distance_based_recommender import DistanceBasedRecommender
 import out
 
+
 urm = data.urm()
 handle = data.handle_df()
 accomodations = data.accomodations_df()
@@ -15,6 +16,9 @@ dict_row = data.dictionary_row()
 # accomodations = data.accomodations_df()
 # dict_row = data.local_dictionary_row()
 dict_col = data.dictionary_col()
+
+#import preprocess.create_matrices as cm
+#cm.urm_session_aware(data.local_train_df(),data.local_test_df(),'lin',False)
 
 print('urm ', urm.shape)
 model = DistanceBasedRecommender()
