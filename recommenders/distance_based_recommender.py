@@ -104,7 +104,6 @@ class DistanceBasedRecommender(RecommenderBase):
             self._sim_matrix = sim.s_plus(matrix, k=k, shrink=shrink, threshold=threshold, binary=implicit, l=l, t1=alpha, t2=beta, c=c)
         else:
             log.error('Invalid distance metric: {}'.format(distance))
-        #self.SIM_DOTPRODUCT: sim.dot_product(matrix, k=k, shrink=shrink, threshold=threshold, binary=implicit)
         return self._sim_matrix
     
     def _has_fit(self):
@@ -116,6 +115,7 @@ class DistanceBasedRecommender(RecommenderBase):
             return False
         else:
             return True
+    
     def get_r_hat(self, verbose=False):
         """
         Return the r_hat matrix as: R^ = R•S or R^ = S•R
@@ -123,11 +123,10 @@ class DistanceBasedRecommender(RecommenderBase):
         R = self.urm
         targetids = data.target_urm_rows()
         if self._matrix_mul_order == 'inverse':
-            return sim.dot_product(self._sim_matrix, R, target_rows=targetids, k=R.shape[0],
-                                    format_output='csr', verbose=verbose)
+            return self._sim_matrix.tocsr()[targetids].dot(R)
         else:
-            return sim.dot_product(R, self._sim_matrix, target_rows=targetids, k=R.shape[0],
-                                    format_output='csr', verbose=verbose)
+            return R[targetids].dot(self._sim_matrix)
+
     def get_sim_matrix(self):
         if self._sim_matrix is not None:
             return self._sim_matrix
@@ -136,8 +135,8 @@ class DistanceBasedRecommender(RecommenderBase):
 
     def recommend_batch(self, df_handle, dict_row, dict_col, verbose=False):
        	print('recommending batch')
-	# if not self._has_fit():
-	# return None
+        if not self._has_fit():
+            return None
 
         # compute the R^ by multiplying: R•S or S•R
         R_hat = self.get_r_hat(verbose)
@@ -145,15 +144,14 @@ class DistanceBasedRecommender(RecommenderBase):
         target_rows = data.target_urm_rows()
         predictions = []
         for index, row in tqdm(df_handle.iterrows()):
-            idx = target_rows[index]
             impr = list(map(int, row['impressions'].split('|')))
-            urm_row = R_hat.getrow(idx)
+            urm_row = R_hat.getrow(index)
             l = [[i, urm_row[0, dict_col[i]]] for i in impr]
             l.sort(key=lambda tup: tup[1], reverse=True)
             predictions.append((row['session_id'], [e[0] for e in l]))
 
         return predictions
-    
+  
     def recommend_only_target(self, df_handle, dict_row, dict_col, verbose=False):
         # Compute S•R only for the target rows and columns
         if not self._has_fit():

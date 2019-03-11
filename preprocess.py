@@ -8,7 +8,7 @@ import numpy as np
 import utils.get_action_score as gas
 
 
-def urm_session_aware(train_df, test_df, time_weight, save_path, save=True):
+def urm_session_aware(train_df, test_df, time_weight, save_path):
     """
     create the URM considering the whole session of the user
 
@@ -24,7 +24,6 @@ def urm_session_aware(train_df, test_df, time_weight, save_path, save=True):
     tw = time_weight
 
     accomodations_array = data.accomodations_id()
-    hnd = create_full_handle(test_df, True, save=save)
 
     # fill missing clickout_item on the test dataframe
     test_df.fillna({'reference': -1}, inplace=True)
@@ -59,20 +58,24 @@ def urm_session_aware(train_df, test_df, time_weight, save_path, save=True):
         score_dict = sessions_score[i]
         for k in score_dict.keys():
             col_indx = col_of_accomodation[k]
-            urm[i ,col_indx] = score_dict[k]
+            urm[i, col_indx] = score_dict[k]
 
-        print("URM created\n")
+    print("URM created\n")
 
-    if save == True:
-        if not os.path.exists('dataset/matrices'):
-            os.mkdir('dataset/matrices')
-        sps.save_npz('dataset/matrices/urm.npz', urm)
-        print("URM saved")
+    #check if the folder where to save exsist
+    cf.check_folder('dataset/matrices')
 
-    np.save('dataset/matrices/dict_row.npy', row_of_sessionid)
-    np.save('dataset/matrices/dict_col.npy', col_of_accomodation)
-    print("dictionaries saved")
-    #TODO: RETURN STATEMENT
+    print('Saving urm matrix... ')
+    sps.save_npz('{}/urm_{}.npz'.format(save_path, time_weight), urm)
+    print('done!')
+
+    print('Saving row dictionary... ')
+    np.save('{}/dict_row.npy'.format(save_path), row_of_sessionid)
+    print('done!')
+
+    print('Saving col dictionary... ')
+    np.save('{}/dict_col.npy'.format(save_path), col_of_accomodation)
+    print('done!')
 
 
 def _compute_session_score(df):
@@ -109,7 +112,7 @@ def _compute_session_score(df):
   return scores
 
 
-def urm(train_df, test_df, local, clickout_score=5, impressions_score=1, save=True):
+def urm(train_df, test_df, path, clickout_score=5, impressions_score=1):
     """
     create the URM considering only the clickout_action of every session
 
@@ -124,8 +127,6 @@ def urm(train_df, test_df, local, clickout_score=5, impressions_score=1, save=Tr
     assert clickout_score > impressions_score
 
     accomodations_array = data.accomodations_id()
-
-    hnd = create_full_handle(test_df, local, save=save)
 
     train_df = train_df[train_df['action_type'] == 'clickout item'].fillna(-1)
     test_df = test_df[test_df['action_type'] == 'clickout item'].fillna(-1)
@@ -159,31 +160,23 @@ def urm(train_df, test_df, local, clickout_score=5, impressions_score=1, save=Tr
     for i in range(len(mlb.classes)):
         col_of_accomodation[mlb.classes[i]] = i
 
-    if save == True:
-        path = 'dataset/matrices'
-        if not os.path.exists(path):
-            os.mkdir(path)
-        path += '/'
-        if local:
-            path += 'local_'
+    cf.check_folder(path)
 
-        # save all
-        print('Saving urm matrix... ', end='\t')
-        sps.save_npz('{}urm.npz'.format(path), urm)
-        print('done!')
+    # save all
+    print('Saving urm matrix... ')
+    sps.save_npz('{}/urm_clickout.npz'.format(path), urm)
+    print('done!')
 
-        print('Saving row dictionary... ', end='\t')
-        np.save('{}dict_row.npy'.format(path), row_of_sessionid)
-        print('done!')
+    print('Saving row dictionary... ')
+    np.save('{}/dict_row.npy'.format(path), row_of_sessionid)
+    print('done!')
 
-        print('Saving col dictionary... ', end='\t')
-        np.save('dataset/matrices/dict_col.npy', col_of_accomodation)
-        print('done!')
-
-    return urm, row_of_sessionid, col_of_accomodation, hnd
+    print('Saving col dictionary... ')
+    np.save('{}/dict_col.npy', col_of_accomodation)
+    print('done!')
 
 
-def create_full_handle(test_df, local, save=True, name='handle.csv', folder='dataset/preprocessed'):
+def create_full_handle(test_df, name='handle.csv', folder='dataset/preprocessed/full'):
     """
     create the HANDLE CSV of the following format: |user_id,session_id,timestamp,step,impressions|
 
@@ -197,12 +190,12 @@ def create_full_handle(test_df, local, save=True, name='handle.csv', folder='dat
     # user_id,session_id,timestamp,step,reference,impressions
     df_handle = test_df[['user_id', 'session_id', 'timestamp', 'step', 'impressions']]
     df_handle = df_handle[(test_df['action_type'] == 'clickout item') & (test_df['reference'].isnull())]
+    print('handle created...')
 
-    if local:
-        name = 'local_{}'.format(name)
+
+    cf.check_folder(folder)
     df_handle.to_csv('{}/{}'.format(folder, name), index=False)
-
-    return df_handle
+    print('handle saved...')
 
 
 def create_small_dataset(df, maximum_rows=5000):
@@ -290,8 +283,7 @@ def preprocess():
         split(df_small, save_path=small_path)
 
         #create the handle for the full test
-        #TODO: rewrite create full handle and pass the correct parameters to the method below
-        create_full_handle()
+        create_full_handle(df_train_full)
 
     elif choice == '2':
         pass
@@ -309,16 +301,20 @@ def preprocess():
     #initialize the train and test df
     train = None
     test = None
+    path = None
 
     if choice == '1':
+        path = "dataset/matrices/local"
         train = data.train_df('local')
         test = data.test_df('local')
         print('LOCAL DATASET LOADED BUDDY')
     elif choice == '2':
+        path = "dataset/matrices/full"
         train = data.train_df('full')
         test = data.test_df('full')
         print('FULL DATASET LOADED BUDDY')
     elif choice == '3':
+        path = "dataset/matrices/small"
         train = data.train_df('small')
         test = data.test_df('small')
         print('SMALL DATASET LOADED BUDDY')
@@ -337,14 +333,12 @@ def preprocess():
         """
         NOTE: CHANGE THE PARAMETERS OF THE SEQUENCE AWARE URM HERE !!!!
         """
-        #TODO: REWRITE THE CREATION CODE FOR THE SESSION_AWARE URM
-        pass
+        urm_session_aware(train, test, time_weight='lin', save_path=path)
     elif choice == '2':
         """
         NOTE: CHANGE THE PARAMETERS OF THE CLICKOUT_ONLY URM HERE !!!!
         """
-        # TODO: REWRITE THE CREATION CODE FOR THE CLICKOUT_ONLY URM
-        pass
+        urm(train, test, path, clickout_score=5, impressions_score=1)
     else:
         print('Wrong choice buddy ;)')
         exit(0)
