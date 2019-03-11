@@ -205,36 +205,24 @@ def create_full_handle(test_df, local, save=True, name='handle.csv', folder='dat
     return df_handle
 
 
-def create_small_dataset(filename, N=1010, folder='dataset', insert_index_col=False):
+def create_small_dataset(df, maximum_rows=5000):
     """
-    create TRAIN and TEST from the original dataset with few rows
-    :param filename:
-    :param N:
-    :param folder:
-    :param insert_index_col:
-    :return:
+    return a dataframe from the original dataset containing a maximum number of rows
+    :param df: dataframe
+    :param maximum_rows:
+    
+    :return: dataframe
     """
-
-    inp = '{}/original/{}.csv'.format(folder, filename)
-    dest = '{}/preprocessed/{}_small.csv'.format(folder, filename)
-
-    with open(inp, 'r') as file:
-        with open(dest, 'w+') as out:
-          # header
-          line = file.readline()
-          out.write(line)
-
-          # data
-          for i in range(N):
-            line = file.readline()
-            if line is not None:
-              if insert_index_col:
-                out.write('{},'.format(i))
-              out.write(line)
-
-              print('{}/{}'.format(i+1, N), end='\r')
-            else:
-              break
+    if len(df) < maximum_rows:
+      return df
+    # get the last row
+    row = df.iloc[maximum_rows]
+    # slice the dataframe from the target row until the end
+    temp_df = df.loc[maximum_rows:]
+    # get the index of the last row of the last session
+    end_idx = temp_df[(temp_df.session_id == row.session_id) & (temp_df.user_id == row.user_id)].index.max()
+    # slice from the first row to the final index
+    return df.loc[0:end_idx]
 
 
 def split(df, save_path, perc_train=80):

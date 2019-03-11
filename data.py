@@ -11,8 +11,8 @@ __mode__ = {
 TRAIN_PATH = ['dataset/original/train.csv', 'dataset/preprocessed/local/train.csv', 'dataset/preprocessed/small/train.csv']
 TEST_PATH = ['dataset/original/test.csv', 'dataset/preprocessed/local/test.csv', 'dataset/preprocessed/small/test.csv']
 HANDLE_PATH = ['dataset/preprocessed/full/handle.csv', 'dataset/preprocessed/local/handle.csv', 'dataset/preprocessed/small/handle.csv']
-URM_PATH = ['dataset/matrices/urm.npz', 'dataset/matrices/local/urm.npz', 'dataset/matrices/small/urm.npz']
-DICT_ROW_PATH = ['dataset/preprocessed/full/dict_row.npy', 'dataset/preprocessed/local/dict_row.npy', 'dataset/preprocessed/small/dict_row.npy'] 
+URM_PATH = ['dataset/matrices/full/urm.npz', 'dataset/matrices/local/urm.npz', 'dataset/matrices/small/urm.npz']
+DICT_ROW_PATH = ['dataset/matrices/full/dict_row.npy', 'dataset/matrices/local/dict_row.npy', 'dataset/matrices/small/dict_row.npy'] 
 
 ITEMS_PATH = 'dataset/original/item_metadata.csv'
 DICT_COL_PATH = 'dataset/matrices/dict_col.npy'
