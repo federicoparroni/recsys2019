@@ -2,97 +2,50 @@ import pandas as pd
 import scipy.sparse as sps
 import numpy as np
 
-LOCAL_TRAIN_PATH = 'dataset/preprocessed/local_train.csv'
-LOCAL_TEST_PATH = 'dataset/preprocessed/local_test.csv'
-LOCAL_HANDLE_PATH = 'dataset/preprocessed/local_handle.csv'
-
-TRAIN_PATH = 'dataset/original/train.csv'
-TEST_PATH = 'dataset/original/test.csv'
-HANDLE_PATH = 'dataset/preprocessed/handle.csv'
+__mode__ = {
+  'full': 0,
+  'local': 1,
+  'small': 2
+}
+                  # full paths                      # local paths                           # small paths
+TRAIN_PATH = ['dataset/original/train.csv', 'dataset/preprocessed/local/train.csv', 'dataset/preprocessed/small/train.csv']
+TEST_PATH = ['dataset/original/test.csv', 'dataset/preprocessed/local/test.csv', 'dataset/preprocessed/small/test.csv']
+HANDLE_PATH = ['dataset/preprocessed/full/handle.csv', 'dataset/preprocessed/local/handle.csv', 'dataset/preprocessed/small/handle.csv']
+URM_PATH = ['dataset/matrices/urm.npz', 'dataset/matrices/local/urm.npz', 'dataset/matrices/small/urm.npz']
+DICT_ROW_PATH = ['dataset/preprocessed/full/dict_row.npy', 'dataset/preprocessed/local/dict_row.npy', 'dataset/preprocessed/small/dict_row.npy'] 
 
 ITEMS_PATH = 'dataset/original/item_metadata.csv'
-
-URM_PATH = 'dataset/matrices/urm.npz'
-URM_TRAIN_PATH = 'dataset/matrices/train_urm.npz'
-
-DICT_ROW_PATH = 'dataset/matrices/dict_row.npy'
 DICT_COL_PATH = 'dataset/matrices/dict_col.npy'
 
-LOCAL_DICT_ROW_PATH = 'dataset/matrices/local_dict_row.npy'
-LOCAL_DICT_COL_PATH = 'dataset/matrices/local_dict_col.npy'
 
-
-_df_train = None
-_df_test = None
-_df_handle = None
-
-_df_localtrain = None
-_df_localtest = None
-_df_localhandle = None
-
-_df_items = None
-_target_urm_rows = None
-
-_urm = None
-_urm_train = None
-_dict_row = None
+_df_train = [None, None, None]
+_df_test = [None, None, None]
+_df_handle = [None, None, None]
+_df_items = [None, None, None]
+# URM structures
+_urm = [None, None, None]
+_dict_row = [None, None, None]
 _dict_col = None
-_local_dict_row = None
-_local_dict_col = None
-
-def train_df():
-  global _df_train
-  if _df_train is None:
-    _df_train = pd.read_csv(TRAIN_PATH)
-  return _df_train
-
-def test_df():
-  global _df_test
-  if _df_test is None:
-    _df_test = pd.read_csv(TEST_PATH)
-  return _df_test
-
-def target_urm_rows():
-  global _target_urm_rows
-  dictionary_row()
-  if _target_urm_rows is None:
-    _target_urm_rows = []
-    for r in handle_df().session_id.values:
-      _target_urm_rows.append(_dict_row[r])
-  return _target_urm_rows
+_target_urm_rows = [None, None, None]
 
 
-def handle_df():
-  global _df_handle
-  if _df_handle is None:
-    _df_handle = pd.read_csv(HANDLE_PATH)
-  return _df_handle
+def train_df(mode):
+  idx = __mode__[mode]
+  if _df_train[idx] is None:
+    _df_train[idx] = pd.read_csv(TRAIN_PATH[idx])
+  return _df_train[idx]
 
-# local files
-def local_train_df():
-  global _df_localtrain
-  if _df_localtrain is None:
-    _df_localtrain = pd.read_csv(LOCAL_TRAIN_PATH)
-  return _df_localtrain
+def test_df(mode):
+  idx = __mode__[mode]
+  if _df_test[idx] is None:
+    _df_test[idx] = pd.read_csv(TEST_PATH[idx])
+  return _df_test[idx]
 
-def local_test_df():
-  global _df_localtest
-  if _df_localtest is None:
-    _df_localtest = pd.read_csv(LOCAL_TEST_PATH)
-  return _df_localtest
-
-def local_handle_df():
-  global _df_localhandle
-  if _df_localhandle is None:
-    _df_localhandle = pd.read_csv(LOCAL_HANDLE_PATH)
-  return _df_localhandle
-
-
-def urm():
-  global _urm
-  if _urm is None:
-    _urm = sps.load_npz(URM_PATH)
-  return _urm
+def handle_df(mode):
+  idx = __mode__[mode]
+  if _df_handle[idx] is None:
+    _df_handle[idx] = pd.read_csv(HANDLE_PATH[idx])
+  return _df_handle[idx]
 
 def accomodations_df():
   global _df_items
@@ -106,17 +59,18 @@ def accomodations_id():
     _df_items = pd.read_csv(ITEMS_PATH)
   return _df_items['item_id'].values
 
-def train_urm():
-  global _urm_train
-  if _urm_train is None:
-    _urm_train = sps.load_npz(URM_TRAIN_PATH)
-  return _urm_train
+# URM structures
+def urm(mode):
+  idx = __mode__[mode]
+  if _urm[idx] is None:
+    _urm[idx] = sps.load_npz(URM_PATH[idx])
+  return _urm[idx]
 
-def dictionary_row():
-  global _dict_row
-  if _dict_row is None:
-    _dict_row = np.load(DICT_ROW_PATH).item()
-  return _dict_row
+def dictionary_row(mode):
+  idx = __mode__[mode]
+  if _dict_row[idx] is None:
+    _dict_row[idx] = np.load(DICT_ROW_PATH[idx]).item()
+  return _dict_row[idx]
 
 def dictionary_col():
   global _dict_col
@@ -124,17 +78,11 @@ def dictionary_col():
     _dict_col = np.load(DICT_COL_PATH).item()
   return _dict_col
 
-def local_dictionary_row():
-  global _local_dict_row
-  if _local_dict_row is None:
-    _local_dict_row = np.load(LOCAL_DICT_ROW_PATH).item()
-  return _local_dict_row
-
-# def local_dictionary_col():
-#   global _local_dict_col
-#   if _local_dict_col is None:
-#     _local_dict_col = np.load(LOCAL_DICT_COL_PATH).item()
-#   return _local_dict_col
-
-  
-  
+def target_urm_rows(mode):
+  idx = __mode__[mode]
+  dictionary_row(mode)
+  if _target_urm_rows[idx] is None:
+    _target_urm_rows[idx] = []
+    for r in handle_df(mode).session_id.values:
+      _target_urm_rows[idx].append(_dict_row[r])
+  return _target_urm_rows[idx]
