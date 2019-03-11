@@ -21,7 +21,8 @@ DICT_COL_PATH = 'dataset/matrices/dict_col.npy'
 _df_train = [None, None, None]
 _df_test = [None, None, None]
 _df_handle = [None, None, None]
-_df_items = [None, None, None]
+_df_items = None
+_df_items_ids = None
 # URM structures
 _urm = [None, None, None]
 _dict_row = [None, None, None]
@@ -53,11 +54,11 @@ def accomodations_df():
     _df_items = pd.read_csv(ITEMS_PATH)
   return _df_items
 
-def accomodations_id():
-  global _df_items
-  if _df_items is None:
-    _df_items = pd.read_csv(ITEMS_PATH)
-  return _df_items['item_id'].values
+def accomodations_ids():
+  global _df_items_ids
+  if _df_items_ids is None:
+    _df_items_ids = accomodations_df()['item_id'].values
+  return _df_items_ids
 
 # URM structures
 def urm(mode, urm_name='urm'):
