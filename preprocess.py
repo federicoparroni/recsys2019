@@ -27,6 +27,7 @@ def urm_session_aware(train_df, test_df, time_weight, save_path):
 
     # fill missing clickout_item on the test dataframe
     test_df.fillna({'reference': -1}, inplace=True)
+    train_df.fillna({'reference': -1}, inplace=True)
 
     # concatenate the train df and the test df mantaining only the columns of interest
     df = pd.concat([train_df, test_df])[['session_id', 'action_type', 'reference', 'impressions']]
