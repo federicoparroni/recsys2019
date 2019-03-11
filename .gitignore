@@ -2,6 +2,7 @@
 \.idea/
 dataset/preprocessed/*.csv
 dataset/original/*.csv
+dataset/matrices/*
 
 build/
 
@@ -17,3 +18,4 @@ utils/__pycache__/*
 \.ipynb_checkpoints/
 
 *.ipynb
+
