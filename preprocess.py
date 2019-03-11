@@ -23,7 +23,7 @@ def urm_session_aware(train_df, test_df, time_weight, save_path):
     global tw
     tw = time_weight
 
-    accomodations_array = data.accomodations_id()
+    accomodations_array = data.accomodations_ids()
 
     # fill missing clickout_item on the test dataframe
     test_df.fillna({'reference': -1}, inplace=True)
@@ -126,7 +126,7 @@ def urm(train_df, test_df, path, clickout_score=5, impressions_score=1):
     """
     assert clickout_score > impressions_score
 
-    accomodations_array = data.accomodations_id()
+    accomodations_array = data.accomodations_ids()
 
     train_df = train_df[train_df['action_type'] == 'clickout item'].fillna(-1)
     test_df = test_df[test_df['action_type'] == 'clickout item'].fillna(-1)
@@ -350,5 +350,6 @@ if __name__ == '__main__':
     RUN THIS FILE TO CREATE THE CSV AND THE URM
     """
     preprocess()
+
 
 
