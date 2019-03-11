@@ -11,7 +11,7 @@ __mode__ = {
 TRAIN_PATH = ['dataset/original/train.csv', 'dataset/preprocessed/local/train.csv', 'dataset/preprocessed/small/train.csv']
 TEST_PATH = ['dataset/original/test.csv', 'dataset/preprocessed/local/test.csv', 'dataset/preprocessed/small/test.csv']
 HANDLE_PATH = ['dataset/preprocessed/full/handle.csv', 'dataset/preprocessed/local/handle.csv', 'dataset/preprocessed/small/handle.csv']
-URM_PATH = ['dataset/matrices/full/urm.npz', 'dataset/matrices/local/urm.npz', 'dataset/matrices/small/urm.npz']
+URM_PATH = ['dataset/matrices/full/', 'dataset/matrices/local/', 'dataset/matrices/small/']
 DICT_ROW_PATH = ['dataset/matrices/full/dict_row.npy', 'dataset/matrices/local/dict_row.npy', 'dataset/matrices/small/dict_row.npy'] 
 
 ITEMS_PATH = 'dataset/original/item_metadata.csv'
@@ -60,10 +60,11 @@ def accomodations_id():
   return _df_items['item_id'].values
 
 # URM structures
-def urm(mode):
+def urm(mode, urm_name='urm'):
   idx = __mode__[mode]
+  urm_path = '{}{}.npz'.format(URM_PATH[idx], urm_name)
   if _urm[idx] is None:
-    _urm[idx] = sps.load_npz(URM_PATH[idx])
+    _urm[idx] = sps.load_npz(urm_path)
   return _urm[idx]
 
 def dictionary_row(mode):
