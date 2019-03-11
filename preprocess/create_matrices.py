@@ -92,7 +92,7 @@ def urm_session_aware(train_df, test_df, time_weight, save=True):
   tw = time_weight
 
   accomodations_array = data.accomodations_id()
-  hnd = handle(test_df, save=save)
+  hnd = handle(test_df, True, save=save)
 
   # fill missing clickout_item on the test dataframe
   test_df.fillna({'reference': -1}, inplace=True)
@@ -162,7 +162,7 @@ def _compute_session_score(df):
     score *= weight_array[i]
 
     # get the reference to which assign the score
-    reference_id = row['reference']
+    reference_id = int(row['reference'])
 
     # was a test row in which we have to predict the clickout
     if reference_id == -1:
