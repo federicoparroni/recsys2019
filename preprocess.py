@@ -7,6 +7,7 @@ import preprocess.create_matrices as create
 
 train = data.train_df()
 test = data.test_df()
-u, session_ids, dict_acc, hdl = create.urm(train, test, local=False, save=False)
+print('data loaded')
 
+u, session_ids, dict_acc, hdl = create.urm(train, test, local=False, save=True)
 print(u.shape)
