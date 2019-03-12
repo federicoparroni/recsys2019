@@ -13,10 +13,9 @@ TEST_PATH = ['dataset/original/test.csv', 'dataset/preprocessed/local/test.csv',
 HANDLE_PATH = ['dataset/preprocessed/full/handle.csv', 'dataset/preprocessed/local/handle.csv', 'dataset/preprocessed/small/handle.csv']
 URM_PATH = ['dataset/matrices/full/', 'dataset/matrices/local/', 'dataset/matrices/small/']
 DICT_ROW_PATH = ['dataset/matrices/full/dict_row.npy', 'dataset/matrices/local/dict_row.npy', 'dataset/matrices/small/dict_row.npy'] 
+DICT_COL_PATH = ['dataset/matrices/full/dict_col.npy', 'dataset/matrices/local/dict_col.npy', 'dataset/matrices/small/dict_col.npy']
 
 ITEMS_PATH = 'dataset/original/item_metadata.csv'
-DICT_COL_PATH = 'dataset/matrices/dict_col.npy'
-
 
 _df_train = [None, None, None]
 _df_test = [None, None, None]
@@ -26,7 +25,7 @@ _df_items_ids = None
 # URM structures
 _urm = [None, None, None]
 _dict_row = [None, None, None]
-_dict_col = None
+_dict_col = [None, None, None]
 _target_urm_rows = [None, None, None]
 
 
@@ -61,7 +60,7 @@ def accomodations_ids():
   return _df_items_ids
 
 # URM structures
-def urm(mode, urm_name='urm'):
+def urm(mode, urm_name='urm_clickout'):
   idx = __mode__[mode]
   urm_path = '{}{}.npz'.format(URM_PATH[idx], urm_name)
   if _urm[idx] is None:
@@ -74,11 +73,12 @@ def dictionary_row(mode):
     _dict_row[idx] = np.load(DICT_ROW_PATH[idx]).item()
   return _dict_row[idx]
 
-def dictionary_col():
-  global _dict_col
-  if _dict_col is None:
-    _dict_col = np.load(DICT_COL_PATH).item()
-  return _dict_col
+def dictionary_col(mode):
+  # global _dict_col
+  idx = __mode__[mode]
+  if _dict_col[idx] is None:
+    _dict_col[idx] = np.load(DICT_COL_PATH[idx]).item()
+  return _dict_col[idx]
 
 def target_urm_rows(mode):
   idx = __mode__[mode]
@@ -86,5 +86,5 @@ def target_urm_rows(mode):
   if _target_urm_rows[idx] is None:
     _target_urm_rows[idx] = []
     for r in handle_df(mode).session_id.values:
-      _target_urm_rows[idx].append(_dict_row[r])
+      _target_urm_rows[idx].append(_dict_row[idx][r])
   return _target_urm_rows[idx]

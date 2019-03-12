@@ -33,9 +33,11 @@ class DistanceBasedRecommender(RecommenderBase):
 
     SIM_SPLUS = 'splus'
 
-    def __init__(self):
-        super(DistanceBasedRecommender, self).__init__()
+    def __init__(self, mode='full', urm_name='urm_clickout'):
+        super(DistanceBasedRecommender, self).__init__(mode=mode, urm_name=urm_name)
         self.name = 'distancebased'
+        self.mode = mode
+        self.urm_name = urm_name
         self._sim_matrix = None
         self._matrix_mul_order = 'standard' # if you want R•R', or 'inverse' if you want to compute S•R
 
@@ -121,7 +123,7 @@ class DistanceBasedRecommender(RecommenderBase):
         Return the r_hat matrix as: R^ = R•S or R^ = S•R
         """
         R = self.urm
-        targetids = data.target_urm_rows()
+        targetids = data.target_urm_rows(self.mode)
         if self._matrix_mul_order == 'inverse':
             return self._sim_matrix.tocsr()[targetids].dot(R)
         else:
@@ -133,15 +135,19 @@ class DistanceBasedRecommender(RecommenderBase):
         else:
             print('NOT TRAINED')
 
-    def recommend_batch(self, df_handle, dict_row, dict_col, verbose=False):
+    def recommend_batch(self, verbose=False):
        	print('recommending batch')
         if not self._has_fit():
             return None
 
+        df_handle = data.handle_df(mode=self.mode)
+        dict_row = data.dictionary_row(mode=self.mode)
+        dict_col = data.dictionary_col(mode=self.mode)
+
         # compute the R^ by multiplying: R•S or S•R
         R_hat = self.get_r_hat(verbose)
         
-        target_rows = data.target_urm_rows()
+        target_rows = data.target_urm_rows(self.mode)
         predictions = []
         for index, row in tqdm(df_handle.iterrows()):
             impr = list(map(int, row['impressions'].split('|')))
@@ -151,45 +157,6 @@ class DistanceBasedRecommender(RecommenderBase):
             predictions.append((row['session_id'], [e[0] for e in l]))
 
         return predictions
-  
-    def recommend_only_target(self, df_handle, dict_row, dict_col, verbose=False):
-        # Compute S•R only for the target rows and columns
-        if not self._has_fit():
-            return None
-        
-        self._sim_matrix = self._sim_matrix.tocsr()
-
-        predictions = []
-        target_rows = data.target_urm_rows()    # get the row indices of the target sessions
-        for index, row_df in df_handle.iterrows():
-            row_idx = target_rows[index]        # row index of current target session
-            row = self._sim_matrix[row_idx]     # sim matrix row of current target session
-            imprs = list(map(int, row_df['impressions'].split('|')))
-            scores_for_session = []             # compute scores ...
-            for imp in imprs:                   # for each accomodation in impressions
-                col = dict_col[imp]
-                score = row * col
-                scores_for_session.append((imp, score))
-            # sort scores based
-            scores_for_session.sort(key=lambda tup: tup[1], reverse=True)
-            predictions.append((row_df['session_id'], [e[0] for e in scores_for_session]))
-
-        return predictions
-    
-    def _extract_top_items(self, r_hat, N):
-        # convert to np matrix
-        r_hat = r_hat.todense()
-        
-        # magic code of Mauri 🔮 to take the top N recommendations
-        ranking = np.zeros((r_hat.shape[0], N), dtype=np.int)
-        for i in range(r_hat.shape[0]):
-            scores = r_hat[i]
-            relevant_items_partition = (-scores).argpartition(N)[0,0:N]
-            relevant_items_partition_sorting = np.argsort(-scores[0,relevant_items_partition])
-            ranking[i] = relevant_items_partition[0,relevant_items_partition_sorting]
-        
-        # include userids as first column
-        return ranking
 
     def run(self):
         pass
