@@ -257,19 +257,32 @@ def split(df, save_path, perc_train=80):
 def append_missing_accomodations(mode):
   found_ids = []
   
-  for ref in data.train_df(mode)['reference'].values:
+  train = data.train_df(mode)
+  test = data.test_df(mode)
+
+  for ref in train['reference'].values:
     try:
       v = int(ref)
       found_ids.append(v)
     except ValueError:
       continue
   
-  for ref in data.test_df(mode)['reference'].values:
+  for ref in test['reference'].values:
     try:
       v = int(ref)
       found_ids.append(v)
     except ValueError:
       continue
+
+  train = train[data.train_df(mode).impressions.notnull()]
+  l = [list(map(int, e.split('|'))) for e in train['impressions'].values]
+  l = [item for sublist in l for item in sublist]
+  found_ids.extend(l)
+
+  test = test[data.test_df(mode).impressions.notnull()]
+  l = [list(map(int, e.split('|'))) for e in test['impressions'].values]
+  l = [item for sublist in l for item in sublist]
+  found_ids.extend(l)
 
   found_ids = set(found_ids)
   acs = data.accomodations_df()
