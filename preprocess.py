@@ -23,10 +23,11 @@ def urm_session_aware(train_df, test_df, time_weight, save_path):
     global tw
     tw = time_weight
 
-    accomodations_array = data.accomodations_id()
+    accomodations_array = data.accomodations_ids()
 
     # fill missing clickout_item on the test dataframe
     test_df.fillna({'reference': -1}, inplace=True)
+    train_df.fillna({'reference': -1}, inplace=True)
 
     # concatenate the train df and the test df mantaining only the columns of interest
     df = pd.concat([train_df, test_df])[['session_id', 'action_type', 'reference', 'impressions']]
@@ -126,7 +127,7 @@ def urm(train_df, test_df, path, clickout_score=5, impressions_score=1):
     """
     assert clickout_score > impressions_score
 
-    accomodations_array = data.accomodations_id()
+    accomodations_array = data.accomodations_ids()
 
     train_df = train_df[train_df['action_type'] == 'clickout item'].fillna(-1)
     test_df = test_df[test_df['action_type'] == 'clickout item'].fillna(-1)
@@ -172,9 +173,8 @@ def urm(train_df, test_df, path, clickout_score=5, impressions_score=1):
     print('done!')
 
     print('Saving col dictionary... ')
-    np.save('{}/dict_col.npy', col_of_accomodation)
+    np.save('{}/dict_col.npy'.format(path), col_of_accomodation)
     print('done!')
-
 
 def create_full_handle(test_df, name='handle.csv', folder='dataset/preprocessed/full'):
     """
@@ -245,9 +245,9 @@ def split(df, save_path, perc_train=80):
         df_test.at[e[1], 'reference'] = np.nan
 
     # save them all
-    df_train.to_csv(save_path + "train.csv", index=False)
-    df_test.to_csv(save_path + "test.csv", index=False)
-    df_handle.to_csv(save_path + "handle.csv", index=False)
+    df_train.to_csv(save_path + "/train.csv", index=False)
+    df_test.to_csv(save_path + "/test.csv", index=False)
+    df_handle.to_csv(save_path + "/handle.csv", index=False)
 
 
 def preprocess():
@@ -266,9 +266,10 @@ def preprocess():
     choice = input()[0]
 
     if choice == '1':
+        print('creating CSV...')
+
         df_train_full = data.train_df('full')
-        # TODO: rewrite create small dataset
-        df_small = create_small_dataset()
+        df_small = create_small_dataset(df_train_full)
 
         local_path = 'dataset/preprocessed/local'
         small_path = 'dataset/preprocessed/small'
@@ -349,5 +350,6 @@ if __name__ == '__main__':
     RUN THIS FILE TO CREATE THE CSV AND THE URM
     """
     preprocess()
+
 
 

@@ -10,6 +10,7 @@ import time
 import utils.dated_directory as datedir
 import scipy.sparse as sps
 import out
+import data
 
 class CFItemBased(DistanceBasedRecommender):
     """
@@ -17,11 +18,11 @@ class CFItemBased(DistanceBasedRecommender):
     item which they rated
     """
 
-    def __init__(self):
-        super(CFItemBased, self).__init__()
+    def __init__(self, mode='full', urm_name='urm_clickout'):
+        super(CFItemBased, self).__init__(mode=mode, urm_name=urm_name)
         self.name = 'CFitem'
 
-    def fit(self, urm_train, k, distance, shrink=0, threshold=0, implicit=True, alpha=None, beta=None, l=None, c=None, verbose=False, urm=None):
+    def fit(self, k, distance, shrink=0, threshold=0, implicit=True, alpha=None, beta=None, l=None, c=None, verbose=False):
         """
         Initialize the model and compute the Similarity_MFD matrix S with a distance metric.
         Access the Similarity_MFD matrix using: self._sim_matrix
@@ -45,8 +46,9 @@ class CFItemBased(DistanceBasedRecommender):
         l: float, optional, balance coefficient used in s_plus distance, included in [0,1]
         c: float, optional, cosine coefficient, included in [0,1]
         """
-        self.urm = urm_train
-        return super(CFItemBased, self).fit(urm_train.T, k=k, distance=distance, shrink=shrink, threshold=threshold,
+        urm = data.urm(mode=self.mode, urm_name=self.urm_name)
+
+        return super(CFItemBased, self).fit(urm.T, k=k, distance=distance, shrink=shrink, threshold=threshold,
                                             implicit=implicit, alpha=alpha, beta=beta, l=l, c=c, urm=urm)
 
     def get_r_hat(self, verbose=False):
