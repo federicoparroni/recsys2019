@@ -172,9 +172,8 @@ def urm(train_df, test_df, path, clickout_score=5, impressions_score=1):
     print('done!')
 
     print('Saving col dictionary... ')
-    np.save('{}/dict_col.npy', col_of_accomodation)
+    np.save('{}/dict_col.npy'.format(path), col_of_accomodation)
     print('done!')
-
 
 def create_full_handle(test_df, name='handle.csv', folder='dataset/preprocessed/full'):
     """
