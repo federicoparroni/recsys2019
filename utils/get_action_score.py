@@ -8,12 +8,12 @@ def get_action_score(action_type):
     :return: score
     """
     dict = {
-        'clickout item': 1,
-        'interaction item rating': 2,
-        'interaction item info': 3,
-        'interaction item image': 4,
-        'interaction item deals': 5,
-        'search for item': 6,
+        'clickout item': 5,
+        'interaction item rating': 1,
+        'interaction item info': 1,
+        'interaction item image': 1,
+        'interaction item deals': 1,
+        'search for item': 10,
         'search for destination': 'reset',
         'change of sort order': None,
         'filter selection': None,
