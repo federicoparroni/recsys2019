@@ -52,6 +52,7 @@ def urm_session_aware(train_df, test_df, time_weight, save_path):
     print("dictionaries created\n")
 
     sessions_score = session_groups.apply(_compute_session_score).values
+    print("apply function done\n")
 
     # TODO: Can be optimized using data indptr and indeces
     urm = sps.csr_matrix((rows_count, cols_count), dtype=np.float)
@@ -317,6 +318,7 @@ def preprocess():
         print('creating CSV...')
 
         df_train_full = data.train_df('full')
+        df_test_full = data.test_df('full')
         df_small = create_small_dataset(df_train_full)
 
         local_path = 'dataset/preprocessed/local'
@@ -332,7 +334,7 @@ def preprocess():
         split(df_small, save_path=small_path)
 
         #create the handle for the full test
-        create_full_handle(df_train_full)
+        create_full_handle(df_test_full)
 
         append_missing_accomodations('full')
 
