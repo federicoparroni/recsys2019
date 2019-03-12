@@ -250,6 +250,37 @@ def split(df, save_path, perc_train=80):
     df_handle.to_csv(save_path + "/handle.csv", index=False)
 
 
+def append_missing_accomodations(mode):
+  found_ids = []
+  
+  for ref in data.train_df(mode)['reference'].values:
+    try:
+      v = int(ref)
+      found_ids.append(v)
+    except ValueError:
+      continue
+  
+  for ref in data.test_df(mode)['reference'].values:
+    try:
+      v = int(ref)
+      found_ids.append(v)
+    except ValueError:
+      continue
+
+  found_ids = set(found_ids)
+  acs = data.accomodations_df()
+  accomod_known = set(map(int, acs['item_id'].values))
+  missing = found_ids.difference(accomod_known)
+
+  # add those at the end of the dataframe
+  lst_dict = []
+  for m in missing:
+      lst_dict.append({'item_id':m, 'properties':np.nan})
+  
+  new_acs = acs.append(pd.DataFrame(lst_dict), ignore_index=True)
+  new_acs.to_csv(data.ITEMS_PATH, index=False)
+
+
 def preprocess():
     """
     call to create the CSV files and the URM
@@ -285,6 +316,8 @@ def preprocess():
 
         #create the handle for the full test
         create_full_handle(df_train_full)
+
+        append_missing_accomodations('full')
 
     elif choice == '2':
         pass
@@ -350,6 +383,3 @@ if __name__ == '__main__':
     RUN THIS FILE TO CREATE THE CSV AND THE URM
     """
     preprocess()
-
-
-
