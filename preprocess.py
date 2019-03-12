@@ -1,6 +1,7 @@
 import data
 import utils.check_folder as cf
 import os
+from tqdm import tqdm
 import pandas as pd
 from sklearn.preprocessing import MultiLabelBinarizer
 import scipy.sparse as sps
@@ -55,7 +56,7 @@ def urm_session_aware(train_df, test_df, time_weight, save_path):
     # TODO: Can be optimized using data indptr and indeces
     urm = sps.csr_matrix((rows_count, cols_count), dtype=np.float)
 
-    for i in range(rows_count):
+    for i in tqdm(range(rows_count)):
         score_dict = sessions_score[i]
         for k in score_dict.keys():
             col_indx = col_of_accomodation[k]
