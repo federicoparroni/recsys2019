@@ -280,15 +280,14 @@ def append_missing_accomodations(mode):
     acs = data.accomodations_ids()
     accomod_known = set(map(int, acs))
     missing = found_ids.difference(accomod_known)
+    print('Found {} missing accomodations'.format(len(missing)))
 
     # add those at the end of the dataframe
-    # lst_dict = []
-    # for m in missing:
-    #     lst_dict.append({'item_id':m, 'properties':np.nan})
     new_acc_df = pd.DataFrame({ 'item_id': list(missing) }, columns=['item_id', 'properties'] )
     
     new_acs = data.accomodations_df().append(new_acc_df, ignore_index=True)
     new_acs.to_csv(data.ITEMS_PATH, index=False)
+    print('{} successfully updated'.format(data.ITEMS_PATH))
 
 
 def preprocess():
@@ -393,5 +392,4 @@ if __name__ == '__main__':
     """
     RUN THIS FILE TO CREATE THE CSV AND THE URM
     """
-    append_missing_accomodations('full')
-    #preprocess()
+    preprocess()
