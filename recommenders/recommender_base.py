@@ -4,8 +4,10 @@ from abc import ABC
 class RecommenderBase(ABC):
     """ Defines the interface that all recommendations models expose """
 
-    def __init__(self):
+    def __init__(self, mode='full', urm_name='urm_clickout'):
         self.name = 'recommenderbase'
+        self.mode = mode
+        self.urm_name = urm_name
 
     @abstractmethod
     def fit(self):

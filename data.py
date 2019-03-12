@@ -86,5 +86,5 @@ def target_urm_rows(mode):
   if _target_urm_rows[idx] is None:
     _target_urm_rows[idx] = []
     for r in handle_df(mode).session_id.values:
-      _target_urm_rows[idx].append(_dict_row[r])
+      _target_urm_rows[idx].append(_dict_row[idx][r])
   return _target_urm_rows[idx]

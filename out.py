@@ -1,13 +1,16 @@
 import pandas as pd
 import os
 import time
+import data
 
-def create_sub(predictions, handle_df, directory='submissions'):
+def create_sub(predictions, directory='submissions'):
     if not os.path.exists(directory):
       os.mkdir(directory)
 
     path_time = directory + '/' + time.strftime('%Hh-%Mm-%Ss') + '.csv'
     start = time.time()
+
+    handle_df = data.handle_df(mode='full')
 
     # drop clickout item and impressions mantain only the 4 keys
     handle_df.drop(handle_df.columns[4], axis=1, inplace=True)
