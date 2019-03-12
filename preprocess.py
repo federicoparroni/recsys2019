@@ -98,7 +98,10 @@ def _compute_session_score(df):
     score *= weight_array[i]
 
     # get the reference to which assign the score
-    reference_id = int(row['reference'])
+    try:
+        reference_id = int(row['reference'])
+    except ValueError:
+        continue
 
     # was a test row in which we have to predict the clickout
     if reference_id == -1:
