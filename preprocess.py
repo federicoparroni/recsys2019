@@ -256,47 +256,38 @@ def split(df, save_path, perc_train=80):
 
 
 def append_missing_accomodations(mode):
-  found_ids = []
-  
-  train = data.train_df(mode)
-  test = data.test_df(mode)
+    found_ids = []
+    
+    joined_df = data.train_df(mode).append(data.test_df(mode))
 
-  for ref in train['reference'].values:
-    try:
-      v = int(ref)
-      found_ids.append(v)
-    except ValueError:
-      continue
-  
-  for ref in test['reference'].values:
-    try:
-      v = int(ref)
-      found_ids.append(v)
-    except ValueError:
-      continue
+    # add references if valid
+    refs = joined_df.reference
+    refs = refs[refs.notnull()].values
+    for r in tqdm(refs):
+        try:
+            v = int(r)
+            found_ids.append(v)
+        except ValueError:
+            continue
 
-  train = train[data.train_df(mode).impressions.notnull()]
-  l = [list(map(int, e.split('|'))) for e in train['impressions'].values]
-  l = [item for sublist in l for item in sublist]
-  found_ids.extend(l)
+    # add impressions
+    imprs = joined_df.impressions
+    imprs = imprs[imprs.notnull()].values
+    for i in tqdm(imprs):
+        found_ids.extend(list(map(int, i.split('|'))))
+    
+    found_ids = set(found_ids)
+    acs = data.accomodations_ids()
+    accomod_known = set(map(int, acs))
+    missing = found_ids.difference(accomod_known)
+    print('Found {} missing accomodations'.format(len(missing)))
 
-  test = test[data.test_df(mode).impressions.notnull()]
-  l = [list(map(int, e.split('|'))) for e in test['impressions'].values]
-  l = [item for sublist in l for item in sublist]
-  found_ids.extend(l)
-
-  found_ids = set(found_ids)
-  acs = data.accomodations_df()
-  accomod_known = set(map(int, acs['item_id'].values))
-  missing = found_ids.difference(accomod_known)
-
-  # add those at the end of the dataframe
-  lst_dict = []
-  for m in missing:
-      lst_dict.append({'item_id':m, 'properties':np.nan})
-  
-  new_acs = acs.append(pd.DataFrame(lst_dict), ignore_index=True)
-  new_acs.to_csv(data.ITEMS_PATH, index=False)
+    # add those at the end of the dataframe
+    new_acc_df = pd.DataFrame({ 'item_id': list(missing) }, columns=['item_id', 'properties'] )
+    
+    new_acs = data.accomodations_df().append(new_acc_df, ignore_index=True)
+    new_acs.to_csv(data.ITEMS_PATH, index=False)
+    print('{} successfully updated'.format(data.ITEMS_PATH))
 
 
 def preprocess():
