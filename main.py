@@ -6,11 +6,11 @@ import data
 from recommenders.collaborative_filterning.itembased import CFItemBased
 import out
 
-mode = 'small'
+mode = 'full'
 
 model = CFItemBased(mode=mode)
 model.fit(k=900, distance=model.SIM_COSINE, shrink=0, implicit=False)
 print('sim matrix: ', model._sim_matrix.shape)
 recommendations = model.recommend_batch()
 
-# out.create_sub()
+out.create_sub(recommendations)

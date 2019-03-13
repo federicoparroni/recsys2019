@@ -56,7 +56,7 @@ def accomodations_df():
 def accomodations_ids():
   global _df_items_ids
   if _df_items_ids is None:
-    _df_items_ids = accomodations_df()['item_id'].values
+    _df_items_ids = list(map(int, accomodations_df()['item_id'].values))
   return _df_items_ids
 
 # URM structures
