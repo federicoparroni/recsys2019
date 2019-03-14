@@ -4,7 +4,7 @@ Collaborative filtering recommender.
 from recommenders.distance_based_recommender import DistanceBasedRecommender
 import data
 
-class CFItemBased(DistanceBasedRecommender):
+class CFUserBased(DistanceBasedRecommender):
     """
     Computes the recommendations for a user by looking for the similar users based on the
     item which they rated
@@ -33,10 +33,10 @@ class CFItemBased(DistanceBasedRecommender):
         c: float, optional, cosine coefficient, included in [0,1]
         """
         urm = data.urm(mode, urm_name=urm_name)
-        super(CFItemBased, self).__init__(urm.T,
+        super(CFUserBased, self).__init__(urm,
                                           mode=mode, 
                                           urm_name=urm_name, 
-                                          k=k, 
+                                          k=k,
                                           distance=distance, 
                                           shrink=shrink, 
                                           threshold=threshold, 
@@ -46,9 +46,9 @@ class CFItemBased(DistanceBasedRecommender):
                                           l=l,
                                           c=c,
                                           urm=urm,
-                                          matrix_mul_order='standard')
+                                          matrix_mul_order='inverse')
         
-        self.name = 'ItemKNN: k: {} distance: {} shrink: {} threshold: {} implicit: {} alpha: {} beta: {} l: {} c: {}'.format(k,
+        self.name = 'UserKnn: k: {} distance: {} shrink: {} threshold: {} implicit: {} alpha: {} beta: {} l: {} c: {}'.format(k,
                                                                                                                              distance,
                                                                                                                              shrink,
                                                                                                                              threshold,
