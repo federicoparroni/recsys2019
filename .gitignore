@@ -22,3 +22,5 @@ utils/__pycache__/*
 
 *.ipynb
 
+
+recommenders/collaborative_filterning/__pycache__/

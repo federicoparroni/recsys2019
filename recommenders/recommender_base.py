@@ -9,6 +9,9 @@ class RecommenderBase(ABC):
     """ Defines the interface that all recommendations models expose """
 
     def __init__(self, mode='full', urm_name='urm_clickout'):
+        """
+        init should have on its firm the params of the algorithm
+        """
         self.name = 'recommenderbase'
         self.mode = mode
         self.urm_name = urm_name
@@ -21,18 +24,45 @@ class RecommenderBase(ABC):
         pass
 
     @abstractmethod
+    def recommend_batch(self):
+        """
+        returns a list of recommendations in the format
+        [session_id_0 [acc_1, acc2, acc3, ...], 
+         session_id_1 [acc_1, acc2, acc3, ...], ...]
+        """
+        pass
+
     def run(self):
         """
         Handle all the operations needed to run this model a single time.
-        In particular, creates the object, performs the fit and get the recommendations.
-        Then, it can either evaluate the recommendations or export the model
+        In particular, performs the fit and get the recommendations.
+        Then, it can either export the recommendations or not
         """
-        pass
+        export = False
+        print('running {}'.format(self.name))
+        if self.mode == 'full':
+            export = True
+            print("I gonna fit the model, recommend the accomodations, and save the submission")
+        else:
+            print("I gonna fit the model and recommend the accomodations")
 
-    def recommend_batch(self, df_handle, dict):
-        pass
+        self.fit()
+        recommendations = self.recommend_batch()
+        if export:
+            out.create_sub(recommendations)
 
-    def evaluate(self, predictions, mode, verboose=True):
+    def validate(self):
+        """
+        used to validate the model on local data
+        """
+        assert self.mode == 'local' or self.mode == 'small'
+
+        print('\n validating {}'.format(self.name))
+        self.fit()
+        recommendations = self.recommend_batch()
+        self.evaluate(recommendations)
+
+    def evaluate(self, predictions):
         """
         compute the MRR mean reciprocal rank of some predictions
         it uses the mode parameter to know which handle to retrieve to compute the score
@@ -42,9 +72,9 @@ class RecommenderBase(ABC):
         :param verboose: if True print the MRR
         :return: MRR of the given predictions
         """
-        assert (mode == 'local' or mode == 'small')
+        assert (self.mode == 'local' or self.mode == 'small')
 
-        handle = data.handle_df(mode)
+        handle = data.handle_df(self.mode)
         test = np.array(handle)
 
         # initialize reciprocal rank value
@@ -56,6 +86,6 @@ class RecommenderBase(ABC):
             position = (np.where(np.array(predictions[i][1]) == test[i, 4]))[0][0]
             RR += 1 / (position + 1)
 
-        if verboose: print("MRR is: {}".format(RR / target_session_count))
+        print("MRR is: {}".format(RR / target_session_count))
 
         return RR / target_session_count
