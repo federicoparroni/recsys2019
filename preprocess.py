@@ -247,7 +247,8 @@ def split(df, save_path, perc_train=80):
         [e[1] for e in remove_reference_tuples.index.tolist()], ['user_id', 'session_id', 'timestamp', 'step',
                                                                  'reference', 'impressions']]
     for e in remove_reference_tuples.index.tolist():
-        df_test.at[e[1], 'reference'] = np.nan
+        if int(df_test.at[e[1], 'reference']) in list(map(int, df_test.at[e[1], 'impressions'].split('|'))):
+            df_test.at[e[1], 'reference'] = np.nan
 
     # save them all
     df_train.to_csv(save_path + "/train.csv", index=False)

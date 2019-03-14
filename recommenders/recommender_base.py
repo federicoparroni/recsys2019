@@ -57,7 +57,7 @@ class RecommenderBase(ABC):
         """
         assert self.mode == 'local' or self.mode == 'small'
 
-        print('\n validating {}'.format(self.name))
+        print('\nvalidating {}'.format(self.name))
         self.fit()
         recommendations = self.recommend_batch()
         self.evaluate(recommendations)
