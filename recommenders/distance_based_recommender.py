@@ -53,7 +53,6 @@ class DistanceBasedRecommender(RecommenderBase):
         self.urm = urm
 
     def fit(self):
-        self.urm = self.urm.tocsc() # debug
         self.alpha = -1 if self.alpha is None else self.alpha
         self.beta = -1 if self.beta is None else self.beta
         self.l = -1 if self.l is None else self.l
