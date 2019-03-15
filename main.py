@@ -1,16 +1,5 @@
-import os
-import sys
-sys.path.append(os.getcwd())
-
-import data
 from recommenders.collaborative_filterning.itembased import CFItemBased
-import out
+from recommenders.distance_based_recommender import DistanceBasedRecommender
 
-mode = 'full'
-
-model = CFItemBased(mode=mode)
-model.fit(k=900, distance=model.SIM_COSINE, shrink=0, implicit=False)
-print('sim matrix: ', model._sim_matrix.shape)
-recommendations = model.recommend_batch()
-
-out.create_sub(recommendations)
+model = CFItemBased(mode='local')
+model.run()

@@ -32,87 +32,73 @@ class DistanceBasedRecommender(RecommenderBase):
     SIM_JACCARD = 'jaccard'
     SIM_DICE = 'dice'
     SIM_TVERSKY = 'tversky'
-
     SIM_P3ALPHA = 'p3alpha'
     SIM_RP3BETA = 'rp3beta'
-
     SIM_SPLUS = 'splus'
 
-    def __init__(self, mode='full', urm_name='urm_clickout'):
+    def __init__(self, matrix, mode='full', urm_name='urm_clickout', k=100, distance='cosine', shrink=0, threshold=0, 
+                 implicit=True, alpha=0.5, beta=0.5, l=0.5, c=0.5, urm=None, matrix_mul_order='standard'):
         super(DistanceBasedRecommender, self).__init__(mode=mode, urm_name=urm_name)
         self.name = 'distancebased'
+        self._sim_matrix = None
+
+        self._matrix_mul_order = matrix_mul_order # if you want R•R', or 'inverse' if you want to compute S•R
+
+
         self.mode = mode
         self.urm_name = urm_name
-        self._sim_matrix = None
-        self._matrix_mul_order = 'standard' # if you want R•R', or 'inverse' if you want to compute S•R
-        self.R_hat = None
-        self.dict_col = None
+        self.matrix = matrix
+        self.k = k
+        self.distance = distance
+        self.shrink = shrink
+        self.threshold = threshold
+        self.implicit = implicit
+        self.alpha = alpha
+        self.beta = beta
+        self.l = l
+        self.c = c
+        self.urm = urm
 
-    def fit(self, matrix, k, distance, shrink=0, threshold=0, implicit=True, alpha=0.5, beta=0.5, l=0.5, c=0.5, urm=None):
-        """
-        Initialize the model and compute the Similarity_MFD matrix S with a distance metric.
-        Access the Similarity_MFD matrix using: self._sim_matrix
-
-        Parameters
-        ----------
-        matrix : csr_matrix
-            A sparse matrix. For example, it can be the URM of shape (number_users, number_items).
-        k : int
-            K nearest neighbour to consider.
-        distance : str
-            One of the supported distance metrics, check collaborative_filtering_base constants.
-        shrink : float, optional
-            Shrink term used in the normalization
-        threshold: float, optional
-            All the values under this value are cutted from the final result
-        implicit: bool, optional
-            If true, treat the URM as implicit, otherwise consider explicit ratings (real values) in the URM
-        alpha: float, optional, included in [0,1]
-        beta: float, optional, included in [0,1]
-        l: float, optional, balance coefficient used in s_plus distance, included in [0,1]
-        c: float, optional, cosine coefficient, included in [0,1]
-        urm: urm that has to be multiplied by the similarity matrix
-        """
-        self.urm = urm.tocsc() # debug
-        alpha = -1 if alpha is None else alpha
-        beta = -1 if beta is None else beta
-        l = -1 if l is None else l
-        c = -1 if c is None else c
-        if distance==self.SIM_ASYMCOSINE and not(0 <= alpha <= 1):
+    def fit(self):
+        self.alpha = -1 if self.alpha is None else self.alpha
+        self.beta = -1 if self.beta is None else self.beta
+        self.l = -1 if self.l is None else self.l
+        self.c = -1 if self.c is None else self.c
+        if self.distance==self.SIM_ASYMCOSINE and not(0 <= self.alpha <= 1):
             log.error('Invalid parameter alpha in asymmetric cosine Similarity_MFD!')
             return
-        if distance==self.SIM_TVERSKY and not(0 <= alpha <= 1 and 0 <= beta <= 1):
+        if self.distance==self.SIM_TVERSKY and not(0 <= self.alpha <= 1 and 0 <= self.beta <= 1):
             log.error('Invalid parameter alpha/beta in tversky Similarity_MFD!')
             return
-        if distance==self.SIM_P3ALPHA and alpha is None:
+        if self.distance==self.SIM_P3ALPHA and self.alpha is None:
             log.error('Invalid parameter alpha in p3alpha Similarity_MFD')
             return
-        if distance==self.SIM_RP3BETA and alpha is None and beta is None:
+        if self.distance==self.SIM_RP3BETA and self.alpha is None and self.beta is None:
             log.error('Invalid parameter alpha/beta in rp3beta Similarity_MFD')
             return
-        if distance==self.SIM_SPLUS and not(0 <= l <= 1 and 0 <= c <= 1 and 0 <= alpha <= 1 and 0 <= beta <= 1):
+        if self.distance==self.SIM_SPLUS and not(0 <= self.l <= 1 and 0 <= self.c <= 1 and 0 <= self.alpha <= 1 and 0 <= self.beta <= 1):
             log.error('Invalid parameter alpha/beta/l/c in s_plus Similarity_MFD')
             return
         
         # compute and stores the Similarity_MFD matrix using one of the distance metric: S = R•R'
-        if distance==self.SIM_COSINE:
-            self._sim_matrix = sim.cosine(matrix, k=k, shrink=shrink, threshold=threshold, binary=implicit)
-        elif distance==self.SIM_ASYMCOSINE:
-            self._sim_matrix = sim.asymmetric_cosine(matrix, k=k, shrink=shrink, threshold=threshold, binary=implicit, alpha=alpha)
-        elif distance==self.SIM_JACCARD:
-            self._sim_matrix = sim.jaccard(matrix, k=k, shrink=shrink, threshold=threshold, binary=implicit)
-        elif distance==self.SIM_DICE:
-            self._sim_matrix = sim.dice(matrix, k=k, shrink=shrink, threshold=threshold, binary=implicit)
-        elif distance==self.SIM_TVERSKY:
-            self._sim_matrix = sim.tversky(matrix, k=k, shrink=shrink, threshold=threshold, binary=implicit, alpha=alpha, beta=beta)
-        elif distance==self.SIM_P3ALPHA:
-            self._sim_matrix = sim.p3alpha(matrix, k=k, shrink=shrink, threshold=threshold, binary=implicit, alpha=alpha)
-        elif distance==self.SIM_RP3BETA:
-            self._sim_matrix = sim.rp3beta(matrix, k=k, shrink=shrink, threshold=threshold, binary=implicit, alpha=alpha, beta=beta)
-        elif distance==self.SIM_SPLUS:
-            self._sim_matrix = sim.s_plus(matrix, k=k, shrink=shrink, threshold=threshold, binary=implicit, l=l, t1=alpha, t2=beta, c=c)
+        if self.distance==self.SIM_COSINE:
+            self._sim_matrix = sim.cosine(self.matrix, k=self.k, shrink=self.shrink, threshold=self.threshold, binary=self.implicit)
+        elif self.distance==self.SIM_ASYMCOSINE:
+            self._sim_matrix = sim.asymmetric_cosine(self.matrix, k=self.k, shrink=self.shrink, threshold=self.threshold, binary=self.implicit, alpha=self.alpha)
+        elif self.distance==self.SIM_JACCARD:
+            self._sim_matrix = sim.jaccard(self.matrix, k=self.k, shrink=self.shrink, threshold=self.threshold, binary=self.implicit)
+        elif self.distance==self.SIM_DICE:
+            self._sim_matrix = sim.dice(self.matrix, k=self.k, shrink=self.shrink, threshold=self.threshold, binary=self.implicit)
+        elif self.distance==self.SIM_TVERSKY:
+            self._sim_matrix = sim.tversky(self.matrix, k=self.k, shrink=self.shrink, threshold=self.threshold, binary=self.implicit, alpha=self.alpha, beta=self.beta)
+        elif self.distance==self.SIM_P3ALPHA:
+            self._sim_matrix = sim.p3alpha(self.matrix, k=self.k, shrink=self.shrink, threshold=self.threshold, binary=self.implicit, alpha=self.alpha)
+        elif self.distance==self.SIM_RP3BETA:
+            self._sim_matrix = sim.rp3beta(self.matrix, k=self.k, shrink=self.shrink, threshold=self.threshold, binary=self.implicit, alpha=self.alpha, beta=self.beta)
+        elif self.distance==self.SIM_SPLUS:
+            self._sim_matrix = sim.s_plus(self.matrix, k=self.k, shrink=self.shrink, threshold=self.threshold, binary=self.implicit, l=self.l, t1=self.alpha, t2=self.beta, c=self.c)
         else:
-            log.error('Invalid distance metric: {}'.format(distance))
+            log.error('Invalid distance metric: {}'.format(self.distance))
         return self._sim_matrix
     
     def _has_fit(self):
@@ -125,7 +111,7 @@ class DistanceBasedRecommender(RecommenderBase):
         else:
             return True
     
-    def get_r_hat(self, verbose=False):
+    def get_r_hat(self):
         """
         Return the r_hat matrix as: R^ = R•S or R^ = S•R
         """
@@ -142,27 +128,30 @@ class DistanceBasedRecommender(RecommenderBase):
         else:
             print('NOT TRAINED')
 
-    def recommend_batch(self, verbose=False):
+    def recommend_batch(self):
        	print('recommending batch')
         if not self._has_fit():
             return None
         df_handle = data.handle_df(mode=self.mode)
-        #dict_row = data.dictionary_row(mode=self.mode)
+
+
         dict_col = data.dictionary_col(mode=self.mode)
 
         # compute the R^ by multiplying: R•S or S•R
-        self.R_hat = self.get_r_hat(verbose)
-        print("R_hat computed")
+        R_hat = self.get_r_hat()
         
-        #target_rows = data.target_urm_rows(self.mode)
+        # target_rows = data.target_urm_rows(self.mode)
         predictions = []
         for index, row in tqdm(df_handle.iterrows()):
             impr = list(map(int, row['impressions'].split('|')))
-            l = [[i, self.R_hat[index, dict_col[i]]] for i in impr]
+            # urm_row = R_hat.getrow(index)
+            l = [[i, R_hat[index, dict_col[i]]] for i in impr]
+
             l.sort(key=lambda tup: tup[1], reverse=True)
             predictions.append((row['session_id'], [e[0] for e in l]))
 
         return predictions
+
 
 
     def multi_thread_recommend_batch(self, verbose=False):
@@ -219,3 +208,4 @@ class DistanceBasedRecommender(RecommenderBase):
 
     def run(self):
         pass
+
