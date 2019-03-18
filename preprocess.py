@@ -7,6 +7,7 @@ from sklearn.preprocessing import MultiLabelBinarizer
 import scipy.sparse as sps
 import numpy as np
 import utils.get_action_score as gas
+from time import time
 
 
 def urm_session_aware(train_df, test_df, time_weight, save_path):
@@ -21,9 +22,9 @@ def urm_session_aware(train_df, test_df, time_weight, save_path):
     :return:
     """
 
-    global tw
-    tw = time_weight
 
+    global tw
+    tw=time_weight
     accomodations_array = data.accomodations_ids()
 
     # fill missing clickout_item on the test dataframe
@@ -51,17 +52,24 @@ def urm_session_aware(train_df, test_df, time_weight, save_path):
 
     print("dictionaries created\n")
 
-    sessions_score = session_groups.apply(_compute_session_score).values
+    tqdm.pandas()
+    sessions_score = session_groups.progress_apply(_compute_session_score).values
     print("apply function done\n")
 
-    # TODO: Can be optimized using data indptr and indeces
-    urm = sps.csr_matrix((rows_count, cols_count), dtype=np.float)
+    # create the urm using data indeces and indptr
+    _data = []
+    indptr = [0]
+    indices = []
 
+    values_inserted = 0
     for i in tqdm(range(rows_count)):
         score_dict = sessions_score[i]
         for k in score_dict.keys():
-            col_indx = col_of_accomodation[k]
-            urm[i, col_indx] = score_dict[k]
+            indices.append(col_of_accomodation[k])
+            _data.append(score_dict[k])
+            values_inserted += 1
+        indptr.append(values_inserted)
+    _urm = sps.csr_matrix((_data, indices, indptr), shape=(rows_count, cols_count))
 
     print("URM created\n")
 
@@ -69,7 +77,7 @@ def urm_session_aware(train_df, test_df, time_weight, save_path):
     cf.check_folder('dataset/matrices')
 
     print('Saving urm matrix... ')
-    sps.save_npz('{}/urm_{}.npz'.format(save_path, time_weight), urm)
+    sps.save_npz('{}/urm_{}.npz'.format(save_path, time_weight), _urm)
     print('done!')
 
     print('Saving row dictionary... ')
