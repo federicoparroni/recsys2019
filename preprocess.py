@@ -241,19 +241,26 @@ def split(df, save_path, perc_train=80):
     df_test = df.loc[~df['session_id'].isin(slice_sorted_session_ids)]
 
     # remove clickout from test and save an handle
+    # just those who are for real into the list of impressions
     groups = df_test[df_test['action_type'] == 'clickout item'].groupby('user_id', as_index=False)
     remove_reference_tuples = groups.apply(lambda x: x.sort_values(by=['timestamp'], ascending=True).tail(1))
+
+    for index, row in remove_reference_tuples.iterrows():
+        if int(row['reference']) not in list(map(int, row['impressions'].split('|'))):
+            remove_reference_tuples.drop(index, inplace=True)
+
     df_handle = df.loc[
         [e[1] for e in remove_reference_tuples.index.tolist()], ['user_id', 'session_id', 'timestamp', 'step',
                                                                  'reference', 'impressions']]
+
     for e in remove_reference_tuples.index.tolist():
-        if int(df_test.at[e[1], 'reference']) in list(map(int, df_test.at[e[1], 'impressions'].split('|'))):
-            df_test.at[e[1], 'reference'] = np.nan
+        df_test.at[e[1], 'reference'] = np.nan
 
     # save them all
     df_train.to_csv(save_path + "/train.csv", index=False)
     df_test.to_csv(save_path + "/test.csv", index=False)
     df_handle.to_csv(save_path + "/handle.csv", index=False)
+    print('handle saved to {}'.format(save_path + "/handle.csv"))
 
 
 def append_missing_accomodations(mode):

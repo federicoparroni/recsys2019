@@ -16,7 +16,6 @@ import data
 from tqdm import tqdm
 
 from functools import partial
-import pathos.pools as pp
 import multiprocessing
 
 
@@ -37,7 +36,7 @@ class DistanceBasedRecommender(RecommenderBase):
     SIM_SPLUS = 'splus'
 
     def __init__(self, matrix, mode='full', urm_name='urm_clickout', k=100, distance='cosine', shrink=0, threshold=0, 
-                 implicit=True, alpha=0.5, beta=0.5, l=0.5, c=0.5, urm=None, matrix_mul_order='standard'):
+                 implicit=False, alpha=0.5, beta=0.5, l=0.5, c=0.5, urm=None, matrix_mul_order='standard'):
         super(DistanceBasedRecommender, self).__init__(mode=mode, urm_name=urm_name)
         self.name = 'distancebased'
         self._sim_matrix = None
