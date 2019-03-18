@@ -11,7 +11,7 @@ class CFItemBased(DistanceBasedRecommender):
     """
 
     def __init__(self, mode='full', urm_name='urm_clickout', k=100, distance='cosine', shrink=0, 
-                 threshold=0, implicit=True, alpha=0.5, beta=0.5, l=0.5, c=0.5):
+                 threshold=0, implicit=False, alpha=0.5, beta=0.5, l=0.5, c=0.5):
         """
         Initialize the model
 
