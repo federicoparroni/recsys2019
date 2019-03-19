@@ -30,7 +30,7 @@ class ContentBased(DistanceBasedRecommender):
         c: float, optional, cosine coefficient, included in [0,1]
         """
         urm = data.urm(mode, urm_name=urm_name)
-        icm = data.icm()
+        icm = data.icm().tocsr()
         super(ContentBased, self).__init__(icm,
                                           mode=mode,
                                           urm_name=urm_name,

@@ -74,7 +74,7 @@ def urm_session_aware(train_df, test_df, time_weight, save_path):
     print("URM created\n")
 
     #check if the folder where to save exsist
-    cf.check_folder('dataset/matrices')
+    cf.check_folder(save_path)
 
     print('Saving urm matrix... ')
     sps.save_npz('{}/urm_{}.npz'.format(save_path, time_weight), _urm)
