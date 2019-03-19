@@ -97,15 +97,8 @@ def _compute_session_score(df):
   scores = {}
 
   for i in range(session_len):
+
     row = df.iloc[i]
-    session_action = row['action_type']
-    score = gas.get_action_score(session_action)
-
-    if not isinstance(score, int):
-      continue
-
-    # weight the score by the time
-    score *= weight_array[i]
 
     # get the reference to which assign the score
     try:
@@ -116,6 +109,11 @@ def _compute_session_score(df):
     # was a test row in which we have to predict the clickout
     if reference_id == -1:
       continue
+
+    score = gas.get_action_score(row['action_type'])
+
+    # weight the score by the time
+    score *= weight_array[i]
 
     #check if the reference is in the dictionary
     if reference_id not in scores.keys():
@@ -188,6 +186,7 @@ def urm(train_df, test_df, path, clickout_score=5, impressions_score=1):
     print('Saving col dictionary... ')
     np.save('{}/dict_col.npy'.format(path), col_of_accomodation)
     print('done!')
+
 
 def create_full_handle(test_df, name='handle.csv', folder='dataset/preprocessed/full'):
     """
@@ -341,7 +340,6 @@ def create_ICM(name='icm.npz', save_path='dataset/matrices/full/'):
     np.save(save_path + 'icm_dict.npy', dict)
 
     print("Procedure ended succesfully!")
-
 
 
 def preprocess():
