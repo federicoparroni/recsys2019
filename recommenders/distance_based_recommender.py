@@ -35,14 +35,13 @@ class DistanceBasedRecommender(RecommenderBase):
     SIM_RP3BETA = 'rp3beta'
     SIM_SPLUS = 'splus'
 
-    def __init__(self, matrix, mode='full', urm_name='urm_clickout', k=100, distance='cosine', shrink=0, threshold=0, 
+    def __init__(self, matrix, mode='full', name='distancebased', urm_name='urm_clickout', k=100, distance='cosine', shrink=0, threshold=0, 
                  implicit=False, alpha=0.5, beta=0.5, l=0.5, c=0.5, urm=None, matrix_mul_order='standard'):
-        super(DistanceBasedRecommender, self).__init__(mode=mode, urm_name=urm_name)
-        self.name = 'distancebased'
+        super(DistanceBasedRecommender, self).__init__(mode=mode, name=name)
+        self.urm_name = urm_name
         self._sim_matrix = None
 
         self._matrix_mul_order = matrix_mul_order # if you want R•R', or 'inverse' if you want to compute S•R
-
 
         self.mode = mode
         self.urm_name = urm_name
