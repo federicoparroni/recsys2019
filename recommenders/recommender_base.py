@@ -9,13 +9,12 @@ import out
 class RecommenderBase(ABC):
     """ Defines the interface that all recommendations models expose """
 
-    def __init__(self, mode='full', urm_name='urm_clickout'):
+    def __init__(self, mode='full', name='recommenderbase'):
         """
         init should have on its firm the params of the algorithm
         """
-        self.name = 'recommenderbase'
+        self.name = name
         self.mode = mode
-        self.urm_name = urm_name
 
     @abstractmethod
     def fit(self):
@@ -50,7 +49,7 @@ class RecommenderBase(ABC):
         self.fit()
         recommendations = self.recommend_batch()
         if export:
-            out.create_sub(recommendations)
+            out.create_sub(recommendations, submission_name=self.name)
 
     def validate(self):
         """

@@ -35,7 +35,8 @@ class CFUserBased(DistanceBasedRecommender):
         urm = data.urm(mode, urm_name=urm_name)
         super(CFUserBased, self).__init__(urm,
                                           mode=mode, 
-                                          urm_name=urm_name, 
+                                          urm_name=urm_name,
+                                          name='UserKnn: k: {} distance: {} shrink: {} threshold: {} implicit: {} alpha: {} beta: {} l: {} c: {}'.format(k,distance,shrink,threshold,implicit,alpha,beta,l,c)
                                           k=k,
                                           distance=distance, 
                                           shrink=shrink, 
@@ -48,13 +49,3 @@ class CFUserBased(DistanceBasedRecommender):
                                           urm=urm,
                                           matrix_mul_order='inverse')
         
-        self.name = 'UserKnn: k: {} distance: {} shrink: {} threshold: {} implicit: {} alpha: {} beta: {} l: {} c: {}'.format(k,
-                                                                                                                             distance,
-                                                                                                                             shrink,
-                                                                                                                             threshold,
-                                                                                                                             implicit,
-                                                                                                                             alpha,
-                                                                                                                             beta,
-                                                                                                                             l,
-                                                                                                                             c)
-

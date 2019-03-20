@@ -14,9 +14,10 @@ import numpy as np
 import similaripy as sim
 import data
 from tqdm import tqdm
-
+import scipy.sparse as sps
 from functools import partial
 import multiprocessing
+import utils.check_folder as cf
 
 
 class DistanceBasedRecommender(RecommenderBase):
@@ -35,14 +36,13 @@ class DistanceBasedRecommender(RecommenderBase):
     SIM_RP3BETA = 'rp3beta'
     SIM_SPLUS = 'splus'
 
-    def __init__(self, matrix, mode='full', urm_name='urm_clickout', k=100, distance='cosine', shrink=0, threshold=0, 
+    def __init__(self, matrix, mode='full', name='distancebased', urm_name='urm_clickout', k=100, distance='cosine', shrink=0, threshold=0, 
                  implicit=False, alpha=0.5, beta=0.5, l=0.5, c=0.5, urm=None, matrix_mul_order='standard'):
-        super(DistanceBasedRecommender, self).__init__(mode=mode, urm_name=urm_name)
-        self.name = 'distancebased'
+        super(DistanceBasedRecommender, self).__init__(mode=mode, name=name)
+        self.urm_name = urm_name
         self._sim_matrix = None
 
         self._matrix_mul_order = matrix_mul_order # if you want R•R', or 'inverse' if you want to compute S•R
-
 
         self.mode = mode
         self.urm_name = urm_name
@@ -151,7 +151,19 @@ class DistanceBasedRecommender(RecommenderBase):
 
         return predictions
 
+    def save_similarity_matrix(self):
+        base_save_path = 'dataset/matrices/{}/similarity_matrices'.format(self.mode)
+        cf.check_folder(base_save_path)
+        print('saving sim_matrix...')
+        sps.save_npz('{}/{}'.format(base_save_path, self.name), self.get_sim_matrix())
+        print('sim_matrix saved succesfully !')
 
+    def save_r_hat(self):
+        base_save_path = 'dataset/matrices/{}/r_hat_matrices'.format(self.mode)
+        cf.check_folder(base_save_path)
+        print('saving r_hat...')
+        sps.save_npz('{}/{}'.format(base_save_path, self.name), self.get_r_hat())
+        print('r_hat saved succesfully !')
 
     def multi_thread_recommend_batch(self, verbose=False):
         print('recommending batch')
@@ -205,6 +217,5 @@ class DistanceBasedRecommender(RecommenderBase):
         l.sort(key=lambda tup: tup[1], reverse=True)
         return row['session_id'], [e[0] for e in l]
 
-    def run(self):
-        pass
+
 

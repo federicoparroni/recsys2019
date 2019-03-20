@@ -1,16 +1,13 @@
-"""
-Collaborative filtering recommender.
-"""
 from recommenders.distance_based_recommender import DistanceBasedRecommender
 import data
 
-class CFItemBased(DistanceBasedRecommender):
+class ContentBased(DistanceBasedRecommender):
     """
     Computes the recommendations for a user by looking for the similar users based on the
     item which they rated
     """
 
-    def __init__(self, mode='full', urm_name='urm_clickout', k=100, distance='cosine', shrink=0, 
+    def __init__(self, mode='full', urm_name='urm_clickout', k=100, distance='cosine', shrink=0,
                  threshold=0, implicit=False, alpha=0.5, beta=0.5, l=0.5, c=0.5):
         """
         Initialize the model
@@ -33,20 +30,21 @@ class CFItemBased(DistanceBasedRecommender):
         c: float, optional, cosine coefficient, included in [0,1]
         """
         urm = data.urm(mode, urm_name=urm_name)
-        super(CFItemBased, self).__init__(urm.T,
-                                          mode=mode, 
+        icm = data.icm().tocsr()
+        super(ContentBased, self).__init__(icm,
+                                          mode=mode,
                                           urm_name=urm_name,
-                                          name='ItemKNN: k: {} distance: {} shrink: {} threshold: {} implicit: {}'
-                                               ' alpha: {} beta: {} l: {} c: {}'.format(k, distance, shrink, threshold,
-                                                                                        implicit, alpha, beta, l, c),
-                                          k=k, 
-                                          distance=distance, 
-                                          shrink=shrink, 
-                                          threshold=threshold, 
-                                          implicit=implicit, 
-                                          alpha=alpha, 
+                                          k=k,
+                                          distance=distance,
+                                          shrink=shrink,
+                                          threshold=threshold,
+                                          implicit=implicit,
+                                          alpha=alpha,
                                           beta=beta,
                                           l=l,
                                           c=c,
                                           urm=urm,
                                           matrix_mul_order='standard')
+
+        self.name = 'content based: k: {} distance: {} shrink: {} threshold: {} implicit: {} alpha: {} beta: {} ' \
+                    'l: {} c: {}'.format(k, distance, shrink, threshold, implicit, alpha, beta, l, c)

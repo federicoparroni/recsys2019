@@ -3,11 +3,11 @@ import os
 import time
 import data
 
-def create_sub(predictions, directory='submissions'):
+def create_sub(predictions, submission_name, directory='submissions'):
     if not os.path.exists(directory):
       os.mkdir(directory)
 
-    path_time = directory + '/' + time.strftime('%Hh-%Mm-%Ss') + '.csv'
+    path_time = directory + '/' + submission_name + ' ' + time.strftime('%Hh-%Mm-%Ss') + '.csv'
     start = time.time()
 
     handle_df = data.handle_df(mode='full')
