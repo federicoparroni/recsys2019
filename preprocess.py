@@ -7,6 +7,7 @@ from sklearn.preprocessing import MultiLabelBinarizer
 import scipy.sparse as sps
 import numpy as np
 import utils.get_action_score as gas
+from time import time
 
 
 def urm_session_aware(train_df, test_df, time_weight, save_path):
@@ -21,9 +22,9 @@ def urm_session_aware(train_df, test_df, time_weight, save_path):
     :return:
     """
 
-    global tw
-    tw = time_weight
 
+    global tw
+    tw=time_weight
     accomodations_array = data.accomodations_ids()
 
     # fill missing clickout_item on the test dataframe
@@ -51,25 +52,32 @@ def urm_session_aware(train_df, test_df, time_weight, save_path):
 
     print("dictionaries created\n")
 
-    sessions_score = session_groups.apply(_compute_session_score).values
+    tqdm.pandas()
+    sessions_score = session_groups.progress_apply(_compute_session_score).values
     print("apply function done\n")
 
-    # TODO: Can be optimized using data indptr and indeces
-    urm = sps.csr_matrix((rows_count, cols_count), dtype=np.float)
+    # create the urm using data indeces and indptr
+    _data = []
+    indptr = [0]
+    indices = []
 
+    values_inserted = 0
     for i in tqdm(range(rows_count)):
         score_dict = sessions_score[i]
         for k in score_dict.keys():
-            col_indx = col_of_accomodation[k]
-            urm[i, col_indx] = score_dict[k]
+            indices.append(col_of_accomodation[k])
+            _data.append(score_dict[k])
+            values_inserted += 1
+        indptr.append(values_inserted)
+    _urm = sps.csr_matrix((_data, indices, indptr), shape=(rows_count, cols_count))
 
     print("URM created\n")
 
     #check if the folder where to save exsist
-    cf.check_folder('dataset/matrices')
+    cf.check_folder(save_path)
 
     print('Saving urm matrix... ')
-    sps.save_npz('{}/urm_{}.npz'.format(save_path, time_weight), urm)
+    sps.save_npz('{}/urm_{}.npz'.format(save_path, time_weight), _urm)
     print('done!')
 
     print('Saving row dictionary... ')
@@ -89,15 +97,8 @@ def _compute_session_score(df):
   scores = {}
 
   for i in range(session_len):
+
     row = df.iloc[i]
-    session_action = row['action_type']
-    score = gas.get_action_score(session_action)
-
-    if not isinstance(score, int):
-      continue
-
-    # weight the score by the time
-    score *= weight_array[i]
 
     # get the reference to which assign the score
     try:
@@ -108,6 +109,11 @@ def _compute_session_score(df):
     # was a test row in which we have to predict the clickout
     if reference_id == -1:
       continue
+
+    score = gas.get_action_score(row['action_type'])
+
+    # weight the score by the time
+    score *= weight_array[i]
 
     #check if the reference is in the dictionary
     if reference_id not in scores.keys():
@@ -180,6 +186,7 @@ def urm(train_df, test_df, path, clickout_score=5, impressions_score=1):
     print('Saving col dictionary... ')
     np.save('{}/dict_col.npy'.format(path), col_of_accomodation)
     print('done!')
+
 
 def create_full_handle(test_df, name='handle.csv', folder='dataset/preprocessed/full'):
     """
@@ -333,7 +340,6 @@ def create_ICM(name='icm.npz', save_path='dataset/matrices/full/'):
     np.save(save_path + 'icm_dict.npy', dict)
 
     print("Procedure ended succesfully!")
-
 
 
 def preprocess():

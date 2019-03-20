@@ -204,6 +204,5 @@ class DistanceBasedRecommender(RecommenderBase):
         l.sort(key=lambda tup: tup[1], reverse=True)
         return row['session_id'], [e[0] for e in l]
 
-    def run(self):
-        pass
+
 

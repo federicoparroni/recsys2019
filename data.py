@@ -24,6 +24,7 @@ _df_items = None
 _df_items_ids = None
 # URM structures
 _urm = [None, None, None]
+_icm = None
 _dict_row = [None, None, None]
 _dict_col = [None, None, None]
 _target_urm_rows = [None, None, None]
@@ -66,6 +67,14 @@ def urm(mode, urm_name='urm_clickout'):
   if _urm[idx] is None:
     _urm[idx] = sps.load_npz(urm_path)
   return _urm[idx]
+
+def icm():
+  global _icm
+  # note is used the urm path since it is dataset/matrices/full/
+  icm_path = '{}{}.npz'.format(URM_PATH[0], 'icm')
+  if _icm is None:
+    _icm = sps.load_npz(icm_path)
+  return _icm
 
 def dictionary_row(mode):
   idx = __mode__[mode]
