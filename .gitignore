@@ -23,3 +23,5 @@ utils/__pycache__/*
 recommenders/collaborative_filterning/__pycache__/
 
 Untitled\.ipynb
+
+*.pyc

@@ -27,8 +27,8 @@ class RecommenderBase(ABC):
     def recommend_batch(self):
         """
         returns a list of recommendations in the format
-        [session_id_0 [acc_1, acc2, acc3, ...], 
-         session_id_1 [acc_1, acc2, acc3, ...], ...]
+        [(session_id_0, [acc_1, acc2, acc3, ...]), 
+         (session_id_1, [acc_1, acc2, acc3, ...]), ...]
         """
         pass
 
