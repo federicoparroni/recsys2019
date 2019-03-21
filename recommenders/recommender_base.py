@@ -51,7 +51,7 @@ class RecommenderBase(ABC):
         if export:
             out.create_sub(recommendations, submission_name=self.name)
 
-    def validate(self):
+    def evaluate(self):
         """
         used to validate the model on local data
         """
@@ -60,9 +60,9 @@ class RecommenderBase(ABC):
         print('\nvalidating {}'.format(self.name))
         self.fit()
         recommendations = self.recommend_batch()
-        self.evaluate(recommendations)
+        self.compute_MRR(recommendations)
 
-    def evaluate(self, predictions):
+    def compute_MRR(self, predictions):
         """
         compute the MRR mean reciprocal rank of some predictions
         it uses the mode parameter to know which handle to retrieve to compute the score
@@ -89,3 +89,9 @@ class RecommenderBase(ABC):
         print("MRR is: {}".format(RR / target_session_count))
 
         return RR / target_session_count
+
+    def validate(self, iterations):
+        pass
+
+    def _validateStep(self):
+        pass

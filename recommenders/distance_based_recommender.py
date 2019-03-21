@@ -152,17 +152,17 @@ class DistanceBasedRecommender(RecommenderBase):
         return predictions
 
     def save_similarity_matrix(self):
-        base_save_path = 'dataset/matrices/similarity_matrices'
+        base_save_path = 'dataset/matrices/{}/similarity_matrices'.format(self.mode)
         cf.check_folder(base_save_path)
         print('saving sim_matrix...')
-        sps.save_npz('{}{}'.format(base_save_path, self.name), self.get_sim_matrix())
+        sps.save_npz('{}/{}'.format(base_save_path, self.name), self.get_sim_matrix())
         print('sim_matrix saved succesfully !')
 
     def save_r_hat(self):
-        base_save_path = 'dataset/matrices/r_hat_matrices'
+        base_save_path = 'dataset/matrices/{}/r_hat_matrices'.format(self.mode)
         cf.check_folder(base_save_path)
         print('saving r_hat...')
-        sps.save_npz('{}{}'.format(base_save_path, self.name), self.get_r_hat())
+        sps.save_npz('{}/{}'.format(base_save_path, self.name), self.get_r_hat())
         print('r_hat saved succesfully !')
 
     def multi_thread_recommend_batch(self, verbose=False):
