@@ -208,7 +208,7 @@ class Hybrid(RecommenderBase):
         recs = self.recommend_batch(weights, target_userids=targetids, N=N,
                                     filter_already_liked=filter_already_liked, items_to_exclude=items_to_exclude,
                                     verbose=False)
-        return self.evaluate(recs, test_urm=urm_test)
+        return self.compute_MRR(recs, test_urm=urm_test)
 
     def validate(self, iterations, urm_test, userids=None,
                  N=10, filter_already_liked=True, items_to_exclude=[], verbose=False):
@@ -240,4 +240,4 @@ class Hybrid(RecommenderBase):
 
     def run(self):
         pass
-    """
+
