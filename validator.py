@@ -1,7 +1,7 @@
 from bayes_opt import BayesianOptimization
 from functools import partial
 from recommenders.collaborative_filterning.itembased import CFItemBased
-from utils.writer import Writer
+import utils.writer as w
 
 
 class BayesianValidator:
@@ -10,8 +10,11 @@ class BayesianValidator:
         self.reference_object = reference_object
         self.fixed_params_dict = None
         self.hyperparameters_dict = None
-        self.writer = Writer(file_base_path='validation_result',
-                             file_name=str(reference_object.__class__).split('.')[-1].replace('\'>', ''))
+
+        # used to know where to store the validation result
+        self.file_base_path = 'validation_result'
+        self.file_name = str(reference_object.__class__).split('.')[-1].replace('\'>', '')
+
 
     def validate(self, iterations):
         self.fixed_params_dict, self.hyperparameters_dict = self.reference_object.get_params()
@@ -34,7 +37,7 @@ class BayesianValidator:
         #partial_initialized_model = partial(self.reference_object.__init__, **self.fixed_params_dict)
         model = self.reference_object.__class__(**params_dict)
         score = model.evaluate()
-        self.writer.write_line('params: {}\n MRR is: {}\n\n'.format(params_dict, score))
+        w.write(self.file_base_path, self.file_name, ('params: {}\n MRR is: {}\n\n'.format(params_dict, score)))
         del model
         return score
 
