@@ -60,7 +60,7 @@ class RecommenderBase(ABC):
         print('\nvalidating {}'.format(self.name))
         self.fit()
         recommendations = self.recommend_batch()
-        self.compute_MRR(recommendations)
+        return self.compute_MRR(recommendations)
 
     def compute_MRR(self, predictions):
         """
@@ -90,8 +90,6 @@ class RecommenderBase(ABC):
 
         return RR / target_session_count
 
-    def validate(self, iterations):
-        pass
-
-    def _validateStep(self):
+    def get_params(self):
+        # needed an override on each class
         pass

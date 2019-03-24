@@ -33,6 +33,26 @@ class CFItemBased(DistanceBasedRecommender):
         c: float, optional, cosine coefficient, included in [0,1]
         """
         urm = data.urm(mode, urm_name=urm_name)
+
+        # create fixed params dictionary
+        self.fixed_params_dict = {
+            'mode': mode,
+            'urm_name': urm_name,
+            'distance': distance,
+            'implicit': implicit
+        }
+
+        # create hyperparameters dictionary
+        self.hyperparameters_dict = {
+            'k': (0, 1000),
+            'shrink': (0, 1000),
+            'threshold': (0, 10e-10),
+            'beta': (0, 1),
+            'alpha': (0, 1),
+            'l': (0, 1),
+            'c': (0, 1)
+        }
+
         super(CFItemBased, self).__init__(urm.T,
                                           mode=mode, 
                                           urm_name=urm_name,
@@ -50,3 +70,7 @@ class CFItemBased(DistanceBasedRecommender):
                                           c=c,
                                           urm=urm,
                                           matrix_mul_order='standard')
+
+
+    def get_params(self):
+        return self.fixed_params_dict, self.hyperparameters_dict
