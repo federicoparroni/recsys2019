@@ -25,3 +25,5 @@ recommenders/collaborative_filterning/__pycache__/
 Untitled\.ipynb
 
 *.pyc
+
+validation_result/

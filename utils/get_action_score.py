@@ -34,7 +34,9 @@ def time_weight(weight_function, session_length):
     """
     weight_array = []
     if weight_function == 'exp':
-        pass
+        for i in range(session_length):
+            weight_array.append(((i+1)/session_length)**3)
+        return weight_array
     if weight_function == 'lin':
         for i in range(session_length):
             weight_array.append((i+1)/session_length)
@@ -46,5 +48,6 @@ def time_weight(weight_function, session_length):
 
 if __name__ == '__main__':
     #print(get_action_score('clickout_item'))
-    print(time_weight('lin', 3522))
+    print(time_weight('exp', 100))
+    print(time_weight('lin', 100))
 
