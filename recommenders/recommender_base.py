@@ -82,9 +82,11 @@ class RecommenderBase(ABC):
 
         target_session_count = test.shape[0]
 
-        for i in tqdm(range(target_session_count)):
-            position = (np.where(np.array(predictions[i][1]) == test[i, 4]))[0][0]
-            RR += 1 / (position + 1)
+        for key, value in tqdm(predictions.items()):
+            target_mask = handle["session_id"] == key
+            target_reference = handle[target_mask]
+            target_reference = list(target_reference["reference"])[0]
+            RR += 1 / (value.index(target_reference) + 1)
 
         print("MRR is: {}".format(RR / target_session_count))
 

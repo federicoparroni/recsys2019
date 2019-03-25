@@ -2,6 +2,7 @@ import pandas as pd
 import os
 import time
 import data
+from tqdm import tqdm
 
 def create_sub(predictions, submission_name, directory='submissions'):
     if not os.path.exists(directory):
@@ -14,9 +15,12 @@ def create_sub(predictions, submission_name, directory='submissions'):
 
     # drop clickout item and impressions mantain only the 4 keys
     handle_df.drop(handle_df.columns[4], axis=1, inplace=True)
-    predictions_column = []
-    for p in predictions:
-        predictions_column.append(str(p[1]).replace("[", '').replace("]","").replace(",", ""))
+
+
+
+    predictions_column = list()
+    for key, value in tqdm(predictions.items()):
+        predictions_column.append(str(value).replace("[", '').replace("]","").replace(",", ""))
     handle_df['item_recommendations'] = predictions_column
     handle_df.to_csv(path_time, index=False)
 
