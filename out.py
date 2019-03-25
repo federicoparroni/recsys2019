@@ -35,7 +35,7 @@ def create_sub(predictions, submission_name, mode, directory='submissions'):
     handle_df.to_csv(path_time, index=False)
 
 
-    time = time.time()-start
+    _time = time.time()-start
     elapsed = time.strftime('%Mm %Ss', time.gmtime(_time))
     print()
     print(f"submission created in submissions folder in {elapsed}")
