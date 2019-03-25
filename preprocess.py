@@ -204,7 +204,6 @@ def create_full_handle(test_df, name='handle.csv', folder='dataset/preprocessed/
     df_handle = df_handle[(test_df['action_type'] == 'clickout item') & (test_df['reference'].isnull())]
     print('handle created...')
 
-
     cf.check_folder(folder)
     df_handle.to_csv('{}/{}'.format(folder, name), index=False)
     print('handle saved...')
@@ -232,7 +231,7 @@ def create_small_dataset(df, maximum_rows=5000):
 
 def split(df, save_path, perc_train=80):
     """
-    split a dataset into train and test and create the handle of the test file
+    Split a timestamp-ordered dataset into train and test and create the handle of the test file
     also save the train test and the handle created
     handle as the following format |user_id,session_id,timestamp,step,clickout_item,impressions|
 
@@ -295,14 +294,16 @@ def append_missing_accomodations(mode):
     acs = data.accomodations_ids()
     accomod_known = set(map(int, acs))
     missing = found_ids.difference(accomod_known)
-    print('Found {} missing accomodations'.format(len(missing)))
+    missing_count = len(missing)
+    print('Found {} missing accomodations'.format(missing_count))
 
     # add those at the end of the dataframe
-    new_acc_df = pd.DataFrame({ 'item_id': list(missing) }, columns=['item_id', 'properties'] )
+    if missing_count > 0:
+        new_acc_df = pd.DataFrame({ 'item_id': list(missing) }, columns=['item_id', 'properties'] )
     
-    new_acs = data.accomodations_df().append(new_acc_df, ignore_index=True)
-    new_acs.to_csv(data.ITEMS_PATH, index=False)
-    print('{} successfully updated'.format(data.ITEMS_PATH))
+        new_acs = data.accomodations_df().append(new_acc_df, ignore_index=True)
+        new_acs.to_csv(data.ITEMS_PATH, index=False)
+        print('{} successfully updated'.format(data.ITEMS_PATH))
 
 
 def create_ICM(name='icm.npz', save_path='dataset/matrices/full/'):

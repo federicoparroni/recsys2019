@@ -49,11 +49,11 @@ class RecommenderBase(ABC):
         self.fit()
         recommendations = self.recommend_batch()
         if export:
-            out.create_sub(recommendations, submission_name=self.name)
+            out.create_sub(recommendations, mode=mode, submission_name=self.name)
 
     def evaluate(self):
         """
-        used to validate the model on local data
+        Validate the model on local data
         """
         assert self.mode == 'local' or self.mode == 'small'
 
