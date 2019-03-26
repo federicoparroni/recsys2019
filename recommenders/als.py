@@ -48,7 +48,7 @@ class AlternatingLeastSquare(RecommenderBase):
         self.hyperparameters_dict = {
             'factors': (50, 200),
             'regularization': (0, 1),
-            'iteration': (1, 250),
+            'iterations': (1, 250),
             'alpha': (15, 45)
         }
 
