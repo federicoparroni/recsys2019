@@ -22,7 +22,7 @@ class AlternatingLeastSquare(RecommenderBase):
     [link text](http://www.example.com)
     """
 
-    def __init__(self, mode, urm_name, factors, regularization, iterations, alpha):
+    def __init__(self, mode, urm_name, factors=100, regularization=0.01, iterations=10, alpha=25):
         os.environ['MKL_NUM_THREADS'] = '1'
         name = 'ALS urm_name: {}\n factors: {}\n regularization: {}\n ' \
                     'iterations: {}\n alpha: {}'.format(urm_name, factors, regularization, iterations, alpha)
@@ -126,8 +126,9 @@ class AlternatingLeastSquare(RecommenderBase):
         sps.save_npz('{}/{}'.format(base_save_path, self.name), self.get_r_hat())
         print('r_hat saved succesfully !')
 
+
 if __name__ == '__main__':
-    model = AlternatingLeastSquare(mode='small', urm_name='urm_lin', factors=250, regularization=0.3,
-                                   iterations=100, alpha=25)
+    model = AlternatingLeastSquare(mode='small', urm_name='urm_lin', factors=100, regularization=0.05,
+                                   iterations=50, alpha=25)
     model.evaluate()
 

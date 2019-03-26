@@ -3,6 +3,7 @@ from functools import partial
 from recommenders.collaborative_filterning.itembased import CFItemBased
 from utils.writer import writer
 import gc
+import utils.telegram_bot as HERA
 
 
 class BayesianValidator:
@@ -42,6 +43,10 @@ class BayesianValidator:
         del model
         gc.collect()
         self.writer.write('params: {}\n MRR is: {}\n\n'.format(params_dict, score))
+
+        #sending a message on the telegram channel
+        HERA.send_message('params: {}\n MRR is: {}\n\n'.format(params_dict, score))
+
         return score
 
 
