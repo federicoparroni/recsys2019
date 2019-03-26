@@ -28,10 +28,10 @@ class AlternatingLeastSquare(RecommenderBase):
                     'iterations: {}\n alpha: {}'.format(urm_name, factors, regularization, iterations, alpha)
         super(AlternatingLeastSquare, self).__init__(mode, name)
 
-        self.factors = factors
+        self.factors = int(factors)
         self.regularization = regularization
-        self.iterations = iterations
-        self.alpha = alpha
+        self.iterations = int(iterations)
+        self.alpha = int(alpha)
 
         self.targetids = data.target_urm_rows(self.mode)
         self.urm = data.urm(mode=mode, urm_name=urm_name)

@@ -48,7 +48,7 @@ class DistanceBasedRecommender(RecommenderBase):
         self.mode = mode
         self.urm_name = urm_name
         self.matrix = matrix
-        self.k = k
+        self.k = int(k)
         self.distance = distance
         self.shrink = shrink
         self.threshold = threshold
