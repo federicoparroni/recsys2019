@@ -128,7 +128,7 @@ class DistanceBasedRecommender(RecommenderBase):
             print('NOT TRAINED')
 
     def recommend_batch(self):
-       	print('recommending batch')
+        print('recommending batch')
         if not self._has_fit():
             return None
         df_handle = data.handle_df(mode=self.mode)
@@ -138,17 +138,16 @@ class DistanceBasedRecommender(RecommenderBase):
 
         # compute the R^ by multiplying: R•S or S•R
         R_hat = self.get_r_hat()
-        
-        # target_rows = data.target_urm_rows(self.mode)
-        predictions = []
+
+        predictions = dict()
+
         for index, row in tqdm(df_handle.iterrows()):
             impr = list(map(int, row['impressions'].split('|')))
-            # urm_row = R_hat.getrow(index)
+            # get ratings
             l = [[i, R_hat[index, dict_col[i]]] for i in impr]
-
             l.sort(key=lambda tup: tup[1], reverse=True)
-            predictions.append((row['session_id'], [e[0] for e in l]))
-
+            p = [e[0] for e in l]
+            predictions[row["session_id"]] = p
         return predictions
 
     def save_similarity_matrix(self):
