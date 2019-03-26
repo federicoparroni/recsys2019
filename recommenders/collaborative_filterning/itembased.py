@@ -3,6 +3,7 @@ Collaborative filtering recommender.
 """
 from recommenders.distance_based_recommender import DistanceBasedRecommender
 import data
+import sklearn.preprocessing as preprocessing
 
 class CFItemBased(DistanceBasedRecommender):
     """
@@ -32,6 +33,7 @@ class CFItemBased(DistanceBasedRecommender):
         l: float, optional, balance coefficient used in s_plus distance, included in [0,1]
         c: float, optional, cosine coefficient, included in [0,1]
         """
+
         urm = data.urm(mode, urm_name=urm_name)
 
         # create fixed params dictionary
@@ -39,25 +41,25 @@ class CFItemBased(DistanceBasedRecommender):
             'mode': mode,
             'urm_name': urm_name,
             'distance': distance,
-            'implicit': implicit
+            'implicit': implicit,
+            'threshold': 0
         }
 
         # create hyperparameters dictionary
         self.hyperparameters_dict = {
-            'k': (0, 1000),
-            'shrink': (0, 1000),
-            'threshold': (0, 10e-10),
+            'k': (3, 1000),
             'beta': (0, 1),
             'alpha': (0, 1),
             'l': (0, 1),
+            'shrink': (0, 5),
             'c': (0, 1)
         }
 
-        super(CFItemBased, self).__init__(urm.T,
+        super(CFItemBased, self).__init__(matrix=urm.T,
                                           mode=mode, 
                                           urm_name=urm_name,
-                                          name='ItemKNN: k: {} distance: {} shrink: {} threshold: {} implicit: {}'
-                                               ' alpha: {} beta: {} l: {} c: {}'.format(k, distance, shrink, threshold,
+                                          name='ItemKNN: urm: {} k: {} distance: {} shrink: {} threshold: {} implicit: {}'
+                                               ' alpha: {} beta: {} l: {} c: {}'.format(urm_name, k, distance, shrink, threshold,
                                                                                         implicit, alpha, beta, l, c),
                                           k=k, 
                                           distance=distance, 
@@ -71,6 +73,3 @@ class CFItemBased(DistanceBasedRecommender):
                                           urm=urm,
                                           matrix_mul_order='standard')
 
-
-    def get_params(self):
-        return self.fixed_params_dict, self.hyperparameters_dict

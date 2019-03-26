@@ -3,6 +3,7 @@ Collaborative filtering recommender.
 """
 from recommenders.distance_based_recommender import DistanceBasedRecommender
 import data
+import sklearn.preprocessing as preprocessing
 
 class CFUserBased(DistanceBasedRecommender):
     """
@@ -33,10 +34,31 @@ class CFUserBased(DistanceBasedRecommender):
         c: float, optional, cosine coefficient, included in [0,1]
         """
         urm = data.urm(mode, urm_name=urm_name)
+
+        # create fixed params dictionary
+        self.fixed_params_dict = {
+            'mode': mode,
+            'urm_name': urm_name,
+            'distance': distance,
+            'implicit': implicit,
+            'threshold': 0,
+        }
+
+        # create hyperparameters dictionary
+        self.hyperparameters_dict = {
+            'shrink': (0, 10),
+            'k': (3, 1000),
+            'beta': (0, 1),
+            'alpha': (0, 1),
+            'l': (0, 1),
+            'c': (0, 1)
+        }
+
+
         super(CFUserBased, self).__init__(urm,
                                           mode=mode, 
                                           urm_name=urm_name,
-                                          name='UserKnn: k: {} distance: {} shrink: {} threshold: {} implicit: {} alpha: {} beta: {} l: {} c: {}'.format(k,distance,shrink,threshold,implicit,alpha,beta,l,c)
+                                          name='UserKnn: urm: {} k: {} distance: {} shrink: {} threshold: {} implicit: {} alpha: {} beta: {} l: {} c: {}'.format(urm_name, k,distance,shrink,threshold,implicit,alpha,beta,l,c),
                                           k=k,
                                           distance=distance, 
                                           shrink=shrink, 

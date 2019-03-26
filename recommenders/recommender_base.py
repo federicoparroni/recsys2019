@@ -91,5 +91,13 @@ class RecommenderBase(ABC):
         return RR / target_session_count
 
     def get_params(self):
-        # needed an override on each class
-        pass
+        """
+        returns the dictionaries used for the bayesian search validation
+        the two dictionaries have to be implemented by each recommenders in the init!
+
+        """
+        if (self.fixed_params_dict is None) or (self.hyperparameters_dict is None):
+            print('dictionaries of the parameters have not been set on the recommender!!')
+            exit(0)
+        return self.fixed_params_dict, self.hyperparameters_dict
+

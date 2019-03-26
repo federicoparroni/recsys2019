@@ -18,6 +18,7 @@ import scipy.sparse as sps
 from functools import partial
 import multiprocessing
 import utils.check_folder as cf
+import sklearn.preprocessing as preprocessing
 
 
 class DistanceBasedRecommender(RecommenderBase):
@@ -36,7 +37,7 @@ class DistanceBasedRecommender(RecommenderBase):
     SIM_RP3BETA = 'rp3beta'
     SIM_SPLUS = 'splus'
 
-    def __init__(self, matrix, mode='full', name='distancebased', urm_name='urm_clickout', k=100, distance='cosine', shrink=0, threshold=0, 
+    def __init__(self, matrix, normalization_mode='l2', mode='full', name='distancebased', urm_name='urm_clickout', k=100, distance='cosine', shrink=0, threshold=0,
                  implicit=False, alpha=0.5, beta=0.5, l=0.5, c=0.5, urm=None, matrix_mul_order='standard'):
         super(DistanceBasedRecommender, self).__init__(mode=mode, name=name)
         self.urm_name = urm_name
@@ -56,7 +57,7 @@ class DistanceBasedRecommender(RecommenderBase):
         self.beta = beta
         self.l = l
         self.c = c
-        self.urm = urm
+        self.urm = preprocessing.normalize(urm, normalization_mode)
 
     def fit(self):
         self.alpha = -1 if self.alpha is None else self.alpha
