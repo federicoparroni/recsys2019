@@ -1,5 +1,6 @@
 import data
 import utils.check_folder as cf
+import utils.menu as menu
 import os
 from tqdm import tqdm
 import pandas as pd
@@ -306,6 +307,37 @@ def append_missing_accomodations(mode):
         print('{} successfully updated'.format(data.ITEMS_PATH))
 
 
+def preprocess_accomodations_df(preprocessing_fns):
+    """
+    Preprocess and save the item metadata csv using the supplied functions. Each function will be applied
+    sequentially to each row of the dataframe. The function will receive as param each dataframe row and
+    should return a tuple (that will be treated as the new row columns).
+    """
+    assert isinstance(preprocessing_fns, list)
+    
+    print('Processing accomodations dataframe...')
+    # load and preprocess the original item_metadata.csv
+    accomodations_df = data.accomodations_original_df()
+
+    tqdm.pandas()
+    for preprfnc in preprocessing_fns:
+        accomodations_df = accomodations_df.progress_apply(preprfnc, axis=1, result_type='broadcast')
+
+    print(f'Saving preprocessed accomodations dataframe to {data.ITEMS_PATH}...', end=' ')
+    accomodations_df.to_csv(data.ITEMS_PATH, index=False)
+    print('Done!')
+
+def remove_from_stars_features(row):
+    """
+    Removes from the ICM the 'From n Stars' columns
+    """
+    propts_to_remove = ['From 2 Stars','From 3 Stars','From 4 Stars']
+    if isinstance(row.properties, str):
+        propts = row.properties.split('|')
+        return row.item_id , '|'.join([p for p in propts if p not in propts_to_remove])
+    else:
+        return row
+
 def create_ICM(name='icm.npz', save_path='dataset/matrices/full/'):
     """
     it creates the ICM matrix taking as input the 'item_metadata.csv'
@@ -314,11 +346,13 @@ def create_ICM(name='icm.npz', save_path='dataset/matrices/full/'):
 
     :param name: name of the icm matrix
     :param save_path: saving path
+    :param post_processing: post-processing functions to call on the newly created ICM
     :return:
     """
     print("creating ICM...\n")
     tqdm.pandas()
     attributes_df = data.accomodations_df()
+
     attributes_df['properties'] = attributes_df['properties'].progress_apply(
         lambda x: x.split('|') if isinstance(x, str) else x)
     attributes_df.fillna(value='', inplace=True)
@@ -353,12 +387,9 @@ def preprocess():
     print("Hello buddy... Copenaghen is waiting...\n ")
     print()
 
-    print("Do you want to create the CSV files ?")
-    print('(1) YES, sure')
-    print('(2) NO')
-    choice = input()[0]
+    choice = input('Do you want to create the CSV files? (y/n)\n')[0]
 
-    if choice == '1':
+    if choice == 'y':
         print('creating CSV...')
 
         df_train_full = data.train_df('full')
@@ -382,20 +413,43 @@ def preprocess():
 
         append_missing_accomodations('full')
 
-    elif choice == '2':
+    elif choice == 'n':
         pass
     else:
         print('Wrong choice buddy ;)')
         exit(0)
 
-    print("Do you want to create the ICM matrix files ?")
-    print('(1) YES, sure')
-    print('(2) NO')
-    choice = input()[0]
+    print()
+    # preprocess item_metadata
+    choice = input('Do you want to preprocess the item metadata? (y/n)\n')[0]
+    if choice == 'y':
+        # interactively enable preprocessing function
+        pre_processing_f = [ [remove_from_stars_features, False] ]
+        valid_choices = [str(i) for i in range(len(pre_processing_f))]
+        inp = ''
+        while inp != 'x':
+            menu_title = 'Choose the preprocessing function(s) to apply to the accomodations.\nPress numbers to enable/disable the options, press X to confirm.'
+            options = ['Remove \'From n stars\' attributes']
+            prefixes = ['✓ ' if f[1] else '  ' for f in pre_processing_f]
+            inp = menu.options(options, title=menu_title, item_prefixes=prefixes, custom_exit_label='Confirm')
+            if inp in valid_choices:
+                selected_idx = int(inp)
+                pre_processing_f[selected_idx][1] = not pre_processing_f[selected_idx][1]
+        activated_prefns = [f[0] for f in pre_processing_f if f[1]]
+       
+        # preprocess accomodations dataframe
+        preprocess_accomodations_df(activated_prefns)
+    elif choice == 'n':
+        pass
+    else:
+        print('Wrong choice buddy ;)')
+        exit(0)
 
-    if choice == '1':
+    # create ICM
+    choice = input('Do you want to create the ICM matrix files? (y/n)\n')[0]
+    if choice == 'y':
         create_ICM()
-    elif choice == '2':
+    elif choice == 'n':
         pass
     else:
         print('Wrong choice buddy ;)')
@@ -428,6 +482,8 @@ def preprocess():
         train = data.train_df('small')
         test = data.test_df('small')
         print('SMALL DATASET LOADED BUDDY')
+    elif choice == '4':
+        exit(0)
     else:
         print('Wrong choice buddy ;)')
         exit(0)
