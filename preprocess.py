@@ -23,9 +23,6 @@ def urm_session_aware(train_df, test_df, time_weight, save_path):
     :return:
     """
 
-
-    global tw
-    tw=time_weight
     accomodations_array = data.accomodations_ids()
 
     # fill missing clickout_item on the test dataframe
@@ -54,7 +51,7 @@ def urm_session_aware(train_df, test_df, time_weight, save_path):
     print("dictionaries created\n")
 
     tqdm.pandas()
-    sessions_score = session_groups.progress_apply(_compute_session_score).values
+    sessions_score = session_groups.progress_apply(_compute_session_score, tw=time_weight).values
     print("apply function done\n")
 
     # create the urm using data indeces and indptr
@@ -90,8 +87,7 @@ def urm_session_aware(train_df, test_df, time_weight, save_path):
     print('done!')
 
 
-def _compute_session_score(df):
-  global  tw
+def _compute_session_score(df, tw):
   session_len = df.shape[0]
   #get the array of the weight based on the length
   weight_array = gas.time_weight(tw, session_len)
