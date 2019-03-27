@@ -15,12 +15,14 @@ URM_PATH = ['dataset/matrices/full/', 'dataset/matrices/local/', 'dataset/matric
 DICT_ROW_PATH = ['dataset/matrices/full/dict_row.npy', 'dataset/matrices/local/dict_row.npy', 'dataset/matrices/small/dict_row.npy'] 
 DICT_COL_PATH = ['dataset/matrices/full/dict_col.npy', 'dataset/matrices/local/dict_col.npy', 'dataset/matrices/small/dict_col.npy']
 
-ITEMS_PATH = 'dataset/original/item_metadata.csv'
+ITEMS_ORIGINAL_PATH = 'dataset/original/item_metadata.csv'
+ITEMS_PATH = 'dataset/preprocessed/full/item_metadata.csv'
 
 _df_train = [None, None, None]
 _df_test = [None, None, None]
 _df_handle = [None, None, None]
 _df_items = None
+_df_original_items = None
 _df_items_ids = None
 # URM structures
 _urm = [None, None, None]
@@ -57,8 +59,14 @@ def accomodations_df():
 def accomodations_ids():
   global _df_items_ids
   if _df_items_ids is None:
-    _df_items_ids = list(map(int, accomodations_df()['item_id'].values))
+    _df_items_ids = list(map(int, accomodations_original_df()['item_id'].values))
   return _df_items_ids
+
+def accomodations_original_df():
+  global _df_original_items
+  if _df_original_items is None:
+    _df_original_items = pd.read_csv(ITEMS_ORIGINAL_PATH)
+  return _df_original_items
 
 # URM structures
 def urm(mode, urm_name='urm_clickout'):

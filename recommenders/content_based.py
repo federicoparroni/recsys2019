@@ -1,5 +1,6 @@
 from recommenders.distance_based_recommender import DistanceBasedRecommender
 import data
+import sklearn.preprocessing as preprocessing
 
 class ContentBased(DistanceBasedRecommender):
     """
@@ -29,6 +30,25 @@ class ContentBased(DistanceBasedRecommender):
         l: float, optional, balance coefficient used in s_plus distance, included in [0,1]
         c: float, optional, cosine coefficient, included in [0,1]
         """
+
+        self.fixed_params_dict = {
+            'mode': mode,
+            'urm_name': urm_name,
+            'distance': distance,
+            'implicit': implicit,
+            'threshold': 0
+        }
+
+        # create hyperparameters dictionary
+        self.hyperparameters_dict = {
+            'k': (3, 1000),
+            'beta': (0, 1),
+            'alpha': (0, 1),
+            'l': (0, 1),
+            'shrink': (0, 5),
+            'c': (0, 1)
+        }
+
         urm = data.urm(mode, urm_name=urm_name)
         icm = data.icm().tocsr()
         super(ContentBased, self).__init__(icm,

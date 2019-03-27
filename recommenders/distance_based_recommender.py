@@ -18,6 +18,7 @@ import scipy.sparse as sps
 from functools import partial
 import multiprocessing
 import utils.check_folder as cf
+import sklearn.preprocessing as preprocessing
 
 
 class DistanceBasedRecommender(RecommenderBase):
@@ -36,7 +37,7 @@ class DistanceBasedRecommender(RecommenderBase):
     SIM_RP3BETA = 'rp3beta'
     SIM_SPLUS = 'splus'
 
-    def __init__(self, matrix, mode='full', name='distancebased', urm_name='urm_clickout', k=100, distance='cosine', shrink=0, threshold=0, 
+    def __init__(self, matrix, normalization_mode='l2', mode='full', name='distancebased', urm_name='urm_clickout', k=100, distance='cosine', shrink=0, threshold=0,
                  implicit=False, alpha=0.5, beta=0.5, l=0.5, c=0.5, urm=None, matrix_mul_order='standard'):
         super(DistanceBasedRecommender, self).__init__(mode=mode, name=name)
         self.urm_name = urm_name
@@ -47,7 +48,7 @@ class DistanceBasedRecommender(RecommenderBase):
         self.mode = mode
         self.urm_name = urm_name
         self.matrix = matrix
-        self.k = k
+        self.k = int(k)
         self.distance = distance
         self.shrink = shrink
         self.threshold = threshold
@@ -56,7 +57,7 @@ class DistanceBasedRecommender(RecommenderBase):
         self.beta = beta
         self.l = l
         self.c = c
-        self.urm = urm
+        self.urm = preprocessing.normalize(urm, normalization_mode)
 
     def fit(self):
         self.alpha = -1 if self.alpha is None else self.alpha
@@ -128,7 +129,7 @@ class DistanceBasedRecommender(RecommenderBase):
             print('NOT TRAINED')
 
     def recommend_batch(self):
-       	print('recommending batch')
+        print('recommending batch')
         if not self._has_fit():
             return None
         df_handle = data.handle_df(mode=self.mode)
@@ -138,17 +139,16 @@ class DistanceBasedRecommender(RecommenderBase):
 
         # compute the R^ by multiplying: R•S or S•R
         R_hat = self.get_r_hat()
-        
-        # target_rows = data.target_urm_rows(self.mode)
-        predictions = []
+
+        predictions = dict()
+
         for index, row in tqdm(df_handle.iterrows()):
             impr = list(map(int, row['impressions'].split('|')))
-            # urm_row = R_hat.getrow(index)
+            # get ratings
             l = [[i, R_hat[index, dict_col[i]]] for i in impr]
-
             l.sort(key=lambda tup: tup[1], reverse=True)
-            predictions.append((row['session_id'], [e[0] for e in l]))
-
+            p = [e[0] for e in l]
+            predictions[row["session_id"]] = p
         return predictions
 
     def save_similarity_matrix(self):

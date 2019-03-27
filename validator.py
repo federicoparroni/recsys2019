@@ -1,7 +1,9 @@
 from bayes_opt import BayesianOptimization
 from functools import partial
 from recommenders.collaborative_filterning.itembased import CFItemBased
-import utils.writer as w
+from utils.writer import writer
+import gc
+import utils.telegram_bot as HERA
 
 
 class BayesianValidator:
@@ -14,6 +16,7 @@ class BayesianValidator:
         # used to know where to store the validation result
         self.file_base_path = 'validation_result'
         self.file_name = str(reference_object.__class__).split('.')[-1].replace('\'>', '')
+        self.writer = writer(file_base_path=self.file_base_path, file_name=self.file_name)
 
 
     def validate(self, iterations):
@@ -37,8 +40,13 @@ class BayesianValidator:
         #partial_initialized_model = partial(self.reference_object.__init__, **self.fixed_params_dict)
         model = self.reference_object.__class__(**params_dict)
         score = model.evaluate()
-        w.write(self.file_base_path, self.file_name, ('params: {}\n MRR is: {}\n\n'.format(params_dict, score)))
         del model
+        gc.collect()
+        self.writer.write('params: {}\n MRR is: {}\n\n'.format(params_dict, score))
+
+        #sending a message on the telegram channel
+        HERA.send_message('params: {}\n MRR is: {}\n\n'.format(params_dict, score))
+
         return score
 
 

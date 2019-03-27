@@ -1,12 +1,17 @@
 import utils.check_folder as cf
-
-def write(file_base_path, file_name, string_to_write):
-    cf.check_folder(file_base_path)
-    file = open('{}/{}'.format(file_base_path, file_name), 'a')
-    file.write(string_to_write)
-    file.close()
+import time
 
 
-if __name__ == '__main__':
-    write('validation_result', 'prova', 'cazzo')
+class writer:
+    def __init__(self, file_base_path, file_name):
+        cf.check_folder(file_base_path)
+        self.path = '{}/{}_{}'.format(file_base_path, time.strftime('%d_%b-%Hh-%Mm-%Ss'), file_name)
+
+    def write(self, string_to_write):
+        file = open(self.path, 'a')
+        file.write(string_to_write)
+        file.close()
+
+
+
 
