@@ -10,10 +10,12 @@ __mode__ = {
 
 FULL_PATH = 'dataset/preprocessed/full.csv'
 
+ORIGINAL_TRAIN_PATH = 'dataset/original/train.csv'
+ORIGINAL_TEST_PATH = 'dataset/original/test.csv'
+
                   # full paths                      # local paths                           # small paths
-TRAIN_PATH = ['dataset/original/train.csv', 'dataset/preprocessed/local/train.csv', 'dataset/preprocessed/small/train.csv']
+TRAIN_PATH = ['dataset/original/train.csv', 'dataset/preprocessed/local/train.csv', 'dataset/preprocessed/small/train.csv', ]
 TEST_PATH = ['dataset/original/test.csv', 'dataset/preprocessed/local/test.csv', 'dataset/preprocessed/small/test.csv']
-HANDLE_PATH = ['dataset/preprocessed/full/handle.csv', 'dataset/preprocessed/local/handle.csv', 'dataset/preprocessed/small/handle.csv']
 URM_PATH = ['dataset/matrices/full/', 'dataset/matrices/local/', 'dataset/matrices/small/']
 DICT_ROW_PATH = ['dataset/matrices/full/dict_row.npy', 'dataset/matrices/local/dict_row.npy', 'dataset/matrices/small/dict_row.npy'] 
 DICT_COL_PATH = ['dataset/matrices/full/dict_col.npy', 'dataset/matrices/local/dict_col.npy', 'dataset/matrices/small/dict_col.npy']
@@ -22,6 +24,8 @@ ITEMS_ORIGINAL_PATH = 'dataset/original/item_metadata.csv'
 ITEMS_PATH = 'dataset/preprocessed/full/item_metadata.csv'
 
 _df_full = None
+_df_original_train = None
+_df_original_test = None
 _df_train = [None, None, None]
 _df_test = [None, None, None]
 _df_handle = [None, None, None]
@@ -42,6 +46,17 @@ def full_df():
     _df_full = pd.read_csv(FULL_PATH, index_col=0)
   return _df_full
 
+def original_train_df():
+  global _df_original_train
+  if _df_original_train is None:
+    _df_original_train = pd.read_csv(ORIGINAL_TRAIN_PATH, index_col=0)
+  return _df_original_train
+
+def original_test_df():
+  global _df_original_test
+  if _df_original_test is None:
+    _df_original_test = pd.read_csv(ORIGINAL_TEST_PATH, index_col=0)
+  return _df_original_test
 
 def train_df(mode):
   idx = __mode__[mode]

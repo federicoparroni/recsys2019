@@ -11,13 +11,13 @@ import utils.get_action_score as gas
 from time import time
 
 def create_full_df():
-    train_df = data.train_df('full')
+    train_df = data.original_train_df()
     len_train_df = len(train_df)
     train_df.to_csv(data.FULL_PATH)
     del train_df
 
     with open(data.FULL_PATH, 'a') as f:
-        test_df = data.test_df('full')
+        test_df = data.original_test_df('full')
         test_df.index += len_train_df
         test_df.to_csv(f, header=False)    
 
