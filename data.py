@@ -7,6 +7,9 @@ __mode__ = {
   'local': 1,
   'small': 2
 }
+
+FULL_PATH = 'dataset/preprocessed/full.csv'
+
                   # full paths                      # local paths                           # small paths
 TRAIN_PATH = ['dataset/original/train.csv', 'dataset/preprocessed/local/train.csv', 'dataset/preprocessed/small/train.csv']
 TEST_PATH = ['dataset/original/test.csv', 'dataset/preprocessed/local/test.csv', 'dataset/preprocessed/small/test.csv']

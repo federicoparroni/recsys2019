@@ -31,7 +31,7 @@ def single_choice(title, labels, callbacks, exitable=False):
     :param labels: list of possibile choices to display (e.g.: ['red','green','blue'])
     :param callbacks: list of callback functions to be called in the same order of labels
     :param exitable: whether to exit from the menu without choosing any option.
-    Return the user input, or None if exited without choosing
+    Return the callback result, or None if exited without choosing
     """
     assert isinstance(labels, list)
     assert isinstance(callbacks, list)
@@ -55,38 +55,36 @@ def single_choice(title, labels, callbacks, exitable=False):
                 return None
             else:
                 idx = int(inp)-1
-                callbacks[idx]()
-                return inp
+                fnc = callbacks[idx]
+                return fnc() if callable(fnc) else None
         else:
-            print('Invalid choice! Retry:')
+            print('Wrong choice buddy ;) Retry:')
     
 
 
-def yesno_choice(title, callback_yes, callback_no):
+def yesno_choice(title, callback_yes, callback_no=None):
     """
     Display a choice to the user. The corresponding callback will be called in case of
     affermative or negative answers.
     :param title: text to display (e.g.: 'Do you want to go to Copenaghen?' )
     :param callback_yes: callback function to be called in case of 'y' answer
     :param callback_no: callback function to be called in case of 'n' answer
-    Return the user input
+    Return the callback result
     """
     
     print()
-    print(title)
+    print(f'{title} (y/n)')
     valid_inp = ['y','n']
     
     while(True):
         inp = input()
         if inp in valid_inp:
             if inp == 'y':
-                callback_yes()
+                return callback_yes() if callable(callback_yes) else None
             elif inp == 'n':
-                callback_no()
-            
-            return inp
+                return callback_no() if callable(callback_no) else None
         else:
-            print('Invalid choice! Retry:')
+            print('Wrong choice buddy ;) Retry:')
     
 
 
