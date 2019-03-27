@@ -39,7 +39,7 @@ _target_urm_rows = [None, None, None]
 def full_df():
   global _df_full
   if _df_full is None:
-    _df_full = pd.read_csv(FULL_PATH)
+    _df_full = pd.read_csv(FULL_PATH, index_col=0)
   return _df_full
 
 
@@ -54,12 +54,6 @@ def test_df(mode):
   if _df_test[idx] is None:
     _df_test[idx] = pd.read_csv(TEST_PATH[idx])
   return _df_test[idx]
-
-def handle_df(mode):
-  idx = __mode__[mode]
-  if _df_handle[idx] is None:
-    _df_handle[idx] = pd.read_csv(HANDLE_PATH[idx])
-  return _df_handle[idx]
 
 def accomodations_df():
   global _df_items
