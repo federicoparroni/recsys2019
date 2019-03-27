@@ -11,9 +11,10 @@ import numpy as np
 
 class BoostByPriceMean(RecommenderBase):
 
-    def __init__(self, recomm_to_boost):
+    def __init__(self, recomm_to_boost, confidence_std = 50):
         super(BoostByPriceMean, self).__init__(mode=recomm_to_boost.mode, name='Boost_by_price_mean_of:_{}'.format(recomm_to_boost.name))
         self.recomm_to_boost = recomm_to_boost
+        self.confidence_std = confidence_std
 
     def fit(self):
         self.recomm_to_boost.fit()
@@ -45,10 +46,6 @@ class BoostByPriceMean(RecommenderBase):
         # optimization: lets create a new df_test for direct indexing
         df_test_access = df_test.set_index('session_id')
 
-        # data says that with this value of diff between a price and the user_mean_price
-        # there is 0.85 probability that the user wont pick that appartament
-        confidence_std = 20
-
         for r in tqdm(recs):
             session_id = r[0]
 
@@ -64,7 +61,7 @@ class BoostByPriceMean(RecommenderBase):
                 if clickout_item in impression:
                     price = prices[impression.index(clickout_item)]
                     acc += price
-                iters += 1
+                    iters += 1
 
             if iters > 0:
                 user_mean_price = acc/iters
@@ -73,9 +70,9 @@ class BoostByPriceMean(RecommenderBase):
                 impression = list(map(int, row['impressions'].values[0].split('|')))
                 prices = list(map(int, row['prices'].values[0].split('|')))
                 j = 0
-                for i in range(len(r[1]) - 1, -1, -1):
+                for i in range(len(r[1])):
                     price = prices[impression.index(r[1][i])]
-                    if abs(price - user_mean_price) >= confidence_std:
+                    if abs(price - user_mean_price) >= self.confidence_std:
                         new_rank.append(r[1][i])
                     else:
                         new_rank.insert(j, r[1][i])
