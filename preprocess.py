@@ -12,10 +12,14 @@ from time import time
 
 def create_full_df():
     train_df = data.train_df('full')
-    test_df = data.test_df('full')
-    full_df = full_df = pd.concat([train_df,test_df], axis=0).reset_index(drop=True)
-    full_df.to_csv(data.FULL_PATH)
+    len_train_df = len(train_df)
+    train_df.to_csv(data.FULL_PATH)
+    del train_df
 
+    with open(data.FULL_PATH, 'a') as f:
+        test_df = data.test_df('full')
+        test_df.index += len_train_df
+        test_df.to_csv(f, header=False)    
 
 def urm_session_aware(train_df, test_df, time_weight, save_path):
     """
