@@ -21,6 +21,7 @@ DICT_COL_PATH = ['dataset/matrices/full/dict_col.npy', 'dataset/matrices/local/d
 ITEMS_ORIGINAL_PATH = 'dataset/original/item_metadata.csv'
 ITEMS_PATH = 'dataset/preprocessed/full/item_metadata.csv'
 
+_df_full = None
 _df_train = [None, None, None]
 _df_test = [None, None, None]
 _df_handle = [None, None, None]
@@ -33,6 +34,13 @@ _icm = None
 _dict_row = [None, None, None]
 _dict_col = [None, None, None]
 _target_urm_rows = [None, None, None]
+
+
+def full_df():
+  global _df_full
+  if _df_full is None:
+    _df_full = pd.read_csv(FULL_PATH)
+  return _df_full
 
 
 def train_df(mode):
