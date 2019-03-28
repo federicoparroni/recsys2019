@@ -394,26 +394,43 @@ def preprocess():
     def _create_csvs():
         print('creating CSV...')
 
-        df_train_full = data.train_df('full')
-        df_test_full = data.test_df('full')
-        df_small = get_small_dataset(df_train_full)
+        # create no_cluster/full
+        no_cluster_path = 'dataset/preprocessed/no_cluster/'
 
-        local_path = 'dataset/preprocessed/local'
-        small_path = 'dataset/preprocessed/small'
-        full_path = 'dataset/preprocessed/full'
+        check_folder(no_cluster_path + 'full')
 
-        #check if the folders exist
-        check_folder(local_path)
-        check_folder(small_path)
-        check_folder(full_path)
+        train = data.original_train_df().reset_index()
+        len_train = len(train)
+        train.to_csv(no_cluster_path + 'full/train.csv')
+        del train
 
-        split(df_train_full, save_path=local_path)
-        split(df_small, save_path=small_path)
+        test = data.original_test_df().reset_index()
+        test.index = test.index + len_train
+        test.to_csv(no_cluster_path + 'full/test.csv')
 
-        #create the handle for the full test
-        create_full_handle(df_test_full)
+        test = test[(test['action_type'] == 'clickout item') & (test['reference'].isnull())]
+        target_indices = test.index
+        np.save(no_cluster_path + 'full/target_indices', target_indices)
 
-        append_missing_accomodations('full')
+        # test = test[test['']]
+        # df_small = get_small_dataset(df_train_full)
+
+        # local_path = 'dataset/preprocessed/local'
+        # small_path = 'dataset/preprocessed/small'
+        # full_path = 'dataset/preprocessed/full'
+
+        # #check if the folders exist
+        # check_folder(local_path)
+        # check_folder(small_path)
+        # check_folder(full_path)
+
+        # split(df_train_full, save_path=local_path)
+        # split(df_small, save_path=small_path)
+
+        # #create the handle for the full test
+        # create_full_handle(df_test_full)
+
+        # append_missing_accomodations('full')
 
     def _preprocess_item_metadata():
         # interactively enable preprocessing function

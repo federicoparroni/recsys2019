@@ -2,22 +2,14 @@ import pandas as pd
 import scipy.sparse as sps
 import numpy as np
 
-__mode__ = {
-  'full': 0,
-  'local': 1,
-  'small': 2
-}
-
 # original files
 TRAIN_ORIGINAL_PATH = 'dataset/original/train.csv'
 TEST_ORIGINAL_PATH = 'dataset/original/test.csv'
 ITEMS_ORIGINAL_PATH = 'dataset/original/item_metadata.csv'
 
+# full df
 FULL_PATH = 'dataset/preprocessed/full.csv'
 
-                  # full paths                      # local paths                           # small paths
-TRAIN_PATH = ['dataset/original/train.csv', 'dataset/preprocessed/local/train.csv', 'dataset/preprocessed/small/train.csv', ]
-TEST_PATH = ['dataset/original/test.csv', 'dataset/preprocessed/local/test.csv', 'dataset/preprocessed/small/test.csv']
 URM_PATH = ['dataset/matrices/full/', 'dataset/matrices/local/', 'dataset/matrices/small/']
 DICT_ROW_PATH = ['dataset/matrices/full/dict_row.npy', 'dataset/matrices/local/dict_row.npy', 'dataset/matrices/small/dict_row.npy'] 
 DICT_COL_PATH = ['dataset/matrices/full/dict_col.npy', 'dataset/matrices/local/dict_col.npy', 'dataset/matrices/small/dict_col.npy']
@@ -31,9 +23,10 @@ _df_original_items = None
 
 _df_full = None
 
-_df_train = [None, None, None]
-_df_test = [None, None, None]
-_df_handle = [None, None, None]
+_df_train = {}
+_df_test = {}
+_target_indices = {}
+
 _df_items = None
 _df_items_ids = None
 # URM structures
@@ -53,26 +46,35 @@ def full_df():
 def original_train_df():
   global _df_train_original
   if _df_train_original is None:
-    _df_train_original = pd.read_csv(TRAIN_ORIGINAL_PATH, index_col=0)
+    _df_train_original = pd.read_csv(TRAIN_ORIGINAL_PATH)
   return _df_train_original
 
 def original_test_df():
   global _df_test_original
   if _df_test_original is None:
-    _df_test_original = pd.read_csv(TEST_ORIGINAL_PATH, index_col=0)
+    _df_test_original = pd.read_csv(TEST_ORIGINAL_PATH)
   return _df_test_original
 
-def train_df(mode):
-  idx = __mode__[mode]
-  if _df_train[idx] is None:
-    _df_train[idx] = pd.read_csv(TRAIN_PATH[idx])
-  return _df_train[idx]
+def train_df(mode, cluster='no_cluster'):
+  global _df_train
+  path = 'dataset/preprocessed/{}/{}/train.csv'.format(cluster, mode)
+  if path not in _df_train:
+    _df_train[path] = pd.read_csv(path, index_col=0).drop(['index'], axis=1)
+  return _df_train[path]
 
-def test_df(mode):
-  idx = __mode__[mode]
-  if _df_test[idx] is None:
-    _df_test[idx] = pd.read_csv(TEST_PATH[idx])
-  return _df_test[idx]
+def test_df(mode, cluster='no_cluster'):
+  global _df_test
+  path = 'dataset/preprocessed/{}/{}/test.csv'.format(cluster, mode)
+  if path not in _df_test:
+    _df_test[path] = pd.read_csv(path, index_col=0).drop(['index'], axis=1)
+  return _df_test[path]
+
+def target_indices(mode, cluster='no_cluster'):
+  global _target_indices
+  path = 'dataset/preprocessed/{}/{}/target_indices.npy'.format(cluster, mode)
+  if path not in _target_indices:
+    _target_indices[path] = np.load(path)
+  return _target_indices[path]
 
 def accomodations_df():
   global _df_items
