@@ -1,3 +1,4 @@
+from __future__ import print_function
 import data
 from utils.check_folder import check_folder
 import utils.menu as menu
@@ -11,15 +12,15 @@ import utils.get_action_score as gas
 from time import time
 
 def create_full_df():
-    train_df = data.original_train_df()
+    train_df = data.original_train_df().reset_index(drop=True)
     len_train_df = len(train_df)
     train_df.to_csv(data.FULL_PATH)
     del train_df
 
     with open(data.FULL_PATH, 'a') as f:
-        test_df = data.original_test_df('full')
+        test_df = data.original_test_df().reset_index(drop=True)
         test_df.index += len_train_df
-        test_df.to_csv(f, header=False)    
+        test_df.to_csv(f, header=False)   
 
 def urm_session_aware(train_df, test_df, time_weight, save_path):
     """
@@ -58,7 +59,7 @@ def urm_session_aware(train_df, test_df, time_weight, save_path):
     for i in range(cols_count):
         col_of_accomodation[accomodations_array[i]] = i
 
-    print("dictionaries created\n")
+    print('dictionaries created\n')
 
     def _compute_session_score(df, tw):
         session_len = df.shape[0]
@@ -204,12 +205,12 @@ def create_full_handle(test_df, name='handle.csv', folder='dataset/preprocessed/
     :return:
     """
     # user_id,session_id,timestamp,step,reference,impressions
-    print('Creating handle...', end=' ')
+    print('Creating handle...', end=' ', flush=True)
     df_handle = test_df[['user_id', 'session_id', 'timestamp', 'step', 'impressions']]
     df_handle = df_handle[(test_df['action_type'] == 'clickout item') & (test_df['reference'].isnull())]
     print('Done!')
 
-    print('Saving handle...', end=' ')
+    print('Saving handle...', end=' ', flush=True)
     check_folder(folder)
     df_handle.to_csv('{}/{}'.format(folder, name), index=False)
     print('Done!')
@@ -246,7 +247,7 @@ def split(df, save_path, perc_train=80):
     :param perc_train: percentage of the df to keep in the TRAIN split
     :return:
     """
-    print('Splitting...', end=' ')
+    print('Splitting...', end=' ', flush=True)
     # train-test split
     sorted_session_ids = df.groupby('session_id').first().sort_values('timestamp').reset_index()['session_id']
     slice_sorted_session_ids = sorted_session_ids.head(int(len(sorted_session_ids) * (perc_train / 100)))
@@ -330,7 +331,7 @@ def preprocess_accomodations_df(preprocessing_fns):
     for preprfnc in preprocessing_fns:
         accomodations_df = accomodations_df.progress_apply(preprfnc, axis=1, result_type='broadcast')
 
-    print(f'Saving preprocessed accomodations dataframe to {data.ITEMS_PATH}...', end=' ')
+    print(f'Saving preprocessed accomodations dataframe to {data.ITEMS_PATH}...', end=' ', flush=True)
     accomodations_df.to_csv(data.ITEMS_PATH, index=False)
     print('Done!')
 
@@ -465,12 +466,12 @@ def preprocess():
         
     
     print("Hello buddy... Copenaghen is waiting...")
+    print()
 
     # create full_df.csv
     check_folder(data.FULL_PATH)
-
-    if not os.path.exists(data.FULL_PATH):
-        print('The full dataframe (index master) is missing. Creating it...', end=' ')
+    if not os.path.isfile(data.FULL_PATH):
+        print('The full dataframe (index master) is missing. Creating it...', end=' ', flush=True)
         create_full_df()
         print('Done!')
     
