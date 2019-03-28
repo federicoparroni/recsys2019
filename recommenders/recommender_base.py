@@ -26,9 +26,9 @@ class RecommenderBase(ABC):
     @abstractmethod
     def recommend_batch(self):
         """
-        returns a list of recommendations in the format
-        [(session_id_0, [acc_1, acc2, acc3, ...]), 
-         (session_id_1, [acc_1, acc2, acc3, ...]), ...]
+        Returns a list of recommendations in the format
+        [(session_idx_0, [acc_1, acc2, acc3, ...]), 
+         (session_idx_1, [acc_1, acc2, acc3, ...]), ...]
         """
         pass
 
@@ -74,23 +74,23 @@ class RecommenderBase(ABC):
         """
         assert (self.mode == 'local' or self.mode == 'small')
 
-        handle = data.handle_df(self.mode)
-        test = np.array(handle)
+        test_df = data.test_df(self.mode, self.cluster)
 
-        # initialize reciprocal rank value
+        target_indices, recs = zip(*predictions)
+        target_indices = list(target_indices)
+        correct_clickouts = test_df.loc[target_indices].reference.values
+        len_rec = len(recs)
+        
         RR = 0
+        for i in range(len_rec):
+            correct_clickout = int(correct_clickouts[i])
+            rank_pos = recs[i].index(correct_clickout) +1
+            RR += 1 / rank_pos
+        
+        MRR = RR / len_rec
+        print(f'MRR: {MRR}')
 
-        target_session_count = test.shape[0]
-
-        for key, value in tqdm(predictions.items()):
-            target_mask = handle["session_id"] == key
-            target_reference = handle[target_mask]
-            target_reference = list(target_reference["reference"])[0]
-            RR += 1 / (value.index(target_reference) + 1)
-
-        print("MRR is: {}".format(RR / target_session_count))
-
-        return RR / target_session_count
+        return MRR
 
     def get_params(self):
         """
