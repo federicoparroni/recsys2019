@@ -8,10 +8,12 @@ __mode__ = {
   'small': 2
 }
 
-FULL_PATH = 'dataset/preprocessed/full.csv'
+# original files
+TRAIN_ORIGINAL_PATH = 'dataset/original/train.csv'
+TEST_ORIGINAL_PATH = 'dataset/original/test.csv'
+ITEMS_ORIGINAL_PATH = 'dataset/original/item_metadata.csv'
 
-ORIGINAL_TRAIN_PATH = 'dataset/original/train.csv'
-ORIGINAL_TEST_PATH = 'dataset/original/test.csv'
+FULL_PATH = 'dataset/preprocessed/full.csv'
 
                   # full paths                      # local paths                           # small paths
 TRAIN_PATH = ['dataset/original/train.csv', 'dataset/preprocessed/local/train.csv', 'dataset/preprocessed/small/train.csv', ]
@@ -20,17 +22,19 @@ URM_PATH = ['dataset/matrices/full/', 'dataset/matrices/local/', 'dataset/matric
 DICT_ROW_PATH = ['dataset/matrices/full/dict_row.npy', 'dataset/matrices/local/dict_row.npy', 'dataset/matrices/small/dict_row.npy'] 
 DICT_COL_PATH = ['dataset/matrices/full/dict_col.npy', 'dataset/matrices/local/dict_col.npy', 'dataset/matrices/small/dict_col.npy']
 
-ITEMS_ORIGINAL_PATH = 'dataset/original/item_metadata.csv'
 ITEMS_PATH = 'dataset/preprocessed/full/item_metadata.csv'
 
+
+_df_train_original = None
+_df_test_original = None
+_df_original_items = None
+
 _df_full = None
-_df_original_train = None
-_df_original_test = None
+
 _df_train = [None, None, None]
 _df_test = [None, None, None]
 _df_handle = [None, None, None]
 _df_items = None
-_df_original_items = None
 _df_items_ids = None
 # URM structures
 _urm = [None, None, None]
@@ -47,16 +51,16 @@ def full_df():
   return _df_full
 
 def original_train_df():
-  global _df_original_train
-  if _df_original_train is None:
-    _df_original_train = pd.read_csv(ORIGINAL_TRAIN_PATH, index_col=0)
-  return _df_original_train
+  global _df_train_original
+  if _df_train_original is None:
+    _df_train_original = pd.read_csv(TRAIN_ORIGINAL_PATH, index_col=0)
+  return _df_train_original
 
 def original_test_df():
-  global _df_original_test
-  if _df_original_test is None:
-    _df_original_test = pd.read_csv(ORIGINAL_TEST_PATH, index_col=0)
-  return _df_original_test
+  global _df_test_original
+  if _df_test_original is None:
+    _df_test_original = pd.read_csv(TEST_ORIGINAL_PATH, index_col=0)
+  return _df_test_original
 
 def train_df(mode):
   idx = __mode__[mode]
