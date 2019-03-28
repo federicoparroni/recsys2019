@@ -53,6 +53,7 @@ class HybridImpressionScores(Hybrid):
 
         self.threshold = threshold
 
+        #TODO: check if all recommended hotels are ints and not strings
 
     def fit(self):
         """
@@ -67,9 +68,6 @@ class HybridImpressionScores(Hybrid):
         self.dict_scores = {}
 
         #Getting target sessions from list of tuples
-        unzipped = zip(*self.impression_scores_matrices[0])
-        target_sessions = np.asarray(unzipped)
-
         df_test = data.test_df(self.mode)
 
         df_test_target = df_test[df_test["action_type"] == "clickout item"]
@@ -83,20 +81,24 @@ class HybridImpressionScores(Hybrid):
 
         #Initialize list for dict containing scores of imoressions
         for s_target in target_sessions:
-            self.dict_scores[s_target] = [0]*100000000
+            self.dict_scores[s_target] = {}
 
-        for i in tqdm(range(len(self.impression_scores_matrices))):
+        for i in range(len(self.impression_scores_matrices)):
             print("Getting scores from recommender number {} ...".format(i))
 
-            self.matrices_array = self.impression_scores_matrices[i]
+            self.matrices_array = self.impression_scores_matrices[i].copy()
 
             self._normalization(self.normalization_mode)
 
-            for triple in self.matrices_array:
+            for k in tqdm(range(len(self.impression_scores_matrices[i]))):
+                triple = self.impression_scores_matrices[i][k]
 
                 # updating scores multiplied by corresponding weight
                 for j in range(len(triple[2])):
-                    self.dict_scores[triple[0]] [triple[1][j]] += triple[2][j]*self.weights_array[i]
+                    if triple[1][j] in self.dict_scores[triple[0]]:
+                        self.dict_scores[triple[0]][triple[1][j]] += self.normalized_matrices_array[k][j]*self.weights_array[i]
+                    else:
+                        self.dict_scores[triple[0]][triple[1][j]] = self.normalized_matrices_array[k][j]*self.weights_array[i]
 
 
     def recommend_batch(self):
@@ -110,28 +112,25 @@ class HybridImpressionScores(Hybrid):
         """
 
         new_recs = []
+        new_recs_scores = []
         #Iterating on nonempty elements of dictionary
-        for key, value in self.dict_scores.items():
+        print("{}: Recommending ....".format(self.name))
+        for key, value in tqdm(self.dict_scores.items()):
 
-            #Filtering elements: getting only if > 0
-            recs = filter(lambda x: x > 0, value)
-
-            recs = np.argsort(np.asarray(recs))
+            recs = sorted(value, key=value.get, reverse=True)
+            scores = sorted(value.values(), reverse=True)
 
             new_recs.append((key, recs))
+            new_recs_scores.append( (key, recs, scores) )
+
+        self.recs_scores_batch = new_recs_scores
+        self.recs_batch = new_recs
 
         return new_recs
 
 
     def get_scores_batch(self):
-        recs_batch = self.recommend_batch()
-
-        recs_scores_batch = []
-        print("{}: getting the model scores".format(self.name))
-        for tuple in recs_batch:
-            recs_scores_batch.append((tuple[0], tuple[1], []))
-
-        return recs_scores_batch
+        return self.recs_scores_batch
 
 
     "Check if recommended score matrix have same len of target sessions"
@@ -147,12 +146,13 @@ class HybridImpressionScores(Hybrid):
         Normalize each row score dividing by max element of the row
         :return: return an array containing the normalized matrices
         """
-        normalized_matrices_array = np.asarray(self.matrices_array)
 
-        for i in range(len(normalized_matrices_array)):
-            array = normalized_matrices_array[i]
-            if len(array) > 0:
-                normalized_matrices_array[i] = np.true_divide(array, array[0])
+        normalized_matrices_array = []
+        for elem in self.matrices_array:
+            if len(elem) > 0:
+                normalized_matrices_array.append([x / elem[0] for x in elem])
+            else:
+                normalized_matrices_array.append(elem)
 
         return normalized_matrices_array
 
