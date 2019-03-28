@@ -32,6 +32,16 @@ class RecommenderBase(ABC):
         """
         pass
 
+    @abstractmethod
+    def get_scores_batch(self):
+        """
+        returns a list of recommendations in the format
+        [(session_id_0, [acc_1, acc2, acc3, ...], [sco_1, sco2, sco3, ...]),
+         (session_id_1, [acc_1, acc2, acc3, ...], [sco_1, sco2, sco3, ...]), ...]
+        """
+        pass
+
+
     def run(self):
         """
         Handle all the operations needed to run this model a single time.
