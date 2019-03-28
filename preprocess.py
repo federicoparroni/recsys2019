@@ -235,6 +235,9 @@ def get_small_dataset(df, maximum_rows=5000):
     # slice from the first row to the final index
     return df.loc[0:end_idx]
 
+def get_target_indices(df):
+        df = df[(df['action_type'] == 'clickout item') & (df['reference'].isnull())]
+        return list(df.index)
 
 def split(df, save_path, perc_train=80):
     """
