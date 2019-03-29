@@ -66,6 +66,7 @@ class LatestInteractionsRecommender(RecommenderBase):
                 # I append the last interacted elements as first (so I invert the order of relevant_elements!)
                 real_recommended = np.flipud(interacted_elements)
 
+                real_recommended = real_recommended.astype(np.int)
                 recs_tuples.append((i, real_recommended))
 
         self.recs_batch = recs_tuples
