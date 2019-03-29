@@ -37,11 +37,10 @@ class RecommenderBase(ABC):
     def get_scores_batch(self):
         """
         returns a list of recommendations in the format
-        [(session_id_0, [acc_1, acc2, acc3, ...], [sco_1, sco2, sco3, ...]),
-         (session_id_1, [acc_1, acc2, acc3, ...], [sco_1, sco2, sco3, ...]), ...]
+        [(session_idx_0, [acc_1, acc2, acc3, ...], [sco_1, sco2, sco3, ...]),
+         (session_idx_0, [acc_1, acc2, acc3, ...], [sco_1, sco2, sco3, ...]), ...]
         """
         pass
-
 
     def run(self):
         """
