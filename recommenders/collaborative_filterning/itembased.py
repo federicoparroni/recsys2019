@@ -56,7 +56,8 @@ class CFItemBased(DistanceBasedRecommender):
         }
 
         super(CFItemBased, self).__init__(matrix=urm.T,
-                                          mode=mode, 
+                                          mode=mode,
+                                          cluster= cluster,
                                           urm_name=urm_name,
                                           name='ItemKNN: urm: {} k: {} distance: {} shrink: {} threshold: {} implicit: {}'
                                                ' alpha: {} beta: {} l: {} c: {}'.format(urm_name, k, distance, shrink, threshold,

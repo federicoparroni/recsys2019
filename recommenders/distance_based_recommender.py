@@ -59,6 +59,7 @@ class DistanceBasedRecommender(RecommenderBase):
         self.l = l
         self.c = c
         self.urm = preprocessing.normalize(urm, normalization_mode)
+        self.scores_batch = None
 
     def fit(self):
         self.alpha = -1 if self.alpha is None else self.alpha
@@ -118,9 +119,10 @@ class DistanceBasedRecommender(RecommenderBase):
         """
         R = self.urm
         dict_row = data.dictionary_row(self.mode, self.cluster)
+
         target_indices_urm = []
         for ind in self.target_indices:
-            target_indices_urm.append(dict_row[tuple(data.full_df().loc[ind][['session_id', 'user_id']])])
+            target_indices_urm.append(dict_row[tuple(data.full_df().loc[ind][['session_id', 'user_id']])[0]])
         if self._matrix_mul_order == 'inverse':
             return self._sim_matrix.tocsr()[target_indices_urm].dot(R)
         else:
@@ -142,18 +144,24 @@ class DistanceBasedRecommender(RecommenderBase):
         # compute the R^ by multiplying: R•S or S•R
         R_hat = self.get_r_hat()
 
-        predictions = []
-
+        predictions_batch = []
+        scores_batch = []
         count = 0
         for index in tqdm(self.target_indices):
             impr = list(map(int, full_df.loc[index]['impressions'].split('|')))
+
             # get ratings
             l = [[i, R_hat[count, dict_col[i]]] for i in impr]
             l.sort(key=lambda tup: tup[1], reverse=True)
-            p = [e[0] for e in l]
-            predictions.append((index, p))
+            recs = [e[0] for e in l]
+            scores = [e[1] for e in l]
+            predictions_batch.append((index, recs))
+            scores_batch.append((index, recs, scores))
             count += 1
-        return predictions
+
+        self.scores_batch = scores_batch
+
+        return predictions_batch
 
     def save_similarity_matrix(self):
         base_save_path = 'dataset/matrices/{}/similarity_matrices'.format(self.mode)
@@ -170,8 +178,10 @@ class DistanceBasedRecommender(RecommenderBase):
         print('r_hat saved succesfully !')
 
     def get_scores_batch(self):
-        print('to be implemented')
-        pass
+        if self.scores_batch is None:
+            self.recommend_batch()
+
+        return self.scores_batch
 
 
 

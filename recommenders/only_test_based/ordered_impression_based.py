@@ -29,13 +29,9 @@ class OrderedImpressionRecommender(RecommenderBase):
 
         df_test = data.test_df(self.mode)
 
-        df_test_target = df_test[df_test["action_type"] == "clickout item"]
+        target_indices = data.target_indices(self.mode, self.cluster)
 
-        df_test_target = df_test_target.replace(r'', np.nan, regex=True)
-
-        df_test_target = df_test_target[~df_test_target.reference.notnull()]
-
-        df_test_target = df_test_target.set_index("session_id")
+        df_test_target = df_test[df_test.index.isin(target_indices)]
 
         #Initializing list of recs
         recs_tuples = []
