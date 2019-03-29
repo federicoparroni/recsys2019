@@ -8,7 +8,7 @@ from utils import log
 
 class HybridImpressionScores(Hybrid):
 
-    def __init__(self, mode, impression_scores_matrices, weights_array, normalization_mode, threshold):
+    def __init__(self, mode, cluster, impression_scores_matrices, weights_array, normalization_mode, threshold):
         name = 'HybridImpressionScores'
         """
         Initialize the model
@@ -38,7 +38,7 @@ class HybridImpressionScores(Hybrid):
             All the values under this value are cut from the final result
         """
 
-        super(Hybrid, self).__init__(name=name, mode=mode)
+        super(Hybrid, self).__init__(name=name, cluster=cluster, mode=mode)
 
         if len(weights_array)!= len(impression_scores_matrices):
             print("the matrices passed have not the same len of their weights... go get some coffee...")

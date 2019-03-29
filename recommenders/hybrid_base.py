@@ -18,9 +18,9 @@ class Hybrid(RecommenderBase):
     L2 = 'L2'
     NONE = 'NONE'
 
-    def __init__(self, name, mode, matrices_array, normalization_mode, weights_array):
+    def __init__(self, name, cluster, mode, matrices_array, normalization_mode, weights_array):
 
-        super(Hybrid, self).__init__(name=name, mode=mode)
+        super(Hybrid, self).__init__(name=name, cluster=cluster, mode=mode)
 
         # load handle and dictionary based on mode will be used during the recommend batch
         self.dict_col = data.dictionary_col(mode=self.mode)

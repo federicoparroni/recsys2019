@@ -19,9 +19,9 @@ class LatestInteractionsRecommender(RecommenderBase):
     Idea is to recommend all last interactions and clickouts appearing in impressions
     in order from most recently interacted to less recently
     """
-    def __init__(self, mode):
+    def __init__(self, mode, cluster='no_cluster'):
         name = 'Last Interactions recommender'
-        super(LatestInteractionsRecommender, self).__init__(mode, name)
+        super(LatestInteractionsRecommender, self).__init__(mode, cluster, name)
 
         self.mode = mode
 
