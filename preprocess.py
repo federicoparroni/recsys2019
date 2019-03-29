@@ -25,7 +25,7 @@ def create_full_df():
 
     # save config file
     config_dict = { data.TRAIN_LEN_KEY: len_train }
-    with open(data.CONFIG_FILE_PATH, 'w') as file:
+    with open(data.CONFIG_FILE_PATH, 'wb') as file:
         pickle.dump(config_dict, file)
 
     with open(data.FULL_PATH, 'a') as f:

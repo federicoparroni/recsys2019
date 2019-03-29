@@ -1,6 +1,7 @@
 import pandas as pd
 import scipy.sparse as sps
 import numpy as np
+import pickle
 
 # original files
 TRAIN_ORIGINAL_PATH = 'dataset/original/train.csv'
@@ -39,6 +40,7 @@ _dict_row = [None, None, None]
 _dict_col = [None, None, None]
 _target_urm_rows = [None, None, None]
 
+_config = None
 
 def full_df():
   global _df_full
@@ -136,3 +138,10 @@ def target_urm_rows(mode):
     for r in handle_df(mode).session_id.values:
       _target_urm_rows[idx].append(_dict_row[idx][r])
   return _target_urm_rows[idx]
+
+def config():
+  global _config
+  if _config is None:
+    with open(CONFIG_FILE_PATH, 'rb') as file:
+      _config = pickle.load(file)
+  return _config
