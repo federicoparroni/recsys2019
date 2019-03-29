@@ -16,6 +16,9 @@ DICT_COL_PATH = ['dataset/matrices/full/dict_col.npy', 'dataset/matrices/local/d
 
 ITEMS_PATH = 'dataset/preprocessed/full/item_metadata.csv'
 
+# config file
+CONFIG_FILE_PATH = 'dataset/preprocessed/config.pkl'
+TRAIN_LEN_KEY = 'max_train_idx'
 
 _df_train_original = None
 _df_test_original = None

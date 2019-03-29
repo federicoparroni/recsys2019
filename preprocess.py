@@ -3,6 +3,7 @@ import data
 from utils.check_folder import check_folder
 import utils.menu as menu
 import os
+import pickle
 from tqdm import tqdm
 import pandas as pd
 from sklearn.preprocessing import MultiLabelBinarizer
@@ -12,14 +13,24 @@ import utils.get_action_score as gas
 from time import time
 
 def create_full_df():
+    """
+    Save the dataframe containing train.csv and test.csv contiguosly with reset indexes. Also save the config file
+    containing the number of rows in the original train.csv (max_train_idx). This is used to know which indices
+    indicates train rows (idx < max_train_idx) and test rows (idx >= max_train_idx).
+    """
     train_df = data.original_train_df().reset_index(drop=True)
-    len_train_df = len(train_df)
+    len_train = len(train_df)
     train_df.to_csv(data.FULL_PATH)
     del train_df
 
+    # save config file
+    config_dict = { data.TRAIN_LEN_KEY: len_train }
+    with open(data.CONFIG_FILE_PATH, 'w') as file:
+        pickle.dump(config_dict, file)
+
     with open(data.FULL_PATH, 'a') as f:
         test_df = data.original_test_df().reset_index(drop=True)
-        test_df.index += len_train_df
+        test_df.index += len_train
         test_df.to_csv(f, header=False)   
 
 def urm_session_aware(train_df, test_df, time_weight, save_path):
@@ -218,7 +229,8 @@ def create_full_handle(test_df, name='handle.csv', folder='dataset/preprocessed/
 
 def get_small_dataset(df, maximum_rows=5000):
     """
-    return a dataframe from the original dataset containing a maximum number of rows
+    Return a dataframe from the original dataset containing a maximum number of rows. The actual total rows
+    extracted may vary in order to avoid breaking the last session.
     :param df: dataframe
     :param maximum_rows:
     
@@ -229,18 +241,17 @@ def get_small_dataset(df, maximum_rows=5000):
     # get the last row
     row = df.iloc[maximum_rows]
     # slice the dataframe from the target row until the end
-    temp_df = df.loc[maximum_rows:]
+    temp_df = df.iloc[maximum_rows:]
     # get the index of the last row of the last session
     end_idx = temp_df[(temp_df.session_id == row.session_id) & (temp_df.user_id == row.user_id)].index.max()
     # slice from the first row to the final index
-    return df.loc[0:end_idx]
+    return df.iloc[0:end_idx]
 
 
 def split(df, save_path, perc_train=80):
     """
-    Split a timestamp-ordered dataset into train and test and create the handle of the test file
-    also save the train test and the handle created
-    handle as the following format |user_id,session_id,timestamp,step,clickout_item,impressions|
+    Split a timestamp-ordered dataset into train and test, saving them as train.csv and test.csv in the
+    specififed path. Also save the target indices file containing indices of missing clickout interactions.
 
     :param df: dataframe to split in train and test
     :param save_path: path where to save
