@@ -34,11 +34,10 @@ _target_indices = {}
 _df_items = None
 _df_items_ids = None
 # URM structures
-_urm = [None, None, None]
+_urm = {}
+_dict_row = {}
+_dict_col = {}
 _icm = None
-_dict_row = [None, None, None]
-_dict_col = [None, None, None]
-_target_urm_rows = [None, None, None]
 
 _config = None
 
@@ -100,12 +99,12 @@ def accomodations_original_df():
   return _df_original_items
 
 # URM structures
-def urm(mode, urm_name='urm_clickout'):
-  idx = __mode__[mode]
-  urm_path = '{}{}.npz'.format(URM_PATH[idx], urm_name)
-  if _urm[idx] is None:
-    _urm[idx] = sps.load_npz(urm_path)
-  return _urm[idx]
+def urm(mode, cluster, urm_name='urm_clickout'):
+  global _urm
+  path = 'dataset/preprocessed/{}/{}/matrices/{}.npz'.format(cluster, mode, urm_name)
+  if path not in _urm:
+    _urm[path] = sps.load_npz(path)
+  return _urm[path]
 
 def icm():
   global _icm
@@ -115,27 +114,20 @@ def icm():
     _icm = sps.load_npz(icm_path)
   return _icm
 
-def dictionary_row(mode):
-  idx = __mode__[mode]
-  if _dict_row[idx] is None:
-    _dict_row[idx] = np.load(DICT_ROW_PATH[idx]).item()
-  return _dict_row[idx]
+def dictionary_row(mode, cluster='no_cluster'):
+  global _dict_row
+  path = 'dataset/preprocessed/{}/{}/matrices/dict_row.npy'.format(cluster, mode)
+  if path not in _dict_row:
+    _dict_row[path] = np.load(path).item()
+  return _dict_row[path]
 
-def dictionary_col(mode):
+def dictionary_col(mode, cluster = 'no_cluster'):
   # global _dict_col
-  idx = __mode__[mode]
-  if _dict_col[idx] is None:
-    _dict_col[idx] = np.load(DICT_COL_PATH[idx]).item()
-  return _dict_col[idx]
-
-def target_urm_rows(mode):
-  idx = __mode__[mode]
-  dictionary_row(mode)
-  if _target_urm_rows[idx] is None:
-    _target_urm_rows[idx] = []
-    for r in handle_df(mode).session_id.values:
-      _target_urm_rows[idx].append(_dict_row[idx][r])
-  return _target_urm_rows[idx]
+  global _dict_col
+  path = 'dataset/preprocessed/{}/{}/matrices/dict_col.npy'.format(cluster, mode)
+  if path not in _dict_col:
+    _dict_col[path] = np.load(path).item()
+  return _dict_col[path]
 
 def config():
   global _config
