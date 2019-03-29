@@ -4,7 +4,7 @@ import time
 import data
 from tqdm import tqdm
 
-def create_sub(predictions, submission_name, mode, cluster='no cluster', directory='submissions'):
+def create_sub(predictions, submission_name, mode, cluster='no_cluster', directory='submissions'):
     """
 
     :param predictions: [(session_idx_0, [acc_1, acc2, acc3, ...]),(session_idx_1, [acc_1, acc2, acc3, ...]), ...]
@@ -31,14 +31,14 @@ def create_sub(predictions, submission_name, mode, cluster='no cluster', directo
     indices = [item[0] for item in predictions]
 
     targets = full.loc[indices]
-    targets.drop(targets.columns[4], axis=1, inplace=True)
+    targets.drop(targets.columns[4:12], axis=1, inplace=True)
 
     predictions_column = []
     for p in predictions:
         predictions_column.append(str(p[1]).replace("[", '').replace("]", "").replace(",", ""))
 
     targets['item_recommendations'] = predictions_column
-    targets.to_csv(path_time, index=True)
+    targets.to_csv(path_time, index=False)
     _time = time.time() - start
     elapsed = time.strftime('%Mm %Ss', time.gmtime(_time))
     print()

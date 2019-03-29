@@ -78,6 +78,15 @@ class HybridImpressionScores(Hybrid):
 
         target_sessions = df_test_target["session_id"]
 
+        #TODO: cluster
+        target_indices = data.target_indices(self.mode)
+
+        if len(target_sessions) != len(target_indices):
+            print("Indices not same lenght of sessions, go get some coffee...")
+            return
+
+        self.dictionary_indices = dict(zip(target_sessions, target_indices))
+
 
         #Initialize list for dict containing scores of imoressions
         for s_target in target_sessions:
@@ -120,8 +129,9 @@ class HybridImpressionScores(Hybrid):
             recs = sorted(value, key=value.get, reverse=True)
             scores = sorted(value.values(), reverse=True)
 
-            new_recs.append((key, recs))
+            new_recs.append((self.dictionary_indices.get(key), recs))
             new_recs_scores.append( (key, recs, scores) )
+
 
         self.recs_scores_batch = new_recs_scores
         self.recs_batch = new_recs
