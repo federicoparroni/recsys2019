@@ -165,57 +165,6 @@ class DistanceBasedRecommender(RecommenderBase):
         sps.save_npz('{}/{}'.format(base_save_path, self.name), self.get_r_hat())
         print('r_hat saved succesfully !')
 
-    def multi_thread_recommend_batch(self, verbose=False):
-        print('recommending batch')
-
-        if not self._has_fit():
-            return None
-
-        df_handle = data.handle_df(mode=self.mode)
-        self.dict_col = data.dictionary_col(mode=self.mode)
-
-        # compute the R^ by multiplying: R•S or S•R
-        self.R_hat = self.get_r_hat(verbose)
-        print("R_hat computed")
-
-        predictions = []
-
-        """
-        multiprocessing part
-        """
-        # instance a number of workers equal to the cpu of the machine
-        workers = multiprocessing.cpu_count()
-
-        #define the call to the function _recommend_row passing the fix parameter (in this case R_hat)
-
-        #create a pool with a number of processes equal to the cpu count
-        pool = pp.ProcessPool(workers)
-
-        # add the indexes as the first column of the dataframe
-        df_handle.reset_index(inplace=True)
-
-        # convert the handle from dataframe to numpy array
-        handle_array = df_handle.values
-
-        start = time.time()
-        # start the pool passing to the function with the fixed input the remaining variable parameter (handle_array)
-        predictions = pool.map(self._recommend_row, handle_array)
-        pool.close()
-        pool.join()
-        print("recommendations created in {}:".format(time.time()-start))
-
-
-        return predictions
-
-
-    def _recommend_row(self, row):
-
-        #TODO: HAVE TO BE CHANGED
-        print(row[0])
-        impr = list(map(int, row[6].split('|')))
-        l = [[i, self.R_hat[row[0], self.dict_col[i]]] for i in impr]
-        l.sort(key=lambda tup: tup[1], reverse=True)
-        return row['session_id'], [e[0] for e in l]
 
 
 

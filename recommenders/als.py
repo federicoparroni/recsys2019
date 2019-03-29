@@ -38,7 +38,6 @@ class AlternatingLeastSquare(RecommenderBase):
         self.user_vecs = None
         self.item_vecs = None
         self._model = None
-        self.R_hat = None
 
         self.fixed_params_dict = {
             'mode': mode,
@@ -56,13 +55,10 @@ class AlternatingLeastSquare(RecommenderBase):
         """
         compute the r_hat for the model filled with zeros in playlists not target
         :return  r_hat
-        """
-
-        if self.R_hat is None:
-            print('computing the R_hat...')
-            self.R_hat = np.dot(self.user_vecs[self.targetids], self.item_vecs.T)
-
-        return self.R_hat
+    """
+        print('computing the R_hat...')
+        #return np.dot(self.user_vecs[self.targetids], self.item_vecs.T)
+        return self.user_vecs[self.targetids]*self.item_vecs.T
 
     def fit(self):
         """
@@ -97,7 +93,7 @@ class AlternatingLeastSquare(RecommenderBase):
         self._model.fit(data_conf)
 
         # set the user and item vectors for our model R = user_vecs * item_vecs.T
-        self.user_vecs = self._model.user_factors
+        self.user_vecs = self._model.user_factors[self.targetids]
         self.item_vecs = self._model.item_factors
 
     def recommend_batch(self):
@@ -106,17 +102,18 @@ class AlternatingLeastSquare(RecommenderBase):
         df_handle = data.handle_df(mode=self.mode)
         dict_col = data.dictionary_col(mode=self.mode)
 
-        R_hat = self.get_r_hat()
-
         predictions = dict()
 
         for index, row in tqdm(df_handle.iterrows()):
             impr = list(map(int, row['impressions'].split('|')))
-            # get ratings
-            l = [[i, R_hat[index, dict_col[i]]] for i in impr]
+            columns = [dict_col[i] for i in impr]
+            item_vecs = self.item_vecs[columns]
+            r_hat_row = np.dot(self.user_vecs[index], item_vecs.T)
+            l = list(zip(impr, r_hat_row.tolist()))
             l.sort(key=lambda tup: tup[1], reverse=True)
             p = [e[0] for e in l]
             predictions[row["session_id"]] = p
+        print('PRED CREATED')
         return predictions
 
     def save_r_hat(self):
@@ -129,6 +126,6 @@ class AlternatingLeastSquare(RecommenderBase):
 
 if __name__ == '__main__':
     model = AlternatingLeastSquare(mode='small', urm_name='urm_lin', factors=100, regularization=0.05,
-                                   iterations=50, alpha=25)
+                                   iterations=100, alpha=25)
     model.evaluate()
 
