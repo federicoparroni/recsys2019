@@ -23,6 +23,8 @@ def create_full_df():
     train_df.to_csv(data.FULL_PATH)
     del train_df
 
+    # insert here manipulations 
+
     # save config file
     config_dict = { data.TRAIN_LEN_KEY: len_train }
     with open(data.CONFIG_FILE_PATH, 'wb') as file:
@@ -379,7 +381,25 @@ def preprocess():
         print('creating CSV...')
 
         # create no_cluster/full
-        # TO-DO: call the no-cluster create method
+        path = 'dataset/preprocessed/no_cluster'
+        full = data.full_df()
+        train_len = data.config()[data.TRAIN_LEN_KEY]
+
+        train = full.loc[0:train_len]
+        test = full.loc[train_len+1:len(full)]
+        target_indices = get_target_indices(test)
+
+        check_folder('dataset/preprocessed/no_cluster/full')
+        train.to_csv(os.path.join(path, 'full/train.csv'))
+        test.to_csv(os.path.join(path, 'full/test.csv'))
+        np.save(os.path.join(path, 'full/target_indices'), target_indices)
+
+        train_small = get_small_dataset(train)
+        check_folder('dataset/preprocessed/no_cluster/small')
+        split(train_small, os.path.join(path, 'small'))
+
+        check_folder('dataset/preprocessed/no_cluster/local')
+        split(train, os.path.join(path, 'local'))
 
         # create item_metadata in preprocess folder
         original_item_metadata = data.accomodations_original_df()

@@ -65,7 +65,6 @@ def train_df(mode, cluster='no_cluster'):
   path = 'dataset/preprocessed/{}/{}/train.csv'.format(cluster, mode)
   if path not in _df_train:
     _df_train[path] = pd.read_csv(path, index_col=0)
-    _df_train[path].drop(['index'], axis=1, inplace=True)
   return _df_train[path]
 
 def test_df(mode, cluster='no_cluster'):
@@ -73,7 +72,6 @@ def test_df(mode, cluster='no_cluster'):
   path = 'dataset/preprocessed/{}/{}/test.csv'.format(cluster, mode)
   if path not in _df_test:
     _df_test[path] = pd.read_csv(path, index_col=0)
-    _df_test[path].drop(['index'], axis=1, inplace=True)
   return _df_test[path]
 
 def target_indices(mode, cluster='no_cluster'):
