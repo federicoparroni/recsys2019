@@ -6,6 +6,7 @@ dataset/matrices/*
 dataset/preprocessed/local/*.csv
 dataset/preprocessed/small/*.csv
 dataset/preprocessed/full/*.csv
+dataset/*
 
 build/
 

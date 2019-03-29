@@ -22,11 +22,11 @@ class AlternatingLeastSquare(RecommenderBase):
     [link text](http://www.example.com)
     """
 
-    def __init__(self, mode, urm_name, factors=100, regularization=0.01, iterations=10, alpha=25):
+    def __init__(self, mode, cluster, urm_name, factors=100, regularization=0.01, iterations=10, alpha=25):
         os.environ['MKL_NUM_THREADS'] = '1'
         name = 'ALS urm_name: {}\n factors: {}\n regularization: {}\n ' \
                     'iterations: {}\n alpha: {}'.format(urm_name, factors, regularization, iterations, alpha)
-        super(AlternatingLeastSquare, self).__init__(mode, name)
+        super(AlternatingLeastSquare, self).__init__(mode, cluster, name)
 
         self.factors = int(factors)
         self.regularization = regularization

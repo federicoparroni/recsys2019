@@ -37,9 +37,9 @@ class DistanceBasedRecommender(RecommenderBase):
     SIM_RP3BETA = 'rp3beta'
     SIM_SPLUS = 'splus'
 
-    def __init__(self, matrix, normalization_mode='l2', mode='full', name='distancebased', urm_name='urm_clickout', k=100, distance='cosine', shrink=0, threshold=0,
+    def __init__(self, matrix, normalization_mode='l2', mode='full', cluster='no_cluster', name='distancebased', urm_name='urm_clickout', k=100, distance='cosine', shrink=0, threshold=0,
                  implicit=False, alpha=0.5, beta=0.5, l=0.5, c=0.5, urm=None, matrix_mul_order='standard'):
-        super(DistanceBasedRecommender, self).__init__(mode=mode, name=name)
+        super(DistanceBasedRecommender, self).__init__(mode=mode, cluster=cluster, name=name)
         self.urm_name = urm_name
         self._sim_matrix = None
 

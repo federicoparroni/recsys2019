@@ -4,7 +4,17 @@ import time
 import data
 from tqdm import tqdm
 
-def create_sub(predictions, submission_name, mode, directory='submissions'):
+def create_sub(predictions, submission_name, mode, cluster='no_cluster', directory='submissions'):
+    """
+
+    :param predictions: [(session_idx_0, [acc_1, acc2, acc3, ...]),(session_idx_1, [acc_1, acc2, acc3, ...]), ...]
+    :param submission_name:
+    :param mode: mode of current running model.
+    :param cluster: name of the cluster
+    :param directory: parent path to submission
+    :return: None
+    """
+
     if not os.path.exists(directory):
       os.mkdir(directory)
 
@@ -13,29 +23,24 @@ def create_sub(predictions, submission_name, mode, directory='submissions'):
     print(f'Exporting the sub to {path_time}...')
     start = time.time()
 
-    handle_df = data.handle_df(mode=mode)
-    # drop impressions column from the handle to mantain only the 4 keys
-    cols_to_drop = ['impressions']
-    if mode != 'full': # if mode is local or small, drop also the reference
-        cols_to_drop.append('reference')
+    train_df = data.train_df(mode=mode, cluster=cluster)
+    test_df = data.test_df(mode=mode, cluster=cluster)
 
-    # drop clickout item and impressions mantain only the 4 keys
-    handle_df.drop(handle_df.columns[4], axis=1, inplace=True)
+    full = pd.concat(objs=[train_df, test_df])
+
+    indices = [item[0] for item in predictions]
+
+    targets = full.loc[indices]
+    targets.drop(targets.columns[4:12], axis=1, inplace=True)
+
     predictions_column = []
     for p in predictions:
-        predictions_column.append(str(p[1]).replace("[", '').replace("]","").replace(",", ""))
-    handle_df['item_recommendations'] = predictions_column
-    handle_df.to_csv(path_time, index=False)
+        predictions_column.append(str(p[1]).replace("[", '').replace("]", "").replace(",", ""))
 
-
-    predictions_column = list()
-    for key, value in tqdm(predictions.items()):
-        predictions_column.append(str(value).replace("[", '').replace("]","").replace(",", ""))
-    handle_df['item_recommendations'] = predictions_column
-    handle_df.to_csv(path_time, index=False)
-
-
-    _time = time.time()-start
+    targets['item_recommendations'] = predictions_column
+    targets.to_csv(path_time, index=False)
+    _time = time.time() - start
     elapsed = time.strftime('%Mm %Ss', time.gmtime(_time))
     print()
     print(f"submission created in submissions folder in {elapsed}")
+
