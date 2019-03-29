@@ -139,7 +139,6 @@ def urm_session_aware(train_df, test_df, time_weight, save_path):
     np.save('{}/dict_col.npy'.format(save_path), col_of_accomodation)
     print('done!')
 
-
 def urm(train_df, test_df, path, clickout_score=5, impressions_score=1):
     """
     create the URM considering only the clickout_action of every session
@@ -203,30 +202,6 @@ def urm(train_df, test_df, path, clickout_score=5, impressions_score=1):
     np.save('{}/dict_col.npy'.format(path), col_of_accomodation)
     print('done!')
 
-
-def create_full_handle(test_df, name='handle.csv', folder='dataset/preprocessed/full'):
-    """
-    create the HANDLE CSV of the following format: |user_id,session_id,timestamp,step,impressions|
-
-    :param test_df:
-    :param local:
-    :param save:
-    :param name:
-    :param folder:
-    :return:
-    """
-    # user_id,session_id,timestamp,step,reference,impressions
-    print('Creating handle...', end=' ', flush=True)
-    df_handle = test_df[['user_id', 'session_id', 'timestamp', 'step', 'impressions']]
-    df_handle = df_handle[(test_df['action_type'] == 'clickout item') & (test_df['reference'].isnull())]
-    print('Done!')
-
-    print('Saving handle...', end=' ', flush=True)
-    check_folder(folder)
-    df_handle.to_csv('{}/{}'.format(folder, name), index=False)
-    print('Done!')
-
-
 def get_small_dataset(df, maximum_rows=5000):
     """
     Return a dataframe from the original dataset containing a maximum number of rows. The actual total rows
@@ -247,6 +222,9 @@ def get_small_dataset(df, maximum_rows=5000):
     # slice from the first row to the final index
     return df.iloc[0:end_idx]
 
+def get_target_indices(df):
+    df = df[(df['action_type'] == 'clickout item') & (df['reference'].isnull())]
+    return list(df.index)
 
 def split(df, save_path, perc_train=80):
     """
@@ -274,24 +252,18 @@ def split(df, save_path, perc_train=80):
         if int(row['reference']) not in list(map(int, row['impressions'].split('|'))):
             remove_reference_tuples.drop(index, inplace=True)
 
-    df_handle = df.loc[
-        [e[1] for e in remove_reference_tuples.index.tolist()], ['user_id', 'session_id', 'timestamp', 'step',
-                                                                 'reference', 'impressions']]
-
     for e in remove_reference_tuples.index.tolist():
         df_test.at[e[1], 'reference'] = np.nan
 
     # save them all
-    df_train.to_csv(save_path + "/train.csv", index=False)
-    df_test.to_csv(save_path + "/test.csv", index=False)
-    df_handle.to_csv(save_path + "/handle.csv", index=False)
-    print('Done!')
-    print('Handle saved to {}'.format(save_path + '/handle.csv'))
-
+    df_train.to_csv(os.path.join(save_path, "train.csv"))
+    df_test.to_csv(os.path.join(save_path, "test.csv"))
+    np.save(os.path.join(save_path, 'target_indices'), get_target_indices(df_test))
+    print('Splitting done!')
 
 def append_missing_accomodations(mode):
     found_ids = []
-    
+
     joined_df = data.train_df(mode).append(data.test_df(mode))
 
     # add references if valid
@@ -317,6 +289,8 @@ def append_missing_accomodations(mode):
     missing_count = len(missing)
     print('Found {} missing accomodations'.format(missing_count))
 
+    del joined_df
+
     # add those at the end of the dataframe
     if missing_count > 0:
         new_acc_df = pd.DataFrame({ 'item_id': list(missing) }, columns=['item_id', 'properties'] )
@@ -324,7 +298,6 @@ def append_missing_accomodations(mode):
         new_acs = data.accomodations_df().append(new_acc_df, ignore_index=True)
         new_acs.to_csv(data.ITEMS_PATH, index=False)
         print('{} successfully updated'.format(data.ITEMS_PATH))
-
 
 def preprocess_accomodations_df(preprocessing_fns):
     """
@@ -395,7 +368,6 @@ def create_ICM(name='icm.npz', save_path='dataset/matrices/full/'):
 
     print("Procedure ended succesfully!")
 
-
 def preprocess():
     """
     Preprocess menu
@@ -407,42 +379,14 @@ def preprocess():
         print('creating CSV...')
 
         # create no_cluster/full
-        no_cluster_path = 'dataset/preprocessed/no_cluster/'
+        # TO-DO: call the no-cluster create method
 
-        check_folder(no_cluster_path + 'full')
+        # create item_metadata in preprocess folder
+        original_item_metadata = data.accomodations_original_df()
+        original_item_metadata.to_csv(data.ITEMS_PATH)
 
-        train = data.original_train_df().reset_index()
-        len_train = len(train)
-        train.to_csv(no_cluster_path + 'full/train.csv')
-        del train
-
-        test = data.original_test_df().reset_index()
-        test.index = test.index + len_train
-        test.to_csv(no_cluster_path + 'full/test.csv')
-
-        test = test[(test['action_type'] == 'clickout item') & (test['reference'].isnull())]
-        target_indices = test.index
-        np.save(no_cluster_path + 'full/target_indices', target_indices)
-
-        # test = test[test['']]
-        # df_small = get_small_dataset(df_train_full)
-
-        # local_path = 'dataset/preprocessed/local'
-        # small_path = 'dataset/preprocessed/small'
-        # full_path = 'dataset/preprocessed/full'
-
-        # #check if the folders exist
-        # check_folder(local_path)
-        # check_folder(small_path)
-        # check_folder(full_path)
-
-        # split(df_train_full, save_path=local_path)
-        # split(df_small, save_path=small_path)
-
-        # #create the handle for the full test
-        # create_full_handle(df_test_full)
-
-        # append_missing_accomodations('full')
+        # append missing accomodations to item metadata
+        append_missing_accomodations('full')
 
     def _preprocess_item_metadata():
         # interactively enable preprocessing function

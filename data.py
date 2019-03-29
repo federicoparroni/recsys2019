@@ -14,7 +14,7 @@ URM_PATH = ['dataset/matrices/full/', 'dataset/matrices/local/', 'dataset/matric
 DICT_ROW_PATH = ['dataset/matrices/full/dict_row.npy', 'dataset/matrices/local/dict_row.npy', 'dataset/matrices/small/dict_row.npy'] 
 DICT_COL_PATH = ['dataset/matrices/full/dict_col.npy', 'dataset/matrices/local/dict_col.npy', 'dataset/matrices/small/dict_col.npy']
 
-ITEMS_PATH = 'dataset/preprocessed/full/item_metadata.csv'
+ITEMS_PATH = 'dataset/preprocessed/item_metadata.csv'
 
 # config file
 CONFIG_FILE_PATH = 'dataset/preprocessed/config.pkl'
@@ -62,14 +62,16 @@ def train_df(mode, cluster='no_cluster'):
   global _df_train
   path = 'dataset/preprocessed/{}/{}/train.csv'.format(cluster, mode)
   if path not in _df_train:
-    _df_train[path] = pd.read_csv(path, index_col=0).drop(['index'], axis=1)
+    _df_train[path] = pd.read_csv(path, index_col=0)
+    _df_train[path].drop(['index'], axis=1, inplace=True)
   return _df_train[path]
 
 def test_df(mode, cluster='no_cluster'):
   global _df_test
   path = 'dataset/preprocessed/{}/{}/test.csv'.format(cluster, mode)
   if path not in _df_test:
-    _df_test[path] = pd.read_csv(path, index_col=0).drop(['index'], axis=1)
+    _df_test[path] = pd.read_csv(path, index_col=0)
+    _df_test[path].drop(['index'], axis=1, inplace=True)
   return _df_test[path]
 
 def target_indices(mode, cluster='no_cluster'):
