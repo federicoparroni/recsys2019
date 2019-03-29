@@ -73,3 +73,9 @@ class CFItemBased(DistanceBasedRecommender):
                                           urm=urm,
                                           matrix_mul_order='standard')
 
+
+
+
+if __name__ == '__main__':
+    recommender = CFItemBased(mode='small', urm_name='urm_session_aware_lin')
+    recommender.evaluate()

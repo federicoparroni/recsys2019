@@ -37,7 +37,7 @@ def urm_session_aware(mode, cluster='no_cluster', time_weight='lin'):
     train_df.fillna({'reference': -1}, inplace=True)
 
     # concatenate the train df and the test df mantaining only the columns of interest
-    df = pd.concat([train_df, test_df])[['session_id', 'action_type', 'reference', 'impressions']]
+    df = pd.concat([train_df, test_df])[['session_id', 'user_id', 'action_type', 'reference', 'impressions']]
 
     session_groups = df.groupby(['session_id', 'user_id'])
     session_ids = list(session_groups.groups.keys())

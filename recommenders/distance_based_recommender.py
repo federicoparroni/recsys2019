@@ -42,9 +42,10 @@ class DistanceBasedRecommender(RecommenderBase):
         super(DistanceBasedRecommender, self).__init__(mode=mode, cluster=cluster, name=name)
         self.urm_name = urm_name
         self._sim_matrix = None
-
+        self.target_indices = data.target_indices(mode, cluster)
         self._matrix_mul_order = matrix_mul_order # if you want R•R', or 'inverse' if you want to compute S•R
 
+        self.cluster = cluster
         self.mode = mode
         self.urm_name = urm_name
         self.matrix = matrix
@@ -116,11 +117,14 @@ class DistanceBasedRecommender(RecommenderBase):
         Return the r_hat matrix as: R^ = R•S or R^ = S•R
         """
         R = self.urm
-        targetids = data.target_urm_rows(self.mode)
+        dict_row = data.dictionary_row(self.mode, self.cluster)
+        target_indices_urm = []
+        for ind in self.target_indices:
+            target_indices_urm.append(dict_row[tuple(data.full_df().loc[ind][['session_id', 'user_id']])])
         if self._matrix_mul_order == 'inverse':
-            return self._sim_matrix.tocsr()[targetids].dot(R)
+            return self._sim_matrix.tocsr()[target_indices_urm].dot(R)
         else:
-            return R[targetids].dot(self._sim_matrix)
+            return R[target_indices_urm].dot(self._sim_matrix)
 
     def get_sim_matrix(self):
         if self._sim_matrix is not None:
@@ -132,23 +136,23 @@ class DistanceBasedRecommender(RecommenderBase):
         print('recommending batch')
         if not self._has_fit():
             return None
-        df_handle = data.handle_df(mode=self.mode)
-
-
+        full_df = data.full_df()
         dict_col = data.dictionary_col(mode=self.mode)
 
         # compute the R^ by multiplying: R•S or S•R
         R_hat = self.get_r_hat()
 
-        predictions = dict()
+        predictions = []
 
-        for index, row in tqdm(df_handle.iterrows()):
-            impr = list(map(int, row['impressions'].split('|')))
+        count = 0
+        for index in tqdm(self.target_indices):
+            impr = list(map(int, full_df.loc[index]['impressions'].split('|')))
             # get ratings
-            l = [[i, R_hat[index, dict_col[i]]] for i in impr]
+            l = [[i, R_hat[count, dict_col[i]]] for i in impr]
             l.sort(key=lambda tup: tup[1], reverse=True)
             p = [e[0] for e in l]
-            predictions[row["session_id"]] = p
+            predictions.append((index, p))
+            count += 1
         return predictions
 
     def save_similarity_matrix(self):
@@ -164,6 +168,10 @@ class DistanceBasedRecommender(RecommenderBase):
         print('saving r_hat...')
         sps.save_npz('{}/{}'.format(base_save_path, self.name), self.get_r_hat())
         print('r_hat saved succesfully !')
+
+    def get_scores_batch(self):
+        print('to be implemented')
+        pass
 
 
 
