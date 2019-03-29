@@ -9,12 +9,13 @@ import out
 class RecommenderBase(ABC):
     """ Defines the interface that all recommendations models expose """
 
-    def __init__(self, mode='full', name='recommenderbase'):
+    def __init__(self, mode='full', cluster='no_cluster', name='recommenderbase'):
         """
         init should have on its firm the params of the algorithm
         """
         self.name = name
         self.mode = mode
+        self.cluster = cluster
 
     @abstractmethod
     def fit(self):

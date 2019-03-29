@@ -8,7 +8,7 @@ from utils import log
 
 class HybridImpressionScores(Hybrid):
 
-    def __init__(self, mode, impression_scores_matrices, weights_array, normalization_mode, threshold):
+    def __init__(self, mode, cluster, impression_scores_matrices, weights_array, normalization_mode, threshold):
         name = 'HybridImpressionScores'
         """
         Initialize the model
@@ -38,7 +38,7 @@ class HybridImpressionScores(Hybrid):
             All the values under this value are cut from the final result
         """
 
-        super(Hybrid, self).__init__(name=name, mode=mode)
+        super(Hybrid, self).__init__(name=name, cluster=cluster, mode=mode)
 
         if len(weights_array)!= len(impression_scores_matrices):
             print("the matrices passed have not the same len of their weights... go get some coffee...")
@@ -77,6 +77,15 @@ class HybridImpressionScores(Hybrid):
         df_test_target = df_test_target[~df_test_target.reference.notnull()]
 
         target_sessions = df_test_target["session_id"]
+
+        #TODO: cluster
+        target_indices = data.target_indices(self.mode)
+
+        if len(target_sessions) != len(target_indices):
+            print("Indices not same lenght of sessions, go get some coffee...")
+            return
+
+        self.dictionary_indices = dict(zip(target_sessions, target_indices))
 
 
         #Initialize list for dict containing scores of imoressions
@@ -120,8 +129,9 @@ class HybridImpressionScores(Hybrid):
             recs = sorted(value, key=value.get, reverse=True)
             scores = sorted(value.values(), reverse=True)
 
-            new_recs.append((key, recs))
+            new_recs.append((self.dictionary_indices.get(key), recs))
             new_recs_scores.append( (key, recs, scores) )
+
 
         self.recs_scores_batch = new_recs_scores
         self.recs_batch = new_recs

@@ -13,10 +13,10 @@ class OrderedImpressionRecommender(RecommenderBase):
     It recommends all impressions for each session ordered by
     how they are shown in Trivago during the clickout
     """
-    def __init__(self, mode):
+    def __init__(self, mode, cluster='no_cluster'):
 
         name = 'Ordered Impressions recommender'
-        super(OrderedImpressionRecommender, self).__init__(mode, name)
+        super(OrderedImpressionRecommender, self).__init__(mode, cluster, name)
 
         self.mode = mode
 
