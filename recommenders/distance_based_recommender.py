@@ -15,8 +15,6 @@ import similaripy as sim
 import data
 from tqdm import tqdm
 import scipy.sparse as sps
-from functools import partial
-import multiprocessing
 import utils.check_folder as cf
 import sklearn.preprocessing as preprocessing
 
@@ -45,8 +43,6 @@ class DistanceBasedRecommender(RecommenderBase):
         self.target_indices = data.target_indices(mode, cluster)
         self._matrix_mul_order = matrix_mul_order # if you want R•R', or 'inverse' if you want to compute S•R
 
-        self.cluster = cluster
-        self.mode = mode
         self.urm_name = urm_name
         self.matrix = matrix
         self.k = int(k)
