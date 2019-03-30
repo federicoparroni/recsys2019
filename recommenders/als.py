@@ -6,6 +6,7 @@ import data
 from tqdm import tqdm
 import os
 import utils.check_folder as cf
+from validator import BayesianValidator
 
 
 class AlternatingLeastSquare(RecommenderBase):
@@ -48,7 +49,8 @@ class AlternatingLeastSquare(RecommenderBase):
 
         self.fixed_params_dict = {
             'mode': mode,
-            'urm_name': urm_name
+            'urm_name': urm_name,
+            'cluster': cluster
         }
 
         self.hyperparameters_dict = {
@@ -140,5 +142,6 @@ class AlternatingLeastSquare(RecommenderBase):
 if __name__ == '__main__':
     model = AlternatingLeastSquare(mode='local', cluster='no_cluster', urm_name='urm_session_aware_lin', factors=100, regularization=0.05,
                                    iterations=100, alpha=25)
-    model.evaluate()
+    val = BayesianValidator(model)
+    val.validate(iterations=10)
 
