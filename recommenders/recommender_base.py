@@ -59,7 +59,7 @@ class RecommenderBase(ABC):
         self.fit()
         recommendations = self.recommend_batch()
         if export:
-            out.create_sub(recommendations, mode=mode, submission_name=self.name)
+            out.create_sub(recommendations, mode=self.mode, submission_name=self.name)
 
     def evaluate(self):
         """
