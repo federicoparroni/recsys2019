@@ -96,7 +96,8 @@ class RecommenderBase(ABC):
             correct_clickout = int(correct_clickouts[i])
             if correct_clickout in predictions[i][1]:
                 rank_pos = recs[i].index(correct_clickout) +1
-                RR += 1 / rank_pos
+                if rank_pos <= 25:
+                    RR += 1 / rank_pos
         
         MRR = RR / len_rec
         print(f'MRR: {MRR}')

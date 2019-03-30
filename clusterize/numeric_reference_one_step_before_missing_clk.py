@@ -24,8 +24,8 @@ class NumericReferenceOneStepBeforeMissingClk(ClusterizeBase):
         except KeyError:
             return False
 
-    def _fit(self):
-        df = data.test_df('full')
+    def _fit(self, mode):
+        df = data.test_df(mode)
         self.test_indices = list(df.index)
 
         just_missing_refs = df[df['reference'].isnull()]
@@ -50,8 +50,8 @@ class NumericReferenceOneStepBeforeMissingClk(ClusterizeBase):
                     i += 1
         
         self.target_indices = idx_last_ref_numeric
-        self.train_indices = data.train_df('full').index
+        self.train_indices = data.train_df(mode).index
 
 if __name__ == '__main__':
     obj = NumericReferenceOneStepBeforeMissingClk()
-    obj.save()
+    obj.save('local')

@@ -29,9 +29,6 @@ class LatestInteractionsRecommender(RecommenderBase):
         name = 'Last Interactions recommender'
         super(LatestInteractionsRecommender, self).__init__(mode, cluster, name)
 
-        self.mode = mode
-
-
     def _set_no_reordering(self, seq):
         """
         Remove duplicates maintaining ordering
@@ -42,10 +39,10 @@ class LatestInteractionsRecommender(RecommenderBase):
 
     def fit(self):
 
-        df_test = data.test_df(self.mode)
+        df_test = data.test_df(self.mode, cluster=self.cluster)
 
         print("{}: creating grouped sessions with interaction lists".format(self.name))
-        session_groups = self.get_groupby_sessions_references(data.test_df(self.mode))
+        session_groups = self.get_groupby_sessions_references(data.test_df(self.mode, cluster=self.cluster))
 
         # Getting target sessions
         target_indices = data.target_indices(self.mode, self.cluster)
@@ -85,7 +82,7 @@ class LatestInteractionsRecommender(RecommenderBase):
                 real_recommended = np.flipud(interacted_elements)
 
                 real_recommended = real_recommended.astype(np.int)
-                recs_tuples.append((self.dictionary_indices.get(i), real_recommended))
+                recs_tuples.append((self.dictionary_indices.get(i), list(real_recommended)))
 
         self.recs_batch = recs_tuples
 
