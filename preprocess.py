@@ -19,22 +19,24 @@ def create_full_df():
     indicates train rows (idx < max_train_idx) and test rows (idx >= max_train_idx).
     """
     train_df = data.original_train_df().reset_index(drop=True)
-    len_train = len(train_df)
+    len_train = train_df.shape[0]
     train_df.to_csv(data.FULL_PATH)
     del train_df
 
     # insert here manipulations 
 
     # save config file
-    config_dict = { data.TRAIN_LEN_KEY: len_train }
-    with open(data.CONFIG_FILE_PATH, 'wb') as file:
-        pickle.dump(config_dict, file)
+    create_config_file(len_train)
 
     with open(data.FULL_PATH, 'a') as f:
         test_df = data.original_test_df().reset_index(drop=True)
         test_df.index += len_train
         test_df.to_csv(f, header=False)   
 
+def create_config_file(max_train_idx):
+    config_dict = { data.TRAIN_LEN_KEY: max_train_idx }
+    with open(data.CONFIG_FILE_PATH, 'wb') as file:
+        pickle.dump(config_dict, file)
 
 def get_small_dataset(df, maximum_rows=5000):
     """
@@ -48,18 +50,23 @@ def get_small_dataset(df, maximum_rows=5000):
     if len(df) < maximum_rows:
       return df
     # get the last row
-    row = df.iloc[maximum_rows]
-    # slice the dataframe from the target row until the end
+    last_row = df.iloc[[maximum_rows]]
+    last_session_id = last_row.session_id.values[0]
+    
+    # OPTIMIZATION: last_user_id = last_row.user_id.values[0]
+
+    # slice the dataframe from the target row on
     temp_df = df.iloc[maximum_rows:]
-    # get the index of the last row of the last session
-    end_idx = temp_df[(temp_df.session_id == row.session_id) & (temp_df.user_id == row.user_id)].index.max()
+    # get the number of remaining interactions of the last session
+    # OPTIMIZATION: remaining_rows = temp_df[(temp_df.session_id == last_session_id) & (temp_df.user_id == last_user_id)].shape[0]
+    remaining_rows = temp_df[temp_df.session_id == last_session_id].shape[0]
     # slice from the first row to the final index
-    return df.iloc[0:end_idx]
+    return df.iloc[0:maximum_rows+remaining_rows]
 
 
 def get_target_indices(df):
     df = df[(df['action_type'] == 'clickout item') & (df['reference'].isnull())]
-    return list(df.index)
+    return df.index.values
 
 
 def split(df, save_path, perc_train=80):
@@ -95,7 +102,7 @@ def split(df, save_path, perc_train=80):
     df_train.to_csv(os.path.join(save_path, "train.csv"))
     df_test.to_csv(os.path.join(save_path, "test.csv"))
     np.save(os.path.join(save_path, 'target_indices'), get_target_indices(df_test))
-    print('Splitting done!')
+    print('Done!')
 
 
 def append_missing_accomodations(mode):
@@ -246,6 +253,11 @@ def preprocess():
     if not os.path.isfile(data.FULL_PATH):
         print('The full dataframe (index master) is missing. Creating it...', end=' ', flush=True)
         create_full_df()
+        print('Done!')
+    
+    if not os.path.isfile(data.CONFIG_FILE_PATH):
+        print('The config file is missing. Creating it...', end=' ', flush=True)
+        create_config_file(len(data.original_train_df()))
         print('Done!')
     
     # create CSV files
