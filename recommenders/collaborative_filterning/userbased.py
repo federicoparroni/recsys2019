@@ -33,7 +33,7 @@ class CFUserBased(DistanceBasedRecommender):
         l: float, optional, balance coefficient used in s_plus distance, included in [0,1]
         c: float, optional, cosine coefficient, included in [0,1]
         """
-        urm = data.urm(mode, cluster, urm_name=urm_name)
+        urm = data.urm(mode, cluster=cluster, urm_name=urm_name)
 
         # create fixed params dictionary
         self.fixed_params_dict = {
@@ -56,7 +56,8 @@ class CFUserBased(DistanceBasedRecommender):
 
 
         super(CFUserBased, self).__init__(urm,
-                                          mode=mode, 
+                                          mode=mode,
+                                          cluster=cluster,
                                           urm_name=urm_name,
                                           name='UserKnn: urm: {} k: {} distance: {} shrink: {} threshold: {} implicit: {} alpha: {} beta: {} l: {} c: {}'.format(urm_name, k,distance,shrink,threshold,implicit,alpha,beta,l,c),
                                           k=k,

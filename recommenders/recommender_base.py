@@ -37,11 +37,10 @@ class RecommenderBase(ABC):
     def get_scores_batch(self):
         """
         returns a list of recommendations in the format
-        [(session_id_0, [acc_1, acc2, acc3, ...], [sco_1, sco2, sco3, ...]),
-         (session_id_1, [acc_1, acc2, acc3, ...], [sco_1, sco2, sco3, ...]), ...]
+        [(session_idx_0, [acc_1, acc2, acc3, ...], [sco_1, sco2, sco3, ...]),
+         (session_idx_0, [acc_1, acc2, acc3, ...], [sco_1, sco2, sco3, ...]), ...]
         """
         pass
-
 
     def run(self):
         """
@@ -95,8 +94,9 @@ class RecommenderBase(ABC):
         RR = 0
         for i in range(len_rec):
             correct_clickout = int(correct_clickouts[i])
-            rank_pos = recs[i].index(correct_clickout) +1
-            RR += 1 / rank_pos
+            if correct_clickout in predictions[i][1]:
+                rank_pos = recs[i].index(correct_clickout) +1
+                RR += 1 / rank_pos
         
         MRR = RR / len_rec
         print(f'MRR: {MRR}')

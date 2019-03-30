@@ -10,7 +10,7 @@ import data
 
 from recommenders.recommender_base import RecommenderBase
 
-scores_interactions = [1, 0.5, 0.33, 0.25, 0.2,  0.166, 0.15, 0.125,
+scores_interactions = [1, 0.75, 0.5, 0.33, 0.25,  0.2, 0.15, 0.125,
                        0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
                        0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
 
@@ -18,6 +18,12 @@ class LatestInteractionsRecommender(RecommenderBase):
     """
     Idea is to recommend all last interactions and clickouts appearing in impressions
     in order from most recently interacted to less recently
+
+    Score is given following the scores_interactions list in the following way:
+    most_recent1: 1
+    most_recent2: 0.75
+    most_recent3: 0.5
+    ...
     """
     def __init__(self, mode, cluster='no_cluster'):
         name = 'Last Interactions recommender'
@@ -26,7 +32,7 @@ class LatestInteractionsRecommender(RecommenderBase):
         self.mode = mode
 
 
-    def f7(self, seq):
+    def _set_no_reordering(self, seq):
         """
         Remove duplicates maintaining ordering
         """
@@ -42,13 +48,19 @@ class LatestInteractionsRecommender(RecommenderBase):
         session_groups = self.get_groupby_sessions_references(data.test_df(self.mode))
 
         # Getting target sessions
-        df_test_target = df_test[df_test["action_type"] == "clickout item"]
+        target_indices = data.target_indices(self.mode, self.cluster)
 
-        df_test_target = df_test_target.replace(r'', np.nan, regex=True)
+        df_test_target = df_test[df_test.index.isin(target_indices)]
 
-        df_test_target = df_test_target[~df_test_target.reference.notnull()]
-
+        #I must reason with session_ids since i'm interested in getting last interactions of same session
         df_test_target = df_test_target.set_index("session_id")
+
+        #then i create a dictionary for re-mapping session into indices
+        if len(df_test_target.index) != len(target_indices):
+            print("Indices not same lenght of sessions, go get some coffee...")
+            return
+
+        self.dictionary_indices = dict(zip(df_test_target.index, target_indices))
 
         list_sessions = session_groups.index
 
@@ -56,18 +68,24 @@ class LatestInteractionsRecommender(RecommenderBase):
         print("{}: fitting the model".format(self.name))
         for i in tqdm(df_test_target.index):
             if i not in list_sessions:
-                recs_tuples.append((i, []))
+                recs_tuples.append((self.dictionary_indices.get(i), []))
             else:
                 # Get interacted element of session with no duplicates
                 interacted_elements = np.asarray(session_groups.at[i, "sequence"])
 
-                interacted_elements = np.asarray(self.f7(x for x in interacted_elements))
+                interacted_elements = np.asarray(self._set_no_reordering(x for x in interacted_elements))
+
+                impressions = np.asarray(df_test_target.at[i, "impressions"].split("|"))
+                # First i want to be sure the impressions contains all the interacted elements (if not, they must be cutted off from relevant items)
+                mask_only_in_impression = np.in1d(interacted_elements, impressions, assume_unique=True)
+
+                interacted_elements = interacted_elements[mask_only_in_impression]
 
                 # I append the last interacted elements as first (so I invert the order of relevant_elements!)
                 real_recommended = np.flipud(interacted_elements)
 
                 real_recommended = real_recommended.astype(np.int)
-                recs_tuples.append((i, real_recommended))
+                recs_tuples.append((self.dictionary_indices.get(i), real_recommended))
 
         self.recs_batch = recs_tuples
 
