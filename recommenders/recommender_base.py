@@ -94,8 +94,9 @@ class RecommenderBase(ABC):
         RR = 0
         for i in range(len_rec):
             correct_clickout = int(correct_clickouts[i])
-            rank_pos = recs[i].index(correct_clickout) +1
-            RR += 1 / rank_pos
+            if correct_clickout in predictions[i][1]:
+                rank_pos = recs[i].index(correct_clickout) +1
+                RR += 1 / rank_pos
         
         MRR = RR / len_rec
         print(f'MRR: {MRR}')
