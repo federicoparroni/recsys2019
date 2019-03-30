@@ -5,6 +5,7 @@ import data
 import numpy as np
 from utils.check_folder import check_folder
 import preprocess
+import pandas as pd
 
 class ClusterizeBase(ABC):
 
@@ -56,7 +57,13 @@ class ClusterizeBase(ABC):
         train.to_csv(os.path.join(full_path, 'train.csv'))
         del train
 
-        test = data.test_df(mode).loc[self.test_indices]
+        # in case I specify some target_indices, I do not want to leave missing clickout not-to-predict
+        if len(self.target_indices) > 0:
+            indices_from_full = list(set(self.test_indices) - set(self.target_indices))
+            indices_from_test = self.target_indices
+            test = pd.concat([data.test_df(mode).loc[indices_from_test], data.full_df().loc[indices_from_full]])
+        else:
+            test = data.test_df(mode).loc[self.test_indices]
         test.to_csv(os.path.join(full_path, 'test.csv'))
 
         if len(self.target_indices) > 0:
