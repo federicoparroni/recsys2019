@@ -67,7 +67,12 @@ class RecommenderBase(ABC):
         """
         assert self.mode == 'local' or self.mode == 'small'
 
-        print('\nvalidating {}'.format(self.name))
+        print('\nevaluating {}'.format(self.name))
+        
+        # infos on the perc of target indices in which I'm evaluating the model
+        perc = len(data.target_indices(self.mode, self.cluster))/len(data.target_indices(self.mode, 'no_cluster'))
+        print('\nevaluating with mode {} on {} percent of the targets\n'.format(self.mode, perc))
+
         self.fit()
         recommendations = self.recommend_batch()
         return self.compute_MRR(recommendations)
