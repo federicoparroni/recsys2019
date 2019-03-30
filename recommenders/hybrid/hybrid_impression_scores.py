@@ -91,7 +91,6 @@ class HybridImpressionScores(Hybrid):
                     else:
                         self.dict_scores[triple[0]][triple[1][j]] = self.normalized_matrices_array[k][j]*self.weights_array[i]
 
-
     def recommend_batch(self):
         """
         returns a list of recommendations in the format
@@ -141,7 +140,7 @@ class HybridImpressionScores(Hybrid):
 
         normalized_matrices_array = []
         for elem in self.matrices_array:
-            if len(elem) > 0:
+            if len(elem) > 0 and elem[0] > 0:
                 normalized_matrices_array.append([x / elem[0] for x in elem])
             else:
                 normalized_matrices_array.append(elem)

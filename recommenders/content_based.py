@@ -37,7 +37,8 @@ class ContentBased(DistanceBasedRecommender):
             'urm_name': urm_name,
             'distance': distance,
             'implicit': implicit,
-            'threshold': 0
+            'threshold': 0,
+            'cluster': cluster
         }
 
         # create hyperparameters dictionary

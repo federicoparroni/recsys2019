@@ -42,6 +42,7 @@ class CFUserBased(DistanceBasedRecommender):
             'distance': distance,
             'implicit': implicit,
             'threshold': 0,
+            'cluster': cluster
         }
 
         # create hyperparameters dictionary
