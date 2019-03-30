@@ -26,17 +26,12 @@ def create_full_df():
     # insert here manipulations 
 
     # save config file
-    create_config_file(len_train)
+    data.save_config(data.TRAIN_LEN_KEY, len_train)
 
     with open(data.FULL_PATH, 'a') as f:
         test_df = data.original_test_df().reset_index(drop=True)
         test_df.index += len_train
         test_df.to_csv(f, header=False)   
-
-def create_config_file(max_train_idx):
-    config_dict = { data.TRAIN_LEN_KEY: max_train_idx }
-    with open(data.CONFIG_FILE_PATH, 'wb') as file:
-        pickle.dump(config_dict, file)
 
 def get_small_dataset(df, maximum_rows=5000):
     """
@@ -190,7 +185,7 @@ def preprocess():
         # create no_cluster/full
         path = 'dataset/preprocessed/no_cluster'
         full = data.full_df()
-        train_len = data.config()[data.TRAIN_LEN_KEY]
+        train_len = data.read_config()[data.TRAIN_LEN_KEY]
 
         train = full.loc[0:train_len]
         test = full.loc[train_len+1:len(full)]
@@ -253,11 +248,6 @@ def preprocess():
     if not os.path.isfile(data.FULL_PATH):
         print('The full dataframe (index master) is missing. Creating it...', end=' ', flush=True)
         create_full_df()
-        print('Done!')
-    
-    if not os.path.isfile(data.CONFIG_FILE_PATH):
-        print('The config file is missing. Creating it...', end=' ', flush=True)
-        create_config_file(len(data.original_train_df()))
         print('Done!')
     
     # create CSV files

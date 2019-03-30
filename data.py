@@ -20,6 +20,7 @@ ITEMS_PATH = 'dataset/preprocessed/item_metadata.csv'
 # config file
 CONFIG_FILE_PATH = 'dataset/preprocessed/config.pkl'
 TRAIN_LEN_KEY = 'max_train_idx'
+SPLIT_TARGET_LEN = 'split_target_len'
 
 _df_train_original = None
 _df_test_original = None
@@ -38,8 +39,6 @@ _urm = {}
 _dict_row = {}
 _dict_col = {}
 _icm = None
-
-_config = None
 
 def full_df():
   global _df_full
@@ -129,9 +128,20 @@ def dictionary_col(mode, cluster = 'no_cluster'):
     _dict_col[path] = np.load(path).item()
   return _dict_col[path]
 
-def config():
-  global _config
-  if _config is None:
-    with open(CONFIG_FILE_PATH, 'rb') as file:
-      _config = pickle.load(file)
-  return _config
+# those 2 functions let you save arbitrary fields in this file and recover those back
+def read_config():
+  conf = None
+  try:
+    with open('dataset/file.pkl', 'rb') as file:
+      conf = pickle.load(file)
+  except IOError:
+    with open('dataset/file.pkl', 'wb') as file:
+      conf = {}
+      pickle.dump(conf, file)
+  return conf
+
+def save_config(key, value):
+  conf = read_config()
+  conf[key] = value
+  with open('dataset/file.pkl', 'wb') as file:
+      pickle.dump(conf, file)
