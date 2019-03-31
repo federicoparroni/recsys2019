@@ -6,11 +6,11 @@ import os
 import pickle
 from tqdm import tqdm
 import pandas as pd
-from sklearn.preprocessing import MultiLabelBinarizer
-import scipy.sparse as sps
+from preprocess import create_icm
+from preprocess import create_urm
 import numpy as np
-import utils.get_action_score as gas
-from time import time
+
+
 
 
 def _get_sessions_with_duplicated_steps(df):
@@ -53,14 +53,12 @@ def create_full_df():
 
     ##################################################################################
 
-    len_train = len(train_df)
+    len_train = train_df.shape[0]
     train_df.to_csv(data.FULL_PATH)
     del train_df
 
     # save config file
-    config_dict = { data.TRAIN_LEN_KEY: len_train }
-    with open(data.CONFIG_FILE_PATH, 'wb') as file:
-        pickle.dump(config_dict, file)
+    data.save_config(data.TRAIN_LEN_KEY, len_train)
 
     with open(data.FULL_PATH, 'a') as f:
         test_df = data.original_test_df().reset_index(drop=True)
@@ -89,175 +87,6 @@ def create_full_df():
         test_df.index += len_train
         test_df.to_csv(f, header=False)
 
-def urm_session_aware(train_df, test_df, time_weight, save_path):
-    """
-    Create the URM considering the whole session of a user and giving scores based on its interactions
-
-    :param train_df:
-    :param test_df:
-    :param time_weight:
-    :param save_path:
-    :param save:
-    :return:
-    """
-
-    accomodations_array = data.accomodations_ids()
-
-    # fill missing clickout_item on the test dataframe
-    test_df.fillna({'reference': -1}, inplace=True)
-    train_df.fillna({'reference': -1}, inplace=True)
-
-    # concatenate the train df and the test df mantaining only the columns of interest
-    df = pd.concat([train_df, test_df])[['session_id', 'action_type', 'reference', 'impressions']]
-
-    session_groups = df.groupby('session_id')
-    session_ids = list(session_groups.groups.keys())
-
-    rows_count = len(session_groups)
-    cols_count = len(accomodations_array)
-
-    # create dictionary (k: sessionId - v: urm row)
-    row_of_sessionid = {}
-    for i in range(len(session_ids)):
-        row_of_sessionid[session_ids[i]] = i
-
-    # create dictionary (k: accomodationId - v: urm col)
-    col_of_accomodation = {}
-    for i in range(cols_count):
-        col_of_accomodation[accomodations_array[i]] = i
-
-    print('dictionaries created\n')
-
-    def _compute_session_score(df, tw):
-        session_len = df.shape[0]
-        #get the array of the weight based on the length
-        weight_array = gas.time_weight(tw, session_len)
-        scores = {}
-
-        for i in range(session_len):
-            row = df.iloc[i]
-
-            # get the reference to which assign the score
-            try:
-                reference_id = int(row['reference'])
-            except ValueError:
-                continue
-
-            # TO-DO !!!
-            # was a test row in which we have to predict the clickout
-            if reference_id != -1:
-                score = gas.get_action_score(row['action_type'])
-
-                # weight the score by the time
-                score *= weight_array[i]
-
-                #check if the reference is in the dictionary
-                if reference_id not in scores.keys():
-                    scores[reference_id] = score
-                else:
-                    scores[reference_id] += score
-
-        return scores
-
-    tqdm.pandas()
-    sessions_score = session_groups.progress_apply(_compute_session_score, tw=time_weight).values
-    print("apply function done\n")
-
-    # create the urm using data indeces and indptr
-    _data = []
-    indptr = [0]
-    indices = []
-
-    values_inserted = 0
-    for i in tqdm(range(rows_count)):
-        score_dict = sessions_score[i]
-        for k in score_dict.keys():
-            indices.append(col_of_accomodation[k])
-            _data.append(score_dict[k])
-            values_inserted += 1
-        indptr.append(values_inserted)
-    _urm = sps.csr_matrix((_data, indices, indptr), shape=(rows_count, cols_count))
-
-    print("URM created\n")
-
-    #check if the folder where to save exsist
-    check_folder(save_path)
-
-    print('Saving urm matrix... ')
-    sps.save_npz('{}/urm_{}.npz'.format(save_path, time_weight), _urm)
-    print('done!')
-
-    print('Saving row dictionary... ')
-    np.save('{}/dict_row.npy'.format(save_path), row_of_sessionid)
-    print('done!')
-
-    print('Saving col dictionary... ')
-    np.save('{}/dict_col.npy'.format(save_path), col_of_accomodation)
-    print('done!')
-
-def urm(train_df, test_df, path, clickout_score=5, impressions_score=1):
-    """
-    create the URM considering only the clickout_action of every session
-
-    :param train_df:
-    :param test_df:
-    :param local: operate wether using local or original dataset
-    :param clickout_score: score to assign to clickout items
-    :param impressions_score: score to assign to impressions accomodations, must be greater than clickout_score
-    :param save:
-    :return: sparse matrix (sessions, accomodations) and the association dict sessionId-urm_row
-    """
-    assert clickout_score > impressions_score
-
-    accomodations_array = data.accomodations_ids()
-
-    train_df = train_df[train_df['action_type'] == 'clickout item'].fillna(-1)
-    test_df = test_df[test_df['action_type'] == 'clickout item'].fillna(-1)
-
-    df = pd.concat([train_df, test_df])[['session_id', 'reference', 'impressions']]
-    session_groups = df.groupby('session_id')
-
-    session_ids = list(session_groups.groups.keys())
-
-    df_references = session_groups.reference.apply(lambda x: list(map(int, x))).reset_index(name='references')
-
-    df_impressions = session_groups.impressions.apply(lambda x: list(map(int, x.values[0].split('|')))).reset_index(
-        name='impressions')
-
-    # one hot of references and impressions
-    mlb = MultiLabelBinarizer(accomodations_array, sparse_output=True)
-
-    clickout_onehot = mlb.fit_transform(df_references.references)
-
-    impr_onehot = mlb.fit_transform(df_impressions.impressions)
-
-    urm = (clickout_score - impressions_score) * clickout_onehot + impressions_score * impr_onehot
-
-    # create dictionary (k: sessionId - v: urm row)
-    row_of_sessionid = {}
-    for i in range(len(session_ids)):
-        row_of_sessionid[session_ids[i]] = i
-
-    # create dictionary (k: accomodationId - v: urm col)
-    col_of_accomodation = {}
-    for i in range(len(mlb.classes)):
-        col_of_accomodation[mlb.classes[i]] = i
-
-    check_folder(path)
-
-    # save all
-    print('Saving urm matrix... ')
-    sps.save_npz('{}/urm_clickout.npz'.format(path), urm)
-    print('done!')
-
-    print('Saving row dictionary... ')
-    np.save('{}/dict_row.npy'.format(path), row_of_sessionid)
-    print('done!')
-
-    print('Saving col dictionary... ')
-    np.save('{}/dict_col.npy'.format(path), col_of_accomodation)
-    print('done!')
-
 def get_small_dataset(df, maximum_rows=5000):
     """
     Return a dataframe from the original dataset containing a maximum number of rows. The actual total rows
@@ -270,17 +99,24 @@ def get_small_dataset(df, maximum_rows=5000):
     if len(df) < maximum_rows:
       return df
     # get the last row
-    row = df.iloc[maximum_rows]
-    # slice the dataframe from the target row until the end
+    last_row = df.iloc[[maximum_rows]]
+    last_session_id = last_row.session_id.values[0]
+
+    # OPTIMIZATION: last_user_id = last_row.user_id.values[0]
+
+    # slice the dataframe from the target row on
     temp_df = df.iloc[maximum_rows:]
-    # get the index of the last row of the last session
-    end_idx = temp_df[(temp_df.session_id == row.session_id) & (temp_df.user_id == row.user_id)].index.max()
+    # get the number of remaining interactions of the last session
+    # OPTIMIZATION: remaining_rows = temp_df[(temp_df.session_id == last_session_id) & (temp_df.user_id == last_user_id)].shape[0]
+    remaining_rows = temp_df[temp_df.session_id == last_session_id].shape[0]
     # slice from the first row to the final index
-    return df.iloc[0:end_idx]
+    return df.iloc[0:maximum_rows+remaining_rows]
+
 
 def get_target_indices(df):
     df = df[(df['action_type'] == 'clickout item') & (df['reference'].isnull())]
-    return list(df.index)
+    return df.index.values
+
 
 def split(df, save_path, perc_train=80):
     """
@@ -315,7 +151,10 @@ def split(df, save_path, perc_train=80):
     df_train.to_csv(os.path.join(save_path, "train.csv"))
     df_test.to_csv(os.path.join(save_path, "test.csv"))
     np.save(os.path.join(save_path, 'target_indices'), get_target_indices(df_test))
-    print('Splitting done!')
+    np.save(os.path.join(save_path, 'train_indices'), df_train.index)
+    np.save(os.path.join(save_path, 'test_indices'), df_test.index)
+    print('Done!')
+
 
 def append_missing_accomodations(mode):
     found_ids = []
@@ -337,7 +176,7 @@ def append_missing_accomodations(mode):
     imprs = imprs[imprs.notnull()].values
     for i in tqdm(imprs):
         found_ids.extend(list(map(int, i.split('|'))))
-
+    
     found_ids = set(found_ids)
     acs = data.accomodations_ids()
     accomod_known = set(map(int, acs))
@@ -350,10 +189,11 @@ def append_missing_accomodations(mode):
     # add those at the end of the dataframe
     if missing_count > 0:
         new_acc_df = pd.DataFrame({ 'item_id': list(missing) }, columns=['item_id', 'properties'] )
-
+    
         new_acs = data.accomodations_df().append(new_acc_df, ignore_index=True)
         new_acs.to_csv(data.ITEMS_PATH, index=False)
         print('{} successfully updated'.format(data.ITEMS_PATH))
+
 
 def preprocess_accomodations_df(preprocessing_fns):
     """
@@ -362,7 +202,7 @@ def preprocess_accomodations_df(preprocessing_fns):
     should return a tuple (that will be treated as the new row columns).
     """
     assert isinstance(preprocessing_fns, list)
-
+    
     print('Processing accomodations dataframe...')
     # load and preprocess the original item_metadata.csv
     accomodations_df = data.accomodations_original_df()
@@ -386,43 +226,6 @@ def remove_from_stars_features(row):
     else:
         return row
 
-def create_ICM(name='icm.npz', save_path='dataset/matrices/full/'):
-    """
-    it creates the ICM matrix taking as input the 'item_metadata.csv'
-    the matrix is saved in COO format to accomplish easy conversion to csr and csc
-    a dictionary is also saved with key = item_id and values = row of icm containing the selected item
-
-    :param name: name of the icm matrix
-    :param save_path: saving path
-    :param post_processing: post-processing functions to call on the newly created ICM
-    :return:
-    """
-    print("creating ICM...\n")
-    tqdm.pandas()
-    attributes_df = data.accomodations_df()
-
-    attributes_df['properties'] = attributes_df['properties'].progress_apply(
-        lambda x: x.split('|') if isinstance(x, str) else x)
-    attributes_df.fillna(value='', inplace=True)
-    mlb = MultiLabelBinarizer()
-    one_hot_attribute = mlb.fit_transform(attributes_df['properties'].values)
-    one_hot_dataframe = pd.DataFrame(one_hot_attribute, columns=mlb.classes_)
-
-    print("ICM created succesfully!\n")
-    print("creating dictionary...\n")
-    dict = {}
-    item_ids = attributes_df['item_id'].values
-    for i in tqdm(range(len(item_ids))):
-        dict[item_ids[i]] = i
-
-    print("saving ICM...\n")
-    check_folder(save_path)
-    sps.save_npz(save_path + name, sps.coo_matrix(one_hot_dataframe.as_matrix()))
-
-    print("saving dictionary")
-    np.save(save_path + 'icm_dict.npy', dict)
-
-    print("Procedure ended succesfully!")
 
 def preprocess():
     """
@@ -435,7 +238,26 @@ def preprocess():
         print('creating CSV...')
 
         # create no_cluster/full
-        # TO-DO: call the no-cluster create method
+        path = 'dataset/preprocessed/no_cluster'
+        full = data.full_df()
+        train_len = data.read_config()[data.TRAIN_LEN_KEY]
+
+        train = full.loc[0:train_len]
+        test = full.loc[train_len+1:len(full)]
+        target_indices = get_target_indices(test)
+
+        check_folder('dataset/preprocessed/no_cluster/full')
+        train.to_csv(os.path.join(path, 'full/train.csv'))
+        test.to_csv(os.path.join(path, 'full/test.csv'))
+        np.save(os.path.join(path, 'full/train_indices'), train.index)
+        np.save(os.path.join(path, 'full/test_indices'), test.index)
+
+        train_small = get_small_dataset(train)
+        check_folder('dataset/preprocessed/no_cluster/small')
+        split(train_small, os.path.join(path, 'small'))
+
+        check_folder('dataset/preprocessed/no_cluster/local')
+        split(train, os.path.join(path, 'local'))
 
         # create item_metadata in preprocess folder
         original_item_metadata = data.accomodations_original_df()
@@ -458,41 +280,22 @@ def preprocess():
                 selected_idx = int(inp)
                 pre_processing_f[selected_idx][1] = not pre_processing_f[selected_idx][1]
         activated_prefns = [f[0] for f in pre_processing_f if f[1]]
-
+       
         # preprocess accomodations dataframe
         preprocess_accomodations_df(activated_prefns)
-
-    def _create_URM_from_local():
-        path = 'dataset/matrices/local'
-        train = data.train_df('local')
-        test = data.test_df('local')
-        print('LOCAL DATASET LOADED BUDDY')
-        return path, train, test
-    def _create_URM_from_full():
-        path = 'dataset/matrices/full'
-        train = data.train_df('full')
-        test = data.test_df('full')
-        print('FULL DATASET LOADED BUDDY')
-        return path, train, test
-    def _create_URM_from_small():
-        path = 'dataset/matrices/small'
-        train = data.train_df('small')
-        test = data.test_df('small')
-        print('SMALL DATASET LOADED BUDDY')
-        return path, train, test
 
     def _create_urm_session_aware():
         """
         NOTE: CHANGE THE PARAMETERS OF THE SEQUENCE AWARE URM HERE !!!!
         """
-        urm_session_aware(train, test, time_weight='lin', save_path=path)
+        create_urm.urm_session_aware(mode, cluster, time_weight='lin')
     def _create_urm_clickout():
         """
         NOTE: CHANGE THE PARAMETERS OF THE CLICKOUT_ONLY URM HERE !!!!
         """
-        urm(train, test, path, clickout_score=5, impressions_score=1)
-
-
+        create_urm.urm(mode, cluster, clickout_score=5, impressions_score=1)
+        
+    
     print("Hello buddy... Copenaghen is waiting...")
     print()
 
@@ -502,7 +305,7 @@ def preprocess():
         print('The full dataframe (index master) is missing. Creating it...', end=' ', flush=True)
         create_full_df()
         print('Done!')
-
+    
     # create CSV files
     menu.yesno_choice(title='Do you want to create the CSV files?', callback_yes=_create_csvs)
 
@@ -510,25 +313,28 @@ def preprocess():
     menu.yesno_choice(title='Do you want to preprocess the item metadata?', callback_yes=_preprocess_item_metadata)
 
     # create ICM
-    menu.yesno_choice(title='Do you want to create the ICM matrix files?', callback_yes=create_ICM)
+    menu.yesno_choice(title='Do you want to create the ICM matrix files?', callback_yes=create_icm.create_ICM)
 
     # create URM
-    lbls = [ 'Create URM from LOCAL dataset', 'Create URM from FULL dataset', 'Create URM from SMALL dataset', 'Skip URM creation' ]
-    callbacks = [_create_URM_from_local, _create_URM_from_full, _create_URM_from_small, lambda: 0]
+    lbls = ['Create URM from LOCAL dataset', 'Create URM from FULL dataset', 'Create URM from SMALL dataset', 'Skip URM creation' ]
+    callbacks = [lambda: 'local', lambda:'full', lambda: 'small', lambda: 0]
     res = menu.single_choice(title='What do you want to do?', labels=lbls, callbacks=callbacks, exitable=True)
-
+    
     if res is None:
         exit(0)
 
     if res != 0:
         # initialize the train and test dataframes
-        path, train, test = res[0], res[1], res[2]
+        mode = res
 
+        # get the cluster
+        print('for which cluster do you want to create the URM ???')
+        cluster = input()
         callbacks = [_create_urm_session_aware, _create_urm_clickout]
         menu.single_choice(title='Which URM do you want create buddy?', labels=['Sequence-aware URM', 'Clickout URM'], callbacks=callbacks)
-
+    
     return
-
+    
 
 if __name__ == '__main__':
     """

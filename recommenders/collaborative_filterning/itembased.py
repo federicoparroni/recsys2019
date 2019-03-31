@@ -42,7 +42,8 @@ class CFItemBased(DistanceBasedRecommender):
             'urm_name': urm_name,
             'distance': distance,
             'implicit': implicit,
-            'threshold': 0
+            'threshold': 0,
+            'cluster': cluster
         }
 
         # create hyperparameters dictionary
@@ -56,7 +57,8 @@ class CFItemBased(DistanceBasedRecommender):
         }
 
         super(CFItemBased, self).__init__(matrix=urm.T,
-                                          mode=mode, 
+                                          mode=mode,
+                                          cluster= cluster,
                                           urm_name=urm_name,
                                           name='ItemKNN: urm: {} k: {} distance: {} shrink: {} threshold: {} implicit: {}'
                                                ' alpha: {} beta: {} l: {} c: {}'.format(urm_name, k, distance, shrink, threshold,
@@ -73,3 +75,9 @@ class CFItemBased(DistanceBasedRecommender):
                                           urm=urm,
                                           matrix_mul_order='standard')
 
+
+
+
+if __name__ == '__main__':
+    recommender = CFItemBased(mode='small', urm_name='urm_session_aware_lin')
+    recommender.evaluate()

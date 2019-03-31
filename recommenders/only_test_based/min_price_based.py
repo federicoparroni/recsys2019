@@ -4,19 +4,23 @@ import data
 from recommenders.recommender_base import RecommenderBase
 
 
-scores_impressions = [32.24, 10.63, 7.53, 6.01, 5.1,  4.13, 3.63, 3.17,
-                      2.86, 2.597, 2.33, 2.148, 1.96, 1.8, 1.669, 1.58,
-                      1.43, 1.32, 1.25, 1.166, 1.115, 1.055, 1.019, 1.007, 1.14]
+scores_impressions = [1, 0.75, 0.5, 0.33, 0.25,  0.2, 0.15, 0.125, 0.1,
+                      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
-class OrderedImpressionRecommender(RecommenderBase):
+class MinPriceRecommender(RecommenderBase):
     """
     It recommends all impressions for each session ordered by
-    how they are shown in Trivago during the clickout
+    min price associated to each impression
+    Score is given following the scores_impression list in the following way:
+    min_price1: 1
+    min_price2: 0.75
+    min_price3: 0.5
+    ...
     """
     def __init__(self, mode, cluster='no_cluster'):
 
         name = 'Ordered Impressions recommender'
-        super(OrderedImpressionRecommender, self).__init__(mode, cluster, name)
+        super(MinPriceRecommender, self).__init__(mode, cluster, name)
 
         self.mode = mode
 
@@ -35,12 +39,27 @@ class OrderedImpressionRecommender(RecommenderBase):
 
         #Initializing list of recs
         recs_tuples = []
+
         for i in tqdm(df_test_target.index):
+
             impressions = df_test_target.at[i, "impressions"]
             impressions = list(map(int, impressions.split('|')))
-            recs_tuples.append((i, impressions))
+
+            prices = df_test_target.at[i, "prices"]
+            prices = list(map(int, prices.split('|')))
+
+            temp_dict = {}
+
+            for j in range(len(impressions)):
+                temp_dict[impressions[j]] = int(prices[j])
+
+            ordered_recs = sorted(temp_dict, key=temp_dict.__getitem__)
+
+            recs_tuples.append((i, ordered_recs))
 
         self.recs_batch = recs_tuples
+
+        return recs_tuples
 
 
     def recommend_batch(self):

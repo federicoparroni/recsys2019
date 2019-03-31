@@ -67,29 +67,11 @@ class HybridImpressionScores(Hybrid):
 
         self.dict_scores = {}
 
-        #Getting target sessions from list of tuples
-        df_test = data.test_df(self.mode)
-
-        df_test_target = df_test[df_test["action_type"] == "clickout item"]
-
-        df_test_target = df_test_target.replace(r'', np.nan, regex=True)
-
-        df_test_target = df_test_target[~df_test_target.reference.notnull()]
-
-        target_sessions = df_test_target["session_id"]
-
-        #TODO: cluster
         target_indices = data.target_indices(self.mode)
-
-        if len(target_sessions) != len(target_indices):
-            print("Indices not same lenght of sessions, go get some coffee...")
-            return
-
-        self.dictionary_indices = dict(zip(target_sessions, target_indices))
 
 
         #Initialize list for dict containing scores of imoressions
-        for s_target in target_sessions:
+        for s_target in target_indices:
             self.dict_scores[s_target] = {}
 
         for i in range(len(self.impression_scores_matrices)):
@@ -108,7 +90,6 @@ class HybridImpressionScores(Hybrid):
                         self.dict_scores[triple[0]][triple[1][j]] += self.normalized_matrices_array[k][j]*self.weights_array[i]
                     else:
                         self.dict_scores[triple[0]][triple[1][j]] = self.normalized_matrices_array[k][j]*self.weights_array[i]
-
 
     def recommend_batch(self):
         """
@@ -129,7 +110,7 @@ class HybridImpressionScores(Hybrid):
             recs = sorted(value, key=value.get, reverse=True)
             scores = sorted(value.values(), reverse=True)
 
-            new_recs.append((self.dictionary_indices.get(key), recs))
+            new_recs.append((key, recs))
             new_recs_scores.append( (key, recs, scores) )
 
 
@@ -159,7 +140,7 @@ class HybridImpressionScores(Hybrid):
 
         normalized_matrices_array = []
         for elem in self.matrices_array:
-            if len(elem) > 0:
+            if len(elem) > 0 and elem[0] > 0:
                 normalized_matrices_array.append([x / elem[0] for x in elem])
             else:
                 normalized_matrices_array.append(elem)

@@ -15,8 +15,6 @@ import similaripy as sim
 import data
 from tqdm import tqdm
 import scipy.sparse as sps
-from functools import partial
-import multiprocessing
 import utils.check_folder as cf
 import sklearn.preprocessing as preprocessing
 
@@ -42,10 +40,9 @@ class DistanceBasedRecommender(RecommenderBase):
         super(DistanceBasedRecommender, self).__init__(mode=mode, cluster=cluster, name=name)
         self.urm_name = urm_name
         self._sim_matrix = None
-
+        self.target_indices = data.target_indices(mode, cluster)
         self._matrix_mul_order = matrix_mul_order # if you want R•R', or 'inverse' if you want to compute S•R
 
-        self.mode = mode
         self.urm_name = urm_name
         self.matrix = matrix
         self.k = int(k)
@@ -58,6 +55,7 @@ class DistanceBasedRecommender(RecommenderBase):
         self.l = l
         self.c = c
         self.urm = preprocessing.normalize(urm, normalization_mode)
+        self.scores_batch = None
 
     def fit(self):
         self.alpha = -1 if self.alpha is None else self.alpha
@@ -116,11 +114,15 @@ class DistanceBasedRecommender(RecommenderBase):
         Return the r_hat matrix as: R^ = R•S or R^ = S•R
         """
         R = self.urm
-        targetids = data.target_urm_rows(self.mode)
+        dict_row = data.dictionary_row(self.mode, self.cluster)
+
+        target_indices_urm = []
+        for ind in self.target_indices:
+            target_indices_urm.append(dict_row[tuple(data.full_df().loc[ind][['session_id', 'user_id']])[0]])
         if self._matrix_mul_order == 'inverse':
-            return self._sim_matrix.tocsr()[targetids].dot(R)
+            return self._sim_matrix.tocsr()[target_indices_urm].dot(R)
         else:
-            return R[targetids].dot(self._sim_matrix)
+            return R[target_indices_urm].dot(self._sim_matrix)
 
     def get_sim_matrix(self):
         if self._sim_matrix is not None:
@@ -132,24 +134,30 @@ class DistanceBasedRecommender(RecommenderBase):
         print('recommending batch')
         if not self._has_fit():
             return None
-        df_handle = data.handle_df(mode=self.mode)
-
-
+        full_df = data.full_df()
         dict_col = data.dictionary_col(mode=self.mode)
 
         # compute the R^ by multiplying: R•S or S•R
         R_hat = self.get_r_hat()
 
-        predictions = dict()
+        predictions_batch = []
+        scores_batch = []
+        count = 0
+        for index in tqdm(self.target_indices):
+            impr = list(map(int, full_df.loc[index]['impressions'].split('|')))
 
-        for index, row in tqdm(df_handle.iterrows()):
-            impr = list(map(int, row['impressions'].split('|')))
             # get ratings
-            l = [[i, R_hat[index, dict_col[i]]] for i in impr]
+            l = [[i, R_hat[count, dict_col[i]]] for i in impr]
             l.sort(key=lambda tup: tup[1], reverse=True)
-            p = [e[0] for e in l]
-            predictions[row["session_id"]] = p
-        return predictions
+            recs = [e[0] for e in l]
+            scores = [e[1] for e in l]
+            predictions_batch.append((index, recs))
+            scores_batch.append((index, recs, scores))
+            count += 1
+
+        self.scores_batch = scores_batch
+
+        return predictions_batch
 
     def save_similarity_matrix(self):
         base_save_path = 'dataset/matrices/{}/similarity_matrices'.format(self.mode)
@@ -165,57 +173,12 @@ class DistanceBasedRecommender(RecommenderBase):
         sps.save_npz('{}/{}'.format(base_save_path, self.name), self.get_r_hat())
         print('r_hat saved succesfully !')
 
-    def multi_thread_recommend_batch(self, verbose=False):
-        print('recommending batch')
+    def get_scores_batch(self):
+        if self.scores_batch is None:
+            self.recommend_batch()
 
-        if not self._has_fit():
-            return None
+        return self.scores_batch
 
-        df_handle = data.handle_df(mode=self.mode)
-        self.dict_col = data.dictionary_col(mode=self.mode)
-
-        # compute the R^ by multiplying: R•S or S•R
-        self.R_hat = self.get_r_hat(verbose)
-        print("R_hat computed")
-
-        predictions = []
-
-        """
-        multiprocessing part
-        """
-        # instance a number of workers equal to the cpu of the machine
-        workers = multiprocessing.cpu_count()
-
-        #define the call to the function _recommend_row passing the fix parameter (in this case R_hat)
-
-        #create a pool with a number of processes equal to the cpu count
-        pool = pp.ProcessPool(workers)
-
-        # add the indexes as the first column of the dataframe
-        df_handle.reset_index(inplace=True)
-
-        # convert the handle from dataframe to numpy array
-        handle_array = df_handle.values
-
-        start = time.time()
-        # start the pool passing to the function with the fixed input the remaining variable parameter (handle_array)
-        predictions = pool.map(self._recommend_row, handle_array)
-        pool.close()
-        pool.join()
-        print("recommendations created in {}:".format(time.time()-start))
-
-
-        return predictions
-
-
-    def _recommend_row(self, row):
-
-        #TODO: HAVE TO BE CHANGED
-        print(row[0])
-        impr = list(map(int, row[6].split('|')))
-        l = [[i, self.R_hat[row[0], self.dict_col[i]]] for i in impr]
-        l.sort(key=lambda tup: tup[1], reverse=True)
-        return row['session_id'], [e[0] for e in l]
 
 
 

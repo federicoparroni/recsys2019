@@ -6,6 +6,7 @@ import data
 from tqdm import tqdm
 import os
 import utils.check_folder as cf
+from validator import BayesianValidator
 
 
 class AlternatingLeastSquare(RecommenderBase):
@@ -33,16 +34,23 @@ class AlternatingLeastSquare(RecommenderBase):
         self.iterations = int(iterations)
         self.alpha = int(alpha)
 
-        self.targetids = data.target_urm_rows(self.mode)
-        self.urm = data.urm(mode=mode, urm_name=urm_name)
+        self.target_indices = data.target_indices(mode, cluster)
+
+        self.dict_row = data.dictionary_row(mode, cluster)
+        self.target_indices_urm = []
+        for ind in self.target_indices:
+            self.target_indices_urm.append(self.dict_row[tuple(data.full_df().loc[ind][['session_id', 'user_id']])])
+
+
+        self.urm = data.urm(mode=mode, cluster=cluster, urm_name=urm_name)
         self.user_vecs = None
         self.item_vecs = None
         self._model = None
-        self.R_hat = None
 
         self.fixed_params_dict = {
             'mode': mode,
-            'urm_name': urm_name
+            'urm_name': urm_name,
+            'cluster': cluster
         }
 
         self.hyperparameters_dict = {
@@ -56,13 +64,9 @@ class AlternatingLeastSquare(RecommenderBase):
         """
         compute the r_hat for the model filled with zeros in playlists not target
         :return  r_hat
-        """
-
-        if self.R_hat is None:
-            print('computing the R_hat...')
-            self.R_hat = np.dot(self.user_vecs[self.targetids], self.item_vecs.T)
-
-        return self.R_hat
+    """
+        print('computing the R_hat...')
+        return self.user_vecs[self.target_indices_urm]*self.item_vecs.T
 
     def fit(self):
         """
@@ -97,26 +101,30 @@ class AlternatingLeastSquare(RecommenderBase):
         self._model.fit(data_conf)
 
         # set the user and item vectors for our model R = user_vecs * item_vecs.T
-        self.user_vecs = self._model.user_factors
+        self.user_vecs = self._model.user_factors[self.target_indices_urm]
         self.item_vecs = self._model.item_factors
 
     def recommend_batch(self):
         print('recommending batch')
 
-        df_handle = data.handle_df(mode=self.mode)
+        full_df = data.full_df()
         dict_col = data.dictionary_col(mode=self.mode)
 
-        R_hat = self.get_r_hat()
+        predictions = []
 
-        predictions = dict()
-
-        for index, row in tqdm(df_handle.iterrows()):
-            impr = list(map(int, row['impressions'].split('|')))
-            # get ratings
-            l = [[i, R_hat[index, dict_col[i]]] for i in impr]
+        count = 0
+        for index in tqdm(self.target_indices):
+            impr = list(map(int, full_df.loc[index]['impressions'].split('|')))
+            columns = [dict_col[i] for i in impr]
+            item_vecs = self.item_vecs[columns]
+            r_hat_row = np.dot(self.user_vecs[count], item_vecs.T)
+            l = list(zip(impr, r_hat_row.tolist()))
             l.sort(key=lambda tup: tup[1], reverse=True)
             p = [e[0] for e in l]
-            predictions[row["session_id"]] = p
+            predictions.append((index, p))
+            count += \
+                1
+        print('PRED CREATED')
         return predictions
 
     def save_r_hat(self):
@@ -126,9 +134,14 @@ class AlternatingLeastSquare(RecommenderBase):
         sps.save_npz('{}/{}'.format(base_save_path, self.name), self.get_r_hat())
         print('r_hat saved succesfully !')
 
+    def get_scores_batch(self):
+        print('to be implemented')
+        pass
+
 
 if __name__ == '__main__':
-    model = AlternatingLeastSquare(mode='small', urm_name='urm_lin', factors=100, regularization=0.05,
-                                   iterations=50, alpha=25)
-    model.evaluate()
+    model = AlternatingLeastSquare(mode='local', cluster='no_cluster', urm_name='urm_session_aware_lin', factors=100, regularization=0.05,
+                                   iterations=100, alpha=25)
+    val = BayesianValidator(model)
+    val.validate(iterations=10)
 

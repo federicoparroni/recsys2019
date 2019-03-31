@@ -37,7 +37,8 @@ class ContentBased(DistanceBasedRecommender):
             'urm_name': urm_name,
             'distance': distance,
             'implicit': implicit,
-            'threshold': 0
+            'threshold': 0,
+            'cluster': cluster
         }
 
         # create hyperparameters dictionary
@@ -50,7 +51,7 @@ class ContentBased(DistanceBasedRecommender):
             'c': (0, 1)
         }
 
-        urm = data.urm(mode, urm_name=urm_name)
+        urm = data.urm(mode, cluster=cluster, urm_name=urm_name)
         icm = data.icm().tocsr()
         super(ContentBased, self).__init__(icm,
                                            mode=mode,

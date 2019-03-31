@@ -34,13 +34,16 @@ _target_indices = {}
 _df_items = None
 _df_items_ids = None
 # URM structures
-_urm = [None, None, None]
+_urm = {}
+_dict_row = {}
+_dict_col = {}
 _icm = None
-_dict_row = [None, None, None]
-_dict_col = [None, None, None]
-_target_urm_rows = [None, None, None]
 
-_config = None
+_full_train_indices = None
+_full_test_indices = None
+
+# constants
+SPLIT_USED = 'no_cluster'
 
 def full_df():
   global _df_full
@@ -65,7 +68,6 @@ def train_df(mode, cluster='no_cluster'):
   path = 'dataset/preprocessed/{}/{}/train.csv'.format(cluster, mode)
   if path not in _df_train:
     _df_train[path] = pd.read_csv(path, index_col=0)
-    _df_train[path].drop(['index'], axis=1, inplace=True)
   return _df_train[path]
 
 def test_df(mode, cluster='no_cluster'):
@@ -73,7 +75,6 @@ def test_df(mode, cluster='no_cluster'):
   path = 'dataset/preprocessed/{}/{}/test.csv'.format(cluster, mode)
   if path not in _df_test:
     _df_test[path] = pd.read_csv(path, index_col=0)
-    _df_test[path].drop(['index'], axis=1, inplace=True)
   return _df_test[path]
 
 def target_indices(mode, cluster='no_cluster'):
@@ -82,6 +83,20 @@ def target_indices(mode, cluster='no_cluster'):
   if path not in _target_indices:
     _target_indices[path] = np.load(path)
   return _target_indices[path]
+
+def train_indices(mode):
+  global _full_train_indices
+  path = 'dataset/preprocessed/{}/{}/train_indices.npy'.format(SPLIT_USED, mode)
+  if _full_train_indices is None:
+    _full_train_indices = pd.Index(np.load(path))
+  return _full_train_indices
+
+def test_indices(mode):
+  global _full_test_indices
+  path = 'dataset/preprocessed/{}/{}/test_indices.npy'.format(SPLIT_USED, mode)
+  if _full_test_indices is None:
+    _full_test_indices = pd.Index(np.load(path))
+  return _full_test_indices
 
 def accomodations_df():
   global _df_items
@@ -102,12 +117,12 @@ def accomodations_original_df():
   return _df_original_items
 
 # URM structures
-def urm(mode, urm_name='urm_clickout'):
-  idx = __mode__[mode]
-  urm_path = '{}{}.npz'.format(URM_PATH[idx], urm_name)
-  if _urm[idx] is None:
-    _urm[idx] = sps.load_npz(urm_path)
-  return _urm[idx]
+def urm(mode, cluster, urm_name='urm_clickout'):
+  global _urm
+  path = 'dataset/preprocessed/{}/{}/matrices/{}.npz'.format(cluster, mode, urm_name)
+  if path not in _urm:
+    _urm[path] = sps.load_npz(path)
+  return _urm[path]
 
 def icm():
   global _icm
@@ -117,31 +132,35 @@ def icm():
     _icm = sps.load_npz(icm_path)
   return _icm
 
-def dictionary_row(mode):
-  idx = __mode__[mode]
-  if _dict_row[idx] is None:
-    _dict_row[idx] = np.load(DICT_ROW_PATH[idx]).item()
-  return _dict_row[idx]
+def dictionary_row(mode, cluster='no_cluster'):
+  global _dict_row
+  path = 'dataset/preprocessed/{}/{}/matrices/dict_row.npy'.format(cluster, mode)
+  if path not in _dict_row:
+    _dict_row[path] = np.load(path).item()
+  return _dict_row[path]
 
-def dictionary_col(mode):
+def dictionary_col(mode, cluster = 'no_cluster'):
   # global _dict_col
-  idx = __mode__[mode]
-  if _dict_col[idx] is None:
-    _dict_col[idx] = np.load(DICT_COL_PATH[idx]).item()
-  return _dict_col[idx]
+  global _dict_col
+  path = 'dataset/preprocessed/{}/{}/matrices/dict_col.npy'.format(cluster, mode)
+  if path not in _dict_col:
+    _dict_col[path] = np.load(path).item()
+  return _dict_col[path]
 
-def target_urm_rows(mode):
-  idx = __mode__[mode]
-  dictionary_row(mode)
-  if _target_urm_rows[idx] is None:
-    _target_urm_rows[idx] = []
-    for r in handle_df(mode).session_id.values:
-      _target_urm_rows[idx].append(_dict_row[idx][r])
-  return _target_urm_rows[idx]
+# those 2 functions let you save arbitrary fields in this file and recover those back
+def read_config():
+  conf = None
+  try:
+    with open('dataset/file.pkl', 'rb') as file:
+      conf = pickle.load(file)
+  except IOError:
+    with open('dataset/file.pkl', 'wb') as file:
+      conf = {}
+      pickle.dump(conf, file)
+  return conf
 
-def config():
-  global _config
-  if _config is None:
-    with open(CONFIG_FILE_PATH, 'rb') as file:
-      _config = pickle.load(file)
-  return _config
+def save_config(key, value):
+  conf = read_config()
+  conf[key] = value
+  with open('dataset/file.pkl', 'wb') as file:
+      pickle.dump(conf, file)

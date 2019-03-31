@@ -37,11 +37,10 @@ class RecommenderBase(ABC):
     def get_scores_batch(self):
         """
         returns a list of recommendations in the format
-        [(session_id_0, [acc_1, acc2, acc3, ...], [sco_1, sco2, sco3, ...]),
-         (session_id_1, [acc_1, acc2, acc3, ...], [sco_1, sco2, sco3, ...]), ...]
+        [(session_idx_0, [acc_1, acc2, acc3, ...], [sco_1, sco2, sco3, ...]),
+         (session_idx_0, [acc_1, acc2, acc3, ...], [sco_1, sco2, sco3, ...]), ...]
         """
         pass
-
 
     def run(self):
         """
@@ -60,7 +59,7 @@ class RecommenderBase(ABC):
         self.fit()
         recommendations = self.recommend_batch()
         if export:
-            out.create_sub(recommendations, mode=mode, submission_name=self.name)
+            out.create_sub(recommendations, mode=self.mode, submission_name=self.name)
 
     def evaluate(self):
         """
@@ -68,7 +67,12 @@ class RecommenderBase(ABC):
         """
         assert self.mode == 'local' or self.mode == 'small'
 
-        print('\nvalidating {}'.format(self.name))
+        print('\nevaluating {}'.format(self.name))
+        
+        # infos on the perc of target indices in which I'm evaluating the model
+        perc = len(data.target_indices(self.mode, self.cluster))/len(data.target_indices(self.mode, data.SPLIT_USED))
+        print('\nevaluating with mode {} on {} percent of the targets\n'.format(self.mode, perc))
+
         self.fit()
         recommendations = self.recommend_batch()
         return self.compute_MRR(recommendations)
@@ -85,18 +89,20 @@ class RecommenderBase(ABC):
         """
         assert (self.mode == 'local' or self.mode == 'small')
 
-        test_df = data.test_df(self.mode, self.cluster)
+        full_df = data.full_df()
 
         target_indices, recs = zip(*predictions)
         target_indices = list(target_indices)
-        correct_clickouts = test_df.loc[target_indices].reference.values
+        correct_clickouts = full_df.loc[target_indices].reference.values
         len_rec = len(recs)
         
         RR = 0
         for i in range(len_rec):
             correct_clickout = int(correct_clickouts[i])
-            rank_pos = recs[i].index(correct_clickout) +1
-            RR += 1 / rank_pos
+            if correct_clickout in predictions[i][1]:
+                rank_pos = recs[i].index(correct_clickout) +1
+                if rank_pos <= 25:
+                    RR += 1 / rank_pos
         
         MRR = RR / len_rec
         print(f'MRR: {MRR}')
