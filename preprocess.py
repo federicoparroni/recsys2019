@@ -12,6 +12,18 @@ import numpy as np
 import utils.get_action_score as gas
 from time import time
 
+
+def _get_sessions_with_duplicated_steps(df):
+    df_dup = df[["session_id", "user_id", "step"]]
+    df_dup = df_dup[df_dup["step"] == 1]
+    df_dup = df_dup.groupby(['session_id', "step"]).size() \
+        .sort_values(ascending=False) \
+        .reset_index(name='count')
+
+    df_dup = df_dup[df_dup["count"] > 1]
+    return list(df_dup["session_id"])
+
+
 def create_full_df():
     """
     Save the dataframe containing train.csv and test.csv contiguosly with reset indexes. Also save the config file
@@ -19,6 +31,28 @@ def create_full_df():
     indicates train rows (idx < max_train_idx) and test rows (idx >= max_train_idx).
     """
     train_df = data.original_train_df().reset_index(drop=True)
+
+    ################# TRAIN; FIXING DUPLICATED SESSION_ID <-> STEP PAIRS ##################
+    sessions = _get_sessions_with_duplicated_steps(train_df)
+    print("Cleaning step duplication in train.csv")
+    for session in tqdm(sessions):
+        mask = (train_df["session_id"] == session) & (train_df["step"] == 1)
+        indices = train_df.index[mask].tolist()
+        indices.sort()
+        indices = indices[1:]
+        # this doesn't take into account the last duplication inside the session
+        # It must be tackled separatly
+        for i in range(len(indices) - 1):
+            mask = (train_df["session_id"] == session) & (train_df.index >= indices[i]) & (
+                        train_df.index < indices[i + 1])
+            train_df.loc[train_df.index[mask], "session_id"] = session + "_" + str(i)
+
+        # handling last duplication inside the same session
+        mask = (train_df["session_id"] == session) & (train_df.index >= indices[len(indices) - 1])
+        train_df.loc[train_df.index[mask], "session_id"] = session + "_" + str(len(indices) - 1)
+
+    ##################################################################################
+
     len_train = len(train_df)
     train_df.to_csv(data.FULL_PATH)
     del train_df
@@ -30,8 +64,30 @@ def create_full_df():
 
     with open(data.FULL_PATH, 'a') as f:
         test_df = data.original_test_df().reset_index(drop=True)
+
+        ################# TEST; FIXING DUPLICATED SESSION_ID <-> STEP PAIRS ##################
+        sessions = _get_sessions_with_duplicated_steps(test_df)
+        print("Cleaning step duplication in test.csv")
+        for session in tqdm(sessions):
+            mask = (test_df["session_id"] == session) & (test_df["step"] == 1)
+            indices = test_df.index[mask].tolist()
+            indices.sort()
+            clickout_mask = (test_df.session_id == session) & (test_df.action_type == "clickout item") \
+                            & (test_df.reference.isnull())
+            index_prediction = test_df.index[clickout_mask].tolist()[0]
+            if (index_prediction > indices[1]):
+                start_index = indices[0]
+                end_index = indices[1]
+                mask = (test_df["session_id"] == session) & (test_df.index >= start_index) & (test_df.index < end_index)
+                test_df.loc[test_df.index[mask], "session_id"] = session + "_" + str(0)
+            else:
+                start_index = indices[1]
+                mask = (test_df["session_id"] == session) & (test_df.index >= start_index)
+                test_df.loc[test_df.index[mask], "session_id"] = session + "_" + str(0)
+        ##################################################################################
+
         test_df.index += len_train
-        test_df.to_csv(f, header=False)   
+        test_df.to_csv(f, header=False)
 
 def urm_session_aware(train_df, test_df, time_weight, save_path):
     """
@@ -208,7 +264,7 @@ def get_small_dataset(df, maximum_rows=5000):
     extracted may vary in order to avoid breaking the last session.
     :param df: dataframe
     :param maximum_rows:
-    
+
     :return: dataframe
     """
     if len(df) < maximum_rows:
@@ -281,7 +337,7 @@ def append_missing_accomodations(mode):
     imprs = imprs[imprs.notnull()].values
     for i in tqdm(imprs):
         found_ids.extend(list(map(int, i.split('|'))))
-    
+
     found_ids = set(found_ids)
     acs = data.accomodations_ids()
     accomod_known = set(map(int, acs))
@@ -294,7 +350,7 @@ def append_missing_accomodations(mode):
     # add those at the end of the dataframe
     if missing_count > 0:
         new_acc_df = pd.DataFrame({ 'item_id': list(missing) }, columns=['item_id', 'properties'] )
-    
+
         new_acs = data.accomodations_df().append(new_acc_df, ignore_index=True)
         new_acs.to_csv(data.ITEMS_PATH, index=False)
         print('{} successfully updated'.format(data.ITEMS_PATH))
@@ -306,7 +362,7 @@ def preprocess_accomodations_df(preprocessing_fns):
     should return a tuple (that will be treated as the new row columns).
     """
     assert isinstance(preprocessing_fns, list)
-    
+
     print('Processing accomodations dataframe...')
     # load and preprocess the original item_metadata.csv
     accomodations_df = data.accomodations_original_df()
@@ -402,10 +458,10 @@ def preprocess():
                 selected_idx = int(inp)
                 pre_processing_f[selected_idx][1] = not pre_processing_f[selected_idx][1]
         activated_prefns = [f[0] for f in pre_processing_f if f[1]]
-       
+
         # preprocess accomodations dataframe
         preprocess_accomodations_df(activated_prefns)
-    
+
     def _create_URM_from_local():
         path = 'dataset/matrices/local'
         train = data.train_df('local')
@@ -424,7 +480,7 @@ def preprocess():
         test = data.test_df('small')
         print('SMALL DATASET LOADED BUDDY')
         return path, train, test
-    
+
     def _create_urm_session_aware():
         """
         NOTE: CHANGE THE PARAMETERS OF THE SEQUENCE AWARE URM HERE !!!!
@@ -435,8 +491,8 @@ def preprocess():
         NOTE: CHANGE THE PARAMETERS OF THE CLICKOUT_ONLY URM HERE !!!!
         """
         urm(train, test, path, clickout_score=5, impressions_score=1)
-        
-    
+
+
     print("Hello buddy... Copenaghen is waiting...")
     print()
 
@@ -446,7 +502,7 @@ def preprocess():
         print('The full dataframe (index master) is missing. Creating it...', end=' ', flush=True)
         create_full_df()
         print('Done!')
-    
+
     # create CSV files
     menu.yesno_choice(title='Do you want to create the CSV files?', callback_yes=_create_csvs)
 
@@ -460,7 +516,7 @@ def preprocess():
     lbls = [ 'Create URM from LOCAL dataset', 'Create URM from FULL dataset', 'Create URM from SMALL dataset', 'Skip URM creation' ]
     callbacks = [_create_URM_from_local, _create_URM_from_full, _create_URM_from_small, lambda: 0]
     res = menu.single_choice(title='What do you want to do?', labels=lbls, callbacks=callbacks, exitable=True)
-    
+
     if res is None:
         exit(0)
 
@@ -470,9 +526,9 @@ def preprocess():
 
         callbacks = [_create_urm_session_aware, _create_urm_clickout]
         menu.single_choice(title='Which URM do you want create buddy?', labels=['Sequence-aware URM', 'Clickout URM'], callbacks=callbacks)
-    
+
     return
-    
+
 
 if __name__ == '__main__':
     """
