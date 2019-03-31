@@ -97,6 +97,8 @@ def split(df, save_path, perc_train=80):
     df_train.to_csv(os.path.join(save_path, "train.csv"))
     df_test.to_csv(os.path.join(save_path, "test.csv"))
     np.save(os.path.join(save_path, 'target_indices'), get_target_indices(df_test))
+    np.save(os.path.join(save_path, 'train_indices'), df_train.index)
+    np.save(os.path.join(save_path, 'test_indices'), df_test.index)
     print('Done!')
 
 
@@ -194,7 +196,8 @@ def preprocess():
         check_folder('dataset/preprocessed/no_cluster/full')
         train.to_csv(os.path.join(path, 'full/train.csv'))
         test.to_csv(os.path.join(path, 'full/test.csv'))
-        np.save(os.path.join(path, 'full/target_indices'), target_indices)
+        np.save(os.path.join(path, 'full/train_indices'), train.index)
+        np.save(os.path.join(path, 'full/test_indices'), test.index)
 
         train_small = get_small_dataset(train)
         check_folder('dataset/preprocessed/no_cluster/small')

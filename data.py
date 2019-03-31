@@ -39,6 +39,9 @@ _dict_row = {}
 _dict_col = {}
 _icm = None
 
+_full_train_indices = None
+_full_test_indices = None
+
 # constants
 SPLIT_USED = 'no_cluster'
 
@@ -80,6 +83,20 @@ def target_indices(mode, cluster='no_cluster'):
   if path not in _target_indices:
     _target_indices[path] = np.load(path)
   return _target_indices[path]
+
+def train_indices(mode):
+  global _full_train_indices
+  path = 'dataset/preprocessed/{}/{}/train_indices.npy'.format(SPLIT_USED, mode)
+  if _full_train_indices is None:
+    _full_train_indices = pd.Index(np.load(path))
+  return _full_train_indices
+
+def test_indices(mode):
+  global _full_test_indices
+  path = 'dataset/preprocessed/{}/{}/test_indices.npy'.format(SPLIT_USED, mode)
+  if _full_test_indices is None:
+    _full_test_indices = pd.Index(np.load(path))
+  return _full_test_indices
 
 def accomodations_df():
   global _df_items
