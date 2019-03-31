@@ -20,7 +20,6 @@ ITEMS_PATH = 'dataset/preprocessed/item_metadata.csv'
 # config file
 CONFIG_FILE_PATH = 'dataset/preprocessed/config.pkl'
 TRAIN_LEN_KEY = 'max_train_idx'
-SPLIT_TARGET_LEN = 'split_target_len'
 
 _df_train_original = None
 _df_test_original = None
@@ -39,6 +38,9 @@ _urm = {}
 _dict_row = {}
 _dict_col = {}
 _icm = None
+
+# constants
+SPLIT_USED = 'no_cluster'
 
 def full_df():
   global _df_full
