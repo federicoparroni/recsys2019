@@ -20,8 +20,8 @@ class RemainingTargets(ClusterizeBase):
         self.clusters = clusters
 
     def _fit(self, mode):
-        self.test_indices = data.test_df(mode).index
-        self.train_indices = data.train_df(mode).index
+        self.test_indices = data.test_indices(mode)
+        self.train_indices = data.train_indices(mode)
 
         total_target_set = set(data.target_indices(mode=mode, cluster=data.SPLIT_USED))
         covered_target_list = []

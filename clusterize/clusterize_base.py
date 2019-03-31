@@ -45,11 +45,6 @@ class ClusterizeBase(ABC):
         self._fit(mode)
         print('Indices retrievied correctly ...')
 
-        # safe conversion 
-        self.test_indices = list(self.test_indices)
-        self.train_indices = list(self.train_indices)
-        self.target_indices = list(self.target_indices)
-
         # create cluster root folder
         path = f'dataset/preprocessed/{self.name}'
         check_folder(path)

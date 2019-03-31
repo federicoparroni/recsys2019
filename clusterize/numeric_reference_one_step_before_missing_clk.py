@@ -28,6 +28,8 @@ class NumericReferenceOneStepBeforeMissingClk(ClusterizeBase):
             return False
 
     def _fit(self, mode):
+        self.train_indices = data.train_indices(mode)
+        
         df = data.test_df(mode)
         self.test_indices = list(df.index)
 
@@ -53,7 +55,6 @@ class NumericReferenceOneStepBeforeMissingClk(ClusterizeBase):
                     i += 1
         
         self.target_indices = idx_last_ref_numeric
-        self.train_indices = data.train_df(mode).index
 
 if __name__ == '__main__':
     obj = NumericReferenceOneStepBeforeMissingClk()

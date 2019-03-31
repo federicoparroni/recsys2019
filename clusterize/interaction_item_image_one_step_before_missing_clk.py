@@ -53,7 +53,7 @@ class InteractionItemImageOneStepBeforeMissingClk(ClusterizeBase):
                     i += 1
         
         self.target_indices = idx_last_ref_numeric
-        self.train_indices = data.train_df(mode).index
+        self.train_indices = data.train_indices(mode)
 
 if __name__ == '__main__':
     obj = InteractionItemImageOneStepBeforeMissingClk()
