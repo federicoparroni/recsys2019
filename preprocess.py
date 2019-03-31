@@ -6,8 +6,7 @@ import os
 import pickle
 from tqdm import tqdm
 import pandas as pd
-from preprocess import create_icm
-from preprocess import create_urm
+from preprocess_utils import create_icm, create_urm
 import numpy as np
 
 

@@ -26,7 +26,7 @@ class NumericReferenceOneStepBeforeMissingClk(ClusterizeBase):
 
     def _fit(self, mode):
         df = data.test_df(mode)
-        self.test_indices = list(df.index)
+        self.test_indices = df.index.values
 
         just_missing_refs = df[df['reference'].isnull()]
         just_missing_refs = just_missing_refs[just_missing_refs['action_type'] == 'clickout item']
@@ -50,7 +50,7 @@ class NumericReferenceOneStepBeforeMissingClk(ClusterizeBase):
                     i += 1
         
         self.target_indices = idx_last_ref_numeric
-        self.train_indices = data.train_df(mode).index
+        self.train_indices = data.train_df(mode).index.values
 
 if __name__ == '__main__':
     obj = NumericReferenceOneStepBeforeMissingClk()
