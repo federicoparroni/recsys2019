@@ -62,6 +62,7 @@ class LatestInteractionsRecommender(RecommenderBase):
         list_sessions = session_groups.index
 
         recs_tuples = []
+
         print("{}: fitting the model".format(self.name))
         for i in tqdm(df_test_target.index):
             if i not in list_sessions:
@@ -73,6 +74,7 @@ class LatestInteractionsRecommender(RecommenderBase):
                 interacted_elements = np.asarray(self._set_no_reordering(x for x in interacted_elements))
 
                 impressions = np.asarray(df_test_target.at[i, "impressions"].split("|"))
+
                 # First i want to be sure the impressions contains all the interacted elements (if not, they must be cutted off from relevant items)
                 mask_only_in_impression = np.in1d(interacted_elements, impressions, assume_unique=True)
 
@@ -82,6 +84,7 @@ class LatestInteractionsRecommender(RecommenderBase):
                 real_recommended = np.flipud(interacted_elements)
 
                 real_recommended = real_recommended.astype(np.int)
+
                 recs_tuples.append((self.dictionary_indices.get(i), list(real_recommended)))
 
         self.recs_batch = recs_tuples
