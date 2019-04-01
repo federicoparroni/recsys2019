@@ -4,7 +4,8 @@ import data
 class InteractionItemImageOneStepBeforeMissingClk(ClusterizeBase):
 
     """
-        Cluster for sessions to predict that have a numeric reference before the missing clickout
+        Cluster for sessions to predict that have a numeric reference before the missing clickout,
+        in particular a interaction item image
         Train: Full train
         Test: Full test
         Targets; Just the missing clickouts that have interaction item image one step before
