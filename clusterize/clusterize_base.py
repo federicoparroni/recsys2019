@@ -42,8 +42,8 @@ class ClusterizeBase(ABC):
         to create a folder at the same level of base_split with the specified name and the
         folders structure inside 
         """
+        print('Creating {} cluster...'.format(mode), end=' ', flush=True)
         self._fit(mode)
-        print('Indices retrievied correctly ...')
 
         # create cluster root folder
         path = f'dataset/preprocessed/{self.name}'
@@ -73,12 +73,12 @@ class ClusterizeBase(ABC):
             np.save(os.path.join(full_path, 'target_indices'), trgt_indices)
         del test
 
-        print('{} cluster folder created...'.format(mode))
+        print('Done!')
 
     def create(self):
         """
         call it on an object to create all the 3 clusters induced by that object
         """
-        self.save('small')
-        self.save('local')
         self.save('full')
+        self.save('local')
+        self.save('small')

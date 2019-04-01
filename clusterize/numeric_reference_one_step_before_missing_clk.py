@@ -4,10 +4,10 @@ import data
 class NumericReferenceOneStepBeforeMissingClk(ClusterizeBase):
 
     """
-        Cluster for sessions to predict that have a numeric reference before the missing clickout
-        Train: Full train
-        Test: Full test
-        Targets; Just the missing clickouts that have numeric reference before
+    Cluster for sessions to predict that have a numeric reference before the missing clickout
+    Train: full train
+    Test: full test
+    Targets: just the missing clickouts that have numeric reference before
     """
 
     def __init__(self):
@@ -31,7 +31,7 @@ class NumericReferenceOneStepBeforeMissingClk(ClusterizeBase):
         self.train_indices = data.train_indices(mode)
         
         df = data.test_df(mode)
-        self.test_indices = list(df.index)
+        self.test_indices = df.index.values
 
         just_missing_refs = df[df['reference'].isnull()]
         just_missing_refs = just_missing_refs[just_missing_refs['action_type'] == 'clickout item']
@@ -55,6 +55,7 @@ class NumericReferenceOneStepBeforeMissingClk(ClusterizeBase):
                     i += 1
         
         self.target_indices = idx_last_ref_numeric
+
 
 if __name__ == '__main__':
     obj = NumericReferenceOneStepBeforeMissingClk()
