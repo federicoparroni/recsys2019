@@ -30,7 +30,7 @@ class ClusterSessionsWithoutNumericalReferences(ClusterizeBase):
 
         # take only sessions without any numerical reference interactions except the clickout
         test_df = test_df.groupby(['session_id','user_id'], group_keys=False)\
-            .apply( lambda g: g if g[(g.action_type != 'clickout_item') & g.reference.str.isnumeric().fillna(True)].shape[0] == 0 else None )
+            .filter(lambda g: g[(g.action_type != 'clickout_item') & g.reference.fillna('').str.isnumeric()].shape[0] == 0 )
         
         if test_df.shape[0] > 0:
             self.target_indices = test_df[test_df.action_type == 'clickout_item'].index.values
