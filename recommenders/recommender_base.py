@@ -42,6 +42,9 @@ class RecommenderBase(ABC):
         """
         pass
 
+
+
+
     def run(self):
         """
         Handle all the operations needed to run this model a single time.
@@ -75,6 +78,7 @@ class RecommenderBase(ABC):
 
         self.fit()
         recommendations = self.recommend_batch()
+        print('recommendations created')
         return self.compute_MRR(recommendations)
 
     def compute_MRR(self, predictions):

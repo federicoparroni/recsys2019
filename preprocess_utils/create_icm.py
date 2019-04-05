@@ -44,3 +44,6 @@ def create_ICM(name='icm.npz', save_path='dataset/matrices/full/'):
     np.save(save_path + 'icm_dict.npy', dict)
 
     print("Procedure ended succesfully!")
+
+if __name__ == '__main__':
+    create_ICM()
