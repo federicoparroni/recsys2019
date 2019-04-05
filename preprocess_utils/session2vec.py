@@ -111,10 +111,14 @@ def get_session_groups_indices_df(X_df, Y_df, cols_to_group=['user_id','session_
 
 if __name__ == "__main__":
     import utils.menu as menu
-    
+    import utils.check_folder as check_folder
+
     mode = menu.mode_selection()
     
     train_df = data.train_df(mode, cluster='cluster_recurrent')
     test_df = data.test_df(mode, cluster='cluster_recurrent')
 
-    create_dataset(train_df, test_df, f'dataset/preprocessed/cluster_recurrent/{mode}_vec')
+    folder_path = f'dataset/preprocessed/cluster_recurrent/{mode}_vec'
+    check_folder(folder_path)
+
+    create_dataset(train_df, test_df, folder_path)
