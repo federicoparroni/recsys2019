@@ -6,8 +6,10 @@ import pandas as pd
 import numpy as np
 from keras.models import Sequential
 from keras.layers import Dense, LSTM
+from keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard
 import matplotlib.pyplot as plt
 import preprocess_utils.session2vec as sess2vec
+from utils.check_folder import check_folder
 
 class LSTM_Recommender:
     
@@ -64,11 +66,21 @@ class LSTM_Recommender:
                 yield np.expand_dims(x_batch, axis=0), np.expand_dims(y_batch, axis=0)
 
 
-    def fit_generator(self, epochs, tensorboard_path=None):
-        
+    def fit_generator(self, epochs, early_stopping_patience=10, checkpoints_path='recommenders/checkpoints', tensorboard_path='recommenders/tensorboard'):
         callbacks = []
+        # early stopping callback
+        if isinstance(early_stopping_patience, int):
+            assert early_stopping_patience > 0
+            callbacks.append( EarlyStopping(monitor='val_loss', patience=early_stopping_patience, verbose=1) )
+        # checkpoint callback
+        if isinstance(checkpoints_path, str):
+            check_folder(checkpoints_path)
+            callbacks.append( ModelCheckpoint(filepath=checkpoints_path, monitor='val_loss', verbose=1, save_weights_only=True, save_best_only=True) )
+        # tensorboard callback
         if isinstance(tensorboard_path, str):
-            callbacks.append(TensorBoard(log_dir=tensorboard_path, histogram_freq=0, write_graph=False))
+            check_folder(tensorboard_path)
+            callbacks.append( TensorBoard(log_dir=tensorboard_path, histogram_freq=0, write_graph=False) )
+        
         self.history = self.model.fit_generator(generator=self.train_generator, epochs=epochs, steps_per_epoch=self.steps_per_epoch,
                                                 validation_data=self.validation_generator, validation_steps=self.steps_per_validation,
                                                 callbacks=callbacks)
@@ -84,6 +96,13 @@ class LSTM_Recommender:
 
 
 if __name__ == "__main__":
-    model = LSTM_Recommender('small', num_layers=1, num_units=256)
-    model.fit_generator(epochs=15)
+    import utils.menu as menu
+
+    mode = input('Insert dataset mode: ')
+    epochs = input('Insert number of epochs: ')
+    units = input('Insert number of units: ')
+    tb_path = menu.yesno_choice('Do you want to enable Tensorboard?', lambda: 'recommenders/tensorboard', lambda: None)
+
+    model = LSTM_Recommender(mode, num_layers=1, num_units=int(units))
+    model.fit_generator(epochs=int(epochs), tensorboard_path=tb_path)
 
