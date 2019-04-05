@@ -18,7 +18,7 @@ DICT_COL_PATH = ['dataset/matrices/full/dict_col.npy', 'dataset/matrices/local/d
 ITEMS_PATH = 'dataset/preprocessed/item_metadata.csv'
 
 # config file
-CONFIG_FILE_PATH = 'dataset/preprocessed/config.pkl'
+CONFIG_FILE_PATH = 'dataset/config.pkl'
 TRAIN_LEN_KEY = 'max_train_idx'
 
 _df_train_original = None
@@ -151,16 +151,16 @@ def dictionary_col(mode, cluster = 'no_cluster'):
 def read_config():
   conf = None
   try:
-    with open('dataset/file.pkl', 'rb') as file:
+    with open(CONFIG_FILE_PATH, 'rb') as file:
       conf = pickle.load(file)
   except IOError:
-    with open('dataset/file.pkl', 'wb') as file:
-      conf = {}
+    with open(CONFIG_FILE_PATH, 'wb') as file:
+      conf = { TRAIN_LEN_KEY: len(original_train_df()) }
       pickle.dump(conf, file)
   return conf
 
 def save_config(key, value):
   conf = read_config()
   conf[key] = value
-  with open('dataset/file.pkl', 'wb') as file:
+  with open(CONFIG_FILE_PATH, 'wb') as file:
       pickle.dump(conf, file)
