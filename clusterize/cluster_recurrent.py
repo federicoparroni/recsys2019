@@ -4,6 +4,7 @@ sys.path.append(os.getcwd())
 
 from clusterize.clusterize_base import ClusterizeBase
 import data
+import utils.menu as menu
 
 class ClusterRecurrent(ClusterizeBase):
 
@@ -29,6 +30,6 @@ class ClusterRecurrent(ClusterizeBase):
 
 if __name__ == '__main__':
     obj = ClusterRecurrent()
-    #obj.save('full')
-    obj.save('local')
-    #obj.save('small')
+    
+    mode = menu.mode_selection()
+    obj.save(mode)
