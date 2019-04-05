@@ -4,27 +4,37 @@ sys.path.append(os.getcwd())
 
 import pandas as pd
 import numpy as np
+from recommenders.recommender_base import RecommenderBase
 from keras.models import Sequential
-from keras.layers import Dense, GRU
+from keras.layers import Dense, LSTM, GRU
 from keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard
 import matplotlib.pyplot as plt
 import preprocess_utils.session2vec as sess2vec
 from utils.check_folder import check_folder
+import time
 
-class GRU_Recommender:
+class Recurrent_Recommender(RecommenderBase):
     
-    def __init__(self, mode, num_units, num_layers):
+    def __init__(self, mode, cell_type, num_units, num_layers):
         # Create the recurrent model
         # n_input_features: number of features of the input
         # num_units:        number of memory cells
         assert num_layers > 0
+        assert num_units > 0
+        assert mode in ['full', 'local', 'small']
+        assert cell_type in ['LSTM', 'lstm', 'GRU', 'gru']
+
+        self.name = cell_type.upper()
+        self.mode = mode
 
         # load the dataset of vectorized sessions
+        print(f'Loading {mode} dataset...', end=' ', flush=True)
         X_train_df, Y_train_df, X_test_df, Y_test_df = sess2vec.load_and_prepare_dataset(mode)
 
         # groups sessions based on 'user_id' and 'session_id' to fast access their interactions indices
         train_session_groups = self._get_session_groups_indices_df(X_train_df, Y_train_df)
         validation_session_groups = self._get_session_groups_indices_df(X_test_df, Y_test_df)
+        print('Done!')
 
         # number of groups to process during traininig and validation
         self.steps_per_epoch = train_session_groups.shape[0]
@@ -39,9 +49,11 @@ class GRU_Recommender:
         output_size = Y_train_df.shape[1]
         
         self.model = Sequential()
-        self.model.add(GRU(num_units, input_shape=input_shape, return_sequences=True))
+        CELL = LSTM if self.name == 'LSTM' else GRU
+
+        self.model.add(CELL(num_units, input_shape=input_shape, return_sequences=True))
         for _ in range(num_layers-1):
-            self.model.add(GRU(num_units, return_sequences=True))
+            self.model.add(CELL(num_units, return_sequences=True))
         self.model.add(Dense(output_size, activation='sigmoid'))
         self.model.compile(loss='mean_squared_error', optimizer='adam', metrics=['accuracy'])
 
@@ -66,7 +78,7 @@ class GRU_Recommender:
                 yield np.expand_dims(x_batch, axis=0), np.expand_dims(y_batch, axis=0)
 
 
-    def fit_generator(self, epochs, early_stopping_patience=10, checkpoints_path='recommenders/checkpoints', tensorboard_path='recommenders/tensorboard'):
+    def fit(self, epochs, early_stopping_patience=10, checkpoints_path='recommenders/recurrent/checkpoints', tensorboard_path='recommenders/recurrent/tensorboard'):
         callbacks = []
         # early stopping callback
         if isinstance(early_stopping_patience, int):
@@ -75,7 +87,10 @@ class GRU_Recommender:
         # checkpoint callback
         if isinstance(checkpoints_path, str):
             check_folder(checkpoints_path)
-            callbacks.append( ModelCheckpoint(filepath=checkpoints_path, monitor='val_loss', verbose=1, save_weights_only=True, save_best_only=True) )
+            datetime = time.strftime('%d-%m-%Y')
+            filename = f'{self.name}_{datetime}_' + '{epoch:02d}.hdf5'
+            chkp_path = os.path.join(checkpoints_path, filename)
+            callbacks.append( ModelCheckpoint(filepath=chkp_path, monitor='val_loss', verbose=1, save_weights_only=True, save_best_only=True) )
         # tensorboard callback
         if isinstance(tensorboard_path, str):
             check_folder(tensorboard_path)
@@ -85,9 +100,12 @@ class GRU_Recommender:
                                                 validation_data=self.validation_generator, validation_steps=self.steps_per_validation,
                                                 callbacks=callbacks)
 
-    def predict(self, X):
+    def recommend_batch(self, X):
         return self.model.predict(X)
 
+    def get_scores_batch(self):
+        pass
+    
     def plot_info(self):
         if self.history is not None:
             plt.figure()
@@ -98,12 +116,13 @@ class GRU_Recommender:
 if __name__ == "__main__":
     import utils.menu as menu
 
-    mode = input('Insert dataset mode: ')
+    mode = menu.mode_selection()
+    cell_type = menu.single_choice('Choose a cell mode:', ['LSTM', 'GRU'], [lambda: 'LSTM', lambda: 'GRU'])
+    print()
     epochs = input('Insert number of epochs: ')
     units = input('Insert number of units: ')
     tb_path = menu.yesno_choice('Do you want to enable Tensorboard?', lambda: 'recommenders/tensorboard', lambda: None)
 
-    model = GRU_Recommender(mode, num_layers=1, num_units=int(units))
-    model.fit_generator(epochs=int(epochs), tensorboard_path=tb_path)
+    model = Recurrent_Recommender(mode=mode, cell_type=cell_type, num_layers=1, num_units=int(units))
+    model.fit(epochs=int(epochs), tensorboard_path=tb_path)
 
-    
