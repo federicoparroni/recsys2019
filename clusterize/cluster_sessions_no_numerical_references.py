@@ -37,7 +37,10 @@ class ClusterSessionsWithoutNumericalReferences(ClusterizeBase):
     
 
 if __name__ == '__main__':
+    import utils.menu as menu
+
     obj = ClusterSessionsWithoutNumericalReferences()
-    #obj.save('full')
-    obj.save('local')
-    #obj.save('small')
+    
+    mode = menu.mode_selection()
+    
+    obj.save(mode)
