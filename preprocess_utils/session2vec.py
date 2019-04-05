@@ -111,7 +111,7 @@ def get_session_groups_indices_df(X_df, Y_df, cols_to_group=['user_id','session_
 
 if __name__ == "__main__":
     import utils.menu as menu
-    import utils.check_folder as check_folder
+    from utils.check_folder import check_folder
 
     mode = menu.mode_selection()
     
