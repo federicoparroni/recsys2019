@@ -11,7 +11,7 @@ class CFUserBased(DistanceBasedRecommender):
     item which they rated
     """
 
-    def __init__(self, mode='full', cluster='no_cluster', urm_name='urm_clickout', k=100, distance='cosine', shrink=0,
+    def __init__(self, _type, mode='full', cluster='no_cluster', urm_name='urm_clickout', k=100, distance='cosine', shrink=0,
                  threshold=0, implicit=False, alpha=0.5, beta=0.5, l=0.5, c=0.5):
         """
         Initialize the model
@@ -33,7 +33,7 @@ class CFUserBased(DistanceBasedRecommender):
         l: float, optional, balance coefficient used in s_plus distance, included in [0,1]
         c: float, optional, cosine coefficient, included in [0,1]
         """
-        urm = data.urm(mode, cluster=cluster, urm_name=urm_name)
+        urm = preprocessing.normalize(data.urm(mode, cluster=cluster, urm_name=urm_name, type=_type), axis=0)
 
         # create fixed params dictionary
         self.fixed_params_dict = {
@@ -42,13 +42,14 @@ class CFUserBased(DistanceBasedRecommender):
             'distance': distance,
             'implicit': implicit,
             'threshold': 0,
-            'cluster': cluster
+            'cluster': cluster,
+            '_type': _type
         }
 
         # create hyperparameters dictionary
         self.hyperparameters_dict = {
             'shrink': (0, 10),
-            'k': (3, 1000),
+            'k': (30, 2000),
             'beta': (0, 1),
             'alpha': (0, 1),
             'l': (0, 1),
@@ -57,6 +58,7 @@ class CFUserBased(DistanceBasedRecommender):
 
 
         super(CFUserBased, self).__init__(urm,
+                                          _type=_type,
                                           mode=mode,
                                           cluster=cluster,
                                           urm_name=urm_name,

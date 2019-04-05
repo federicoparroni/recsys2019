@@ -38,7 +38,7 @@ def create_config_file(max_train_idx):
     with open(data.CONFIG_FILE_PATH, 'wb') as file:
         pickle.dump(config_dict, file)
 
-def get_small_dataset(df, maximum_rows=5000):
+def get_small_dataset(df, maximum_rows=1000000):
     """
     Return a dataframe from the original dataset containing a maximum number of rows. The actual total rows
     extracted may vary in order to avoid breaking the last session.

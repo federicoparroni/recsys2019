@@ -4,6 +4,7 @@ Collaborative filtering recommender.
 from recommenders.distance_based_recommender import DistanceBasedRecommender
 import data
 import sklearn.preprocessing as preprocessing
+#from validator import BayesianValidator
 
 class CFItemBased(DistanceBasedRecommender):
     """
@@ -11,7 +12,7 @@ class CFItemBased(DistanceBasedRecommender):
     item which they rated
     """
 
-    def __init__(self, mode='full', cluster='no_cluster', urm_name='urm_clickout', k=100, distance='cosine', shrink=0,
+    def __init__(self, mode='full', cluster='no_cluster', urm_name='urm_clickout', k=100, distance='splus', shrink=0,
                  threshold=0, implicit=False, alpha=0.5, beta=0.5, l=0.5, c=0.5):
         """
         Initialize the model
@@ -48,7 +49,7 @@ class CFItemBased(DistanceBasedRecommender):
 
         # create hyperparameters dictionary
         self.hyperparameters_dict = {
-            'k': (3, 1000),
+            'k': (2000, 10000),
             'beta': (0, 1),
             'alpha': (0, 1),
             'l': (0, 1),
@@ -80,4 +81,5 @@ class CFItemBased(DistanceBasedRecommender):
 
 if __name__ == '__main__':
     recommender = CFItemBased(mode='small', urm_name='urm_session_aware_lin')
-    recommender.evaluate()
+    val = BayesianValidator(recommender)
+    val.validate(iterations=100)
