@@ -39,7 +39,11 @@ _dict_row = {}
 _dict_col = {}
 _icm = None
 
-_config = None
+_full_train_indices = None
+_full_test_indices = None
+
+# constants
+SPLIT_USED = 'no_cluster'
 
 def full_df():
   global _df_full
@@ -81,6 +85,20 @@ def target_indices(mode, cluster='no_cluster'):
   if path not in _target_indices:
     _target_indices[path] = np.load(path)
   return _target_indices[path]
+
+def train_indices(mode):
+  global _full_train_indices
+  path = 'dataset/preprocessed/{}/{}/train_indices.npy'.format(SPLIT_USED, mode)
+  if _full_train_indices is None:
+    _full_train_indices = pd.Index(np.load(path))
+  return _full_train_indices
+
+def test_indices(mode):
+  global _full_test_indices
+  path = 'dataset/preprocessed/{}/{}/test_indices.npy'.format(SPLIT_USED, mode)
+  if _full_test_indices is None:
+    _full_test_indices = pd.Index(np.load(path))
+  return _full_test_indices
 
 def accomodations_df():
   global _df_items
@@ -131,9 +149,20 @@ def dictionary_col(mode, urm_name, type, cluster = 'no_cluster'):
     _dict_col[path] = np.load(path).item()
   return _dict_col[path]
 
-def config():
-  global _config
-  if _config is None:
-    with open(CONFIG_FILE_PATH, 'rb') as file:
-      _config = pickle.load(file)
-  return _config
+# those 2 functions let you save arbitrary fields in this file and recover those back
+def read_config():
+  conf = None
+  try:
+    with open('dataset/file.pkl', 'rb') as file:
+      conf = pickle.load(file)
+  except IOError:
+    with open('dataset/file.pkl', 'wb') as file:
+      conf = {}
+      pickle.dump(conf, file)
+  return conf
+
+def save_config(key, value):
+  conf = read_config()
+  conf[key] = value
+  with open('dataset/file.pkl', 'wb') as file:
+      pickle.dump(conf, file)

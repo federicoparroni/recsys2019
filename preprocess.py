@@ -6,10 +6,21 @@ import os
 import pickle
 from tqdm import tqdm
 import pandas as pd
-from preprocess import create_icm
-from preprocess import create_urm
+from preprocess_utils import create_icm, create_urm
 import numpy as np
 
+
+
+
+def _get_sessions_with_duplicated_steps(df):
+    df_dup = df[["session_id", "user_id", "step"]]
+    df_dup = df_dup[df_dup["step"] == 1]
+    df_dup = df_dup.groupby(['session_id', "step"]).size() \
+        .sort_values(ascending=False) \
+        .reset_index(name='count')
+
+    df_dup = df_dup[df_dup["count"] > 1]
+    return list(df_dup["session_id"])
 
 
 def create_full_df():
@@ -19,24 +30,61 @@ def create_full_df():
     indicates train rows (idx < max_train_idx) and test rows (idx >= max_train_idx).
     """
     train_df = data.original_train_df().reset_index(drop=True)
+
+    ################# TRAIN; FIXING DUPLICATED SESSION_ID <-> STEP PAIRS ##################
+    sessions = _get_sessions_with_duplicated_steps(train_df)
+    print("Cleaning step duplication in train.csv")
+    for session in tqdm(sessions):
+        mask = (train_df["session_id"] == session) & (train_df["step"] == 1)
+        indices = train_df.index[mask].tolist()
+        indices.sort()
+        indices = indices[1:]
+        # this doesn't take into account the last duplication inside the session
+        # It must be tackled separatly
+        for i in range(len(indices) - 1):
+            mask = (train_df["session_id"] == session) & (train_df.index >= indices[i]) & (
+                        train_df.index < indices[i + 1])
+            train_df.loc[train_df.index[mask], "session_id"] = session + "_" + str(i)
+
+        # handling last duplication inside the same session
+        mask = (train_df["session_id"] == session) & (train_df.index >= indices[len(indices) - 1])
+        train_df.loc[train_df.index[mask], "session_id"] = session + "_" + str(len(indices) - 1)
+
+    ##################################################################################
+
     len_train = train_df.shape[0]
     train_df.to_csv(data.FULL_PATH)
     del train_df
 
-    # insert here manipulations 
-
     # save config file
-    create_config_file(len_train)
+    data.save_config(data.TRAIN_LEN_KEY, len_train)
 
     with open(data.FULL_PATH, 'a') as f:
         test_df = data.original_test_df().reset_index(drop=True)
-        test_df.index += len_train
-        test_df.to_csv(f, header=False)   
 
-def create_config_file(max_train_idx):
-    config_dict = { data.TRAIN_LEN_KEY: max_train_idx }
-    with open(data.CONFIG_FILE_PATH, 'wb') as file:
-        pickle.dump(config_dict, file)
+        ################# TEST; FIXING DUPLICATED SESSION_ID <-> STEP PAIRS ##################
+        sessions = _get_sessions_with_duplicated_steps(test_df)
+        print("Cleaning step duplication in test.csv")
+        for session in tqdm(sessions):
+            mask = (test_df["session_id"] == session) & (test_df["step"] == 1)
+            indices = test_df.index[mask].tolist()
+            indices.sort()
+            clickout_mask = (test_df.session_id == session) & (test_df.action_type == "clickout item") \
+                            & (test_df.reference.isnull())
+            index_prediction = test_df.index[clickout_mask].tolist()[0]
+            if (index_prediction > indices[1]):
+                start_index = indices[0]
+                end_index = indices[1]
+                mask = (test_df["session_id"] == session) & (test_df.index >= start_index) & (test_df.index < end_index)
+                test_df.loc[test_df.index[mask], "session_id"] = session + "_" + str(0)
+            else:
+                start_index = indices[1]
+                mask = (test_df["session_id"] == session) & (test_df.index >= start_index)
+                test_df.loc[test_df.index[mask], "session_id"] = session + "_" + str(0)
+        ##################################################################################
+
+        test_df.index += len_train
+        test_df.to_csv(f, header=False)
 
 def get_small_dataset(df, maximum_rows=1000000):
     """
@@ -44,7 +92,7 @@ def get_small_dataset(df, maximum_rows=1000000):
     extracted may vary in order to avoid breaking the last session.
     :param df: dataframe
     :param maximum_rows:
-    
+
     :return: dataframe
     """
     if len(df) < maximum_rows:
@@ -52,7 +100,7 @@ def get_small_dataset(df, maximum_rows=1000000):
     # get the last row
     last_row = df.iloc[[maximum_rows]]
     last_session_id = last_row.session_id.values[0]
-    
+
     # OPTIMIZATION: last_user_id = last_row.user_id.values[0]
 
     # slice the dataframe from the target row on
@@ -102,6 +150,8 @@ def split(df, save_path, perc_train=80):
     df_train.to_csv(os.path.join(save_path, "train.csv"))
     df_test.to_csv(os.path.join(save_path, "test.csv"))
     np.save(os.path.join(save_path, 'target_indices'), get_target_indices(df_test))
+    np.save(os.path.join(save_path, 'train_indices'), df_train.index)
+    np.save(os.path.join(save_path, 'test_indices'), df_test.index)
     print('Done!')
 
 
@@ -164,7 +214,6 @@ def preprocess_accomodations_df(preprocessing_fns):
     accomodations_df.to_csv(data.ITEMS_PATH, index=False)
     print('Done!')
 
-
 def remove_from_stars_features(row):
     """
     Removes from the ICM the 'From n Stars' columns
@@ -190,7 +239,7 @@ def preprocess():
         # create no_cluster/full
         path = 'dataset/preprocessed/no_cluster'
         full = data.full_df()
-        train_len = data.config()[data.TRAIN_LEN_KEY]
+        train_len = data.read_config()[data.TRAIN_LEN_KEY]
 
         train = full.loc[0:train_len]
         test = full.loc[train_len+1:len(full)]
@@ -199,7 +248,8 @@ def preprocess():
         check_folder('dataset/preprocessed/no_cluster/full')
         train.to_csv(os.path.join(path, 'full/train.csv'))
         test.to_csv(os.path.join(path, 'full/test.csv'))
-        np.save(os.path.join(path, 'full/target_indices'), target_indices)
+        np.save(os.path.join(path, 'full/train_indices'), train.index)
+        np.save(os.path.join(path, 'full/test_indices'), test.index)
 
         train_small = get_small_dataset(train)
         check_folder('dataset/preprocessed/no_cluster/small')
@@ -232,7 +282,7 @@ def preprocess():
        
         # preprocess accomodations dataframe
         preprocess_accomodations_df(activated_prefns)
-    
+
     def _create_urm_session_aware():
         """
         NOTE: CHANGE THE PARAMETERS OF THE SEQUENCE AWARE URM HERE !!!!
@@ -253,11 +303,6 @@ def preprocess():
     if not os.path.isfile(data.FULL_PATH):
         print('The full dataframe (index master) is missing. Creating it...', end=' ', flush=True)
         create_full_df()
-        print('Done!')
-    
-    if not os.path.isfile(data.CONFIG_FILE_PATH):
-        print('The config file is missing. Creating it...', end=' ', flush=True)
-        create_config_file(len(data.original_train_df()))
         print('Done!')
     
     # create CSV files

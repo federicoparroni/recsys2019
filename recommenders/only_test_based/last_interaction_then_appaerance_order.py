@@ -10,24 +10,19 @@ import data
 
 from recommenders.recommender_base import RecommenderBase
 
-scores_interactions = [1, 0.75, 0.5, 0.33, 0.25,  0.2, 0.15, 0.125,
-                       0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
-                       0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+class LastInteractionThenAppearanceOrder(RecommenderBase):
 
-class LatestInteractionsRecommender(RecommenderBase):
     """
-    Idea is to recommend all last interactions and clickouts appearing in impressions
-    in order from most recently interacted to less recently
+    It recommends, for the sessions that have a numeric reference before a missing
+    clickout, the last numeric refenrences in order of appearence. 
+    Then, it appends back the impressions in show up order
 
-    Score is given following the scores_interactions list in the following way:
-    most_recent1: 1
-    most_recent2: 0.75
-    most_recent3: 0.5
-    ...
+    MRR in numeric_reference_one_step_before_missing_clk: 0.67
     """
+
     def __init__(self, mode, cluster='no_cluster'):
-        name = 'Last Interactions recommender'
-        super(LatestInteractionsRecommender, self).__init__(mode, cluster, name)
+        name = 'last_interaction_then_appaerance_order'
+        super(LastInteractionThenAppearanceOrder, self).__init__(mode, cluster, name)
 
     def _set_no_reordering(self, seq):
         """
@@ -62,7 +57,6 @@ class LatestInteractionsRecommender(RecommenderBase):
         list_sessions = session_groups.index
 
         recs_tuples = []
-
         print("{}: fitting the model".format(self.name))
         for i in tqdm(df_test_target.index):
             if i not in list_sessions:
@@ -74,18 +68,21 @@ class LatestInteractionsRecommender(RecommenderBase):
                 interacted_elements = np.asarray(self._set_no_reordering(x for x in interacted_elements))
 
                 impressions = np.asarray(df_test_target.at[i, "impressions"].split("|"))
-
                 # First i want to be sure the impressions contains all the interacted elements (if not, they must be cutted off from relevant items)
                 mask_only_in_impression = np.in1d(interacted_elements, impressions, assume_unique=True)
+                mask_not_in_impression = np.in1d(impressions, interacted_elements, assume_unique=True)
 
                 interacted_elements = interacted_elements[mask_only_in_impression]
+                not_interacted_elements = impressions[~mask_not_in_impression]
 
                 # I append the last interacted elements as first (so I invert the order of relevant_elements!)
                 real_recommended = np.flipud(interacted_elements)
-
                 real_recommended = real_recommended.astype(np.int)
 
-                recs_tuples.append((self.dictionary_indices.get(i), list(real_recommended)))
+                # After the list of num reference, append the other impressions in appearing order
+                to_append = not_interacted_elements.astype(np.int)
+
+                recs_tuples.append((self.dictionary_indices.get(i), list(real_recommended) + list(to_append)))
 
         self.recs_batch = recs_tuples
 

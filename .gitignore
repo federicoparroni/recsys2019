@@ -28,3 +28,5 @@ Untitled\.ipynb
 *.pyc
 
 validation_result/
+
+models/
