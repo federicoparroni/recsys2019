@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 from recommenders.recommender_base import RecommenderBase
 from keras.models import Sequential
-from keras.layers import Dense, LSTM, GRU
+from keras.layers import Dense, LSTM, GRU, Embedding
 from keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard
 import matplotlib.pyplot as plt
 import preprocess_utils.session2vec as sess2vec
@@ -15,7 +15,7 @@ import time
 
 class Recurrent_Recommender(RecommenderBase):
     
-    def __init__(self, mode, cell_type, num_units, num_layers):
+    def __init__(self, mode, cell_type, num_units, num_layers, embedding_size=None):
         # Create the recurrent model
         # n_input_features: number of features of the input
         # num_units:        number of memory cells
@@ -45,16 +45,25 @@ class Recurrent_Recommender(RecommenderBase):
         self.validation_generator = self._get_session_batch_generator(X_test_df, Y_test_df, validation_session_groups)
 
         # input features are shape - 2 because we drop 'user_id' and 'session_id'
-        input_shape = (None, X_train_df.shape[1]-2)
+        input_features_count = X_train_df.shape[1]-2
+        input_shape = (None, input_features_count)
         output_size = Y_train_df.shape[1]
         
         self.model = Sequential()
         CELL = LSTM if self.name == 'LSTM' else GRU
 
-        self.model.add(CELL(num_units, input_shape=input_shape, return_sequences=True))
-        for _ in range(num_layers-1):
-            self.model.add(CELL(num_units, return_sequences=True))
-        self.model.add(Dense(output_size, activation='sigmoid'))
+        self.has_embedding = isinstance(embedding_size, int) and embedding_size > 0
+        if self.has_embedding:
+            self.model.add( Embedding(input_features_count, embedding_size) )
+            self.model.add( CELL(num_units, input_shape=(None, embedding_size), return_sequences=(num_layers>1)) )
+            for i in range(num_layers-1):
+                self.model.add( CELL(num_units, return_sequences=(i < num_layers-2)) )
+        else:
+            self.model.add( CELL(num_units, input_shape=input_shape, return_sequences=True) )
+            for i in range(num_layers-1):
+                self.model.add( CELL(num_units, return_sequences=True) )
+        
+        self.model.add( Dense(output_size, activation='sigmoid') )
         self.model.compile(loss='mean_squared_error', optimizer='adam', metrics=['accuracy'])
 
         print(self.model.summary())
@@ -75,7 +84,9 @@ class Recurrent_Recommender(RecommenderBase):
                 x_batch = X.drop(['user_id','session_id'], axis=1).loc[intrctns_indices]
                 y_batch = Y.loc[intrctns_indices]
 
-                yield np.expand_dims(x_batch, axis=0), np.expand_dims(y_batch, axis=0)
+                if not self.has_embedding:
+                    x_batch, y_batch = np.expand_dims(x_batch, axis=0), np.expand_dims(y_batch, axis=0)
+                yield x_batch, y_batch
 
 
     def fit(self, epochs, early_stopping_patience=10, checkpoints_path='recommenders/recurrent/checkpoints', tensorboard_path='recommenders/recurrent/tensorboard'):
@@ -120,9 +131,13 @@ if __name__ == "__main__":
     cell_type = menu.single_choice('Choose a cell mode:', ['LSTM', 'GRU'], [lambda: 'LSTM', lambda: 'GRU'])
     print()
     epochs = input('Insert number of epochs: ')
-    units = input('Insert number of units: ')
+
+    embeddings = [16, 32, 64, 128]
+    embed_size = menu.single_choice('Do you want to add a first embedding layer?', embeddings, [lambda: 16, lambda: 32, lambda: 64, lambda: 128])
+    layers = input('Insert number of layers: ')
+    units = input('Insert number of units per layer: ')
     tb_path = menu.yesno_choice('Do you want to enable Tensorboard?', lambda: 'recommenders/tensorboard', lambda: None)
 
-    model = Recurrent_Recommender(mode=mode, cell_type=cell_type, num_layers=1, num_units=int(units))
+    model = Recurrent_Recommender(mode=mode, cell_type=cell_type, num_layers=int(layers), num_units=int(units), embedding_size=embed_size)
     model.fit(epochs=int(epochs), tensorboard_path=tb_path)
 
