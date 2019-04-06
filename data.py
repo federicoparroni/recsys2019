@@ -18,7 +18,7 @@ DICT_COL_PATH = ['dataset/matrices/full/dict_col.npy', 'dataset/matrices/local/d
 ITEMS_PATH = 'dataset/preprocessed/item_metadata.csv'
 
 # config file
-CONFIG_FILE_PATH = 'dataset/preprocessed/config.pkl'
+CONFIG_FILE_PATH = 'dataset/config.pkl'
 TRAIN_LEN_KEY = 'max_train_idx'
 
 _df_train_original = None
@@ -48,7 +48,9 @@ SPLIT_USED = 'no_cluster'
 def full_df():
   global _df_full
   if _df_full is None:
+    print('caching df_full...')
     _df_full = pd.read_csv(FULL_PATH, index_col=0)
+    print('Done!')
   return _df_full
 
 def original_train_df():
@@ -107,7 +109,7 @@ def accomodations_df():
 def accomodations_ids():
   global _df_items_ids
   if _df_items_ids is None:
-    _df_items_ids = list(map(int, accomodations_original_df()['item_id'].values))
+    _df_items_ids = list(map(int, accomodations_df()['item_id'].values))
   return _df_items_ids
 
 def accomodations_original_df():
@@ -117,9 +119,9 @@ def accomodations_original_df():
   return _df_original_items
 
 # URM structures
-def urm(mode, cluster, urm_name='urm_clickout'):
+def urm(mode, cluster, type, urm_name='urm_clickout'):
   global _urm
-  path = 'dataset/preprocessed/{}/{}/matrices/{}.npz'.format(cluster, mode, urm_name)
+  path = f'dataset/preprocessed/{cluster}/{mode}/matrices/{type}/{urm_name}.npz'
   if path not in _urm:
     _urm[path] = sps.load_npz(path)
   return _urm[path]
@@ -132,17 +134,17 @@ def icm():
     _icm = sps.load_npz(icm_path)
   return _icm
 
-def dictionary_row(mode, cluster='no_cluster'):
+def dictionary_row(mode, urm_name, type, cluster='no_cluster'):
   global _dict_row
-  path = 'dataset/preprocessed/{}/{}/matrices/dict_row.npy'.format(cluster, mode)
+  path = f'dataset/preprocessed/{cluster}/{mode}/matrices/{type}/{urm_name}_dict_row.npy'
   if path not in _dict_row:
     _dict_row[path] = np.load(path).item()
   return _dict_row[path]
 
-def dictionary_col(mode, cluster = 'no_cluster'):
+def dictionary_col(mode, urm_name, type, cluster = 'no_cluster'):
   # global _dict_col
   global _dict_col
-  path = 'dataset/preprocessed/{}/{}/matrices/dict_col.npy'.format(cluster, mode)
+  path = f'dataset/preprocessed/{cluster}/{mode}/matrices/{type}/{urm_name}_dict_col.npy'
   if path not in _dict_col:
     _dict_col[path] = np.load(path).item()
   return _dict_col[path]
@@ -151,16 +153,16 @@ def dictionary_col(mode, cluster = 'no_cluster'):
 def read_config():
   conf = None
   try:
-    with open('dataset/file.pkl', 'rb') as file:
+    with open(CONFIG_FILE_PATH, 'rb') as file:
       conf = pickle.load(file)
   except IOError:
-    with open('dataset/file.pkl', 'wb') as file:
-      conf = {}
+    with open(CONFIG_FILE_PATH, 'wb') as file:
+      conf = { TRAIN_LEN_KEY: len(original_train_df()) }
       pickle.dump(conf, file)
   return conf
 
 def save_config(key, value):
   conf = read_config()
   conf[key] = value
-  with open('dataset/file.pkl', 'wb') as file:
+  with open(CONFIG_FILE_PATH, 'wb') as file:
       pickle.dump(conf, file)

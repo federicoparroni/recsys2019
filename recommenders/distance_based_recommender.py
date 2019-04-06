@@ -16,7 +16,7 @@ import data
 from tqdm import tqdm
 import scipy.sparse as sps
 import utils.check_folder as cf
-import sklearn.preprocessing as preprocessing
+import sklearn.preprocessing as prep
 
 
 class DistanceBasedRecommender(RecommenderBase):
@@ -35,15 +35,18 @@ class DistanceBasedRecommender(RecommenderBase):
     SIM_RP3BETA = 'rp3beta'
     SIM_SPLUS = 'splus'
 
-    def __init__(self, matrix, normalization_mode='l2', mode='full', cluster='no_cluster', name='distancebased', urm_name='urm_clickout', k=100, distance='cosine', shrink=0, threshold=0,
+    def __init__(self, matrix, _type, mode='full', cluster='no_cluster', name='distancebased', urm_name='urm_clickout', k=100, distance='cosine', shrink=0, threshold=0,
                  implicit=False, alpha=0.5, beta=0.5, l=0.5, c=0.5, urm=None, matrix_mul_order='standard'):
         super(DistanceBasedRecommender, self).__init__(mode=mode, cluster=cluster, name=name)
+        self.type = _type
         self.urm_name = urm_name
         self._sim_matrix = None
         self.target_indices = data.target_indices(mode, cluster)
         self._matrix_mul_order = matrix_mul_order # if you want R•R', or 'inverse' if you want to compute S•R
 
-        self.urm_name = urm_name
+        self.dict_row= data.dictionary_row(mode=self.mode, cluster=self.cluster, urm_name=self.urm_name, type=self.type)
+        self.dict_col = data.dictionary_col(mode=self.mode, cluster=self.cluster, urm_name=self.urm_name, type=self.type)
+
         self.matrix = matrix
         self.k = int(k)
         self.distance = distance
@@ -54,7 +57,7 @@ class DistanceBasedRecommender(RecommenderBase):
         self.beta = beta
         self.l = l
         self.c = c
-        self.urm = preprocessing.normalize(urm, normalization_mode)
+        self.urm = urm
         self.scores_batch = None
 
     def fit(self):
@@ -94,7 +97,7 @@ class DistanceBasedRecommender(RecommenderBase):
         elif self.distance==self.SIM_RP3BETA:
             self._sim_matrix = sim.rp3beta(self.matrix, k=self.k, shrink=self.shrink, threshold=self.threshold, binary=self.implicit, alpha=self.alpha, beta=self.beta)
         elif self.distance==self.SIM_SPLUS:
-            self._sim_matrix = sim.s_plus(self.matrix, k=self.k, shrink=self.shrink, threshold=self.threshold, binary=self.implicit, l=self.l, t1=self.alpha, t2=self.beta, c=self.c)
+            self._sim_matrix = prep.normalize(sim.s_plus(self.matrix, k=self.k, shrink=self.shrink, threshold=self.threshold, binary=self.implicit, l=self.l, t1=self.alpha, t2=self.beta, c=self.c), norm='l2', axis=0)
         else:
             log.error('Invalid distance metric: {}'.format(self.distance))
         return self._sim_matrix
@@ -114,11 +117,12 @@ class DistanceBasedRecommender(RecommenderBase):
         Return the r_hat matrix as: R^ = R•S or R^ = S•R
         """
         R = self.urm
-        dict_row = data.dictionary_row(self.mode, self.cluster)
-
         target_indices_urm = []
         for ind in self.target_indices:
-            target_indices_urm.append(dict_row[tuple(data.full_df().loc[ind][['session_id', 'user_id']])[0]])
+            if self.type == 'user':
+                target_indices_urm.append(self.dict_row[data.full_df().loc[ind]['user_id']])
+            if self.type == 'session':
+                target_indices_urm.append(self.dict_row[tuple(data.full_df().loc[ind][['user_id', 'session_id']])])
         if self._matrix_mul_order == 'inverse':
             return self._sim_matrix.tocsr()[target_indices_urm].dot(R)
         else:
@@ -135,7 +139,6 @@ class DistanceBasedRecommender(RecommenderBase):
         if not self._has_fit():
             return None
         full_df = data.full_df()
-        dict_col = data.dictionary_col(mode=self.mode)
 
         # compute the R^ by multiplying: R•S or S•R
         R_hat = self.get_r_hat()
@@ -143,34 +146,43 @@ class DistanceBasedRecommender(RecommenderBase):
         predictions_batch = []
         scores_batch = []
         count = 0
+        predicted_count = 0
+        skipped_count = 0
         for index in tqdm(self.target_indices):
             impr = list(map(int, full_df.loc[index]['impressions'].split('|')))
 
             # get ratings
-            l = [[i, R_hat[count, dict_col[i]]] for i in impr]
+            l = [[i, R_hat[count, self.dict_col[i]]] for i in impr]
             l.sort(key=lambda tup: tup[1], reverse=True)
+
+            count += 1
+            if l[0][1] == 0:
+                skipped_count +=1
+                continue
+            else:
+                predicted_count +=1
             recs = [e[0] for e in l]
             scores = [e[1] for e in l]
+
             predictions_batch.append((index, recs))
             scores_batch.append((index, recs, scores))
-            count += 1
 
         self.scores_batch = scores_batch
-
+        print(f'predicted percentage: {predicted_count / len(self.target_indices)}\n jumped percentage: {skipped_count/len(self.target_indices)}')
         return predictions_batch
 
     def save_similarity_matrix(self):
-        base_save_path = 'dataset/matrices/{}/similarity_matrices'.format(self.mode)
+        base_save_path = f'dataset/preprocessed/{self.cluster}/{self.mode}/matrices/{self.type}/similarities_matrices'
         cf.check_folder(base_save_path)
         print('saving sim_matrix...')
-        sps.save_npz('{}/{}'.format(base_save_path, self.name), self.get_sim_matrix())
+        sps.save_npz(f'{base_save_path}/{self.urm_name}_{self.name}', self.get_sim_matrix())
         print('sim_matrix saved succesfully !')
 
     def save_r_hat(self):
-        base_save_path = 'dataset/matrices/{}/r_hat_matrices'.format(self.mode)
+        base_save_path = f'dataset/preprocessed/{self.cluster}/{self.mode}/matrices/{self.type}/r_hat_matrices'
         cf.check_folder(base_save_path)
         print('saving r_hat...')
-        sps.save_npz('{}/{}'.format(base_save_path, self.name), self.get_r_hat())
+        sps.save_npz(f'{base_save_path}/{self.urm_name}_{self.name}', self.get_r_hat())
         print('r_hat saved succesfully !')
 
     def get_scores_batch(self):

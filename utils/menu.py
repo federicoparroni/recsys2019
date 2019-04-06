@@ -90,3 +90,8 @@ def yesno_choice(title, callback_yes, callback_no=None):
 
 def clear():
     os.system('clear')
+
+
+def mode_selection(exitable=False):
+    """ Quick menu for mode selection. Return 'full', 'local' or 'small'. """
+    return single_choice('Choose a mode:', ['full','local','small'], [lambda: 'full', lambda: 'local', lambda: 'small'], exitable=exitable)

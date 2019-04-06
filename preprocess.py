@@ -86,7 +86,7 @@ def create_full_df():
         test_df.index += len_train
         test_df.to_csv(f, header=False)
 
-def get_small_dataset(df, maximum_rows=5000):
+def get_small_dataset(df, maximum_rows=1000000):
     """
     Return a dataframe from the original dataset containing a maximum number of rows. The actual total rows
     extracted may vary in order to avoid breaking the last session.
