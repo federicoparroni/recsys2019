@@ -31,6 +31,9 @@ _df_train = {}
 _df_test = {}
 _target_indices = {}
 
+_df_classification_train = {}
+_df_classification_test = {}
+
 _df_items = None
 _df_items_ids = None
 # URM structures
@@ -85,6 +88,20 @@ def target_indices(mode, cluster='no_cluster'):
   if path not in _target_indices:
     _target_indices[path] = np.load(path)
   return _target_indices[path]
+
+def classification_train_df(mode, cluster='no_cluster'):
+  global _df_classification_train
+  path = 'dataset/preprocessed/{}/{}/classification_train.csv'.format(cluster, mode)
+  if path not in _df_classification_train:
+    _df_classification_train[path] = pd.read_csv(path, index_col=0)
+  return _df_classification_train[path]
+
+def classification_test_df(mode, cluster='no_cluster'):
+  global _df_classification_test
+  path = 'dataset/preprocessed/{}/{}/classification_test.csv'.format(cluster, mode)
+  if path not in _df_classification_test:
+    _df_classification_test[path] = pd.read_csv(path, index_col=0)
+  return _df_classification_test[path]
 
 def train_indices(mode):
   global _full_train_indices
