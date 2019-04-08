@@ -26,12 +26,12 @@ def build_dataset(mode, cluster='no_cluster'):
         one_hot_features = mlb.fit_transform(accomodations_df.properties)
         one_hot_accomodations_df = pd.DataFrame(one_hot_features, columns=mlb.classes_)
         attributes_df = pd.concat([accomodations_df.drop('properties', axis=1), one_hot_accomodations_df], axis=1)
-        return attributes_df.drop(['Unnamed: 0'], axis = 1)
+        return attributes_df
 
     def build_popularity(accomodations_df, df):
         df = df[(df['action_type'] == 'clickout item') & (~df['reference'].isnull())]
         clicked_references = list(map(int, list(df['reference'].values)))
-        popularity_df = accomodations_df.drop(['Unnamed: 0', 'properties'], axis=1).set_index('item_id')
+        popularity_df = accomodations_df.drop(['properties'], axis=1).set_index('item_id')
         popularity_df['popularity_impression'] = 0
         for e in tqdm(clicked_references):
             popularity_df.loc[e]['popularity_impression'] += 1
