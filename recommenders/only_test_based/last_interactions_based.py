@@ -10,9 +10,8 @@ import data
 
 from recommenders.recommender_base import RecommenderBase
 
-scores_interactions = [1, 0.75, 0.5, 0.33, 0.25,  0.2, 0.15, 0.125,
-                       0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
-                       0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+scores_interactions = [53.59, 6.714, 2.38, 1.17, 0.64,  0.38, 0.22, 0.16,
+                       0.105, 0.09, 0.07, 0.6, 0.5, 0.3, 0.1]
 
 class LatestInteractionsRecommender(RecommenderBase):
     """
@@ -25,9 +24,10 @@ class LatestInteractionsRecommender(RecommenderBase):
     most_recent3: 0.5
     ...
     """
-    def __init__(self, mode, cluster='no_cluster'):
+    def __init__(self, mode, cluster='no_cluster', k_first_only_to_recommend = 15):
         name = 'Last Interactions recommender'
         super(LatestInteractionsRecommender, self).__init__(mode, cluster, name)
+        self.k_first_only_to_recommend = k_first_only_to_recommend
 
     def _set_no_reordering(self, seq):
         """
@@ -85,7 +85,7 @@ class LatestInteractionsRecommender(RecommenderBase):
 
                 real_recommended = real_recommended.astype(np.int)
 
-                recs_tuples.append((self.dictionary_indices.get(i), list(real_recommended)))
+                recs_tuples.append((self.dictionary_indices.get(i), list(real_recommended)[:self.k_first_only_to_recommend]))
 
         self.recs_batch = recs_tuples
 

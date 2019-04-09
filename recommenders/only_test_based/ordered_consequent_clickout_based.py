@@ -10,24 +10,28 @@ import data
 
 from recommenders.recommender_base import RecommenderBase
 
-scores_interactions = [1, 0.9, 0.8, 0.7, 0.6,  0.5, 0.4, 0.3,
-                       0.2, 0.15, 0.14, 0.13, 0.12, 0.11, 0.103, 0.102, 0.101, 0.1004, 0.1003,
-                       0.1002, 0.1001, 0.1, 0.1, 0.1, 0.1, 0.3, 0.35, 0.4, 0.5]
+scores_interactions = [1, 0.75, 0.5, 0.33, 0.25,  0.2, 0.15, 0.125,
+                       0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+                       0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.2]
 
 class OrderedConsequentClickoutRecommender(RecommenderBase):
     """
-    It recommends, for the sessions that have a clickout reference right before a missing
+    It recommends, for the sessions that have a clickout or interaction reference right before a missing
     clickout, the last numeric refenrences from that clickout and in order of appearence.
 
     Score is given following the scores_interactions list in the following way:
     most_recent1: 1
-    most_recent2: 0.9
-    most_recent3: 0.8
+    most_recent2: 0.75
+    most_recent3: 0.5
     ...
     """
-    def __init__(self, mode, cluster='no_cluster'):
+    def __init__(self, mode, cluster='no_cluster', filter_only_last_clickout = True):
         name = 'Ordered consequent clickout recommender'
         super(OrderedConsequentClickoutRecommender, self).__init__(mode, cluster, name)
+        self.filter_only_last_clickout = filter_only_last_clickout
+
+
+
 
     """ Reorder the array of elements starting from the last_elem 
         e.g.
@@ -39,7 +43,7 @@ class OrderedConsequentClickoutRecommender(RecommenderBase):
     def order_by_last_interaction(self, impressions, last_el):
         if last_el not in impressions:
             return impressions
-        index = impressions.index(last_el)
+        index = impressions.index(last_el) + 1
 
         for _ in range(index):
             impressions.append(impressions.pop(0))
@@ -65,8 +69,9 @@ class OrderedConsequentClickoutRecommender(RecommenderBase):
         session_groups = self.get_groupby_sessions_references(test_co_references)
 
 
-        #Select only sessions with final clickout
-        session_groups = session_groups[session_groups["sequence"].apply(lambda x: x[-1][-1] == "o")]
+        if self.filter_only_last_clickout:
+            #Select only sessions with final clickout
+            session_groups = session_groups[session_groups["sequence"].apply(lambda x: x[-1][-1] == "o")]
 
         print("{}: number of sessions with final clickout right before missing reference is {}".format(self.name, len(session_groups)))
 
