@@ -21,7 +21,7 @@ class XGBoost(RecommenderBase):
         train = data.classification_train_df(mode=self.mode, cluster=self.cluster)
         X_train, y_train = train.iloc[:, 3:], train.iloc[:, 2]
 
-        self.xg = xgb.XGBClassifier(max_depth=10, learning_rate=0.1, n_estimators=100)
+        self.xg = xgb.XGBClassifier()
         self.xg.fit(X_train, y_train)
 
     def get_scores_batch(self):
@@ -29,31 +29,29 @@ class XGBoost(RecommenderBase):
 
     def recommend_batch(self):
         test = data.classification_test_df(mode=self.mode, cluster=self.cluster)
-        X_test = test.iloc[:, 3:]
-
-        preds = self.xg.predict_proba(X_test)
-        self.preds = [a[1] for a in preds]
-
-        current_index = 0
+        print(test)
         test_df = data.test_df(mode=self.mode, cluster=self.cluster)
-
+    
         predictions = []
         for index in tqdm(self.target_indices):
-            impr = list(map(int, test_df.loc[index]['impressions'].split('|')))
-            scores = self.preds[current_index:len(impr)]
-            current_index = len(impr)
+            tgt_row = test_df.loc[index]
+            tgt_user = tgt_row['user_id']
+            tgt_sess = tgt_row['session_id']
+            tgt_test = test[(test['user_id'] == tgt_user) & (test['session_id'] == tgt_sess)]
+            tgt_test = tgt_test.sort_values(['impression_position'])
+            X_test = tgt_test.iloc[:, 3:]
+            
+            preds = self.xg.predict_proba(X_test)
+            scores = [a[1] for a in preds]
+            impr = list(map(int, tgt_row['impressions'].split('|')))
 
-            sorted_impr = [impr for _, impr in sorted(zip(scores, impr))]
-            predictions.append((index, sorted_impr))
-        
+            scores_impr = [[scores[i], impr[i]] for i in range(len(impr))]
+            scores_impr.sort(key=lambda x: x[0], reverse=True)
+
+            predictions.append((index, [x[1] for x in scores_impr]))
+            
         return predictions
 
 if __name__ == '__main__':
-    model = XGBoost(mode='small', cluster='no_cluster')
-    model.evaluate()
-
-
-
-
-
-
+    model = XGBoost(mode='local', cluster='no_cluster')
+    model.evaluate(send_MRR_on_telegram=True)
