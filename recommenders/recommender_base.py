@@ -4,6 +4,7 @@ import data
 import numpy as np
 from tqdm import tqdm
 import out
+import utils.telegram_bot as HERA
 
 
 class RecommenderBase(ABC):
@@ -64,7 +65,7 @@ class RecommenderBase(ABC):
         if export:
             out.create_sub(recommendations, mode=self.mode, submission_name=self.name)
 
-    def evaluate(self):
+    def evaluate(self, send_MRR_on_telegram = False):
         """
         Validate the model on local data
         """
@@ -79,7 +80,10 @@ class RecommenderBase(ABC):
         self.fit()
         recommendations = self.recommend_batch()
         print('recommendations created')
-        return self.compute_MRR(recommendations)
+        MRR = self.compute_MRR(recommendations)
+        if send_MRR_on_telegram:
+            HERA.send_message('evaluating recommender {} on {}.\n MRR is: {}\n\n'.format(self.name, self.cluster, MRR))
+        return MRR
 
     def compute_MRR(self, predictions):
         """

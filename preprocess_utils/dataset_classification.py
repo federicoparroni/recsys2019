@@ -45,9 +45,9 @@ def build_dataset(mode, cluster='no_cluster'):
             head_index = x.head(1).index
 
             # features
-            features = {'label': [], 'times_impression_appeared': [], 'time_elapsed_from_last_time_impression_appeared': [], 
+            features = {'label': [], 'times_impression_appeared': [], 'time_elapsed_from_last_time_impression_appeared': [], 'impression_position': [],
                         'steps_from_last_time_impression_appeared': [], 'kind_action_reference_appeared_last_time': [], 
-                        'impression_position': [], 'price': [], 'price_position': [], 
+                        'price': [], 'price_position': [],
                         'item_id': [], 'popularity': [], 'other change of sort order session': 0, 'other clickout item session': 0, 
                         'other filter selection session': 0, 'other interaction item deals session': 0, 'other interaction item image session': 0, 
                         'other interaction item info session': 0, 'other interaction item rating session': 0, 'other search for destination session': 0, 
@@ -105,18 +105,21 @@ def build_dataset(mode, cluster='no_cluster'):
 
             return pd.DataFrame(features)
 
-    def contruct_features(df):
+    def construct_features(df):
         dataset = df.groupby(['user_id', 'session_id']).progress_apply(func)
+        dataset = dataset.to_sparse(fill_value=0)
 
-        one_hot = pd.get_dummies(dataset['kind_action_reference_appeared_last_time'])
+        one_hot = pd.get_dummies(dataset['kind_action_reference_appeared_last_time'], sparse=True)
         dataset = dataset.drop(['kind_action_reference_appeared_last_time'],axis = 1)
         dataset = dataset.join(one_hot)
 
-        one_hot = pd.get_dummies(dataset['device'])
-        dataset = dataset.drop(['device'],axis = 1)
+        one_hot = pd.get_dummies(dataset['device'], sparse=True)
+        dataset = dataset.drop(['device'], axis=1)
         dataset = dataset.join(one_hot)
-
-        one_hot = dataset['filters_when_clickout'].str.get_dummies()
+        
+        one_hot_dense = dataset['filters_when_clickout'].str.get_dummies()
+        one_hot = one_hot_dense.to_sparse(fill_value=0)
+        del one_hot_dense
         dataset = dataset.drop(['filters_when_clickout'],axis = 1)
         dataset = dataset.join(one_hot)
 
@@ -124,6 +127,7 @@ def build_dataset(mode, cluster='no_cluster'):
         dataset = pd.merge(dataset, one_hot_accomodation, on=['item_id'])
 
         return dataset
+
 
     train = data.train_df(mode=mode, cluster=cluster)
     test = data.test_df(mode=mode, cluster=cluster)
@@ -134,13 +138,15 @@ def build_dataset(mode, cluster='no_cluster'):
     full = pd.concat([train, test])
 
     accomodations_df = data.accomodations_df()
-    one_hot_accomodation = one_hot_of_accomodation(accomodations_df)
-    popularity_df = build_popularity(accomodations_df, full)
+    one_hot_accomodation_dense = one_hot_of_accomodation(accomodations_df)
+    one_hot_accomodation = one_hot_accomodation_dense.to_sparse(fill_value=0)
+    del one_hot_accomodation_dense
 
-    features_full = contruct_features(full)
+    popularity_df = build_popularity(accomodations_df, full)
+    features_full = construct_features(full)
 
     test = features_full[features_full['user_id'].isin(target_user_id) & features_full['session_id'].isin(target_session_id)]
-    train = features_full[~(features_full['user_id'].isin(target_user_id)) & ~(features_full['session_id'].isin(target_session_id))]
+    train = features_full[(features_full['user_id'].isin(target_user_id) & features_full['session_id'].isin(target_session_id)) == False]
 
     train.to_csv('dataset/preprocessed/{}/{}/classification_train.csv'.format(cluster, mode))
     print('training classification dataset created in ' + 'dataset/preprocessed/{}/{}/classification_train.csv'.format(cluster, mode))
@@ -148,5 +154,5 @@ def build_dataset(mode, cluster='no_cluster'):
     print('testing classification dataset created in ' + 'dataset/preprocessed/{}/{}/classification_test.csv'.format(cluster, mode))
 
 
-if __name__ == "__main__":    
+if __name__ == "__main__":
     build_dataset(mode='small')
