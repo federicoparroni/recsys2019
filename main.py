@@ -1,9 +1,6 @@
-from recommenders.collaborative_filterning.itembased import CFItemBased
-from recommenders.distance_based_recommender import DistanceBasedRecommender
-from recommenders.content_based import ContentBased
-from validator import BayesianValidator
+from recommenders.only_test_based.lazy_user_recommender import LazyUserRecommender
 
-model = CFItemBased(mode='small', urm_name='urm_clickout')
+model = LazyUserRecommender(mode='local')
 model.evaluate()
 
 #val = BayesianValidator(model)

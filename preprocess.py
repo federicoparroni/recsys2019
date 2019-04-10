@@ -59,7 +59,7 @@ def create_full_df():
     # save config file
     data.save_config(data.TRAIN_LEN_KEY, len_train)
 
-    with open(data.FULL_PATH, 'a') as f:
+    with open(data.FULL_PATH, 'a', encoding='utf-8') as f:
         test_df = data.original_test_df().reset_index(drop=True)
 
         ################# TEST; FIXING DUPLICATED SESSION_ID <-> STEP PAIRS ##################
