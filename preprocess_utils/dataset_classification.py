@@ -33,15 +33,16 @@ def build_dataset(mode, cluster='no_cluster'):
         return attributes_df
 
     def build_popularity(accomodations_df, df):
+        popularity = {}
         df = df[(df['action_type'] == 'clickout item')
                 & (~df['reference'].isnull())]
         clicked_references = list(map(int, list(df['reference'].values)))
-        popularity_df = accomodations_df.drop(
-            ['properties'], axis=1).set_index('item_id')
-        popularity_df['popularity_impression'] = 0
         for e in tqdm(clicked_references):
-            popularity_df.loc[e]['popularity_impression'] += 1
-        return popularity_df
+            if int(e) in popularity:
+                popularity[int(e)] += 1
+            else:
+                popularity[int(e)] = 1
+        return popularity
 
     def func(x):
         # TO-DO: user features! ;)
@@ -104,14 +105,15 @@ def build_dataset(mode, cluster='no_cluster'):
                     features['kind_action_reference_appeared_last_time'].append(
                         'last_time_reference_did_not_appeared')
 
+                popularity = 0
+                if int(i) in popularity_df:
+                    popularity = popularity_df[int(i)]
                 if clk['reference'].values[0] == i:
                     features['label'].append(1)
-                    features['popularity'].append(
-                        popularity_df.loc[int(i)].values[0] - 1)
+                    features['popularity'].append(popularity - 1)
                 else:
                     features['label'].append(0)
-                    features['popularity'].append(
-                        popularity_df.loc[int(i)].values[0])
+                    features['popularity'].append(popularity)
 
                 count += 1
 
@@ -181,7 +183,7 @@ def build_dataset(mode, cluster='no_cluster'):
 
     # build in chunk
     count_chunk = 0
-    chunk_size = 100000
+    chunk_size = 1000000
     groups = full.groupby(np.arange(len(full))//chunk_size)
     for idxs, gr in groups:
         features = construct_features(gr)
@@ -206,4 +208,4 @@ def build_dataset(mode, cluster='no_cluster'):
 
 
 if __name__ == "__main__":
-    build_dataset(mode='small')
+    build_dataset(mode='local')
