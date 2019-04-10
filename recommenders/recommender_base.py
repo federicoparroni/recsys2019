@@ -105,10 +105,11 @@ class RecommenderBase(ABC):
         len_rec = len(recs)
         
         RR = 0
-        for i in range(len_rec):
+        print("Calculating MRR (hoping for a 0.99)")
+        for i in tqdm(range(len_rec)):
             correct_clickout = int(correct_clickouts[i])
             if correct_clickout in predictions[i][1]:
-                rank_pos = recs[i].index(correct_clickout) +1
+                rank_pos = recs[i].index(correct_clickout) + 1
                 if rank_pos <= 25:
                     RR += 1 / rank_pos
         

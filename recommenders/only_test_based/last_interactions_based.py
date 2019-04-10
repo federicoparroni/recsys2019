@@ -65,6 +65,7 @@ class LatestInteractionsRecommender(RecommenderBase):
 
         print("{}: fitting the model".format(self.name))
         for i in tqdm(df_test_target.index):
+            # Check if it is a session without interactions
             if i not in list_sessions:
                 recs_tuples.append((self.dictionary_indices.get(i), []))
             else:
