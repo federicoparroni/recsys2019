@@ -1,9 +1,12 @@
 import sys
 import os
+
+import pandas as pd
+
 sys.path.append(os.getcwd())
 
 import data
-import numpy as np
+
 from clusterize.clusterize_base import ClusterizeBase
 
 class ClusterSessionsWithoutNumericalReferences(ClusterizeBase):
@@ -11,7 +14,6 @@ class ClusterSessionsWithoutNumericalReferences(ClusterizeBase):
     def __init__(self):
         super(ClusterSessionsWithoutNumericalReferences, self).__init__()
         self.name = 'cluster_sessions_no_numerical_reference'
-
 
     def _fit(self, mode):
         """
@@ -29,12 +31,14 @@ class ClusterSessionsWithoutNumericalReferences(ClusterizeBase):
         self.test_indices = test_df.index.values
 
         # take only sessions without any numerical reference interactions except the clickout
-        test_df = test_df.groupby(['session_id','user_id'], group_keys=False)\
-            .filter(lambda g: g[(g.action_type != 'clickout_item') & g.reference.fillna('').str.isnumeric()].shape[0] == 0 )
-        
+        x = test_df.groupby(['session_id','user_id'])
+
+        test_df = x.filter(lambda x: (x[x['action_type'] == 'clickout item'].shape[0] == 1) & (x[pd.to_numeric(x['reference'], errors='coerce').notnull()].shape[0] == 0))
+
         if test_df.shape[0] > 0:
-            self.target_indices = test_df[test_df.action_type == 'clickout_item'].index.values
-    
+            self.target_indices = test_df[test_df.action_type == 'clickout item'].index.values
+
+        print(self.target_indices)
 
 if __name__ == '__main__':
     import utils.menu as menu
