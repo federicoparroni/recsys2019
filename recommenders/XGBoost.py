@@ -54,18 +54,21 @@ class XGBoostWrapper(RecommenderBase):
     def recommend_batch(self):
         test = data.classification_test_df(
             mode=self.mode, sparse=False, cluster=self.cluster)
+        test = test.set_index(['session_id'])
         test_df = data.test_df(mode=self.mode, cluster=self.cluster)
 
         predictions = []
         for index in tqdm(self.target_indices):
             tgt_row = test_df.loc[index]
-            tgt_user = tgt_row['user_id']
             tgt_sess = tgt_row['session_id']
-            tgt_test = test[(test['user_id'] == tgt_user) &
-                            (test['session_id'] == tgt_sess)]
-            tgt_test = tgt_test.sort_values(['impression_position'])
+            tgt_user = tgt_row['user_id']
 
-            X_test = tgt_test.iloc[:, 3:]
+            tgt_test = test.loc[[tgt_sess]]
+            tgt_test = tgt_test[tgt_test['user_id'] == tgt_user]
+            
+            tgt_test = tgt_test.sort_values('impression_position')
+
+            X_test = tgt_test.iloc[:, 2:]
             preds = self.xg.predict_proba(sps.csr_matrix(X_test.values))
             scores = [a[1] for a in preds]
 
@@ -74,6 +77,7 @@ class XGBoostWrapper(RecommenderBase):
             scores_impr.sort(key=lambda x: x[0], reverse=True)
 
             predictions.append((index, [x[1] for x in scores_impr]))
+
 
         return predictions
 
