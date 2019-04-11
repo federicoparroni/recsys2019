@@ -17,6 +17,7 @@ class ContentBased(RecommenderBase):
         self.dict_row = data.dictionary_row(mode=mode, urm_name=urm_name, cluster=cluster, type=self.type)
         self.dict_col = data.dictionary_col(mode=mode, urm_name=urm_name, cluster=cluster, type=self.type)
         self.user_features_matrix = None
+        self.scores_batch = None
 
         # load target indices
         self.target_indices = data.target_indices(mode, cluster)
@@ -41,9 +42,10 @@ class ContentBased(RecommenderBase):
         # load full df
         print('loading df_full')
         full_df = data.full_df()
-        icm = sim.normalization.bm25(data.icm().tocsr(), axis=1)
+        icm = data.icm().tocsr() #sim.normalization.bm25(data.icm().tocsr(), axis=1)
 
         predictions_batch = []
+        self.scores_batch = []
 
         count = 0
         predicted_count = 0
@@ -64,15 +66,17 @@ class ContentBased(RecommenderBase):
 
             icm_filtered = icm[icm_rows]
             r_hat_row = self.user_features_matrix[count]*icm_filtered.T
-            l = list(zip(impr_sorted, r_hat_row.todense().tolist()[0]))
-            l.sort(key=lambda tup: tup[1], reverse=True)
 
-            #l.sort(key=lambda tup: tup[1], reverse=True)
+            l = list(zip(impr_sorted, r_hat_row.todense().tolist()[0]))
+            l_scores = l.copy()
+            l.sort(key=lambda tup: tup[1], reverse=True)
+            l_scores.sort(key=lambda tup: tup[0], reverse=True)
+
             count += 1
 
             if l[0][1] == 0:
                 skipped_count += 1
-                #predictions_batch.append((index, impr))
+                self.scores_batch.append((index, [], []))
                 continue
             else:
                 predicted_count += 1
@@ -80,9 +84,16 @@ class ContentBased(RecommenderBase):
                 print(f'impr: {impr}\n rec: {p}')
                 predictions_batch.append((index, p))
 
+                scores = [e[1] for e in l]
+                self.scores_batch.append((index, p, scores))
+
+                print(scores)
+
         print(f'predicted percentage: {predicted_count/len(self.target_indices)}\n jumped percentage: {skipped_count/len(self.target_indices)}')
         print('prediction created !!!')
         return predictions_batch
 
     def get_scores_batch(self):
-        pass
+        if self.scores_batch is None:
+            self.recommend_batch()
+        return self.scores_batch

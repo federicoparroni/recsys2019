@@ -144,21 +144,19 @@ def build_dataset(mode, cluster='no_cluster'):
         dataset = dataset.drop(['device'], axis=1)
         dataset = dataset.join(one_hot)
 
-        one_hot = dataset['filters_when_clickout'].str.get_dummies()
+        one_hot = dataset['filters_when_clickout'].astype(str).str.get_dummies()
         missing = poss_filters - set(one_hot.columns)
         to_drop = set(one_hot.columns) - poss_filters
         for e in missing:
             one_hot[e] = 0
         for e in to_drop:
             one_hot = one_hot.drop([e], axis=1)
-        print(to_drop)
         dataset = dataset.drop(['filters_when_clickout'], axis=1)
         dataset = dataset.join(one_hot)
 
         dataset = dataset.reset_index().drop(['level_2'], axis=1)
         dataset = pd.merge(dataset, one_hot_accomodation, on=['item_id'])
 
-        print(len(dataset.columns))
         return dataset
 
     train = data.train_df(mode=mode, cluster=cluster)
@@ -183,7 +181,7 @@ def build_dataset(mode, cluster='no_cluster'):
 
     # build in chunk
     count_chunk = 0
-    chunk_size = 1000000
+    chunk_size = 100000
     groups = full.groupby(np.arange(len(full))//chunk_size)
     for idxs, gr in groups:
         features = construct_features(gr)

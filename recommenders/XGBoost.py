@@ -17,6 +17,7 @@ class XGBoostWrapper(RecommenderBase):
             name=name, mode=mode, cluster=cluster)
 
         self.preds = None
+        self.scores_batch = None
         self.target_indices = data.target_indices(mode=mode, cluster=cluster)
         self.xg = xgb.XGBClassifier(
             learning_rate=learning_rate, min_child_weight=min_child_weight, max_depth=math.ceil(
@@ -49,7 +50,9 @@ class XGBoostWrapper(RecommenderBase):
         self.xg.fit(X_train, y_train)
 
     def get_scores_batch(self):
-        pass
+        if self.scores_batch is None:
+            self.recommend_batch()
+        return self.scores_batch
 
     def recommend_batch(self):
         test = data.classification_test_df(
@@ -57,15 +60,21 @@ class XGBoostWrapper(RecommenderBase):
         test_df = data.test_df(mode=self.mode, cluster=self.cluster)
 
         predictions = []
+        self.scores_batch = []
         for index in tqdm(self.target_indices):
+
+            #Get only test rows with same session&user of target indices
             tgt_row = test_df.loc[index]
             tgt_user = tgt_row['user_id']
             tgt_sess = tgt_row['session_id']
             tgt_test = test[(test['user_id'] == tgt_user) &
                             (test['session_id'] == tgt_sess)]
+
+            #resort on impression position
             tgt_test = tgt_test.sort_values(['impression_position'])
 
             X_test = tgt_test.iloc[:, 3:9]
+
             preds = self.xg.predict_proba(sps.csr_matrix(X_test.values))
             scores = [a[1] for a in preds]
 
@@ -73,7 +82,11 @@ class XGBoostWrapper(RecommenderBase):
             scores_impr = [[scores[i], impr[i]] for i in range(len(impr))]
             scores_impr.sort(key=lambda x: x[0], reverse=True)
 
-            predictions.append((index, [x[1] for x in scores_impr]))
+            preds = [x[1] for x in scores_impr]
+            predictions.append((index, preds))
+
+            scores = [x[0] for x in scores_impr]
+            self.scores_batch.append((index, preds, scores))
 
         return predictions
 
