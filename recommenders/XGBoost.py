@@ -67,7 +67,6 @@ class XGBoostWrapper(RecommenderBase):
             #Get only test rows with same session&user of target indices
             tgt_row = test_df.loc[index]
             tgt_sess = tgt_row['session_id']
-<<<<<<< HEAD
             tgt_user = tgt_row['user_id']
 
             tgt_test = test.loc[[tgt_sess]]
@@ -76,16 +75,6 @@ class XGBoostWrapper(RecommenderBase):
             tgt_test = tgt_test.sort_values('impression_position')
 
             X_test = tgt_test.iloc[:, 2:]
-=======
-            tgt_test = test[(test['user_id'] == tgt_user) &
-                            (test['session_id'] == tgt_sess)]
-
-            #resort on impression position
-            tgt_test = tgt_test.sort_values(['impression_position'])
-
-            X_test = tgt_test.iloc[:, 3:9]
-
->>>>>>> develop
             preds = self.xg.predict_proba(sps.csr_matrix(X_test.values))
             scores = [a[1] for a in preds]
 
