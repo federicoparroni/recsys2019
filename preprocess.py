@@ -250,6 +250,7 @@ def preprocess():
         test.to_csv(os.path.join(path, 'full/test.csv'))
         np.save(os.path.join(path, 'full/train_indices'), train.index)
         np.save(os.path.join(path, 'full/test_indices'), test.index)
+        np.save(os.path.join(path, 'full/target_indices'), target_indices)
 
         train_small = get_small_dataset(train)
         check_folder('dataset/preprocessed/no_cluster/small')
