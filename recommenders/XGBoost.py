@@ -41,7 +41,7 @@ class XGBoostWrapper(RecommenderBase):
     def fit(self):
         train = data.classification_train_df(
             mode=self.mode, sparse=True, cluster=self.cluster)
-        X_train, y_train = train.iloc[:, 3:9], train.iloc[:, 2]
+        X_train, y_train = train.iloc[:, 3:], train.iloc[:, 2]
 
         X_train = sps.csr_matrix(X_train.values)
         y_train = y_train.to_dense()
@@ -65,7 +65,7 @@ class XGBoostWrapper(RecommenderBase):
                             (test['session_id'] == tgt_sess)]
             tgt_test = tgt_test.sort_values(['impression_position'])
 
-            X_test = tgt_test.iloc[:, 3:9]
+            X_test = tgt_test.iloc[:, 3:]
             preds = self.xg.predict_proba(sps.csr_matrix(X_test.values))
             scores = [a[1] for a in preds]
 
