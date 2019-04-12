@@ -23,11 +23,25 @@ class NeuralNetworks(RecommenderBase):
         super(NeuralNetworks, self).__init__(mode=mode, cluster=cluster, name=name)
 
         self.nn_dict_params = nn_dict_params
-        base_path_dataset = 'dataset/preprocessed/FFNN_dataset'
+        base_path_dataset = f'dataset/preprocessed/FFNN_dataset/{mode}'
+
+        self.X = np.load(f'{base_path_dataset}/X.npy')
         self.X = np.load(f'{base_path_dataset}/X.npy')
         self.Y = np.load(f'{base_path_dataset}/Y.npy')
         self._create_model()
 
+    def _mrr_metric(self, y_true, y_pred):
+        mrr = 0
+        current_percentage = 0
+        for i in range(1, 26, 1):
+            if i == 1:
+                mrr = metrics.top_k_categorical_accuracy(y_true, y_pred, k=i)
+                current_percentage = metrics.top_k_categorical_accuracy(y_true, y_pred, k=i)
+            else:
+                t = metrics.top_k_categorical_accuracy(y_true, y_pred, k=i)
+                mrr += (t - current_percentage) * (1 / i)
+                current_percentage = t
+        return mrr
 
     def fit(self):
         callback = EarlyStopping(monitor='val_loss', min_delta=0, patience=10, verbose=0, mode='auto', baseline=None,
@@ -35,36 +49,26 @@ class NeuralNetworks(RecommenderBase):
         self.model.fit(self.X, self.Y,
                        validation_split=self.nn_dict_params['validation_split'],
                        epochs=self.nn_dict_params['epochs'],
-                       batch_size=self.nn_dict_params['batch_size'])
+                       batch_size=self.nn_dict_params['batch_size'],
+                       shuffle= True)
 
     def recommend_batch(self):
-        #TODO
-        # must be given another df
-        if not self.has_fit:
-            print('first fit the model !')
-            exit(0)
+        base_path = 'dataset/preprocessed/FFNN_dataset/submission_dataset'
+        X = np.load(f'{base_path}/X.npy')
+        target_indeces = np.load(f'{base_path}/target_indeces.npy')
 
-        print('taking the predictions')
-        predictions = self.model.predict(self.features_test_df)
-
-        target_indices_duplicated = self.features_test_df.iloc[:, -1]
-        target_indeces = []
-        for i in range(0, target_indices_duplicated.shape[0], 25):
-            target_indeces.append(target_indices_duplicated[i])
+        predictions = self.model.predict(X)
 
         final_predictions = []
 
         count = 0
         for index in tqdm(target_indeces):
             impr = list(map(int, data.full_df().loc[index]['impressions'].split('|')))
-            max_index = predictions[count].argmax()
-            if max_index < len(impr):
-                #print(max_index)
-                #print(impr[max_index])
-                t = impr[0]
-                impr[0] = impr[max_index]
-                impr[max_index] = t
-            final_predictions.append((index, impr))
+            pred = predictions[count][0:len(impr)]
+            couples = list(zip(pred, impr))
+            couples.sort(key=lambda x: x[0], reverse=True)
+            _, sorted_impr = zip(*couples)
+            final_predictions.append((index, sorted_impr))
             count += 1
 
         return final_predictions
@@ -79,13 +83,17 @@ class NeuralNetworks(RecommenderBase):
         #model.add(Dropout(rate=0.1))
         model.add(Dense(self.nn_dict_params['neurons_per_layer'],
                         activation=self.nn_dict_params['activation_function_internal_layers']))
+        model.add(Dense(self.nn_dict_params['neurons_per_layer'],
+                        activation=self.nn_dict_params['activation_function_internal_layers']))
+        model.add(Dense(self.nn_dict_params['neurons_per_layer'],
+                        activation=self.nn_dict_params['activation_function_internal_layers']))
         #model.add(Dropout(rate=0.1))
         model.add(Dense(self.nn_dict_params['neurons_per_layer'],
                         activation=self.nn_dict_params['activation_function_internal_layers']))
         model.add(Dense(25, activation='sigmoid'))
 
         # compile the model
-        model.compile(loss=self.nn_dict_params['loss'], optimizer=self.nn_dict_params['optimizer'], metrics=[metrics.categorical_accuracy])
+        model.compile(loss=self.nn_dict_params['loss'], optimizer=self.nn_dict_params['optimizer'], metrics=[metrics.categorical_accuracy, self._mrr_metric])
         self.model = model
         print('model created')
 
@@ -170,27 +178,71 @@ def _reinsert_clickout(df):
     return df
 
 
-def create_dataset_for_FFNN(mode, cluster):
-
-    SAVE_PATH = 'dataset/preprocessed/FFNN_dataset'
+def create_submission_dataset(mode='full', cluster='no_cluster'):
+    SAVE_PATH = f'dataset/preprocessed/FFNN_dataset/submission_dataset'
     check_folder.check_folder(SAVE_PATH)
 
-    # load TRAIN and TEST df
-    train_df = data.train_df(mode, cluster)
     test_df = data.test_df(mode, cluster)
 
-    print('reinserting clicks...')
-    # reinsert the clickout on the test_df
-    test_df_reconstructed = test_df.groupby(['user_id', 'session_id']).progress_apply(_reinsert_clickout)
+    print('extracting features...')
+    impressions_features_df = test_df.groupby(['user_id', 'session_id']).progress_apply(_extract_features)
 
-    del test_df
+    # divide label and features and normalize them
+    # the 5 column is the label
+    print('dividing data and labels...')
+    X = impressions_features_df.iloc[:, [0, 1, 2, 4, 6, 7]]
 
-    print('concat the two df...')
-    # extract teh feature from both train and test df
-    train_test_df = pd.concat([train_df, test_df_reconstructed])
+    target_indices_duplicated = impressions_features_df.iloc[:, -1]
+    target_indeces = []
+    for i in range(0, target_indices_duplicated.shape[0], 25):
+        target_indeces.append(target_indices_duplicated[i])
 
-    del train_df
-    del test_df_reconstructed
+    target_indeces = np.array(target_indeces)
+
+    del impressions_features_df
+
+    print('scaling...')
+    scaler = MinMaxScaler()
+    # normalize the values
+    X_norm = scaler.fit_transform(X)
+
+    print('reshaping...')
+    # create the train and test data to be saved
+    data_train = X_norm.reshape((-1, 25 * 6))  # 25* NUM_FEATURES
+
+    print('saving training data...')
+    np.save(f'{SAVE_PATH}/X', data_train)
+    print('done')
+
+    print('saving target_indeces data...')
+    np.save(f'{SAVE_PATH}/target indeces', target_indeces)
+    print('done')
+
+
+def create_dataset_for_FFNN(mode, cluster):
+    SAVE_PATH = f'dataset/preprocessed/FFNN_dataset/{mode}'
+    check_folder.check_folder(SAVE_PATH)
+    augmentation_power = 4
+
+    if mode != 'full':
+        # load TRAIN and TEST df
+        train_df = data.train_df(mode, cluster)
+        test_df = data.test_df(mode, cluster)
+
+        print('reinserting clicks...')
+        # reinsert the clickout on the test_df
+        test_df_reconstructed = test_df.groupby(['user_id', 'session_id']).progress_apply(_reinsert_clickout)
+
+        del test_df
+
+        print('concat the two df...')
+        # extract teh feature from both train and test df
+        train_test_df = pd.concat([train_df, test_df_reconstructed])
+
+        del train_df
+        del test_df_reconstructed
+    else:
+        train_test_df = data.train_df(mode, cluster)
 
     print('extracting features...')
     impressions_features_df = train_test_df.groupby(['user_id', 'session_id']).progress_apply(_extract_features)
@@ -213,9 +265,10 @@ def create_dataset_for_FFNN(mode, cluster):
     X_norm_shuffled = []
     Y_norm_shuffled = []
     for i in tqdm(range(0, X_norm.shape[0], 25)):
-        x, y = shuffle(X_norm[i:i + 25], Y_norm[i:i + 25])
-        X_norm_shuffled.append(x)
-        Y_norm_shuffled.append(y)
+        for j in range(augmentation_power):
+            x, y = shuffle(X_norm[i:i + 25], Y_norm[i:i + 25])
+            X_norm_shuffled.append(x)
+            Y_norm_shuffled.append(y)
 
     del X_norm
     del Y_norm
@@ -236,12 +289,12 @@ def create_dataset_for_FFNN(mode, cluster):
 
 
 if __name__ == '__main__':
-    #create_dataset_for_FFNN('small', 'no_cluster')
+#    create_dataset_for_FFNN('small', 'no_cluster')
     nn_dict_params = {
         'activation_function_internal_layers': 'relu',
-        'neurons_per_layer': 300,
+        'neurons_per_layer': 350,
         'loss': 'categorical_crossentropy',
-        'optimizer': 'rmsprop',
+        'optimizer': 'adam',
         'validation_split': 0.2,
         'epochs': 1000,
         'batch_size': 250,
