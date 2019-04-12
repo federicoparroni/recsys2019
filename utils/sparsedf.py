@@ -16,7 +16,7 @@ def read(path, sparse_cols=[], index_label=None, fill_nan_with=0):
     return df
 
 
-def left_join_in_chunks(df1, df2, left_on, right_on, path_to_save, pre_join_fn, post_join_fn, chunk_size=int(10e6), index_label='orig_index'):
+def left_join_in_chunks(df1, df2, left_on, right_on, path_to_save, pre_join_fn=None, post_join_fn=None, chunk_size=int(10e6), index_label='orig_index'):
     # join using chunks
     CHUNK_SIZE = chunk_size
     TOT_LEN = df1.shape[0]
@@ -27,11 +27,13 @@ def left_join_in_chunks(df1, df2, left_on, right_on, path_to_save, pre_join_fn, 
             chunk_df = df1.iloc[i:i_upper]
 
             data_dict = dict()
-            chunk_df, data_dict = pre_join_fn(chunk_df, data_dict)
+            if callable(pre_join_fn):
+                chunk_df, data_dict = pre_join_fn(chunk_df, data_dict)
 
             chunk_df = chunk_df.merge(df2, how='left', left_on=left_on, right_on=right_on)
 
-            chunk_df = post_join_fn(chunk_df, data_dict)
+            if callable(post_join_fn): 
+                chunk_df = post_join_fn(chunk_df, data_dict)
 
             chunk_df.to_csv(f, header=f.tell() == 0, index_label='orig_index', float_format='%.4f')
             print(f'{i_upper} / {TOT}', end='\r', flush=True)
