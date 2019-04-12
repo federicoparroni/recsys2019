@@ -43,13 +43,11 @@ class XGBoostWrapper(RecommenderBase):
         train = data.classification_train_df(
             mode=self.mode, sparse=True, cluster=self.cluster)
         X_train, y_train = train.iloc[:, 3:], train.iloc[:, 2]
-
-        X_train = sps.csr_matrix(X_train.values)
-        y_train = y_train.to_dense()
+        X_train = X_train.to_coo().tocsr()
 
         print('data for train ready')
 
-        self.xg.fit(X_train, y_train)
+        self.xg.fit(X_train, y_train.to_dense())
         print('fit done')
 
     def get_scores_batch(self):
@@ -80,7 +78,9 @@ class XGBoostWrapper(RecommenderBase):
             tgt_test = tgt_test.sort_values('impression_position')
 
             X_test = tgt_test.iloc[:, 2:]
-            preds = self.xg.predict_proba(sps.csr_matrix(X_test.values))
+            X_test = X_test.to_sparse(fill_value=0)
+            X_test = X_test.to_coo().tocsr()
+            preds = self.xg.predict_proba(X_test)
             scores = [a[1] for a in preds]
 
             impr = list(map(int, tgt_row['impressions'].split('|')))
