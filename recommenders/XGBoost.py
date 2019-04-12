@@ -42,12 +42,15 @@ class XGBoostWrapper(RecommenderBase):
     def fit(self):
         train = data.classification_train_df(
             mode=self.mode, sparse=True, cluster=self.cluster)
-        X_train, y_train = train.iloc[:, 3:9], train.iloc[:, 2]
+        X_train, y_train = train.iloc[:, 3:], train.iloc[:, 2]
 
         X_train = sps.csr_matrix(X_train.values)
         y_train = y_train.to_dense()
 
+        print('data for train ready')
+
         self.xg.fit(X_train, y_train)
+        print('fit done')
 
     def get_scores_batch(self):
         if self.scores_batch is None:
@@ -59,6 +62,8 @@ class XGBoostWrapper(RecommenderBase):
             mode=self.mode, sparse=False, cluster=self.cluster)
         test = test.set_index(['session_id'])
         test_df = data.test_df(mode=self.mode, cluster=self.cluster)
+
+        print('data for test ready')
 
         predictions = []
         self.scores_batch = []
