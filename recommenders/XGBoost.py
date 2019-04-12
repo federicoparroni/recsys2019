@@ -22,7 +22,7 @@ class XGBoostWrapper(RecommenderBase):
         self.xg = xgb.XGBClassifier(
             learning_rate=learning_rate, min_child_weight=min_child_weight, max_depth=math.ceil(
                 max_depth),
-            subsample=subsample, colsample_bytree=colsample_bytree, reg_lambda=reg_lambda, reg_alpha=reg_alpha)
+            subsample=subsample, colsample_bytree=colsample_bytree, reg_lambda=reg_lambda, reg_alpha=reg_alpha, n_jobs=-1)
 
         self.fixed_params_dict = {
             'mode': mode,
@@ -51,9 +51,7 @@ class XGBoostWrapper(RecommenderBase):
         print('fit done')
 
     def get_scores_batch(self):
-        if self.scores_batch is None:
-            self.recommend_batch()
-        return self.scores_batch
+        pass
 
     def recommend_batch(self):
         test = data.classification_test_df(
