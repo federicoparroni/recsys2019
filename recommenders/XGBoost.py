@@ -42,12 +42,13 @@ class XGBoostWrapper(RecommenderBase):
     def fit(self):
         train = data.classification_train_df(
             mode=self.mode, sparse=True, cluster=self.cluster)
-        X_train, y_train = train.iloc[:, 3:9], train.iloc[:, 2]
+        X_train, y_train = train.iloc[:, 3:], train.iloc[:, 2]
+        X_train = X_train.to_coo().tocsr()
 
-        X_train = sps.csr_matrix(X_train.values)
-        y_train = y_train.to_dense()
+        print('data for train ready')
 
-        self.xg.fit(X_train, y_train)
+        self.xg.fit(X_train, y_train.to_dense())
+        print('fit done')
 
     def get_scores_batch(self):
         if self.scores_batch is None:
@@ -57,7 +58,10 @@ class XGBoostWrapper(RecommenderBase):
     def recommend_batch(self):
         test = data.classification_test_df(
             mode=self.mode, sparse=False, cluster=self.cluster)
+        test = test.set_index(['session_id'])
         test_df = data.test_df(mode=self.mode, cluster=self.cluster)
+
+        print('data for test ready')
 
         predictions = []
         self.scores_batch = []
@@ -65,17 +69,18 @@ class XGBoostWrapper(RecommenderBase):
 
             #Get only test rows with same session&user of target indices
             tgt_row = test_df.loc[index]
-            tgt_user = tgt_row['user_id']
             tgt_sess = tgt_row['session_id']
-            tgt_test = test[(test['user_id'] == tgt_user) &
-                            (test['session_id'] == tgt_sess)]
+            tgt_user = tgt_row['user_id']
 
-            #resort on impression position
-            tgt_test = tgt_test.sort_values(['impression_position'])
+            tgt_test = test.loc[[tgt_sess]]
+            tgt_test = tgt_test[tgt_test['user_id'] == tgt_user]
+            
+            tgt_test = tgt_test.sort_values('impression_position')
 
-            X_test = tgt_test.iloc[:, 3:9]
-
-            preds = self.xg.predict_proba(sps.csr_matrix(X_test.values))
+            X_test = tgt_test.iloc[:, 2:]
+            X_test = X_test.to_sparse(fill_value=0)
+            X_test = X_test.to_coo().tocsr()
+            preds = self.xg.predict_proba(X_test)
             scores = [a[1] for a in preds]
 
             impr = list(map(int, tgt_row['impressions'].split('|')))
@@ -87,6 +92,7 @@ class XGBoostWrapper(RecommenderBase):
 
             scores = [x[0] for x in scores_impr]
             self.scores_batch.append((index, preds, scores))
+
 
         return predictions
 
