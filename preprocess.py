@@ -59,7 +59,7 @@ def create_full_df():
     # save config file
     data.save_config(data.TRAIN_LEN_KEY, len_train)
 
-    with open(data.FULL_PATH, 'a') as f:
+    with open(data.FULL_PATH, 'a', encoding='utf-8') as f:
         test_df = data.original_test_df().reset_index(drop=True)
 
         ################# TEST; FIXING DUPLICATED SESSION_ID <-> STEP PAIRS ##################
@@ -250,6 +250,7 @@ def preprocess():
         test.to_csv(os.path.join(path, 'full/test.csv'))
         np.save(os.path.join(path, 'full/train_indices'), train.index)
         np.save(os.path.join(path, 'full/test_indices'), test.index)
+        np.save(os.path.join(path, 'full/target_indices'), target_indices)
 
         train_small = get_small_dataset(train)
         check_folder('dataset/preprocessed/no_cluster/small')

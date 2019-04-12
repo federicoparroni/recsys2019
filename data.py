@@ -2,6 +2,7 @@ import pandas as pd
 import scipy.sparse as sps
 import numpy as np
 import pickle
+import dask.dataframe as ddf
 
 # original files
 TRAIN_ORIGINAL_PATH = 'dataset/original/train.csv'
@@ -89,19 +90,45 @@ def target_indices(mode, cluster='no_cluster'):
     _target_indices[path] = np.load(path)
   return _target_indices[path]
 
-def classification_train_df(mode, cluster='no_cluster'):
+def classification_train_df(mode, sparse=True, cluster='no_cluster'):
   global _df_classification_train
   path = 'dataset/preprocessed/{}/{}/classification_train.csv'.format(cluster, mode)
-  if path not in _df_classification_train:
-    _df_classification_train[path] = pd.read_csv(path, index_col=0)
-  return _df_classification_train[path]
+  if sparse:
+    tot_path = path + 'dense'
+  else:
+    tot_path = path + 'sparse'
 
-def classification_test_df(mode, cluster='no_cluster'):
+  if tot_path not in _df_classification_train:
+    if sparse:
+      data = ddf.read_csv(path)
+      data = data.map_partitions(lambda part: part.to_sparse(fill_value=0))
+      data = data.compute().reset_index(drop=True)
+      data = data.drop(['Unnamed: 0'], axis=1)
+      _df_classification_train[tot_path] = data
+    else:
+      _df_classification_train[tot_path] = pd.read_csv(path, index_col=0)
+
+  return _df_classification_train[tot_path]
+
+def classification_test_df(mode, sparse=True, cluster='no_cluster'):
   global _df_classification_test
   path = 'dataset/preprocessed/{}/{}/classification_test.csv'.format(cluster, mode)
-  if path not in _df_classification_test:
-    _df_classification_test[path] = pd.read_csv(path, index_col=0)
-  return _df_classification_test[path]
+  if sparse:
+    tot_path = path + 'dense'
+  else:
+    tot_path = path + 'sparse'
+
+  if tot_path not in _df_classification_test:
+    if sparse:
+      data = ddf.read_csv(path)
+      data = data.map_partitions(lambda part: part.to_sparse(fill_value=0))
+      data = data.compute().reset_index(drop=True)
+      data = data.drop(['Unnamed: 0'], axis=1)
+      _df_classification_test[tot_path] = data
+    else:
+      _df_classification_test[tot_path] = pd.read_csv(path, index_col=0)
+
+  return _df_classification_test[tot_path]
 
 def train_indices(mode):
   global _full_train_indices
