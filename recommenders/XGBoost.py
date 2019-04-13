@@ -62,7 +62,14 @@ class XGBoostWrapper(RecommenderBase):
             mode=self.mode, sparse=True, cluster=self.cluster)
         test_scores = test[['user_id', 'session_id',
                             'impression_position']].to_dense()
-        test_scores = test_scores.set_index(['session_id'])
+        # build aux dictionary
+        d = {}
+        for idx, row in test_scores.iterrows():
+            sess_id = row['session_id']
+            if sess_id in d:
+                d[sess_id] += [idx]
+            else:
+                d[sess_id] = [idx]
 
         test_df = data.test_df(mode=self.mode, cluster=self.cluster)
 
@@ -84,7 +91,7 @@ class XGBoostWrapper(RecommenderBase):
             tgt_sess = tgt_row['session_id']
             tgt_user = tgt_row['user_id']
 
-            tgt_test = test_scores.loc[[tgt_sess]]
+            tgt_test = test_scores.loc[d[tgt_sess]]
             tgt_test = tgt_test[tgt_test['user_id'] == tgt_user]
 
             tgt_test = tgt_test.sort_values('impression_position')
