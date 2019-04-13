@@ -12,7 +12,7 @@ tqdm.pandas()
 
 class XGBoostWrapper(RecommenderBase):
 
-    def __init__(self, mode, cluster='no_cluster', learning_rate=0.3, min_child_weight=1, max_depth=3, subsample=1, colsample_bytree=1, reg_lambda=1, reg_alpha=0):
+    def __init__(self, mode, cluster='no_cluster', learning_rate=0.3, min_child_weight=1, n_estimators=100, max_depth=3, subsample=1, colsample_bytree=1, reg_lambda=1, reg_alpha=0):
         name = 'xgboost'
         super(XGBoostWrapper, self).__init__(
             name=name, mode=mode, cluster=cluster)
@@ -23,21 +23,24 @@ class XGBoostWrapper(RecommenderBase):
         self.xg = xgb.XGBClassifier(
             learning_rate=learning_rate, min_child_weight=min_child_weight, max_depth=math.ceil(
                 max_depth),
+            n_estimators=math.ceil(
+                n_estimators),
             subsample=subsample, colsample_bytree=colsample_bytree, reg_lambda=reg_lambda, reg_alpha=reg_alpha, n_jobs=-1)
 
         self.fixed_params_dict = {
             'mode': mode,
-            'cluster': cluster
+            'cluster': cluster,
+            'min_child_weight': 1,
+            'subsample': 1,
+            'colsample_bytree': 1,
+            'reg_lambda': 1,
+            'reg_alpha': 0
         }
 
         # create hyperparameters dictionary
         self.hyperparameters_dict = {'learning_rate': (0.01, 0.3),
-                                     'min_child_weight': (0, 1),
                                      'max_depth': (3, 20),
-                                     'subsample': (0.5, 1),
-                                     'colsample_bytree': (0.5, 1),
-                                     'reg_lambda': (0, 1),
-                                     'reg_alpha': (0, 1)
+                                     'n_estimators': (50, 200)
                                      }
 
     def fit(self):
@@ -57,7 +60,8 @@ class XGBoostWrapper(RecommenderBase):
     def recommend_batch(self):
         test = data.classification_test_df(
             mode=self.mode, sparse=True, cluster=self.cluster)
-        test_scores = test[['user_id', 'session_id', 'impression_position']].to_dense()
+        test_scores = test[['user_id', 'session_id',
+                            'impression_position']].to_dense()
         test_scores = test_scores.set_index(['session_id'])
 
         test_df = data.test_df(mode=self.mode, cluster=self.cluster)
@@ -75,14 +79,14 @@ class XGBoostWrapper(RecommenderBase):
         self.scores_batch = []
         for index in tqdm(self.target_indices):
 
-            #Get only test rows with same session&user of target indices
+            # Get only test rows with same session&user of target indices
             tgt_row = test_df.loc[index]
             tgt_sess = tgt_row['session_id']
             tgt_user = tgt_row['user_id']
 
             tgt_test = test_scores.loc[[tgt_sess]]
             tgt_test = tgt_test[tgt_test['user_id'] == tgt_user]
-            
+
             tgt_test = tgt_test.sort_values('impression_position')
 
             scores = tgt_test['scores'].values
@@ -96,7 +100,6 @@ class XGBoostWrapper(RecommenderBase):
 
             scores = [x[0] for x in scores_impr]
             self.scores_batch.append((index, preds, scores))
-
 
         return predictions
 
