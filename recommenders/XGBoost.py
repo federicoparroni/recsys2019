@@ -43,7 +43,7 @@ class XGBoostWrapper(RecommenderBase):
     def fit(self):
         train = data.classification_train_df(
             mode=self.mode, sparse=True, cluster=self.cluster)
-        X_train, y_train = train.iloc[:, 3:8], train.iloc[:, 2]
+        X_train, y_train = train.iloc[:, 3:], train.iloc[:, 2]
         X_train = X_train.to_coo().tocsr()
 
         print('data for train ready')
@@ -62,7 +62,7 @@ class XGBoostWrapper(RecommenderBase):
 
         test_df = data.test_df(mode=self.mode, cluster=self.cluster)
 
-        X_test = test.iloc[:, 2:7]
+        X_test = test.iloc[:, 3:]
         X_test = X_test.to_coo().tocsr()
 
         print('data for test ready')
