@@ -4,6 +4,7 @@ import data
 from recommenders.recommender_base import RecommenderBase
 import numpy as np
 import pandas as pd
+from pandas import Series
 from tqdm import tqdm
 import scipy.sparse as sps
 tqdm.pandas()
@@ -42,7 +43,7 @@ class XGBoostWrapper(RecommenderBase):
     def fit(self):
         train = data.classification_train_df(
             mode=self.mode, sparse=True, cluster=self.cluster)
-        X_train, y_train = train.iloc[:, 3:], train.iloc[:, 2]
+        X_train, y_train = train.iloc[:, 3:8], train.iloc[:, 2]
         X_train = X_train.to_coo().tocsr()
 
         print('data for train ready')
@@ -55,11 +56,20 @@ class XGBoostWrapper(RecommenderBase):
 
     def recommend_batch(self):
         test = data.classification_test_df(
-            mode=self.mode, sparse=False, cluster=self.cluster)
-        test = test.set_index(['session_id'])
+            mode=self.mode, sparse=True, cluster=self.cluster)
+        test_scores = test[['user_id', 'session_id', 'impression_position']].to_dense()
+        test_scores = test_scores.set_index(['session_id'])
+
         test_df = data.test_df(mode=self.mode, cluster=self.cluster)
 
+        X_test = test.iloc[:, 2:7]
+        X_test = X_test.to_coo().tocsr()
+
         print('data for test ready')
+
+        preds = self.xg.predict_proba(X_test)
+        scores = [a[1] for a in preds]
+        test_scores['scores'] = Series(scores, index=test_scores.index)
 
         predictions = []
         self.scores_batch = []
@@ -70,16 +80,12 @@ class XGBoostWrapper(RecommenderBase):
             tgt_sess = tgt_row['session_id']
             tgt_user = tgt_row['user_id']
 
-            tgt_test = test.loc[[tgt_sess]]
+            tgt_test = test_scores.loc[[tgt_sess]]
             tgt_test = tgt_test[tgt_test['user_id'] == tgt_user]
             
             tgt_test = tgt_test.sort_values('impression_position')
 
-            X_test = tgt_test.iloc[:, 2:]
-            X_test = X_test.to_sparse(fill_value=0)
-            X_test = X_test.to_coo().tocsr()
-            preds = self.xg.predict_proba(X_test)
-            scores = [a[1] for a in preds]
+            scores = tgt_test['scores'].values
 
             impr = list(map(int, tgt_row['impressions'].split('|')))
             scores_impr = [[scores[i], impr[i]] for i in range(len(impr))]
