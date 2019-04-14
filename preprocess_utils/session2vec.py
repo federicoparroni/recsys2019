@@ -188,7 +188,7 @@ def add_impressions_columns_as_new_actions(df, new_rows_starting_index=99000000)
     df = df.append(temp_df).drop(['impressions','prices'], axis=1)
     df.index = df.index.set_names(['index'])
     
-    return df.sort_values(['user_id','session_id','timestamp','step'])
+    return df.sort_values(['user_id','session_id','timestamp','step']), new_rows_starting_index
 
 
 def create_dataset_for_regression(train_df, test_df, path):
@@ -196,9 +196,10 @@ def create_dataset_for_regression(train_df, test_df, path):
 
     # add the impressions as new interactions
     print('Adding impressions as new actions...')
-    train_df = add_impressions_columns_as_new_actions(train_df)
-    test_df = add_impressions_columns_as_new_actions(test_df)
+    train_df, final_new_index = add_impressions_columns_as_new_actions(train_df)
+    test_df, final_new_index = add_impressions_columns_as_new_actions(test_df, final_new_index)
     print('Done!')
+
     train_len = train_df.shape[0]
 
     # join train and test to one-hot correctly
@@ -249,7 +250,7 @@ def create_dataset_for_regression(train_df, test_df, path):
     del train_clickouts_indices
     del backup_train_reference_serie
     
-    test_df = full_sparse_df.tail(train_len)
+    test_df = full_sparse_df.iloc[train_len:]
     print('Saving test...', end=' ', flush=True)
     test_df.to_csv( os.path.join(path, 'X_test.csv'), float_format='%.4f')
     print('Done!')
