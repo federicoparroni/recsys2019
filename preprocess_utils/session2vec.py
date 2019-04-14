@@ -44,7 +44,7 @@ def df2vec(df, accomodations_df, path_to_save, row_indices_to_skip_features):
     """
     # save the references series and then set the reference to a negative number to skip join on that rows
     backup_reference_series = df.reference.copy()
-    df.at[row_indices_to_skip_features, 'reference'] = -1
+    df.at[row_indices_to_skip_features, 'reference'] = -9999
 
     # one-hot encoding of the accomodations features
     attributes_df = data.get_accomodations_one_hot()
@@ -212,56 +212,63 @@ def create_dataset_for_regression(train_df, test_df, path):
     print('One-hot encoding the dataset...')
     full_path = os.path.join(path, 'full_vec.csv')
     full_sparse_df, attributes_df, features_columns, one_hot_columns = df2vec(full_df, accomodations_df, full_path, full_clickouts_df.orig_index)
+    
+    print()
+    print('Resplitting train and test...')
 
-    # load the previous saved full sparse dataframe
-    # print(one_hot_columns)
-    # print(len(one_hot_columns))
-    # full_sparse_df = sparsedf.read(full_path, sparse_cols=one_hot_columns)
-    
     # set to 0 the features of the last-clickout rows
-    
     def post_join(chunk_df, data_dict):
         chunk_df.drop('item_id', axis=1, inplace=True)
+        chunk_df.drop('reference', axis=1, inplace=True)
         chunk_df = chunk_df.set_index('orig_index')
         
         # after the left join, the right columns are set to NaN for the non-joined rows, so we need to
         # set all the one-hot features to 0 for the non-reference rows and to re-cast to int64
         chunk_df[features_columns] = chunk_df[features_columns].fillna(value=0).astype(np.int8)
         return chunk_df
+    
     # resplit train and test and save them
+    
     train_df = full_sparse_df.head(train_len)
-    # train_labels_df = get_labels(train_df, features_columns)
     print('Saving train...', end=' ', flush=True)
     train_df.to_csv( os.path.join(path, 'X_train.csv'), float_format='%.4f')
     print('Done!')
+    train_df = train_df[['reference']].copy()
     # get the indices and references of the last clickout for each session: session_id | orig_index, reference
     train_clickouts_indices = list(set(train_df.index.values).intersection(full_clickouts_indices_set))
     train_clickouts_indices.sort()
-    train_clickouts_df = full_clickouts_df.loc[train_df.loc[train_clickouts_indices].session_id].sort_values('orig_index')
+    backup_train_reference_serie = train_df.loc[train_clickouts_indices].reference.copy()
+    # set the non-clickout rows to a negative number, in order to skip the join
+    train_df.reference = -9999
+    train_df.at[train_clickouts_indices, 'reference'] = backup_train_reference_serie
+    train_df = train_df.astype({'reference':int}).reset_index()
+    print('Saving train labels...')
+    sparsedf.left_join_in_chunks(train_df, attributes_df, left_on='reference', right_on='item_id',
+                                post_join_fn=post_join, path_to_save=os.path.join(path, 'Y_train.csv'))
     del train_df
     del train_clickouts_indices
-    print('Saving train labels...')
-    sparsedf.left_join_in_chunks(train_clickouts_df, attributes_df, left_on='reference', right_on='item_id',
-                                post_join_fn=post_join, path_to_save=os.path.join(path, 'Y_train.csv'))
-    # train_labels_df.to_csv(os.path.join(path, 'train_target.csv'))
-    del train_clickouts_df
+    del backup_train_reference_serie
     
     test_df = full_sparse_df.tail(train_len)
-    # test_labels_df = get_labels(test_df, features_columns)
     print('Saving test...', end=' ', flush=True)
     test_df.to_csv( os.path.join(path, 'X_test.csv'), float_format='%.4f')
     print('Done!')
+    test_df = test_df[['reference']].copy()
     # get the indices and references of the last clickout for each session: session_id | orig_index, reference
     test_clickouts_indices = list(set(test_df.index.values).intersection(full_clickouts_indices_set))
     test_clickouts_indices.sort()
-    test_clickouts_df = full_clickouts_df.loc[test_df.loc[test_clickouts_indices].session_id].sort_values('orig_index')
+    backup_test_reference_serie = test_df.loc[test_clickouts_indices].reference.copy()
+    # set the non-clickout rows to a negative number, in order to skip the join
+    test_df.reference = -9999
+    test_df.at[test_clickouts_indices, 'reference'] = backup_test_reference_serie
+    test_df = test_df.astype({'reference':int}).reset_index()
+    print('Saving test labels...')
+    sparsedf.left_join_in_chunks(test_df, attributes_df, left_on='reference', right_on='item_id',
+                                post_join_fn=post_join, path_to_save=os.path.join(path, 'Y_test.csv'))
     del test_df
     del test_clickouts_indices
-    print('Saving test labels...')
-    sparsedf.left_join_in_chunks(test_clickouts_df, attributes_df, left_on='reference', right_on='item_id',
-                                post_join_fn=post_join, path_to_save=os.path.join(path, 'Y_test.csv'))
-    # test_labels_df.to_csv(os.path.join(path, 'test_target.csv'))
-    del test_clickouts_df
+    del backup_test_reference_serie
+    
     
 
 
