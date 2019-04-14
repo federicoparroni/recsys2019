@@ -17,7 +17,7 @@ label is 1 in case the accomodation is the one clicked in the clickout
 """
 
 
-def build_dataset(mode, cluster='no_cluster'):
+def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
 
     # build the onehot of accomodations attributes
     def one_hot_of_accomodation(accomodations_df):
@@ -128,23 +128,25 @@ def build_dataset(mode, cluster='no_cluster'):
     def construct_features(df):
         dataset = df.groupby(['user_id', 'session_id']).progress_apply(func)
 
-        one_hot = pd.get_dummies(
+        if algo == 'xgboost':
+            one_hot = pd.get_dummies(dataset['device'])
+            missing = poss_devices - set(one_hot.columns)
+            for e in missing:
+                one_hot[e] = 0
+            dataset = dataset.drop(['device'], axis=1)
+            dataset = dataset.join(one_hot)
+
+            one_hot = pd.get_dummies(
             dataset['kind_action_reference_appeared_last_time'])
-        missing = poss_actions - set(one_hot.columns)
-        for e in missing:
-            one_hot[e] = 0
-        dataset = dataset.drop(
-            ['kind_action_reference_appeared_last_time'], axis=1)
-        dataset = dataset.join(one_hot)
+            missing = poss_actions - set(one_hot.columns)
+            for e in missing:
+                one_hot[e] = 0
+            dataset = dataset.drop(
+                ['kind_action_reference_appeared_last_time'], axis=1)
+            dataset = dataset.join(one_hot)
 
-        one_hot = pd.get_dummies(dataset['device'])
-        missing = poss_devices - set(one_hot.columns)
-        for e in missing:
-            one_hot[e] = 0
-        dataset = dataset.drop(['device'], axis=1)
-        dataset = dataset.join(one_hot)
-
-        one_hot = dataset['filters_when_clickout'].astype(str).str.get_dummies()
+        one_hot = dataset['filters_when_clickout'].astype(
+            str).str.get_dummies()
         missing = poss_filters - set(one_hot.columns)
         to_drop = set(one_hot.columns) - poss_filters
         for e in missing:
@@ -157,6 +159,8 @@ def build_dataset(mode, cluster='no_cluster'):
         dataset = dataset.reset_index().drop(['level_2'], axis=1)
         dataset = pd.merge(dataset, one_hot_accomodation, on=['item_id'])
 
+        dataset = dataset.drop(['item_id'], axis=1)
+
         return dataset
 
     train = data.train_df(mode=mode, cluster=cluster)
@@ -165,7 +169,7 @@ def build_dataset(mode, cluster='no_cluster'):
     target_user_id = test.loc[target_indices]['user_id'].values
     target_session_id = test.loc[target_indices]['session_id'].values
 
-    full = pd.concat([train, test])
+    full = pd.concat([train, test]).head(1000)
     del train
     del test
 
@@ -177,11 +181,12 @@ def build_dataset(mode, cluster='no_cluster'):
         poss_filters += f.split('|')
     poss_filters = set(poss_filters)
     poss_devices = set(list(full['device'].values))
-    poss_actions = set(['last_time_impression_appeared_as_' + x for x in full['action_type'].values])
+    poss_actions = set(['last_time_impression_appeared_as_' +
+                        x for x in full['action_type'].values])
 
     # build in chunk
     count_chunk = 0
-    chunk_size = 100000
+    chunk_size = 200000
     groups = full.groupby(np.arange(len(full))//chunk_size)
     for idxs, gr in groups:
         features = construct_features(gr)
@@ -192,13 +197,13 @@ def build_dataset(mode, cluster='no_cluster'):
 
         if count_chunk == 0:
             train.to_csv(
-                'dataset/preprocessed/{}/{}/classification_train.csv'.format(cluster, mode))
+                'dataset/preprocessed/{}/{}/classification_train_{}.csv'.format(cluster, mode, algo))
             test.to_csv(
-                'dataset/preprocessed/{}/{}/classification_test.csv'.format(cluster, mode))
+                'dataset/preprocessed/{}/{}/classification_test_{}.csv'.format(cluster, mode, algo))
         else:
-            with open('dataset/preprocessed/{}/{}/classification_train.csv'.format(cluster, mode), 'a') as f:
+            with open('dataset/preprocessed/{}/{}/classification_train_{}.csv'.format(cluster, mode, algo), 'a') as f:
                 train.to_csv(f, header=False)
-            with open('dataset/preprocessed/{}/{}/classification_test.csv'.format(cluster, mode), 'a') as f:
+            with open('dataset/preprocessed/{}/{}/classification_test_{}.csv'.format(cluster, mode, algo), 'a') as f:
                 test.to_csv(f, header=False)
 
         count_chunk += 1
@@ -206,4 +211,4 @@ def build_dataset(mode, cluster='no_cluster'):
 
 
 if __name__ == "__main__":
-    build_dataset(mode='local')
+    build_dataset(mode='small', algo='catboost')
