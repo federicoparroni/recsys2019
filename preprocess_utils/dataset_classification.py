@@ -128,6 +128,7 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
     def construct_features(df):
         dataset = df.groupby(['user_id', 'session_id']).progress_apply(func)
 
+        # if the algorithm is xgboost, get the onehot of all the features. otherwise leave it categorical
         if algo == 'xgboost':
             one_hot = pd.get_dummies(dataset['device'])
             missing = poss_devices - set(one_hot.columns)
@@ -169,7 +170,7 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
     target_user_id = test.loc[target_indices]['user_id'].values
     target_session_id = test.loc[target_indices]['session_id'].values
 
-    full = pd.concat([train, test]).head(1000)
+    full = pd.concat([train, test])
     del train
     del test
 
