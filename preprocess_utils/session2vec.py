@@ -14,8 +14,8 @@ import utils.menu as menu
 
 # ======== PRE-PROCESSING ========= #
 
-def get_accomodations_one_hot(accomodations_df):
-    """ Return a sparse dataframe with columns: item_id  |  feature1 | feature2 | feature3 | feature4... """
+def save_accomodations_one_hot(accomodations_df, path):
+    """ Save a sparse dataframe with columns: item_id  |  feature1 | feature2 | feature3 | feature4... """
     # one-hot encoding of the accomodations features
     item_ids = accomodations_df.item_id
     accomodations_df.properties = accomodations_df.properties.str.split('|')
@@ -28,6 +28,12 @@ def get_accomodations_one_hot(accomodations_df):
 
     # re-add item_id column to get: item_id  |  one_hot_features[...]
     attributes_df = pd.concat([item_ids, attributes_df], axis=1)
+
+    print('Saving one-hot accomodations...', end=' ', flush=True)
+    attributes_df.to_csv(path, index=False)
+    # with open('features1hot', 'w') as f:
+    #     pickle.dump(features_columns, f)
+    print('Done!')
     return attributes_df
 
 
@@ -36,13 +42,16 @@ def df2vec(df, accomodations_df, path_to_save, row_indices_to_skip_features):
     Add the features (one-hot) to the dataframe and save the resulting dataframe.
     Return the target columns and the one-hot columns that have been added to the dataframe
     """
-    # save the references series
-    backup_reference_series = df.reference #.copy()
+    # save the references series and then set the reference to a negative number to skip join on that rows
+    backup_reference_series = df.reference.copy()
+    df.at[row_indices_to_skip_features, 'reference'] = -1
 
     # one-hot encoding of the accomodations features
-    attributes_df = get_accomodations_one_hot(accomodations_df)
+    attributes_df = data.get_accomodations_one_hot()
     # accomodations features columns
     features_columns = attributes_df.drop('item_id', axis=1).columns
+    # with open(one_hot_accomodations_features_path, 'w') as f:
+    #     pickle.dump(features_columns, f)
 
     original_columns = set(df.columns)
     # substitute a dataframe column with its one-hot encoding derived columns
@@ -69,21 +78,6 @@ def df2vec(df, accomodations_df, path_to_save, row_indices_to_skip_features):
     one_hot_columns = after_one_hot_columns.difference(original_columns)
     one_hot_columns = list(one_hot_columns.union(set(features_columns)))
 
-    # save the accomodations df one-hot for later usage
-    one_hot_accomodations_path = 'dataset/preprocessed/accomodations_1hot.csv'
-    #one_hot_accomodations_features_path = 'dataset/preprocessed/accomodations_features.pkl'
-    def save_accomodations():
-        print('Saving one-hot encoded accomodations...', end=' ', flush=True)
-        attributes_df.to_csv(one_hot_accomodations_path, index=False)
-        # with open(one_hot_accomodations_features_path, 'w') as f:
-        #     pickle.dump(features_columns, f)
-        print('Done!')
-
-    if os.path.isfile(one_hot_accomodations_path):
-        menu.yesno_choice(title='One-hot accomodations csv is already present. Do you want to overwrite it?', callback_yes=save_accomodations)
-    else:
-        save_accomodations()
-    
     # join train and accomodations!
     print('Joining the accomodations features...')
     if os.path.isfile(path_to_save):
@@ -110,8 +104,9 @@ def df2vec(df, accomodations_df, path_to_save, row_indices_to_skip_features):
 
     print('Reloading full dataframe...')
     full_sparse_df = sparsedf.read(path_to_save, sparse_cols=one_hot_columns).set_index('orig_index')
-    full_sparse_df.reference = backup_reference_series
+    # reset the correct references from the backup
     print('Resaving with correct references...', end=' ', flush=True)
+    full_sparse_df.reference = backup_reference_series
     full_sparse_df.to_csv(path_to_save)
     print('Done!')
 

@@ -2,6 +2,7 @@ import pandas as pd
 import scipy.sparse as sps
 import numpy as np
 import pickle
+import os
 import dask.dataframe as ddf
 
 # original files
@@ -17,6 +18,7 @@ DICT_ROW_PATH = ['dataset/matrices/full/dict_row.npy', 'dataset/matrices/local/d
 DICT_COL_PATH = ['dataset/matrices/full/dict_col.npy', 'dataset/matrices/local/dict_col.npy', 'dataset/matrices/small/dict_col.npy']
 
 ITEMS_PATH = 'dataset/preprocessed/item_metadata.csv'
+ACCOMODATIONS_1HOT_PATH = 'dataset/preprocessed/accomodations_1hot.csv'
 
 # config file
 CONFIG_FILE_PATH = 'dataset/config.pkl'
@@ -161,6 +163,14 @@ def accomodations_original_df():
   if _df_original_items is None:
     _df_original_items = pd.read_csv(ITEMS_ORIGINAL_PATH)
   return _df_original_items
+
+def get_accomodations_one_hot():
+    if not os.path.isfile(ACCOMODATIONS_1HOT_PATH):
+        print('Accomodations one-hot not found! Creating it...')
+        import preprocess_utils.session2vec as sess2vec
+        sess2vec.save_accomodations_one_hot(accomodations_original_df(), ACCOMODATIONS_1HOT_PATH)
+    print('Loading accomodations one-hot...')
+    return pd.read_csv(ACCOMODATIONS_1HOT_PATH)
 
 # URM structures
 def urm(mode, cluster, type, urm_name='urm_clickout'):
