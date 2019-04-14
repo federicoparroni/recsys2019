@@ -92,9 +92,9 @@ def target_indices(mode, cluster='no_cluster'):
     _target_indices[path] = np.load(path)
   return _target_indices[path]
 
-def classification_train_df(mode, sparse=True, cluster='no_cluster'):
+def classification_train_df(mode, sparse=True, cluster='no_cluster', algo='xgboost'):
   global _df_classification_train
-  path = 'dataset/preprocessed/{}/{}/classification_train.csv'.format(cluster, mode)
+  path = 'dataset/preprocessed/{}/{}/classification_train_{}.csv'.format(cluster, mode, algo)
   if sparse:
     tot_path = path + 'dense'
   else:
@@ -112,9 +112,9 @@ def classification_train_df(mode, sparse=True, cluster='no_cluster'):
 
   return _df_classification_train[tot_path]
 
-def classification_test_df(mode, sparse=True, cluster='no_cluster'):
+def classification_test_df(mode, sparse=True, cluster='no_cluster', algo='xgboost'):
   global _df_classification_test
-  path = 'dataset/preprocessed/{}/{}/classification_test.csv'.format(cluster, mode)
+  path = 'dataset/preprocessed/{}/{}/classification_test_{}.csv'.format(cluster, mode, algo)
   if sparse:
     tot_path = path + 'dense'
   else:
