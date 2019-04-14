@@ -97,11 +97,11 @@ class RecommenderBase(ABC):
         """
         assert (self.mode == 'local' or self.mode == 'small')
 
-        full_df = data.full_df()
+        train_df = data.train_df("full")
 
         target_indices, recs = zip(*predictions)
         target_indices = list(target_indices)
-        correct_clickouts = full_df.loc[target_indices].reference.values
+        correct_clickouts = train_df.loc[target_indices].reference.values
         len_rec = len(recs)
         
         RR = 0

@@ -1,6 +1,7 @@
 from clusterize.clusterize_base import ClusterizeBase
 import data
 
+
 class NumericReferenceOneStepBeforeMissingClk(ClusterizeBase):
 
     """
@@ -28,7 +29,7 @@ class NumericReferenceOneStepBeforeMissingClk(ClusterizeBase):
             return False
 
     def _fit(self, mode):
-        self.train_indices = data.train_indices(mode)
+        self.train_indices = data.train_df(mode).index.values
         
         df = data.test_df(mode)
         self.test_indices = df.index.values
@@ -59,4 +60,4 @@ class NumericReferenceOneStepBeforeMissingClk(ClusterizeBase):
 
 if __name__ == '__main__':
     obj = NumericReferenceOneStepBeforeMissingClk()
-    obj.save('local')
+    obj.save('small')
