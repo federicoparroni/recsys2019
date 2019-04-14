@@ -17,6 +17,7 @@ class RecommenderBase(ABC):
         self.name = name
         self.mode = mode
         self.cluster = cluster
+        self.weight_per_position = None
 
     @abstractmethod
     def fit(self):
@@ -43,8 +44,16 @@ class RecommenderBase(ABC):
         """
         pass
 
-
-
+    def set_weight_per_position(self, list_weight):
+        """
+        Set list values for weight_per_position parameter of recommenders.
+        It is used for hybridation purposes.
+        It is None when scores per position are given by a similarity matrix
+        (such as what happens with DistanceBasedRecommenders.
+        """
+        if len(list_weight)>25:
+            print("The list has lenght > 25. It will be cut")
+        self.weight_per_position = list_weight[:25]
 
     def run(self):
         """

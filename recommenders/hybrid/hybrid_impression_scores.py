@@ -69,7 +69,6 @@ class HybridImpressionScores(Hybrid):
 
         target_indices = data.target_indices(self.mode, self.cluster)
 
-
         #Initialize list for dict containing scores of imoressions
         for s_target in target_indices:
             self.dict_scores[s_target] = {}
