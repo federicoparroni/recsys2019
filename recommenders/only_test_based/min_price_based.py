@@ -4,9 +4,6 @@ import data
 from recommenders.recommender_base import RecommenderBase
 
 
-scores_impressions = [1, 0.75, 0.5, 0.33, 0.25,  0.2, 0.15, 0.125, 0.1,
-                      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-
 class MinPriceRecommender(RecommenderBase):
     """
     It recommends all impressions for each session ordered by
@@ -17,6 +14,7 @@ class MinPriceRecommender(RecommenderBase):
     min_price3: 0.5
     ...
     """
+
     def __init__(self, mode, cluster='no_cluster'):
 
         name = 'Ordered Impressions recommender'
@@ -24,7 +22,8 @@ class MinPriceRecommender(RecommenderBase):
 
         self.mode = mode
 
-
+        self.weight_per_position = [1, 0.75, 0.5, 0.33, 0.25, 0.2, 0.15, 0.125, 0.1,
+                                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
     def fit(self):
         """
@@ -37,7 +36,7 @@ class MinPriceRecommender(RecommenderBase):
 
         df_test_target = df_test[df_test.index.isin(target_indices)]
 
-        #Initializing list of recs
+        # Initializing list of recs
         recs_tuples = []
 
         for i in tqdm(df_test_target.index):
@@ -61,7 +60,6 @@ class MinPriceRecommender(RecommenderBase):
 
         return recs_tuples
 
-
     def recommend_batch(self):
         return self.recs_batch
 
@@ -71,6 +69,6 @@ class MinPriceRecommender(RecommenderBase):
         recs_scores_batch = []
         print("{}: getting the model scores".format(self.name))
         for tuple in recs_batch:
-            recs_scores_batch.append((tuple[0], tuple[1], scores_impressions[:len(tuple[1])]))
+            recs_scores_batch.append((tuple[0], tuple[1], self.weight_per_position[:len(tuple[1])]))
 
         return recs_scores_batch

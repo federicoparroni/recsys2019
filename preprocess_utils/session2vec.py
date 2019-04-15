@@ -121,10 +121,10 @@ def get_last_clickout(df, index_name=None, rename_index=None):
             return None
         
         last_clickout_row = clickouts.iloc[-1]
-        if index_name is None:
+        if index_name is None or rename_index is None:
             return pd.Series({'reference': last_clickout_row.reference})
         else:
-            return pd.Series({rename_index: last_clickout_row[index_name], 'reference': last_clickout_row.reference}) if clickouts.shape[0] > 0 else None
+            return pd.Series({rename_index: last_clickout_row[index_name], 'reference': last_clickout_row.reference})
     
     cols = ['session_id','action_type','reference']
     if index_name is not None:
@@ -201,18 +201,22 @@ def create_dataset_for_regression(train_df, test_df, path):
     print('Done!')
 
     train_len = train_df.shape[0]
+    test_len = test_df.shape[0]
 
     # join train and test to one-hot correctly
     full_df = pd.concat([train_df, test_df])
 
     print('Getting the last clickout of each session...')
-    full_clickouts_df = get_last_clickout(full_df, index_name='index', rename_index='orig_index')
-    full_clickouts_indices_set = set(full_clickouts_df.orig_index.values)
+    train_clickouts_df = get_last_clickout(train_df, index_name='index', rename_index='orig_index')
+    train_clickouts_indices = train_clickouts_df.orig_index.values
+    train_clickouts_indices.sort()
+    #full_clickouts_df = get_last_clickout(full_df, index_name='index', rename_index='orig_index')
+    #full_clickouts_indices_set = set(full_clickouts_df.orig_index.values)
     print('Done!')
 
     print('One-hot encoding the dataset...')
     full_path = os.path.join(path, 'full_vec.csv')
-    full_sparse_df, attributes_df, features_columns, one_hot_columns = df2vec(full_df, accomodations_df, full_path, full_clickouts_df.orig_index)
+    full_sparse_df, attributes_df, features_columns, one_hot_columns = df2vec(full_df, accomodations_df, full_path, train_clickouts_indices)
     
     print()
     print('Resplitting train and test...')
@@ -236,8 +240,8 @@ def create_dataset_for_regression(train_df, test_df, path):
     print('Done!')
     train_df = train_df[['reference']].copy()
     # get the indices and references of the last clickout for each session: session_id | orig_index, reference
-    train_clickouts_indices = list(set(train_df.index.values).intersection(full_clickouts_indices_set))
-    train_clickouts_indices.sort()
+    #train_clickouts_indices = list(set(train_df.index.values).intersection(full_clickouts_indices_set))
+    #train_clickouts_indices.sort()
     backup_train_reference_serie = train_df.loc[train_clickouts_indices].reference.copy()
     # set the non-clickout rows to a negative number, in order to skip the join
     train_df.reference = -9999
@@ -250,10 +254,12 @@ def create_dataset_for_regression(train_df, test_df, path):
     del train_clickouts_indices
     del backup_train_reference_serie
     
-    test_df = full_sparse_df.iloc[train_len:]
+    test_df = full_sparse_df.tail(test_len)
     print('Saving test...', end=' ', flush=True)
     test_df.to_csv( os.path.join(path, 'X_test.csv'), float_format='%.4f')
     print('Done!')
+    # THESE LINES BELOW SAVE THE TEST LABELS (REFERENCES OF TEST.CSV), BUT THEY ARE NONE!
+    """
     test_df = test_df[['reference']].copy()
     # get the indices and references of the last clickout for each session: session_id | orig_index, reference
     test_clickouts_indices = list(set(test_df.index.values).intersection(full_clickouts_indices_set))
@@ -269,6 +275,7 @@ def create_dataset_for_regression(train_df, test_df, path):
     del test_df
     del test_clickouts_indices
     del backup_test_reference_serie
+    """
     
     
 
