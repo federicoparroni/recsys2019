@@ -44,15 +44,12 @@ def get_reciprocal_ranks(ps):
 def score_submissions(subm_csv, gt_csv, objective_function, subm_csv_is_file=True):
     """Score submissions with given objective function."""
 
-    print(f"Reading ground truth data {gt_csv} ...")
     df_gt = read_into_df(gt_csv)
 
 
     if subm_csv_is_file == True:
-        print(f"Reading submission data {subm_csv} ...")
         df_subm = read_into_df(subm_csv)
     else:
-        print("Reading submission data...")
         df_subm = subm_csv.set_index(['user_id', 'session_id', 'timestamp', 'step'])
 
     # create dataframe containing the ground truth to target rows
