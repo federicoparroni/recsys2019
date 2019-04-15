@@ -32,3 +32,6 @@ validation_result/
 models/
 
 recommenders/notebooks/Xgboost_dataset/
+catboost_info/
+
+recommenders/recurrent/checkpoints

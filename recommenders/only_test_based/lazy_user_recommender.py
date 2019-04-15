@@ -3,6 +3,7 @@ import pandas as pd
 from tqdm import tqdm
 
 import data
+
 from recommenders.recommender_base import RecommenderBase
 
 class LazyUserRecommender(RecommenderBase):
@@ -16,11 +17,13 @@ class LazyUserRecommender(RecommenderBase):
                     local 0.643
     '''
 
+
     def __init__(self, mode, cluster='no_cluster', time_delay_treshold = 5000, weight_per_position = [1] * 25):
         name = 'Lazy User Recommender'
         super(LazyUserRecommender, self).__init__(mode, cluster, name)
         self.time_delay_treshold = time_delay_treshold
-        self.weight_per_position = weight_per_position
+        self.weight_per_position = [53.59, 9.714, 4.38, 2.17, 1.64,  0.58, 0.22, 0.16,
+                       0.105, 0.09, 0.07, 0.6, 0.5, 0.3, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
 
     def fit(self):
         df_test = data.test_df(self.mode, cluster=self.cluster)
