@@ -1,19 +1,36 @@
-import sys
-import os
-
 import pandas as pd
-
-sys.path.append(os.getcwd())
-
 import data
-
 from clusterize.clusterize_base import ClusterizeBase
+from tqdm.auto import tqdm
+
+tqdm.pandas()
+
 
 class ClusterSessionsWithoutNumericalReferences(ClusterizeBase):
 
     def __init__(self):
         super(ClusterSessionsWithoutNumericalReferences, self).__init__()
         self.name = 'cluster_sessions_no_numerical_reference'
+
+    def func_remove_steps_over_clk(self, x):
+        y = x[x['action_type'] == 'clickout item']
+
+        clk = y.tail(1)
+
+        if len(y) == 1 and (x[pd.to_numeric(x['reference'], errors='coerce').notnull()].shape[0] == 1):
+            # keep only sessions until last clickout
+            x = x[x["step"] <= int(clk["step"])]
+            return pd.DataFrame(x)
+
+    def func_remove_steps_over_clk_test(self, x):
+        y = x[x['action_type'] == 'clickout item']
+
+        clk = y.tail(1)
+
+        if len(y) == 1 and (x[pd.to_numeric(x['reference'], errors='coerce').notnull()].shape[0] == 0):
+            # keep only sessions until last clickout
+            x = x[x["step"] <= int(clk["step"])]
+            return pd.DataFrame(x)
 
     def _fit(self, mode):
         """
@@ -24,27 +41,40 @@ class ClusterSessionsWithoutNumericalReferences(ClusterizeBase):
         self.target_indices: will contain the test interactions of sessions without
                             any other numerical reference interaction
         """
-        # use all interactions for training
-        self.train_indices = data.train_df(mode).index.values
+        # use only train of only cluster
+        train = data.train_df(mode)
+        train_groups = train.groupby(['session_id', 'user_id'], as_index=False).progress_apply(
+            self.func_remove_steps_over_clk)
 
-        test_df = data.test_df(mode)
-        self.test_indices = test_df.index.values
+        self.train_indices = [x[1] for x in train_groups.index.values]
 
-        # take only sessions without any numerical reference interactions except the clickout
-        x = test_df.groupby(['session_id','user_id'])
+        # Those are groups of train I need, now let's keep only last clickout as part of the session
 
-        test_df = x.filter(lambda x: (x[x['action_type'] == 'clickout item'].shape[0] == 1) & (x[pd.to_numeric(x['reference'], errors='coerce').notnull()].shape[0] == 0))
+        test = data.test_df(mode)
+
+        test_groups = test.groupby(['session_id', 'user_id'], as_index=False).progress_apply(
+            self.func_remove_steps_over_clk_test)
+
+        # Getting target indices of test
+        self.test_indices = [x[1] for x in test_groups.index.values]
+
+        x = test.groupby(['session_id', 'user_id'])
+
+        # Getting as test only sessions with no numeric interaction
+        test_df = x.filter(lambda x: (x[x['action_type'] == 'clickout item'].shape[0] == 1) & (
+                    x[pd.to_numeric(x['reference'], errors='coerce').notnull()].shape[0] == 0))
 
         if test_df.shape[0] > 0:
             self.target_indices = test_df[test_df.action_type == 'clickout item'].index.values
+            # test_df has only those indices belonging to desired sessions cluster
+            self.test_indices = test_df.index.values
 
-        print(self.target_indices)
 
 if __name__ == '__main__':
     import utils.menu as menu
 
     obj = ClusterSessionsWithoutNumericalReferences()
-    
+
     mode = menu.mode_selection()
-    
+
     obj.save(mode)

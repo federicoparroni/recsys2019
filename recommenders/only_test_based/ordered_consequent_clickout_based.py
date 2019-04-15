@@ -10,9 +10,6 @@ import data
 
 from recommenders.recommender_base import RecommenderBase
 
-scores_interactions = [1, 0.75, 0.5, 0.33, 0.25,  0.2, 0.15, 0.125,
-                       0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
-                       0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.2]
 
 class OrderedConsequentClickoutRecommender(RecommenderBase):
     """
@@ -25,13 +22,15 @@ class OrderedConsequentClickoutRecommender(RecommenderBase):
     most_recent3: 0.5
     ...
     """
-    def __init__(self, mode, cluster='no_cluster', filter_only_last_clickout = True):
+
+    def __init__(self, mode, cluster='no_cluster', filter_only_last_clickout=True):
         name = 'Ordered consequent clickout recommender'
         super(OrderedConsequentClickoutRecommender, self).__init__(mode, cluster, name)
         self.filter_only_last_clickout = filter_only_last_clickout
 
-
-
+        self.weight_per_position = [1, 0.75, 0.5, 0.33, 0.25, 0.2, 0.15, 0.125,
+                                    0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+                                    0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.2]
 
     """ Reorder the array of elements starting from the last_elem 
         e.g.
@@ -40,6 +39,7 @@ class OrderedConsequentClickoutRecommender(RecommenderBase):
 
         returns None if element is not found
     """
+
     def order_by_last_interaction(self, impressions, last_el):
         if last_el not in impressions:
             return impressions
@@ -48,7 +48,6 @@ class OrderedConsequentClickoutRecommender(RecommenderBase):
         for _ in range(index):
             impressions.append(impressions.pop(0))
 
-
         return impressions
 
     def fit(self):
@@ -56,7 +55,6 @@ class OrderedConsequentClickoutRecommender(RecommenderBase):
         df_test = data.test_df(self.mode, cluster=self.cluster)
 
         print("{}: creating grouped sessions with interaction lists".format(self.name))
-
 
         test_co_references = df_test[pd.to_numeric(df_test['reference'], errors='coerce').notnull()]
 
@@ -68,12 +66,12 @@ class OrderedConsequentClickoutRecommender(RecommenderBase):
 
         session_groups = self.get_groupby_sessions_references(test_co_references)
 
-
         if self.filter_only_last_clickout:
-            #Select only sessions with final clickout
+            # Select only sessions with final clickout
             session_groups = session_groups[session_groups["sequence"].apply(lambda x: x[-1][-1] == "o")]
 
-        print("{}: number of sessions with final clickout right before missing reference is {}".format(self.name, len(session_groups)))
+        print("{}: number of sessions with final clickout right before missing reference is {}".format(self.name, len(
+            session_groups)))
 
         # Getting target sessions
         target_indices = data.target_indices(self.mode, self.cluster)
@@ -93,7 +91,7 @@ class OrderedConsequentClickoutRecommender(RecommenderBase):
         print("{}: fitting the model".format(self.name))
         for i in tqdm(df_test.index):
 
-            if i+1 == target_indices_copy[0]:
+            if i + 1 == target_indices_copy[0]:
                 curr_impr = df_test_target.at[i, "impressions"]
                 curr_tm = df_test_target.at[i, "timestamp"]
                 prev_impr = curr_impr
@@ -104,7 +102,7 @@ class OrderedConsequentClickoutRecommender(RecommenderBase):
                     target_indices_copy = np.delete(target_indices_copy, np.argwhere(target_indices_copy == i))
             else:
                 if i == target_indices_copy[0]:
-                    target_indices_copy = np.delete(target_indices_copy, np.argwhere(target_indices_copy==i))
+                    target_indices_copy = np.delete(target_indices_copy, np.argwhere(target_indices_copy == i))
                     curr_impr = df_test_target.at[i, "impressions"]
                     curr_tm = df_test_target.at[i, "timestamp"]
 
@@ -113,14 +111,14 @@ class OrderedConsequentClickoutRecommender(RecommenderBase):
 
                         recs_tuples.append((i, []))
                     else:
-                        #Get last clickout element of session without "co"
+                        # Get last clickout element of session without "co"
                         last_interacted = session_groups.at[self.dictionary_indices.get(i), "sequence"][-1][:-2]
 
                         impressions = df_test_target.at[i, "impressions"].split("|")
 
                         real_recommended = np.asarray(self.order_by_last_interaction(impressions, last_interacted))
 
-                        #Reorder impressions from last_interacted and so on:
+                        # Reorder impressions from last_interacted and so on:
                         real_recommended = real_recommended.astype(np.int)
 
                         considered += 1
@@ -128,7 +126,6 @@ class OrderedConsequentClickoutRecommender(RecommenderBase):
 
         print("Considered sessions are {}".format(considered))
         self.recs_batch = recs_tuples
-
 
     def recommend_batch(self):
         return self.recs_batch
@@ -139,10 +136,9 @@ class OrderedConsequentClickoutRecommender(RecommenderBase):
         recs_scores_batch = []
         print("{}: getting the model scores".format(self.name))
         for tuple in recs_batch:
-            recs_scores_batch.append((tuple[0], tuple[1], scores_interactions[:len(tuple[1])]))
+            recs_scores_batch.append((tuple[0], tuple[1], self.weight_per_position[:len(tuple[1])]))
 
         return recs_scores_batch
-
 
     def get_groupby_sessions_references(self, df_test):
         """
@@ -150,10 +146,11 @@ class OrderedConsequentClickoutRecommender(RecommenderBase):
         :param df_test: dataframe containing test sessions
         :return: dataframe with grouped interactions
         """
-        #Leave only numeric references
+        # Leave only numeric references
         df_test = df_test[pd.to_numeric(df_test['reference'], errors='coerce').notnull()]
 
-        df_test.loc[df_test.action_type == 'clickout item', 'reference'] = df_test.loc[df_test.action_type == 'clickout item', 'reference'] + "co"
+        df_test.loc[df_test.action_type == 'clickout item', 'reference'] = df_test.loc[
+                                                                               df_test.action_type == 'clickout item', 'reference'] + "co"
 
         df_test = df_test.drop(["action_type", "impressions"], axis=1)
         groups = df_test.groupby(['session_id'])

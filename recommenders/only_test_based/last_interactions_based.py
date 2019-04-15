@@ -10,8 +10,6 @@ import data
 
 from recommenders.recommender_base import RecommenderBase
 
-scores_interactions = [53.59, 6.714, 2.38, 1.17, 0.64,  0.38, 0.22, 0.16,
-                       0.105, 0.09, 0.07, 0.6, 0.5, 0.3, 0.1]
 
 class LatestInteractionsRecommender(RecommenderBase):
     """
@@ -24,10 +22,14 @@ class LatestInteractionsRecommender(RecommenderBase):
     most_recent3: 0.5
     ...
     """
-    def __init__(self, mode, cluster='no_cluster', k_first_only_to_recommend = 15):
+
+    def __init__(self, mode, cluster='no_cluster', k_first_only_to_recommend=15):
         name = 'Last Interactions recommender'
         super(LatestInteractionsRecommender, self).__init__(mode, cluster, name)
         self.k_first_only_to_recommend = k_first_only_to_recommend
+
+        self.weight_per_position = [53.59, 6.714, 2.38, 1.17, 0.64, 0.38, 0.22, 0.16,
+                                    0.105, 0.09, 0.07, 0.6, 0.5, 0.3, 0.1]
 
     def _set_no_reordering(self, seq):
         """
@@ -49,10 +51,10 @@ class LatestInteractionsRecommender(RecommenderBase):
 
         df_test_target = df_test[df_test.index.isin(target_indices)]
 
-        #I must reason with session_ids since i'm interested in getting last interactions of same session
+        # I must reason with session_ids since i'm interested in getting last interactions of same session
         df_test_target = df_test_target.set_index("session_id")
 
-        #then i create a dictionary for re-mapping session into indices
+        # then i create a dictionary for re-mapping session into indices
         if len(df_test_target.index) != len(target_indices):
             print("Indices not same lenght of sessions, go get some coffee...")
             return
@@ -86,10 +88,10 @@ class LatestInteractionsRecommender(RecommenderBase):
 
                 real_recommended = real_recommended.astype(np.int)
 
-                recs_tuples.append((self.dictionary_indices.get(i), list(real_recommended)[:self.k_first_only_to_recommend]))
+                recs_tuples.append(
+                    (self.dictionary_indices.get(i), list(real_recommended)[:self.k_first_only_to_recommend]))
 
         self.recs_batch = recs_tuples
-
 
     def recommend_batch(self):
         return self.recs_batch
@@ -100,10 +102,9 @@ class LatestInteractionsRecommender(RecommenderBase):
         recs_scores_batch = []
         print("{}: getting the model scores".format(self.name))
         for tuple in recs_batch:
-            recs_scores_batch.append((tuple[0], tuple[1], scores_interactions[:len(tuple[1])]))
+            recs_scores_batch.append((tuple[0], tuple[1], self.weight_per_position[:len(tuple[1])]))
 
         return recs_scores_batch
-
 
     def get_groupby_sessions_references(self, df_test):
         """
@@ -112,7 +113,7 @@ class LatestInteractionsRecommender(RecommenderBase):
         :return: dataframe with grouped interactions
         """
 
-        #Leave only numeric references
+        # Leave only numeric references
         df_test = df_test[pd.to_numeric(df_test['reference'], errors='coerce').notnull()]
         df_test = df_test.drop(["action_type", "impressions"], axis=1)
         groups = df_test.groupby(['session_id'])
