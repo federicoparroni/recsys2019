@@ -121,10 +121,10 @@ def get_last_clickout(df, index_name=None, rename_index=None):
             return None
         
         last_clickout_row = clickouts.iloc[-1]
-        if index_name is None:
+        if index_name is None or rename_index is None:
             return pd.Series({'reference': last_clickout_row.reference})
         else:
-            return pd.Series({rename_index: last_clickout_row[index_name], 'reference': last_clickout_row.reference}) if clickouts.shape[0] > 0 else None
+            return pd.Series({rename_index: last_clickout_row[index_name], 'reference': last_clickout_row.reference})
     
     cols = ['session_id','action_type','reference']
     if index_name is not None:
@@ -201,6 +201,7 @@ def create_dataset_for_regression(train_df, test_df, path):
     print('Done!')
 
     train_len = train_df.shape[0]
+    test_len = test_df.shape[0]
 
     # join train and test to one-hot correctly
     full_df = pd.concat([train_df, test_df])
@@ -250,10 +251,12 @@ def create_dataset_for_regression(train_df, test_df, path):
     del train_clickouts_indices
     del backup_train_reference_serie
     
-    test_df = full_sparse_df.iloc[train_len:]
+    test_df = full_sparse_df.tail(test_len)
     print('Saving test...', end=' ', flush=True)
     test_df.to_csv( os.path.join(path, 'X_test.csv'), float_format='%.4f')
     print('Done!')
+    # THESE LINES BELOW SAVE THE TEST LABELS (REFERENCES OF TEST.CSV), BUT THEY ARE NONE!
+    """
     test_df = test_df[['reference']].copy()
     # get the indices and references of the last clickout for each session: session_id | orig_index, reference
     test_clickouts_indices = list(set(test_df.index.values).intersection(full_clickouts_indices_set))
@@ -269,6 +272,7 @@ def create_dataset_for_regression(train_df, test_df, path):
     del test_df
     del test_clickouts_indices
     del backup_test_reference_serie
+    """
     
     
 
