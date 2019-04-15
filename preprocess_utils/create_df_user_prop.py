@@ -1,13 +1,9 @@
 import numpy as np
-from sklearn.preprocessing import MultiLabelBinarizer
 import data
 import pandas as pd
 from tqdm.auto import tqdm
 tqdm.pandas()
 
-import os
-os.chdir("../")
-print(os.getcwd())
 
 """
 creates train and test dataframe that can be used for classification,
@@ -28,9 +24,9 @@ def build_user_prop(mode, cluster='no_cluster'):
         y = x[(x['action_type'] == 'clickout item')]
 
         # features
-        features = {'avg price interacted items': 0, 'avg position asc price interacted items': 0,
+        features = {'avg price': 0, 'avg cheap position': 0, 'avg time per step': 0,
                     'session avg length': 0, 'session avg steps': 0, 'session num': 0,
-                    'mobile perc': 0, 'tablet perc': 0, 'desktop perc': 0, 'filters_when_clickout': '',
+                    'mobile perc': 0, 'tablet perc': 0, 'desktop perc': 0, 'filters_during_session': '',
                     'num change of sort order session': 0, 'num clickout item session': 0,
                     'num filter selection session': 0, 'num interaction item deals session': 0,
                     'num interaction item image session': 0, 'num interaction item info session': 0,
@@ -40,16 +36,21 @@ def build_user_prop(mode, cluster='no_cluster'):
         # Compute avg lenght of session in seconds (OSS: not considering session ending at last clickout!)
         session_grouped = x.groupby("session_id")
         get_lenght_sum = 0
+        step_count = 0
+
         for name, group in session_grouped:
-            get_lenght_sum += int(group.tail(1)['timestamp'].values[0]) - int(group.head(1)['timestamp'].values[0])
+            tail_temp = group.tail(1)
+            get_lenght_sum += int(tail_temp['timestamp'].values[0]) - int(group.head(1)['timestamp'].values[0])
+            step_count += int(tail_temp['step'])
 
         # Compure avg steps in a session (OSS: not considering session ending at last clickout!)
         user_sessions = set(x['session_id'].values)
-        features['session avg steps'] = round(len(x) / len(user_sessions) , 2)
-
+        avg_steps = round( step_count / len(user_sessions), 2)
+        features['session avg steps'] = avg_steps
         features['session num'] = len(user_sessions)
-
-        features['session_avg_length'] = round(get_lenght_sum / len(user_sessions), 2)
+        avg_length = round(get_lenght_sum / len(user_sessions), 2)
+        features['session avg length'] = avg_length
+        features['avg time per step'] = round(avg_length / avg_steps, 2)
 
         # Computing types of non_numeric actions performed by that user in the past
         actions = list(x['action_type'].values)
@@ -63,7 +64,6 @@ def build_user_prop(mode, cluster='no_cluster'):
         x = x.drop_duplicates()
 
         if len(y) > 0:
-
             # Builld a record of interacted price of items only when available:
             impressions_prices_available = y[y['impressions'] != None][["impressions", "prices"]].drop_duplicates()
             # [13, 43, 4352, 543, 345, 3523] impressions
@@ -106,34 +106,46 @@ def build_user_prop(mode, cluster='no_cluster'):
                     count_interacted += 1
 
             if count_interacted > 0:
-                features['avg price interacted items'] = round(sum_price / count_interacted , 2)
-                features['avg position asc price interacted items'] = round(sum_pos_price / count_interacted , 2)
+                features['avg price'] = round(sum_price / count_interacted, 2)
+                features['avg cheap position'] = round(sum_pos_price / count_interacted, 2)
+            else:
+                features['avg price'] = -1
+                features['avg cheap position'] = -1
 
             # Device percentages features
             tot_clks = len(y)
-            features['mobile perc'] = round(y[y.device == "mobile"].shape[0] / tot_clks , 2)
-            features['tablet perc'] = round(y[y.device == "tablet"].shape[0] / tot_clks , 2)
-            features['desktop perc'] = round(y[y.device == "desktop"].shape[0] / tot_clks , 2)
+            features['mobile perc'] = round(y[y.device == "mobile"].shape[0] / tot_clks, 2)
+            features['tablet perc'] = round(y[y.device == "tablet"].shape[0] / tot_clks, 2)
+            features['desktop perc'] = round(y[y.device == "desktop"].shape[0] / tot_clks, 2)
+
+
 
             # Getting used filters during past clickouts (except during clickout to predict!), then they will be one_hotted
             y_filters = y[(y.current_filters != None) & (y.reference != None)]
             for i in y_filters.index:
-                features['filters_when_clickout'] += str(y_filters.at[i, 'current_filters']) + "|"
+                features['filters_during_session'] += str(y_filters.at[i, 'current_filters']) + "|"
+
+            x_activating_filters = x[(x.action_type == "filter selection")]
+            for i in x_activating_filters.index:
+                features['filters_during_session'] += str(x_activating_filters.at[i, 'reference']) + "|"
+
 
         return pd.DataFrame.from_records([features])
 
     def construct_features(df):
         dataset = df.groupby(['user_id']).progress_apply(func)
 
-        one_hot = dataset['filters_when_clickout'].astype(str).str.get_dummies()
+        one_hot = dataset['filters_during_session'].astype(str).str.get_dummies()
+
         missing = poss_filters - set(one_hot.columns)
 
         to_drop = set(one_hot.columns) - poss_filters
+
         for e in missing:
             one_hot[e] = 0
         for e in to_drop:
             one_hot = one_hot.drop([e], axis=1)
-        dataset = dataset.drop(['filters_when_clickout'], axis=1)
+        dataset = dataset.drop(['filters_during_session'], axis=1)
         dataset = dataset.join(one_hot)
 
         return dataset
@@ -147,7 +159,8 @@ def build_user_prop(mode, cluster='no_cluster'):
 
         # get clickout of train and merge metadata of the hotel
         train_df = full_df[full_df["user_id"].isin(users)]
-        train_df = train_df[(train_df["action_type"] == "clickout item") & (pd.to_numeric(train_df['reference'], errors='coerce').notnull())]
+        train_df = train_df[(train_df["action_type"] == "clickout item") & (
+            pd.to_numeric(train_df['reference'], errors='coerce').notnull())]
 
         train_df.drop(
             ["session_id", "timestamp", "step", "action_type", "platform", "city", "device", "current_filters",
@@ -162,7 +175,7 @@ def build_user_prop(mode, cluster='no_cluster'):
 
         train_df = train_df.drop(["reference", "item_id"], axis=1)
 
-        print("Finishing binaryzing, now summing...")
+        print("Finishing binaryzing, now summing and getting user favorite properties of hotels...")
 
         out_df = train_df.groupby('user_id')[train_df.columns[2:]].sum()
         return out_df
@@ -185,10 +198,13 @@ def build_user_prop(mode, cluster='no_cluster'):
 
     user_fav_filters = get_user_favorite_filters(full, target_user_id)
 
-    #Add suffix in order to distinguish hotel properties from user filters
-    user_fav_filters.columns = [str(col) + '_hotelProp' for col in user_fav_filters.columns]
+    # Add suffix in order to distinguish hotel properties from user filters
+    user_fav_filters.columns = [str(col) + '_hotel' for col in user_fav_filters.columns]
 
     user_fav_filters.reset_index(inplace=True)
+
+    #Remove duplicate before processing
+    full.drop_duplicates(subset=["user_id", "session_id", "action_type", "reference"], inplace=True)
 
     # build in chunk
     count_chunk = 0
@@ -202,7 +218,9 @@ def build_user_prop(mode, cluster='no_cluster'):
         features.reset_index(inplace=True)
 
         outcome = pd.merge(features, user_fav_filters, how='outer', left_on="user_id", right_on="user_id")
+
         outcome.drop(["level_1", outcome.columns.values[-1]], axis=1, inplace=True)
+
         outcome.fillna(0, inplace=True)
 
         if count_chunk == 0:
