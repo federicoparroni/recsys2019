@@ -24,7 +24,7 @@ def build_user_prop(mode, cluster='no_cluster'):
         y = x[(x['action_type'] == 'clickout item')]
 
         # features
-        features = {'avg price': 0, 'avg cheap position': 0,
+        features = {'avg price': 0, 'avg cheap position': 0, 'avg time per step': 0,
                     'session avg length': 0, 'session avg steps': 0, 'session num': 0,
                     'mobile perc': 0, 'tablet perc': 0, 'desktop perc': 0, 'filters_during_session': '',
                     'num change of sort order session': 0, 'num clickout item session': 0,
@@ -45,9 +45,12 @@ def build_user_prop(mode, cluster='no_cluster'):
 
         # Compure avg steps in a session (OSS: not considering session ending at last clickout!)
         user_sessions = set(x['session_id'].values)
-        features['session avg steps'] = round( step_count / len(user_sessions), 2)
+        avg_steps = round( step_count / len(user_sessions), 2)
+        features['session avg steps'] = avg_steps
         features['session num'] = len(user_sessions)
-        features['session avg length'] = round(get_lenght_sum / len(user_sessions), 2)
+        avg_length = round(get_lenght_sum / len(user_sessions), 2)
+        features['session avg length'] = avg_length
+        features['avg time per step'] = round(avg_length / avg_steps, 2)
 
         # Computing types of non_numeric actions performed by that user in the past
         actions = list(x['action_type'].values)
