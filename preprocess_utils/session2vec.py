@@ -207,13 +207,16 @@ def create_dataset_for_regression(train_df, test_df, path):
     full_df = pd.concat([train_df, test_df])
 
     print('Getting the last clickout of each session...')
-    full_clickouts_df = get_last_clickout(full_df, index_name='index', rename_index='orig_index')
-    full_clickouts_indices_set = set(full_clickouts_df.orig_index.values)
+    train_clickouts_df = get_last_clickout(train_df, index_name='index', rename_index='orig_index')
+    train_clickouts_indices = train_clickouts_df.orig_index.values
+    train_clickouts_indices.sort()
+    #full_clickouts_df = get_last_clickout(full_df, index_name='index', rename_index='orig_index')
+    #full_clickouts_indices_set = set(full_clickouts_df.orig_index.values)
     print('Done!')
 
     print('One-hot encoding the dataset...')
     full_path = os.path.join(path, 'full_vec.csv')
-    full_sparse_df, attributes_df, features_columns, one_hot_columns = df2vec(full_df, accomodations_df, full_path, full_clickouts_df.orig_index)
+    full_sparse_df, attributes_df, features_columns, one_hot_columns = df2vec(full_df, accomodations_df, full_path, train_clickouts_indices)
     
     print()
     print('Resplitting train and test...')
@@ -237,8 +240,8 @@ def create_dataset_for_regression(train_df, test_df, path):
     print('Done!')
     train_df = train_df[['reference']].copy()
     # get the indices and references of the last clickout for each session: session_id | orig_index, reference
-    train_clickouts_indices = list(set(train_df.index.values).intersection(full_clickouts_indices_set))
-    train_clickouts_indices.sort()
+    #train_clickouts_indices = list(set(train_df.index.values).intersection(full_clickouts_indices_set))
+    #train_clickouts_indices.sort()
     backup_train_reference_serie = train_df.loc[train_clickouts_indices].reference.copy()
     # set the non-clickout rows to a negative number, in order to skip the join
     train_df.reference = -9999
