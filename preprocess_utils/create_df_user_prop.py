@@ -5,10 +5,10 @@ import pandas as pd
 from tqdm.auto import tqdm
 tqdm.pandas()
 
-
 import os
 os.chdir("../")
 print(os.getcwd())
+
 """
 creates train and test dataframe that can be used for classification,
 starting from train_df and test_df of the specified cluster and mode
@@ -154,26 +154,17 @@ def build_user_prop(mode, cluster='no_cluster'):
              "impressions", "prices"], axis=1, inplace=True)
 
         # Merge & eliminate column
-        metatadata_df = data.accomodations_df()
+        metatadata_one_hot = data.get_accomodations_one_hot()
 
         train_df['reference'] = train_df['reference'].astype(int)
-        metatadata_df['item_id'] = metatadata_df['item_id'].astype(int)
-        train_df = pd.merge(train_df, metatadata_df, how='outer', left_on='reference', right_on='item_id')
+        metatadata_one_hot['item_id'] = metatadata_one_hot['item_id'].astype(int)
+        train_df = pd.merge(train_df, metatadata_one_hot, how='outer', left_on='reference', right_on='item_id')
 
         train_df = train_df.drop(["reference", "item_id"], axis=1)
 
-        for i in tqdm(train_df.index):
-            properties = str(train_df.at[i, 'properties'])
-            if properties is not None:
-                train_df.at[i, 'properties'] = properties.split("|")
-
-        mlb = MultiLabelBinarizer()
-        out_df = train_df.join(pd.DataFrame(mlb.fit_transform(train_df.pop('properties')),
-                                            columns=mlb.classes_,
-                                            index=train_df.index))
         print("Finishing binaryzing, now summing...")
 
-        out_df = out_df.groupby('user_id')[out_df.columns[2:]].sum()
+        out_df = train_df.groupby('user_id')[train_df.columns[2:]].sum()
         return out_df
 
     # Start trying to compute dataset
@@ -192,8 +183,9 @@ def build_user_prop(mode, cluster='no_cluster'):
         poss_filters += f.split('|')
     poss_filters = set(poss_filters)
 
-    print("Building one_hot of clicked accomodation for users in test...")
     user_fav_filters = get_user_favorite_filters(full, target_user_id)
+
+    #Add suffix in order to distinguish hotel properties from user filters
     user_fav_filters.columns = [str(col) + '_hotelProp' for col in user_fav_filters.columns]
 
     user_fav_filters.reset_index(inplace=True)
@@ -225,4 +217,4 @@ def build_user_prop(mode, cluster='no_cluster'):
 
 
 if __name__ == "__main__":
-    build_user_prop(mode='local', cluster="no_cluster")
+    build_user_prop(mode='small', cluster="no_cluster")
