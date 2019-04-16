@@ -17,7 +17,8 @@ def read(path, sparse_cols=[], index_label=None, fill_nan_with=0):
     return df
 
 
-def left_join_in_chunks(df1, df2, left_on, right_on, path_to_save, pre_join_fn=None, post_join_fn=None, chunk_size=int(10e6), data=dict(), index_label='orig_index'):
+def left_join_in_chunks(df1, df2, left_on, right_on, path_to_save, pre_join_fn=None, post_join_fn=None,
+                        chunk_size=int(3e5), data=dict(), index_label='orig_index', left_index=False, right_index=False):
     # check and delete the file if already exists to avoid inconsistence in appending
     if os.path.isfile(path_to_save):
         os.remove(path_to_save)
@@ -28,12 +29,13 @@ def left_join_in_chunks(df1, df2, left_on, right_on, path_to_save, pre_join_fn=N
     with open(path_to_save, 'a') as f:
         for i in range(0, TOT, CHUNK_SIZE):
             i_upper = max(i+CHUNK_SIZE, TOT_LEN)
-            chunk_df = df1.iloc[i:i_upper]
+            chunk_df = df1.iloc[i:i_upper].copy()
 
             if callable(pre_join_fn):
                 chunk_df, data = pre_join_fn(chunk_df, data)
 
-            chunk_df = chunk_df.merge(df2, how='left', left_on=left_on, right_on=right_on)
+            chunk_df = chunk_df.merge(df2, how='left', left_on=left_on, right_on=right_on,
+                                            left_index=left_index, right_index=right_index)
 
             if callable(post_join_fn):
                 chunk_df = post_join_fn(chunk_df, data)
