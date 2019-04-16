@@ -12,4 +12,5 @@ requests>=2.21.0
 similaripy>=0.0.10
 traitlets>=4.3.2
 telepot
+dask>=1.1.4
 xgboost=0.82

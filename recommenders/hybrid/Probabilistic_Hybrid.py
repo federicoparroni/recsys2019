@@ -16,7 +16,7 @@ class Probabilistic_Hybrid(RecommenderBase):
                         |__full
                         |__local
                         |__scores
-    
+
     Questa classe utilizza il file ground_truth.csv per calcolare lo score locale, NON utilizza il metodo evaluate della classe base: la
     chiamata run() con la mode='local' calcola lo score in locale."""
 
@@ -34,6 +34,7 @@ class Probabilistic_Hybrid(RecommenderBase):
         """Set key as the name of the submission file w/o '.csv'; its value corresponds to the weight assigned to that submission.
         If no key-value pair is set, then the weight = 1 by default"""
 
+        #TODO find the optimal parameters with the Bayesian
         params = {
             'content_based_old': 0.0032,
             'last_interaction': 0.7,
@@ -48,6 +49,11 @@ class Probabilistic_Hybrid(RecommenderBase):
         for root, dirs, files in os.walk(directory):
             for file in files:
                 if file.endswith(".csv"):
+                    # This for creates a list of lists, "dfs_subname"
+                    # each list element contains
+                    # - the dataframe of the submission
+                    # - the name of the submission
+                    # - the coefficient used for the submission weight
                     tmp = pd.read_csv(directory.joinpath(file))
                     tmp = tmp.sort_values(by=['user_id', 'timestamp'])
                     tmp = tmp.reset_index(drop=True)
@@ -56,21 +62,28 @@ class Probabilistic_Hybrid(RecommenderBase):
                     if (num_file <= len(params)):
                         self.dfs_subname.append([tmp, sub_name, params[sub_name]])
                     else:
-                        self.dfs_subname.append([tmp, sub_name, 1])
+                        self.dfs_subname.append([tmp, sub_name, 1]) # in case the param is not specified in the dictonary for that submission
                     num_file += 1
 
     def fit(self):
+        # Note: the 'ground_truth.csv' file is the test WITH the references that have been removed
+        # Ask to @teomore to have it
         gt_csv = self.data_directory.joinpath('ground_truth.csv')
         data_directory = self.data_directory.joinpath(self.mode)
         self.dict_sub_scores = {}
+        # This creates a dictonary that holds for each sub the list of the scores (1 for each impression)
         for d in self.dfs_subname:
             print(f'Getting scores for {d[1]}...')
-            if os.path.isfile(self.data_directory.joinpath(f'scores/scores_{d[1]}.pkl')):
+            if os.path.isfile(self.data_directory.joinpath(f'scores/scores_{d[1]}.pkl')): # if the scores were previously computed, simply loads them
                 with open(self.data_directory.joinpath(f'scores/scores_{d[1]}.pkl'), 'rb') as file:
                     self.dict_sub_scores[d[1]] = pickle.load(file)
             else:
+                # if there are no scores previously computed...
+                # first: generate a sub for each impression "column"
+                # second: score each sub
+                # third: append each score to the scores' list
                 scores = []
-                # TODO add get result for first ref  --> Matte More
+                self.generate_column_subs(d)
                 for n in tqdm(range(1, 25)):
                     subm_csv = self.data_directory.joinpath(f'scores/item_{d[1]}_{n}.csv')
                     mrr = f.score_submissions(subm_csv, gt_csv, f.get_reciprocal_ranks)
@@ -79,14 +92,14 @@ class Probabilistic_Hybrid(RecommenderBase):
                 print('Saving list...')
                 with open(self.data_directory.joinpath(f'scores/scores_{d[1]}.pkl'), 'wb') as file:
                     pickle.dump(scores, file)
-                # Remove files scores/item_{}
+                # Remove files scores/item_{d[1]}_{n}
                 for n in tqdm(range(1, 25)):
                     os.remove(self.data_directory.joinpath(f'scores/item_{d[1]}_{n}.csv'))
         return self.dict_sub_scores
 
 
     def recommend_batch(self):
-        exp = 0.5  # esponente della radice
+        exp = 0.5  # we'll compute the squared radix
         for d in self.dfs_subname:
             scores = self.dict_sub_scores[d[1]]  #  d[1] è il nome della sub
             scores = [float(x) * d[2] for x in scores]  # d[2] è lo score
@@ -110,17 +123,19 @@ class Probabilistic_Hybrid(RecommenderBase):
             impressions_scores_dicts = []  # list of dictonaries 'impression':'score'
             for key in item_recommendations:
                 tmp_list = str(item_recommendations[key][i]).split()
-                tmp_list = [int(x) for x in tmp_list]
+                tmp_list = [int(x) for x in tmp_list if x!='nan']
                 tmp_dict = dict(zip(tmp_list, self.dict_sub_scores[key][:len(tmp_list)]))
                 impressions_scores_dicts.append(tmp_dict)
 
-            final_dict = Counter({})  # devo inizializzarlo per sommarlo
+            # each dictonary holds the scores for a specific sub, we will sum all the scores
+            # to get the final reordering of the impressions
+            final_dict = Counter({})
             for j in impressions_scores_dicts:
                 final_dict += Counter(j)
             final_dict = dict(final_dict)
 
             final_dict = sorted(final_dict.items(), key=lambda x: float(x[1]))
-
+            # get the impressions' list in descending order
             impressions_reordered = [i[0] for i in final_dict]
             impressions_reordered = impressions_reordered[::-1]
             string_impressions_reordered = " ".join(str(x) for x in impressions_reordered)
@@ -133,17 +148,36 @@ class Probabilistic_Hybrid(RecommenderBase):
         if self.mode == 'local':
             print('Computing the score...')
             self.score_sub(submission)
-        elif self.mode == 'full':
-            print('Computing the full score...')
 
         print('DONE.')
         return submission
 
 
     def score_sub(self, submission):
+        #compute the score of a submission using utils/functions.py
         gt_csv = self.data_directory.joinpath('ground_truth.csv')
         mrr = f.score_submissions(submission, gt_csv, f.get_reciprocal_ranks, subm_csv_is_file=False)
         print(f'Score: {mrr}')
+
+    def generate_column_subs(self, d):
+        #takes a list as: dataframe, submission name, coefficient
+        #creates 25 subs, 1 for each "column"
+        sub = d[0] # the dataframe
+        item_rec = sub['item_recommendations']
+        for n in range(1,25):
+            rec_list = []
+            for i in item_rec:
+                l = str(i).split()
+                if len(l)>n:
+                    e = l[n-1]
+                else:
+                    e = 'a' # questo mi serve perché così tolgo le righe con le 'a'
+                rec_list.append(e)
+
+            new_sub = sub[['user_id','session_id', 'timestamp','step']]
+            new_sub['item_recommendations'] = rec_list
+            new_sub = new_sub[new_sub['item_recommendations'] != 'a'] # in questo modo valuto solo sulle righe che hanno n impressions
+            new_sub.to_csv(self.data_directory.joinpath(f'scores/item_{d[1]}_{n}.csv'), encoding='utf-8', index=False)
 
     def get_scores_batch(self):
         return
