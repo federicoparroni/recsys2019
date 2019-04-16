@@ -191,6 +191,9 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
         dataset = dataset.reset_index().drop(['level_2'], axis=1)
         dataset = pd.merge(dataset, one_hot_accomodation, on=['item_id'])
 
+        user_featues = data.user_prop_df(mode=mode, cluster=cluster)
+        dataset = pd.merge(dataset, user_featues, on=['user_id'])
+
         dataset = dataset.drop(['item_id'], axis=1)
 
         return dataset
