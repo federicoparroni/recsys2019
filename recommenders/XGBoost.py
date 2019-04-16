@@ -25,7 +25,7 @@ class XGBoostWrapper(RecommenderBase):
                 max_depth),
             n_estimators=math.ceil(
                 n_estimators),
-            subsample=subsample, colsample_bytree=colsample_bytree, reg_lambda=reg_lambda, reg_alpha=reg_alpha, n_jobs=-1, objective='rank:map')
+            subsample=subsample, colsample_bytree=colsample_bytree, reg_lambda=reg_lambda, reg_alpha=reg_alpha, n_jobs=-1, objective='rank:pairwise')
 
         self.fixed_params_dict = {
             'mode': mode,
@@ -47,13 +47,13 @@ class XGBoostWrapper(RecommenderBase):
         train = data.classification_train_df(
             mode=self.mode, sparse=True, cluster=self.cluster)
         train = train.sort_values(by=['user_id', 'session_id'])
-        # train = train.iloc[:, 0:334]
-        X_train, y_train = train.iloc[:, 3:8], train.iloc[:, 2]
+        X_train, y_train = train.iloc[:, 3:], train.iloc[:, 2]
         X_train = X_train.to_coo().tocsr()
-
+        
+        group = np.load('/home/giovanni/Desktop/recsys2019/dataset/preprocessed/no_cluster/small/group.npy')
         print('data for train ready')
 
-        self.xg.fit(X_train, y_train.to_dense())
+        self.xg.fit(X_train, y_train.to_dense(), group)
         print('fit done')
 
     def get_scores_batch(self):
@@ -62,10 +62,9 @@ class XGBoostWrapper(RecommenderBase):
     def recommend_batch(self):
         test = data.classification_test_df(
             mode=self.mode, sparse=True, cluster=self.cluster)
-        # test = test.iloc[:, 0:334]
         test_scores = test[['user_id', 'session_id',
                             'impression_position']].to_dense()
-        
+
         # build aux dictionary
         d = {}
         for idx, row in test_scores.iterrows():
@@ -77,13 +76,12 @@ class XGBoostWrapper(RecommenderBase):
 
         test_df = data.test_df(mode=self.mode, cluster=self.cluster)
 
-        X_test = test.iloc[:, 3:8]
+        X_test = test.iloc[:, 3:]
         X_test = X_test.to_coo().tocsr()
 
         print('data for test ready')
 
-        preds = self.xg.predict_proba(X_test)
-        scores = [a[1] for a in preds]
+        scores = list(self.xg.predict(X_test))
         test_scores['scores'] = Series(scores, index=test_scores.index)
 
         predictions = []
