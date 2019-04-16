@@ -50,7 +50,7 @@ def df2vec(df, accomodations_df, path_to_save, row_indices_to_skip_features):
     # one-hot encoding of the accomodations features
     attributes_df = data.accomodations_one_hot()
     # accomodations features columns
-    features_columns = attributes_df.drop('item_id', axis=1).columns
+    features_columns = attributes_df.columns
     # with open(one_hot_accomodations_features_path, 'w') as f:
     #     pickle.dump(features_columns, f)
 
@@ -70,11 +70,6 @@ def df2vec(df, accomodations_df, path_to_save, row_indices_to_skip_features):
     # add the 'no-reference' column
     #df['no_reference'] = (~df.reference.fillna('').str.isnumeric()) * 1
     
-    # add the one-hot encoding columns of the reference accomodation
-    #old_references = df.references
-    # set to nan the non numeric references to allow join on indices
-    #df.loc[df.reference.str.isnumeric() != True, 'reference'] = np.nan
-
     after_one_hot_columns = set(df.columns)
     one_hot_columns = after_one_hot_columns.difference(original_columns)
     one_hot_columns = list(one_hot_columns.union(set(features_columns)))
@@ -92,19 +87,21 @@ def df2vec(df, accomodations_df, path_to_save, row_indices_to_skip_features):
         return chunk_df, data_dict
 
     def post_join_fn(chunk_df, data_dict):
-        chunk_df.drop('item_id', axis=1, inplace=True)
+        #chunk_df.drop('item_id', axis=1, inplace=True)
         chunk_df = chunk_df.set_index('index')
         chunk_df.reference = data_dict['references_serie_backup']
         # after the left join, the right columns are set to NaN for the non-joined rows, so we need to
         # set all the one-hot features to 0 for the non-reference rows and to re-cast to int64
-        chunk_df[features_columns] = chunk_df[features_columns].fillna(value=0).astype(np.int8)
+        #chunk_df[features_columns] = chunk_df[features_columns].fillna(value=0).astype(np.int8)
         return chunk_df
     
-    sparsedf.left_join_in_chunks(df, attributes_df, left_on='reference', right_on='item_id',
+    # trick to join 0s to the non-numeric reference interactions
+    dummy_df_row = pd.DataFrame(np.zeros((1,len(attributes_df.columns))), columns=attributes_df.columns, index=[-9999], dtype=np.int8)
+    sparsedf.left_join_in_chunks(df, attributes_df.append(dummy_df_row), left_on='reference', right_on=None, right_index=True,
                                 pre_join_fn=pre_join_fn, post_join_fn=post_join_fn, path_to_save=path_to_save)
 
     print('Reloading full dataframe...')
-    full_sparse_df = sparsedf.read(path_to_save, sparse_cols=one_hot_columns).set_index('orig_index')
+    full_sparse_df = sparsedf.read(path_to_save, sparse_cols=features_columns).set_index('orig_index')
     # reset the correct references from the backup
     print('Resaving with correct references...', end=' ', flush=True)
     full_sparse_df.reference = backup_reference_series
@@ -112,7 +109,7 @@ def df2vec(df, accomodations_df, path_to_save, row_indices_to_skip_features):
     print('Done!')
 
     # return the features columns and the one-hot attributes
-    return full_sparse_df, attributes_df, features_columns, one_hot_columns
+    return full_sparse_df, features_columns, one_hot_columns
 
 def get_last_clickout(df, index_name=None, rename_index=None):
     """ Return a dataframe with the session_id as index and the reference of the last clickout of that session. """
@@ -265,14 +262,16 @@ def create_dataset_for_regression(train_df, test_df, path):
 
     print('One-hot encoding the dataset...')
     full_path = os.path.join(path, 'full_vec.csv')
-    full_sparse_df, attributes_df, features_columns, one_hot_columns = df2vec(full_df, accomodations_df, full_path, train_clickouts_indices)
+    full_sparse_df, features_columns, one_hot_columns = df2vec(full_df, accomodations_df, full_path, train_clickouts_indices)
     
     print()
     print('Resplitting train and test...')
 
+    attributes_df = data.accomodations_one_hot()
+
     # set to 0 the features of the last-clickout rows
     def post_join(chunk_df, data_dict):
-        chunk_df.drop('item_id', axis=1, inplace=True)
+        #chunk_df.drop('item_id', axis=1, inplace=True)
         chunk_df.drop('reference', axis=1, inplace=True)
         chunk_df = chunk_df.set_index('orig_index')
         
@@ -299,7 +298,7 @@ def create_dataset_for_regression(train_df, test_df, path):
     train_df.at[train_clickouts_indices, 'reference'] = backup_train_reference_serie
     train_df = train_df.astype({'reference':int}).reset_index()
     print('Saving train labels...')
-    sparsedf.left_join_in_chunks(train_df, attributes_df, left_on='reference', right_on='item_id',
+    sparsedf.left_join_in_chunks(train_df, attributes_df, left_on='reference', right_on=None, right_index=True,
                                 post_join_fn=post_join, path_to_save=os.path.join(path, 'Y_train.csv'))
     del train_df
     del train_clickouts_indices
@@ -321,7 +320,7 @@ def create_dataset_for_regression(train_df, test_df, path):
     test_df.at[test_clickouts_indices, 'reference'] = backup_test_reference_serie
     test_df = test_df.astype({'reference':int}).reset_index()
     print('Saving test labels...')
-    sparsedf.left_join_in_chunks(test_df, attributes_df, left_on='reference', right_on='item_id',
+    sparsedf.left_join_in_chunks(test_df, attributes_df, left_on='reference', right_on=None, right_index=True,
                                 post_join_fn=post_join, path_to_save=os.path.join(path, 'Y_test.csv'))
     del test_df
     del test_clickouts_indices
