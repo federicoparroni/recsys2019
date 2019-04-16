@@ -22,6 +22,34 @@ def _get_sessions_with_duplicated_steps(df):
     df_dup = df_dup[df_dup["count"] > 1]
     return list(df_dup["session_id"])
 
+def merge_duplicates(df):
+
+    init = False
+    count = 0
+    duplicates_indices = list()
+    count_dict = dict()
+
+    for index, row in tqdm(df.iterrows()):
+        if not init:
+            init = True
+        else:
+            if previous_row["user_id"] == row["user_id"] and previous_row["session_id"] == row["session_id"] \
+             and previous_row["action_type"] == row["action_type"] and previous_row["reference"] == row["reference"]:
+                count += 1
+                duplicates_indices.append(previous_index)
+            else:
+                if count != 0:
+                    count_dict[previous_index] = count + 1
+                    count = 0
+
+        previous_row = row
+        previous_index = index
+
+    df = df.drop(duplicates_indices)
+    df.loc[list(count_dict.keys()), "count"] = list(count_dict.values())
+    df["count"] = df["count"].fillna(1)
+    df = df.astype({"count": int})
+    return df.reset_index(drop=True)
 
 def create_full_df():
     """
