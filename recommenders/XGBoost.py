@@ -20,12 +20,12 @@ class XGBoostWrapper(RecommenderBase):
         self.preds = None
         self.scores_batch = None
         self.target_indices = data.target_indices(mode=mode, cluster=cluster)
-        self.xg = xgb.XGBClassifier(
+        self.xg = xgb.XGBRanker(
             learning_rate=learning_rate, min_child_weight=min_child_weight, max_depth=math.ceil(
                 max_depth),
             n_estimators=math.ceil(
                 n_estimators),
-            subsample=subsample, colsample_bytree=colsample_bytree, reg_lambda=reg_lambda, reg_alpha=reg_alpha, n_jobs=-1)
+            subsample=subsample, colsample_bytree=colsample_bytree, reg_lambda=reg_lambda, reg_alpha=reg_alpha, n_jobs=-1, objective='rank:map')
 
         self.fixed_params_dict = {
             'mode': mode,
@@ -46,7 +46,9 @@ class XGBoostWrapper(RecommenderBase):
     def fit(self):
         train = data.classification_train_df(
             mode=self.mode, sparse=True, cluster=self.cluster)
-        X_train, y_train = train.iloc[:, 3:], train.iloc[:, 2]
+        train = train.sort_values(by=['user_id', 'session_id'])
+        # train = train.iloc[:, 0:334]
+        X_train, y_train = train.iloc[:, 3:8], train.iloc[:, 2]
         X_train = X_train.to_coo().tocsr()
 
         print('data for train ready')
@@ -60,8 +62,10 @@ class XGBoostWrapper(RecommenderBase):
     def recommend_batch(self):
         test = data.classification_test_df(
             mode=self.mode, sparse=True, cluster=self.cluster)
+        # test = test.iloc[:, 0:334]
         test_scores = test[['user_id', 'session_id',
                             'impression_position']].to_dense()
+        
         # build aux dictionary
         d = {}
         for idx, row in test_scores.iterrows():
@@ -73,7 +77,7 @@ class XGBoostWrapper(RecommenderBase):
 
         test_df = data.test_df(mode=self.mode, cluster=self.cluster)
 
-        X_test = test.iloc[:, 3:]
+        X_test = test.iloc[:, 3:8]
         X_test = X_test.to_coo().tocsr()
 
         print('data for test ready')
