@@ -5,6 +5,11 @@ from tqdm.auto import tqdm
 tqdm.pandas()
 
 
+import os
+os.chdir("../")
+print(os.getcwd())
+
+
 """
 creates train and test dataframe that can be used for classification,
 starting from train_df and test_df of the specified cluster and mode
@@ -208,7 +213,7 @@ def build_user_prop(mode, cluster='no_cluster'):
 
     # build in chunk
     count_chunk = 0
-    chunk_size = 100000
+    chunk_size = 10000000000
 
     print("{}: Started chunk processing".format("Build Dataset Classification"))
     groups = full.groupby(np.arange(len(full)) // chunk_size)
@@ -221,7 +226,8 @@ def build_user_prop(mode, cluster='no_cluster'):
 
         outcome.drop(["level_1", outcome.columns.values[-1]], axis=1, inplace=True)
 
-        outcome.fillna(0, inplace=True)
+        #Get floats to int
+        outcome.iloc[:, -user_fav_filters.shape[1]:] = outcome.iloc[:, -user_fav_filters.shape[1]:].fillna(0).astype(int)
 
         if count_chunk == 0:
             outcome.to_csv(
