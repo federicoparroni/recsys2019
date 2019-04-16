@@ -172,7 +172,7 @@ def build_user_prop(mode, cluster='no_cluster'):
              "impressions", "prices"], axis=1, inplace=True)
 
         # Merge & eliminate column
-        metatadata_one_hot = data.get_accomodations_one_hot()
+        metatadata_one_hot = data.accomodations_one_hot().reset_index()
 
         train_df['reference'] = train_df['reference'].astype(int)
         metatadata_one_hot['item_id'] = metatadata_one_hot['item_id'].astype(int)
