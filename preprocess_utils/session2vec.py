@@ -5,6 +5,7 @@ sys.path.append(os.getcwd())
 import data
 import pandas as pd
 import utils.sparsedf as sparsedf
+from utils.df import scale_dataframe
 import numpy as np
 import scipy.sparse as sps
 from sklearn.preprocessing import MultiLabelBinarizer
@@ -161,7 +162,7 @@ def get_labels(sess2vec_df, features_columns, columns_to_keep_in_labels=['orig_i
 """
 
 def add_impressions_columns_as_new_actions(df, new_rows_starting_index=99000000):
-    df['impression_price'] = np.nan
+    df['impression_price'] = -1     #np.nan
     clickout_rows = df[df.action_type == 'clickout item']
     print('Total clickout interactions found:', clickout_rows.shape[0], flush=True)
     
@@ -190,6 +191,47 @@ def add_impressions_columns_as_new_actions(df, new_rows_starting_index=99000000)
     
     return df.sort_values(['user_id','session_id','timestamp','step']), new_rows_starting_index
 
+def pad_sessions(df, max_session_length):
+    """ Pad/truncate each session to have the specified length (pad by adding a number of initial rows) """
+    tqdm.pandas()
+
+    def pad(g, max_length):
+        # remove all interactions after the last clickout
+        clickout_rows = g[g.action_type == 'clickout item']
+        if clickout_rows.shape[0] > 0:
+            index_of_last_clickout = clickout_rows.iloc[[-1]].index.values[0]
+            g = g.loc[:index_of_last_clickout]
+        
+        grouplen = g.shape[0]
+        if grouplen <= max_length:
+            # pad with zeros
+            array = np.zeros((max_length, g.shape[1]), dtype=object)
+            # set index to -1, user_id and session_id to the correct ones for the padded rows
+            array[:,0] = -1
+            array[:,1] = g.user_id.values[0]
+            array[:,2] = g.session_id.values[0]
+            array[-grouplen:] = g.values[-grouplen:]
+        else:
+            # truncate
+            array = g.values[-max_length:]
+        return pd.DataFrame(array, columns=g.columns)
+    
+    return df.reset_index().groupby('session_id').progress_apply(pad, max_length=max_session_length).set_index('index')
+
+def sessions2tensor(df, drop_cols=[], return_index=False):
+    """
+    Build a tensor of shape (number_of_sessions, sessions_length, features_count).
+    It can return also the indices of the tensor elements.
+    """
+    if len(drop_cols) > 0:
+        sessions_values_indices_df = df.groupby('session_id').apply(lambda g: pd.Series({'tensor': g.drop(drop_cols, axis=1).values, 'indices': g.index.values}))
+    else:
+        sessions_values_indices_df = df.groupby('session_id').apply(lambda g: pd.Series({'tensor': g.values, 'indices': g.index.values}))
+    
+    if return_index:
+        return np.array(sessions_values_indices_df['tensor'].to_list()), np.array(sessions_values_indices_df['indices'].to_list())
+    else:
+        return np.array(sessions_values_indices_df['tensor'].to_list())
 
 def create_dataset_for_regression(train_df, test_df, path):
     accomodations_df = data.accomodations_df()
@@ -198,6 +240,13 @@ def create_dataset_for_regression(train_df, test_df, path):
     print('Adding impressions as new actions...')
     train_df, final_new_index = add_impressions_columns_as_new_actions(train_df)
     test_df, final_new_index = add_impressions_columns_as_new_actions(test_df, final_new_index)
+    print('Done!')
+
+    # pad the sessions
+    print('Padding/truncating sessions...')
+    MAX_SESSION_LENGTH = 70
+    train_df = pad_sessions(train_df, max_session_length=MAX_SESSION_LENGTH)
+    test_df = pad_sessions(test_df, max_session_length=MAX_SESSION_LENGTH)
     print('Done!')
 
     train_len = train_df.shape[0]
@@ -238,7 +287,9 @@ def create_dataset_for_regression(train_df, test_df, path):
     print('Saving train...', end=' ', flush=True)
     train_df.to_csv( os.path.join(path, 'X_train.csv'), float_format='%.4f')
     print('Done!')
-    train_df = train_df[['reference']].copy()
+    # set the columns to be placed in the labels file, the reference is mandatory because it is used below
+    Y_COLUMNS = ['user_id','session_id','timestamp','step','reference']
+    train_df = train_df[Y_COLUMNS].copy()
     # get the indices and references of the last clickout for each session: session_id | orig_index, reference
     #train_clickouts_indices = list(set(train_df.index.values).intersection(full_clickouts_indices_set))
     #train_clickouts_indices.sort()
@@ -260,7 +311,7 @@ def create_dataset_for_regression(train_df, test_df, path):
     print('Done!')
     # THESE LINES BELOW SAVE THE TEST LABELS (REFERENCES OF TEST.CSV), BUT THEY ARE NONE!
     """
-    test_df = test_df[['reference']].copy()
+    test_df = test_df[['session_id','reference']].copy()
     # get the indices and references of the last clickout for each session: session_id | orig_index, reference
     test_clickouts_indices = list(set(test_df.index.values).intersection(full_clickouts_indices_set))
     test_clickouts_indices.sort()
@@ -283,22 +334,30 @@ def create_dataset_for_regression(train_df, test_df, path):
 
 # ======== POST-PROCESSING ========= #
 
-def load_and_prepare_dataset(mode):
-    """ Load the one-hot dataset and return X_train, Y_train, X_test, Y_test """
-    train_df = pd.read_csv(f'dataset/preprocessed/cluster_recurrent/{mode}_vec/train.csv').set_index('index')
-    train_target_df = pd.read_csv(f'dataset/preprocessed/cluster_recurrent/{mode}_vec/train_target.csv').set_index('index')
-    test_df = pd.read_csv(f'dataset/preprocessed/cluster_recurrent/{mode}_vec/test.csv').set_index('index')
-    test_target_df = pd.read_csv(f'dataset/preprocessed/cluster_recurrent/{mode}_vec/test_target.csv').set_index('index')
+def load_dataset(mode):
+    """ Load the one-hot dataset and return X_train, Y_train, X_test """
+    X_train_df = pd.read_csv(f'dataset/preprocessed/cluster_recurrent/{mode}/X_train.csv').set_index('orig_index')
+    Y_train_df = pd.read_csv(f'dataset/preprocessed/cluster_recurrent/{mode}/Y_train.csv').set_index('orig_index')
+
+    #X_test_df = pd.read_csv(f'dataset/preprocessed/cluster_recurrent/{mode}/X_test.csv').set_index('orig_index')
+
+    # scale some columns
+    X_train_df = scale_dataframe(X_train_df, ['impression_price'])
 
     # drop currently unused columns
-    col_to_drop = ['timestamp','step','reference','platform','city','current_filters','item_id']
-    X_train = train_df.drop(col_to_drop, axis=1)
-    X_test = test_df.drop(col_to_drop, axis=1)
+    X_train = sessions2tensor(X_train_df, drop_cols=['user_id','session_id','step','reference','platform','city','current_filters'])
+    print('X_train:', X_train.shape)
 
-    X_train.impression_price = X_train.impression_price.fillna(value=0)
-    X_test.impression_price = X_test.impression_price.fillna(value=0)
+    Y_train = sessions2tensor(Y_train_df, drop_cols=['session_id','user_id','timestamp','step'])
+    print('Y_train:', Y_train.shape)
+
+    # X_test = sessions2tensor(X_test_df, drop_cols=['user_id','session_id','step','reference','platform','city','current_filters'], return_index=False)
+    # print('X_test:', X_test.shape)
+
+    # X_train.impression_price = X_train.impression_price.fillna(value=0)
+    # X_test.impression_price = X_test.impression_price.fillna(value=0)
     
-    return X_train, train_target_df, X_test, test_target_df
+    return X_train, Y_train #, X_test
 
 
 def get_session_groups_indices_df(X_df, Y_df, cols_to_group=['user_id','session_id'], indices_col_name='intrctns_indices'):

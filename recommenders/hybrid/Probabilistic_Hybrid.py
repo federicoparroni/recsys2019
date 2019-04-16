@@ -123,7 +123,7 @@ class Probabilistic_Hybrid(RecommenderBase):
             impressions_scores_dicts = []  # list of dictonaries 'impression':'score'
             for key in item_recommendations:
                 tmp_list = str(item_recommendations[key][i]).split()
-                tmp_list = [int(x) for x in tmp_list]
+                tmp_list = [int(x) for x in tmp_list if x!='nan']
                 tmp_dict = dict(zip(tmp_list, self.dict_sub_scores[key][:len(tmp_list)]))
                 impressions_scores_dicts.append(tmp_dict)
 
@@ -154,7 +154,7 @@ class Probabilistic_Hybrid(RecommenderBase):
 
 
     def score_sub(self, submission):
-        #compute the score of a submission using utils/functions.py 
+        #compute the score of a submission using utils/functions.py
         gt_csv = self.data_directory.joinpath('ground_truth.csv')
         mrr = f.score_submissions(submission, gt_csv, f.get_reciprocal_ranks, subm_csv_is_file=False)
         print(f'Score: {mrr}')

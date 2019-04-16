@@ -39,6 +39,8 @@ _target_indices = {}
 _df_classification_train = {}
 _df_classification_test = {}
 
+_df_accomodations_one_hot = None
+
 _user_prop = {}
 
 _df_items = None
@@ -207,13 +209,16 @@ def accomodations_original_df():
     return _df_original_items
 
 
-def get_accomodations_one_hot():
+def accomodations_one_hot():
+    global _df_accomodations_one_hot
     if not os.path.isfile(ACCOMODATIONS_1HOT_PATH):
         print('Accomodations one-hot not found! Creating it...')
         import preprocess_utils.session2vec as sess2vec
         sess2vec.save_accomodations_one_hot(accomodations_original_df(), ACCOMODATIONS_1HOT_PATH)
-    print('Loading accomodations one-hot...')
-    return pd.read_csv(ACCOMODATIONS_1HOT_PATH)
+    if _df_accomodations_one_hot is None:
+        print('Loading accomodations one-hot...')
+        _df_accomodations_one_hot = pd.read_csv(ACCOMODATIONS_1HOT_PATH).set_index('item_id')
+    return _df_accomodations_one_hot
 
 
 # URM structures
