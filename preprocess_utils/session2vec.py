@@ -48,7 +48,7 @@ def df2vec(df, accomodations_df, path_to_save, row_indices_to_skip_features):
     df.at[row_indices_to_skip_features, 'reference'] = -9999
 
     # one-hot encoding of the accomodations features
-    attributes_df = data.get_accomodations_one_hot()
+    attributes_df = data.accomodations_one_hot()
     # accomodations features columns
     features_columns = attributes_df.drop('item_id', axis=1).columns
     # with open(one_hot_accomodations_features_path, 'w') as f:
@@ -335,17 +335,23 @@ def create_dataset_for_regression(train_df, test_df, path):
 # ======== POST-PROCESSING ========= #
 
 def load_dataset(mode):
+    from sklearn.preprocessing import MinMaxScaler
+    
     """ Load the one-hot dataset and return X_train, Y_train, X_test """
     X_train_df = pd.read_csv(f'dataset/preprocessed/cluster_recurrent/{mode}/X_train.csv').set_index('orig_index')
     Y_train_df = pd.read_csv(f'dataset/preprocessed/cluster_recurrent/{mode}/Y_train.csv').set_index('orig_index')
 
     #X_test_df = pd.read_csv(f'dataset/preprocessed/cluster_recurrent/{mode}/X_test.csv').set_index('orig_index')
 
-    # scale some columns
-    X_train_df = scale_dataframe(X_train_df, ['impression_price'])
+    cols_to_drop_in_train = ['user_id','session_id','step','reference','platform','city','current_filters']
+    
+    # scale the dataframe
+    #X_train_df = scale_dataframe(X_train_df, ['impression_price'])
+    scaler = MinMaxScaler()
+    X_train_df.loc[:,~X_train_df.columns.isin(cols_to_drop_in_train)] = scaler.fit_transform(X_train_df.drop(cols_to_drop_in_train, axis=1))
 
-    # drop currently unused columns
-    X_train = sessions2tensor(X_train_df, drop_cols=['user_id','session_id','step','reference','platform','city','current_filters'])
+    # get the tensors and drop currently unused columns
+    X_train = sessions2tensor(X_train_df, drop_cols=cols_to_drop_in_train)
     print('X_train:', X_train.shape)
 
     Y_train = sessions2tensor(Y_train_df, drop_cols=['session_id','user_id','timestamp','step'])
