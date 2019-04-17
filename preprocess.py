@@ -169,6 +169,14 @@ def create_full_df():
         test_df = merge_duplicates(test_df)
 
         ####################################################################################
+
+        ################# TEST; DELETING UNNFORMATIVE INTERACTIONS ##########################
+        
+        mask = (test_df["action_type"] != "clickout item") & (test_df["reference"].isnull())
+        test_df = test_df.drop(test_df[mask].index)
+        test_df = test_df.reset_index(drop=True)
+
+        ####################################################################################
         test_df.index += len_train
         test_df.to_csv(f, header=False)
 
