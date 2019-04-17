@@ -37,15 +37,38 @@ def save_accomodations_one_hot(accomodations_df, path):
     print('Done!')
     return attributes_df
 
+def one_hot_df_column(df, column_label, classes): #sparse=True):
+    """ Substitute a dataframe column with its one-hot encoding derived columns """
+    mlb = MultiLabelBinarizer(classes=classes, sparse_output=True)  #sparse)
+    res = mlb.fit_transform(df[column_label].values.reshape(-1,1))
+    
+    #if sparse:
+    df[classes] = pd.SparseDataFrame(res, columns=mlb.classes_, dtype='Int8', index=df.index)
+    # else:     NOT WORKING!
+    #     df[classes] = pd.DataFrame(res, columns=mlb.classes_, index=df.index)
+    return df.drop(column_label, axis=1)
 
-def df2vec(df, accomodations_df, path_to_save, row_indices_to_skip_features):
+def add_accomodations_features(df, path_to_save, logic='skip', row_indices=[]):
     """
-    Add the features (one-hot) to the dataframe and save the resulting dataframe.
+    Add the features (one-hot) to the dataframe that match the 'reference' and save the resulting dataframe.
+    It is possible to specify a list of rows to skip (logic='skip'), or to join only for some rows (logic='subset').
     Return the target columns and the one-hot columns that have been added to the dataframe
     """
-    # save the references series and then set the reference to a negative number to skip join on that rows
-    backup_reference_series = df.reference.copy()
-    df.at[row_indices_to_skip_features, 'reference'] = -9999
+    # save the references series and then set the reference to NaN to skip the join on that rows
+    join_data = dict()
+    join_data['backup_reference_series'] = df.reference.values.copy()
+    if len(row_indices) > 0:
+        if logic == 'skip':
+            # set to NaN the rows to be skipped
+            df.loc[row_indices, 'reference'] = np.nan
+        if logic == 'subset':
+            # set to NaN all rows, except for the specified rows
+            backup_serie = df.loc[row_indices].reference.copy()
+            df.reference = np.nan            
+            df.loc[row_indices, 'reference'] = backup_serie
+
+    # cast the reference column to Int64 removing the string values
+    df.reference = pd.to_numeric(df.reference, errors='coerce') #.astype('Int64')
 
     # one-hot encoding of the accomodations features
     attributes_df = data.accomodations_one_hot()
@@ -54,62 +77,30 @@ def df2vec(df, accomodations_df, path_to_save, row_indices_to_skip_features):
     # with open(one_hot_accomodations_features_path, 'w') as f:
     #     pickle.dump(features_columns, f)
 
-    original_columns = set(df.columns)
-    # substitute a dataframe column with its one-hot encoding derived columns
-    def one_hot_df_column(df, column_label):
-        return pd.concat([df, pd.get_dummies(df[column_label], prefix=column_label, sparse=True)], axis=1).drop([column_label], axis=1)
-
-    # add the one-hot encoding of the action_type feature
-    print('Adding one-hot columns of action_type...')
-    df = one_hot_df_column(df, 'action_type')
-
-    # add the one-hot encoding of the device feature
-    print('Adding one-hot columns of device...')
-    df = one_hot_df_column(df, 'device')
+    #original_columns = set(df.columns)
 
     # add the 'no-reference' column
     #df['no_reference'] = (~df.reference.fillna('').str.isnumeric()) * 1
     
-    after_one_hot_columns = set(df.columns)
-    one_hot_columns = after_one_hot_columns.difference(original_columns)
-    one_hot_columns = list(one_hot_columns.union(set(features_columns)))
-
-    # join train and accomodations!
-    print('Joining the accomodations features...')
-    if os.path.isfile(path_to_save):
-        os.remove(path_to_save)
+    # after_one_hot_columns = set(df.columns)
+    # one_hot_columns = after_one_hot_columns.difference(original_columns)
+    # one_hot_columns = list(one_hot_columns.union(set(features_columns)))
     
-    # join using chunks
-    def pre_join_fn(chunk_df, data_dict):
-        data_dict['references_serie_backup'] = chunk_df.reference.copy()
-        chunk_df.loc[chunk_df.astype({'reference':str}).reference.str.isnumeric() != True, 'reference'] = -9999
-        chunk_df = chunk_df.astype({'reference': np.int64}).reset_index()
-        return chunk_df, data_dict
-
-    def post_join_fn(chunk_df, data_dict):
-        #chunk_df.drop('item_id', axis=1, inplace=True)
-        chunk_df = chunk_df.set_index('index')
-        chunk_df.reference = data_dict['references_serie_backup']
-        # after the left join, the right columns are set to NaN for the non-joined rows, so we need to
-        # set all the one-hot features to 0 for the non-reference rows and to re-cast to int64
-        #chunk_df[features_columns] = chunk_df[features_columns].fillna(value=0).astype(np.int8)
-        return chunk_df
+    def post_join(chunk_df, data):
+        # reset the original references
+        #chunk_df.loc[:,'reference'] = data['backup_reference_series'][data['$i1']:data['$i2']]
+        return chunk_df.drop('reference', axis=1)
     
-    # trick to join 0s to the non-numeric reference interactions
-    dummy_df_row = pd.DataFrame(np.zeros((1,len(attributes_df.columns))), columns=attributes_df.columns, index=[-9999], dtype=np.int8)
-    sparsedf.left_join_in_chunks(df, attributes_df.append(dummy_df_row), left_on='reference', right_on=None, right_index=True,
-                                pre_join_fn=pre_join_fn, post_join_fn=post_join_fn, path_to_save=path_to_save)
+    sparsedf.left_join_in_chunks(df, attributes_df, left_on='reference', right_on=None, right_index=True,
+                                post_join_fn=post_join, data=join_data, path_to_save=path_to_save)
 
-    print('Reloading full dataframe...')
-    full_sparse_df = sparsedf.read(path_to_save, sparse_cols=features_columns).set_index('orig_index')
+    # print('Reloading the partial dataframe...', end=' ', flush=True)
+    # df = sparsedf.read(path_to_save, sparse_cols=features_columns).set_index('orig_index')
     # reset the correct references from the backup
-    print('Resaving with correct references...', end=' ', flush=True)
-    full_sparse_df.reference = backup_reference_series
-    full_sparse_df.to_csv(path_to_save)
-    print('Done!')
+    #df.reference = backup_reference_series
 
     # return the features columns and the one-hot attributes
-    return full_sparse_df, features_columns, one_hot_columns
+    #return df
 
 def get_last_clickout(df, index_name=None, rename_index=None):
     """ Return a dataframe with the session_id as index and the reference of the last clickout of that session. """
@@ -158,7 +149,11 @@ def get_labels(sess2vec_df, features_columns, columns_to_keep_in_labels=['orig_i
     return labels_sparse_df
 """
 
-def add_impressions_columns_as_new_actions(df, new_rows_starting_index=99000000):
+def add_impressions_as_new_actions(df, new_rows_starting_index=99000000):
+    """
+    Add dummy actions before each clickout to indicate each one of the available impressions.
+    Prices are incorporated inside the new rows in a new column called 'impression_price'.
+    """
     df['impression_price'] = -1     #np.nan
     clickout_rows = df[df.action_type == 'clickout item']
     print('Total clickout interactions found:', clickout_rows.shape[0], flush=True)
@@ -231,105 +226,76 @@ def sessions2tensor(df, drop_cols=[], return_index=False):
         return np.array(sessions_values_indices_df['tensor'].to_list())
 
 def create_dataset_for_regression(train_df, test_df, path):
-    accomodations_df = data.accomodations_df()
-
     # add the impressions as new interactions
     print('Adding impressions as new actions...')
-    train_df, final_new_index = add_impressions_columns_as_new_actions(train_df)
-    test_df, final_new_index = add_impressions_columns_as_new_actions(test_df, final_new_index)
-    print('Done!')
+    train_df, final_new_index = add_impressions_as_new_actions(train_df)
+    test_df, final_new_index = add_impressions_as_new_actions(test_df, final_new_index)
+    print('Done!\n')
 
     # pad the sessions
     print('Padding/truncating sessions...')
     MAX_SESSION_LENGTH = 70
     train_df = pad_sessions(train_df, max_session_length=MAX_SESSION_LENGTH)
     test_df = pad_sessions(test_df, max_session_length=MAX_SESSION_LENGTH)
-    print('Done!')
-
-    train_len = train_df.shape[0]
-    test_len = test_df.shape[0]
-
-    # join train and test to one-hot correctly
-    full_df = pd.concat([train_df, test_df])
+    print('Done!\n')
 
     print('Getting the last clickout of each session...')
     train_clickouts_df = get_last_clickout(train_df, index_name='index', rename_index='orig_index')
     train_clickouts_indices = train_clickouts_df.orig_index.values
     train_clickouts_indices.sort()
-    #full_clickouts_df = get_last_clickout(full_df, index_name='index', rename_index='orig_index')
-    #full_clickouts_indices_set = set(full_clickouts_df.orig_index.values)
-    print('Done!')
 
-    print('One-hot encoding the dataset...')
-    full_path = os.path.join(path, 'full_vec.csv')
-    full_sparse_df, features_columns, one_hot_columns = df2vec(full_df, accomodations_df, full_path, train_clickouts_indices)
-    
-    print()
-    print('Resplitting train and test...')
-
-    attributes_df = data.accomodations_one_hot()
-
-    # set to 0 the features of the last-clickout rows
-    def post_join(chunk_df, data_dict):
-        #chunk_df.drop('item_id', axis=1, inplace=True)
-        chunk_df.drop('reference', axis=1, inplace=True)
-        chunk_df = chunk_df.set_index('orig_index')
-        
-        # after the left join, the right columns are set to NaN for the non-joined rows, so we need to
-        # set all the one-hot features to 0 for the non-reference rows and to re-cast to int64
-        chunk_df[features_columns] = chunk_df[features_columns].fillna(value=0).astype(np.int8)
-        return chunk_df
-    
-    # resplit train and test and save them
-    
-    train_df = full_sparse_df.head(train_len)
-    print('Saving train...', end=' ', flush=True)
-    train_df.to_csv( os.path.join(path, 'X_train.csv'), float_format='%.4f')
-    print('Done!')
-    # set the columns to be placed in the labels file, the reference is mandatory because it is used below
-    Y_COLUMNS = ['user_id','session_id','timestamp','step','reference']
-    train_df = train_df[Y_COLUMNS].copy()
-    # get the indices and references of the last clickout for each session: session_id | orig_index, reference
-    #train_clickouts_indices = list(set(train_df.index.values).intersection(full_clickouts_indices_set))
-    #train_clickouts_indices.sort()
-    backup_train_reference_serie = train_df.loc[train_clickouts_indices].reference.copy()
-    # set the non-clickout rows to a negative number, in order to skip the join
-    train_df.reference = -9999
-    train_df.at[train_clickouts_indices, 'reference'] = backup_train_reference_serie
-    train_df = train_df.astype({'reference':int}).reset_index()
-    print('Saving train labels...')
-    sparsedf.left_join_in_chunks(train_df, attributes_df, left_on='reference', right_on=None, right_index=True,
-                                post_join_fn=post_join, path_to_save=os.path.join(path, 'Y_train.csv'))
-    del train_df
-    del train_clickouts_indices
-    del backup_train_reference_serie
-    
-    test_df = full_sparse_df.tail(test_len)
-    print('Saving test...', end=' ', flush=True)
-    test_df.to_csv( os.path.join(path, 'X_test.csv'), float_format='%.4f')
-    print('Done!')
-    # THESE LINES BELOW SAVE THE TEST LABELS (REFERENCES OF TEST.CSV), BUT THEY ARE NONE!
-    """
-    test_df = test_df[['session_id','reference']].copy()
-    # get the indices and references of the last clickout for each session: session_id | orig_index, reference
-    test_clickouts_indices = list(set(test_df.index.values).intersection(full_clickouts_indices_set))
+    test_clickouts_df = get_last_clickout(test_df, index_name='index', rename_index='orig_index')
+    test_clickouts_indices = test_clickouts_df.orig_index.values
     test_clickouts_indices.sort()
-    backup_test_reference_serie = test_df.loc[test_clickouts_indices].reference.copy()
-    # set the non-clickout rows to a negative number, in order to skip the join
-    test_df.reference = -9999
-    test_df.at[test_clickouts_indices, 'reference'] = backup_test_reference_serie
-    test_df = test_df.astype({'reference':int}).reset_index()
-    print('Saving test labels...')
-    sparsedf.left_join_in_chunks(test_df, attributes_df, left_on='reference', right_on=None, right_index=True,
-                                post_join_fn=post_join, path_to_save=os.path.join(path, 'Y_test.csv'))
-    del test_df
-    del test_clickouts_indices
-    del backup_test_reference_serie
-    """
+    print('Done!\n')
+
+    # add the one-hot of the device
+    devices_classes = ['mobile', 'desktop', 'tablet']
+    print('Adding one-hot columns of device...', end=' ', flush=True)
+    train_df = one_hot_df_column(train_df, 'device', classes=devices_classes)
+    test_df = one_hot_df_column(test_df, 'device', classes=devices_classes)
+    print('Done!\n')
+
+    # add the one-hot of the action-type
+    actions_classes = ['show_impression', 'clickout item', 'interaction item rating', 'interaction item info',
+           'interaction item image', 'interaction item deals', 'change of sort order', 'filter selection',
+           'search for item', 'search for destination', 'search for poi']
+    print('Adding one-hot columns of action_type...', end=' ', flush=True)
+    train_df = one_hot_df_column(train_df, 'action_type', classes=actions_classes)
+    test_df = one_hot_df_column(test_df, 'action_type', classes=actions_classes)
+    print('Done!\n')
+
+    # set the columns to be placed in the labels file
+    Y_COLUMNS = ['user_id','session_id','timestamp','step','reference']
+
+    # join the accomodations one-hot features
+    print('Joining the accomodations features...')
+    # train
+    X_train_path = os.path.join(path, 'X_train.csv')
+    add_accomodations_features(train_df.copy(), X_train_path, logic='skip', row_indices=train_clickouts_indices)
+    
+    Y_train_path = os.path.join(path, 'Y_train.csv')
+    train_df = train_df[Y_COLUMNS]
+    add_accomodations_features(train_df.copy(), Y_train_path, logic='subset', row_indices=train_clickouts_indices)
+
+    # test
+    X_test_path = os.path.join(path, 'X_test.csv')
+    add_accomodations_features(test_df.copy(), X_test_path, logic='skip', row_indices=test_clickouts_indices)
+
+    # print('Saving train...', end=' ', flush=True)
+    # X_train_df.to_csv( X_train_path, float_format='%.4f')
+    # print('Done!')
+
+    # print('Saving train labels...', end=' ', flush=True)
+    # Y_train_df[Y_COLUMNS].to_csv( Y_train_path, float_format='%.4f')
+    # print('Done!')
+   
+    # print('Saving test...', end=' ', flush=True)
+    # X_test_df.to_csv( X_test_path, float_format='%.4f')
+    # print('Done!')
     
     
-
-
+    
 
 # ======== POST-PROCESSING ========= #
 
