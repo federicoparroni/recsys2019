@@ -23,6 +23,53 @@ def _get_sessions_with_duplicated_steps(df):
     return list(df_dup["session_id"])
 
 def merge_duplicates(df):
+    """
+        merge_duplicates : It deletes from df consecutive actions of same type within same session performed on the same
+                             reference. It keeps the first occurrence of those consecutive actions and for those it saves
+                             how many consecutive actions are occurred in column 'frequence'. For the remaining non-consecutive
+                             actions frequence is set to 1.
+
+
+        :parameter
+
+                   user_id   session_id   timestamp   step   action_type  reference ...
+                    user1	    sess1	    ts1	       0	  act_t1          x     ...
+                    user1	    sess1	    ts1	       1	  act_t1          x     ...
+                    user1	    sess1	    ts1	       2	  act_t1          x     ...
+                    user1	    sess1	    ts2	       3	  act_t2          y     ...
+
+                    ...         ...         ...       ...      ...           ...    ...
+
+                    user9	    sess2	    ts3	       4	  act_t2          z     ...
+                    user9	    sess2	    ts4	       5	  act_t3          w     ...
+                    user9	    sess2	    ts5	       6	  act_t3          w     ...
+
+                    ...         ...         ...       ...      ...           ...    ...
+
+                    user4	    sess3	    ts6	       11	  act_t4          k     ...
+                    user4	    sess3	    ts6	       12	  act_t5          k     ...
+                    user4	    sess3	    ts6	       13	  act_t4          k     ...
+                    user4	    sess3	    ts6	       14	  act_t6          k     ...
+
+        :returns   user_id   session_id   timestamp   step   action_type  reference  ...   frequence
+                    user1	    sess1	    ts1	       0	  act_t1          x      ...    3
+                    user1	    sess1	    ts2	       3	  act_t2          y      ...    1
+
+                    ...         ...         ...       ...      ...           ...     ...    ...
+
+                    user9	    sess2	    ts3	       4	  act_t2          z      ...    2
+                    user9	    sess2	    ts4	       5	  act_t3          w      ...    1
+
+                    ...         ...         ...       ...      ...           ...     ...    ...
+
+                    user4	    sess3	    ts6	       11	  act_t4          k      ...    1
+                    user4	    sess3	    ts6	       12	  act_t5          k      ...    1
+                    user4	    sess3	    ts6	       13	  act_t4          k      ...    1
+                    user4	    sess3	    ts6	       14	  act_t6          k      ...    1
+
+        :param df: DataFrame to preprocess
+        :return: df: preprocessed DataFrame df with 'frequence' column
+        """
 
     init = False
     count = 0
@@ -46,9 +93,9 @@ def merge_duplicates(df):
         previous_index = index
 
     df = df.drop(duplicates_indices)
-    df.loc[list(count_dict.keys()), "count"] = list(count_dict.values())
-    df["count"] = df["count"].fillna(1)
-    df = df.astype({"count": int})
+    df.loc[list(count_dict.keys()), "frequence"] = list(count_dict.values())
+    df["frequence"] = df["frequence"].fillna(1)
+    df = df.astype({"frequence": int})
     return df.reset_index(drop=True)
 
 def create_full_df():
@@ -77,6 +124,12 @@ def create_full_df():
         # handling last duplication inside the same session
         mask = (train_df["session_id"] == session) & (train_df.index >= indices[len(indices) - 1])
         train_df.loc[train_df.index[mask], "session_id"] = session + "_" + str(len(indices) - 1)
+
+    ##################################################################################
+
+    ################# TRAIN; MERGING DUPLICATES ########################################
+
+    train_df = merge_duplicates(train_df)
 
     ##################################################################################
 
@@ -111,6 +164,19 @@ def create_full_df():
                 test_df.loc[test_df.index[mask], "session_id"] = session + "_" + str(0)
         ##################################################################################
 
+        ################# TEST; MERGING DUPLICATES ########################################
+
+        test_df = merge_duplicates(test_df)
+
+        ####################################################################################
+
+        ################# TEST; DELETING UNNFORMATIVE INTERACTIONS ##########################
+        
+        mask = (test_df["action_type"] != "clickout item") & (test_df["reference"].isnull())
+        test_df = test_df.drop(test_df[mask].index)
+        test_df = test_df.reset_index(drop=True)
+
+        ####################################################################################
         test_df.index += len_train
         test_df.to_csv(f, header=False)
 
@@ -280,7 +346,8 @@ def preprocess():
         np.save(os.path.join(path, 'full/test_indices'), test.index)
         np.save(os.path.join(path, 'full/target_indices'), target_indices)
 
-        train_small = get_small_dataset(train)
+        no_of_rows_in_small = int(input('How many rows do you want in small.csv? '))
+        train_small = get_small_dataset(train, maximum_rows=no_of_rows_in_small)
         check_folder('dataset/preprocessed/no_cluster/small')
         split(train_small, os.path.join(path, 'small'))
 
@@ -346,7 +413,7 @@ def preprocess():
     # create URM
     lbls = ['Create URM from LOCAL dataset', 'Create URM from FULL dataset', 'Create URM from SMALL dataset', 'Skip URM creation' ]
     callbacks = [lambda: 'local', lambda:'full', lambda: 'small', lambda: 0]
-    res = menu.single_choice(title='What do you want to do?', labels=lbls, callbacks=callbacks, exitable=True)
+    res = menu.single_choice(title='What do you want to do?', labels=lbls, callbacks=callbacks)
     
     if res is None:
         exit(0)

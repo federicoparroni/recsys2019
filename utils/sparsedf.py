@@ -5,7 +5,7 @@ import dask.dataframe as ddf
 def read(path, sparse_cols=[], index_label=None, fill_nan_with=0):
     """ Load a sparse dataframe from a csv file. You can specify the sparse cols via sparse_cols. """
     def mappart(p, sparse_cols, fill_value):
-        p[sparse_cols] = p[sparse_cols].to_sparse(fill_value=0)
+        p[sparse_cols] = p[sparse_cols].to_sparse(fill_value=fill_value)
         return p
 
     df = ddf.read_csv(path, blocksize=500e6)
@@ -22,14 +22,19 @@ def left_join_in_chunks(df1, df2, left_on, right_on, path_to_save, pre_join_fn=N
     # check and delete the file if already exists to avoid inconsistence in appending
     if os.path.isfile(path_to_save):
         os.remove(path_to_save)
+
+    print(f'Joining using chunks of {chunk_size} rows')
     # join using chunks
-    CHUNK_SIZE = chunk_size
     TOT_LEN = df1.shape[0]
-    TOT = TOT_LEN + CHUNK_SIZE
+    TOT = TOT_LEN + chunk_size
     with open(path_to_save, 'a') as f:
-        for i in range(0, TOT, CHUNK_SIZE):
-            i_upper = max(i+CHUNK_SIZE, TOT_LEN)
+        for i in range(0, TOT, chunk_size):
+            i_upper = max(i+chunk_size, TOT_LEN)
             chunk_df = df1.iloc[i:i_upper].copy()
+
+            # set the indices of the current iteration
+            data['$i1'] = i
+            data['$i2'] = i_upper
 
             if callable(pre_join_fn):
                 chunk_df, data = pre_join_fn(chunk_df, data)
