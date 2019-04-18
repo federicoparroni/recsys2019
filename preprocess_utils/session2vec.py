@@ -321,7 +321,7 @@ def create_dataset_for_regression(train_df, test_df, path):
     # save the dataset config file that stores dataset length and the list of sparse columns
     features_cols = list(data.accomodations_one_hot().columns)
     x_sparse_cols = devices_classes + actions_classes + features_cols
-    datasetio.save_config(path, TRAIN_LEN, TEST_LEN, rows_per_sample=MAX_SESSION_LENGTH,
+    datasetio.save_config(path, TRAIN_LEN, TEST_LEN, len(features_cols), rows_per_sample=MAX_SESSION_LENGTH,
                             X_sparse_cols=x_sparse_cols, Y_sparse_cols=features_cols)
 
     
