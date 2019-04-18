@@ -1,4 +1,5 @@
 import os
+import pandas as pd
 import dask.dataframe as ddf
 
 
@@ -15,6 +16,9 @@ def read(path, sparse_cols=[], index_label=None, fill_nan_with=0):
     if index_label is not None and index_label != '':
         df = df.set_index(index_label)
     return df
+
+def read_chunk(path, start_row, chunk_size, index_col=0):
+    return pd.read_csv(path, index_col=index_col, skiprows=range(1, start_row+1), nrows=chunk_size)
 
 
 def left_join_in_chunks(df1, df2, left_on, right_on, path_to_save, pre_join_fn=None, post_join_fn=None,
