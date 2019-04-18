@@ -106,7 +106,7 @@ class RecommenderBase(ABC):
         """
         assert (self.mode == 'local' or self.mode == 'small')
 
-        train_df = data.train_df("full")
+        train_df = data.train_df("full", cluster=self.cluster)
 
         target_indices, recs = zip(*predictions)
         target_indices = list(target_indices)

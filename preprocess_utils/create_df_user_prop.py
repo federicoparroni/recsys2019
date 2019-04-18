@@ -29,7 +29,7 @@ def build_user_prop(mode, cluster='no_cluster'):
         y = x[(x['action_type'] == 'clickout item')]
 
         # features
-        features = {'avg price': 0, 'avg cheap position': 0, 'avg time per step': 0,
+        features = {'avg price': -1, 'avg cheap position': -1, 'avg time per step': 0,
                     'session avg length': 0, 'session avg steps': 0, 'session num': 0,
                     'mobile perc': 0, 'tablet perc': 0, 'desktop perc': 0, 'filters_during_session': '',
                     'num change of sort order session': 0, 'num clickout item session': 0,
@@ -102,13 +102,25 @@ def build_user_prop(mode, cluster='no_cluster'):
             # IMPORTANT: I decided to consider impressions and clickouts distinctively.
             # If an impression is also clicked, that price counts double
             df_only_numeric = x[pd.to_numeric(x['reference'], errors='coerce').notnull()][
-                ["reference", "impressions"]].drop_duplicates()
+                ["reference", "impressions", "action_type"]].drop_duplicates()
 
-            for reference in df_only_numeric.reference:
+            # Not considering last clickout in the train sessions
+            clks_num_reference = df_only_numeric[df_only_numeric['action_type'] == 'clickout item']
+            if len(clks_num_reference) == len(y): # is it a train session?
+                idx_last_clk = y.tail(1).index.values[0]
+                df_only_numeric = df_only_numeric.drop(idx_last_clk)
+
+            for idx, row in df_only_numeric.iterrows():
+                reference = row.reference
                 if reference in dict_impr_price.keys():
-                    sum_price += int(dict_impr_price[reference])
-                    sum_pos_price += int(dict_impr_price_pos[reference])
-                    count_interacted += 1
+                    if row.action_type == "clickout item":
+                        sum_price += int(dict_impr_price[reference])*2
+                        sum_pos_price += int(dict_impr_price_pos[reference])*2
+                        count_interacted += 2
+                    else:
+                        sum_price += int(dict_impr_price[reference])
+                        sum_pos_price += int(dict_impr_price_pos[reference])
+                        count_interacted += 1
 
             if count_interacted > 0:
                 features['avg price'] = round(sum_price / count_interacted, 2)
@@ -172,7 +184,7 @@ def build_user_prop(mode, cluster='no_cluster'):
              "impressions", "prices"], axis=1, inplace=True)
 
         # Merge & eliminate column
-        metatadata_one_hot = data.get_accomodations_one_hot()
+        metatadata_one_hot = data.accomodations_one_hot().reset_index()
 
         train_df['reference'] = train_df['reference'].astype(int)
         metatadata_one_hot['item_id'] = metatadata_one_hot['item_id'].astype(int)
