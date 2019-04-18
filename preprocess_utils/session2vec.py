@@ -6,6 +6,7 @@ import data
 import pandas as pd
 import utils.sparsedf as sparsedf
 from utils.df import scale_dataframe
+import utils.dataset_io as datasetio
 import numpy as np
 import scipy.sparse as sps
 from sklearn.preprocessing import MultiLabelBinarizer
@@ -229,88 +230,102 @@ def sessions2tensor(df, drop_cols=[], return_index=False):
     else:
         return np.array(sessions_values_indices_df['tensor'].to_list())
 
-def save_sparse_columns(path, filename, cols):
-    path = os.path.join(path, filename) + '.txt'
-    np.savetxt(path, cols, fmt='%s')
-def load_sparse_columns(path, filename):
-    path = os.path.join(path, filename) + '.txt'
-    return np.loadtxt(path, dtype=str, delimiter='\n')
 
 def create_dataset_for_regression(train_df, test_df, path):
+    MAX_SESSION_LENGTH = 70
+    devices_classes = ['mobile', 'desktop', 'tablet']
+    actions_classes = ['show_impression', 'clickout item', 'interaction item rating', 'interaction item info',
+           'interaction item image', 'interaction item deals', 'change of sort order', 'filter selection',
+           'search for item', 'search for destination', 'search for poi']
+    
+    ## ======== TRAIN ======== ##
     # add the impressions as new interactions
     print('Adding impressions as new actions...')
     train_df, final_new_index = add_impressions_as_new_actions(train_df)
-    test_df, final_new_index = add_impressions_as_new_actions(test_df, final_new_index)
     print('Done!\n')
 
     # pad the sessions
     print('Padding/truncating sessions...')
-    MAX_SESSION_LENGTH = 70
     train_df = pad_sessions(train_df, max_session_length=MAX_SESSION_LENGTH)
-    test_df = pad_sessions(test_df, max_session_length=MAX_SESSION_LENGTH)
     print('Done!\n')
 
     print('Getting the last clickout of each session...')
     train_clickouts_df = get_last_clickout(train_df, index_name='index', rename_index='orig_index')
     train_clickouts_indices = train_clickouts_df.orig_index.values
     train_clickouts_indices.sort()
+    print('Done!\n')
 
+    # add the one-hot of the device
+    print('Adding one-hot columns of device...', end=' ', flush=True)
+    train_df = one_hot_df_column(train_df, 'device', classes=devices_classes)
+    print('Done!\n')
+
+    # add the one-hot of the action-type
+    print('Adding one-hot columns of action_type...', end=' ', flush=True)
+    train_df = one_hot_df_column(train_df, 'action_type', classes=actions_classes)
+    print('Done!\n')
+
+    # set the columns to be placed in the labels file
+    Y_COLUMNS = ['user_id','session_id','timestamp','step','reference']
+
+    TRAIN_LEN = train_df.shape[0]
+    
+    # join the accomodations one-hot features
+    print('Joining the accomodations features...')
+    # train
+    X_train_path = os.path.join(path, 'X_train.csv')
+    add_accomodations_features(train_df.copy(), X_train_path, logic='skip', row_indices=train_clickouts_indices)
+    
+    Y_train_path = os.path.join(path, 'Y_train.csv')
+    train_df = train_df[Y_COLUMNS]
+    add_accomodations_features(train_df.copy(), Y_train_path, logic='subset', row_indices=train_clickouts_indices)
+    # clean ram
+    del train_df
+    del train_clickouts_df
+    del train_clickouts_indices
+
+    ## ======== TEST ======== ##
+    print('Adding impressions as new actions...')
+    test_df, _ = add_impressions_as_new_actions(test_df, final_new_index)
+    print('Done!\n')
+
+    # pad the sessions
+    print('Padding/truncating sessions...')
+    test_df = pad_sessions(test_df, max_session_length=MAX_SESSION_LENGTH)
+    print('Done!\n')
+
+    print('Getting the last clickout of each session...')
     test_clickouts_df = get_last_clickout(test_df, index_name='index', rename_index='orig_index')
     test_clickouts_indices = test_clickouts_df.orig_index.values
     test_clickouts_indices.sort()
     print('Done!\n')
 
     # add the one-hot of the device
-    devices_classes = ['mobile', 'desktop', 'tablet']
     print('Adding one-hot columns of device...', end=' ', flush=True)
-    train_df = one_hot_df_column(train_df, 'device', classes=devices_classes)
     test_df = one_hot_df_column(test_df, 'device', classes=devices_classes)
     print('Done!\n')
 
     # add the one-hot of the action-type
-    actions_classes = ['show_impression', 'clickout item', 'interaction item rating', 'interaction item info',
-           'interaction item image', 'interaction item deals', 'change of sort order', 'filter selection',
-           'search for item', 'search for destination', 'search for poi']
     print('Adding one-hot columns of action_type...', end=' ', flush=True)
-    train_df = one_hot_df_column(train_df, 'action_type', classes=actions_classes)
     test_df = one_hot_df_column(test_df, 'action_type', classes=actions_classes)
     print('Done!\n')
 
-    # set the columns to be placed in the labels file
-    Y_COLUMNS = ['user_id','session_id','timestamp','step','reference']
-
-    features_cols = list(data.accomodations_one_hot().columns)
+    TEST_LEN = test_df.shape[0]
 
     # join the accomodations one-hot features
     print('Joining the accomodations features...')
-    # train
-    X_train_path = os.path.join(path, 'X_train.csv')
-    add_accomodations_features(train_df.copy(), X_train_path, logic='skip', row_indices=train_clickouts_indices)
-    save_sparse_columns(path, 'X_sparsecols', cols=(devices_classes + actions_classes + features_cols) )
-    
-    Y_train_path = os.path.join(path, 'Y_train.csv')
-    train_df = train_df[Y_COLUMNS]
-    add_accomodations_features(train_df.copy(), Y_train_path, logic='subset', row_indices=train_clickouts_indices)
-    save_sparse_columns(path, 'Y_sparsecols', cols=features_cols )
-
-    # test
     X_test_path = os.path.join(path, 'X_test.csv')
     add_accomodations_features(test_df.copy(), X_test_path, logic='skip', row_indices=test_clickouts_indices)
+    
+    ## ======== CONFIG ======== ##
+    # save the dataset config file that stores dataset length and the list of sparse columns
+    features_cols = list(data.accomodations_one_hot().columns)
+    x_sparse_cols = devices_classes + actions_classes + features_cols
+    datasetio.save_config(path, TRAIN_LEN, TEST_LEN, rows_per_sample=MAX_SESSION_LENGTH,
+                            X_sparse_cols=x_sparse_cols, Y_sparse_cols=features_cols)
 
-    # print('Saving train...', end=' ', flush=True)
-    # X_train_df.to_csv( X_train_path, float_format='%.4f')
-    # print('Done!')
+    
 
-    # print('Saving train labels...', end=' ', flush=True)
-    # Y_train_df[Y_COLUMNS].to_csv( Y_train_path, float_format='%.4f')
-    # print('Done!')
-   
-    # print('Saving test...', end=' ', flush=True)
-    # X_test_df.to_csv( X_test_path, float_format='%.4f')
-    # print('Done!')
-    
-    
-    
 
 # ======== POST-PROCESSING ========= #
 
@@ -321,12 +336,9 @@ def load_training_dataset_for_regression(mode):
     path = f'dataset/preprocessed/cluster_recurrent/{mode}'
     X_path = os.path.join(path, 'X_train.csv')
     Y_path = os.path.join(path, 'Y_train.csv')
-    
-    X_sparsecols = load_sparse_columns(path, 'X_sparsecols')
-    Y_sparsecols = load_sparse_columns(path, 'Y_sparsecols')
 
-    X_train_df = sparsedf.read(X_path, sparse_cols=X_sparsecols).set_index('orig_index')
-    Y_train_df = sparsedf.read(Y_path, sparse_cols=Y_sparsecols).set_index('orig_index')
+    X_train_df = pd.read_csv(X_path, index_col=0) #sparsedf.read(X_path, sparse_cols=X_sparsecols).set_index('orig_index')
+    Y_train_df = pd.read_csv(Y_path, index_col=0) #sparsedf.read(Y_path, sparse_cols=Y_sparsecols).set_index('orig_index')
 
     #X_test_df = pd.read_csv(f'dataset/preprocessed/cluster_recurrent/{mode}/X_test.csv').set_index('orig_index')
 
@@ -340,7 +352,8 @@ def load_training_dataset_for_regression(mode):
     # scale the dataframe
     #X_train_df = scale_dataframe(X_train_df, ['impression_price'])
     scaler = MinMaxScaler()
-    X_train_df.loc[:,~X_train_df.columns.isin(cols_to_drop_in_X)] = scaler.fit_transform(X_train_df.drop(cols_to_drop_in_X, axis=1).values)
+    X_train_df.loc[:,~X_train_df.columns.isin(cols_to_drop_in_X)] = scaler.fit_transform(
+        X_train_df.drop(cols_to_drop_in_X, axis=1).astype('float64').values)
 
     # get the tensors and drop currently unused columns
     X_train = sessions2tensor(X_train_df, drop_cols=cols_to_drop_in_X)
