@@ -198,10 +198,14 @@ def pad_sessions(df, max_session_length):
         if grouplen <= max_length:
             # pad with zeros
             array = np.zeros((max_length, g.shape[1]), dtype=object)
-            # set index to -1, user_id and session_id to the correct ones for the padded rows
+            # set index to -1 timestamp as the first one
             array[:,0] = -1
+            # user_id and session_id are set equal to the ones for the current session
             array[:,1] = g.user_id.values[0]
             array[:,2] = g.session_id.values[0]
+            # timestamp is set equal to the first of the sequence
+            array[:,3] = g.timestamp.values[0]
+            # the final part is written in place of the zeros
             array[-grouplen:] = g.values[-grouplen:]
         else:
             # truncate
@@ -224,6 +228,13 @@ def sessions2tensor(df, drop_cols=[], return_index=False):
         return np.array(sessions_values_indices_df['tensor'].to_list()), np.array(sessions_values_indices_df['indices'].to_list())
     else:
         return np.array(sessions_values_indices_df['tensor'].to_list())
+
+def save_sparse_columns(path, filename, cols):
+    path = os.path.join(path, filename) + '.txt'
+    np.savetxt(path, cols, fmt='%s')
+def load_sparse_columns(path, filename):
+    path = os.path.join(path, filename) + '.txt'
+    return np.loadtxt(path, dtype=str, delimiter='\n')
 
 def create_dataset_for_regression(train_df, test_df, path):
     # add the impressions as new interactions
@@ -268,15 +279,19 @@ def create_dataset_for_regression(train_df, test_df, path):
     # set the columns to be placed in the labels file
     Y_COLUMNS = ['user_id','session_id','timestamp','step','reference']
 
+    features_cols = list(data.accomodations_one_hot().columns)
+
     # join the accomodations one-hot features
     print('Joining the accomodations features...')
     # train
     X_train_path = os.path.join(path, 'X_train.csv')
     add_accomodations_features(train_df.copy(), X_train_path, logic='skip', row_indices=train_clickouts_indices)
+    save_sparse_columns(path, 'X_sparsecols', cols=(devices_classes + actions_classes + features_cols) )
     
     Y_train_path = os.path.join(path, 'Y_train.csv')
     train_df = train_df[Y_COLUMNS]
     add_accomodations_features(train_df.copy(), Y_train_path, logic='subset', row_indices=train_clickouts_indices)
+    save_sparse_columns(path, 'Y_sparsecols', cols=features_cols )
 
     # test
     X_test_path = os.path.join(path, 'X_test.csv')
@@ -299,27 +314,39 @@ def create_dataset_for_regression(train_df, test_df, path):
 
 # ======== POST-PROCESSING ========= #
 
-def load_dataset(mode):
+def load_training_dataset_for_regression(mode):
     from sklearn.preprocessing import MinMaxScaler
     
-    """ Load the one-hot dataset and return X_train, Y_train, X_test """
-    X_train_df = pd.read_csv(f'dataset/preprocessed/cluster_recurrent/{mode}/X_train.csv').set_index('orig_index')
-    Y_train_df = pd.read_csv(f'dataset/preprocessed/cluster_recurrent/{mode}/Y_train.csv').set_index('orig_index')
+    """ Load the one-hot dataset and return X_train, Y_train """
+    path = f'dataset/preprocessed/cluster_recurrent/{mode}'
+    X_path = os.path.join(path, 'X_train.csv')
+    Y_path = os.path.join(path, 'Y_train.csv')
+    
+    X_sparsecols = load_sparse_columns(path, 'X_sparsecols')
+    Y_sparsecols = load_sparse_columns(path, 'Y_sparsecols')
+
+    X_train_df = sparsedf.read(X_path, sparse_cols=X_sparsecols).set_index('orig_index')
+    Y_train_df = sparsedf.read(Y_path, sparse_cols=Y_sparsecols).set_index('orig_index')
 
     #X_test_df = pd.read_csv(f'dataset/preprocessed/cluster_recurrent/{mode}/X_test.csv').set_index('orig_index')
 
-    cols_to_drop_in_train = ['user_id','session_id','step','reference','platform','city','current_filters']
+    # turn the timestamp into the day of year
+    X_train_df.timestamp = pd.to_datetime(X_train_df.timestamp, unit='s')
+    X_train_df['dayofyear'] = X_train_df.timestamp.dt.dayofyear
+
+    cols_to_drop_in_X = ['user_id','session_id','timestamp','step','platform','city','current_filters']
+    cols_to_drop_in_Y = ['session_id','user_id','timestamp','step']
     
     # scale the dataframe
     #X_train_df = scale_dataframe(X_train_df, ['impression_price'])
     scaler = MinMaxScaler()
-    X_train_df.loc[:,~X_train_df.columns.isin(cols_to_drop_in_train)] = scaler.fit_transform(X_train_df.drop(cols_to_drop_in_train, axis=1))
+    X_train_df.loc[:,~X_train_df.columns.isin(cols_to_drop_in_X)] = scaler.fit_transform(X_train_df.drop(cols_to_drop_in_X, axis=1).values)
 
     # get the tensors and drop currently unused columns
-    X_train = sessions2tensor(X_train_df, drop_cols=cols_to_drop_in_train)
+    X_train = sessions2tensor(X_train_df, drop_cols=cols_to_drop_in_X)
     print('X_train:', X_train.shape)
 
-    Y_train = sessions2tensor(Y_train_df, drop_cols=['session_id','user_id','timestamp','step'])
+    Y_train = sessions2tensor(Y_train_df, drop_cols=cols_to_drop_in_Y)
     print('Y_train:', Y_train.shape)
 
     # X_test = sessions2tensor(X_test_df, drop_cols=['user_id','session_id','step','reference','platform','city','current_filters'], return_index=False)
