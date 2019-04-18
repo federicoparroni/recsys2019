@@ -86,7 +86,26 @@ def yesno_choice(title, callback_yes, callback_no=None):
         else:
             print('Wrong choice buddy ;) Retry:')
     
-
+def yesno_choice(title):
+    """
+    Display a choice to the user. Retrieves the user response.
+    :param title: text to display (e.g.: 'Do you want to go to Copenaghen?' )
+    Return the callback result
+    """
+    
+    print()
+    print(f'{title} (y/n)')
+    valid_inp = ['y','n']
+    
+    while(True):
+        inp = input()
+        if inp in valid_inp:
+            if inp == 'y':
+                return 'y'
+            elif inp == 'n':
+                return 'n'
+        else:
+            print('Wrong choice buddy ;) Retry:')
 
 def clear():
     os.system('clear')
