@@ -169,6 +169,14 @@ def create_full_df():
         test_df = merge_duplicates(test_df)
 
         ####################################################################################
+
+        ################# TEST; DELETING UNNFORMATIVE INTERACTIONS ##########################
+        
+        mask = (test_df["action_type"] != "clickout item") & (test_df["reference"].isnull())
+        test_df = test_df.drop(test_df[mask].index)
+        test_df = test_df.reset_index(drop=True)
+
+        ####################################################################################
         test_df.index += len_train
         test_df.to_csv(f, header=False)
 
@@ -338,7 +346,8 @@ def preprocess():
         np.save(os.path.join(path, 'full/test_indices'), test.index)
         np.save(os.path.join(path, 'full/target_indices'), target_indices)
 
-        train_small = get_small_dataset(train)
+        no_of_rows_in_small = int(input('How many rows do you want in small.csv? '))
+        train_small = get_small_dataset(train, maximum_rows=no_of_rows_in_small)
         check_folder('dataset/preprocessed/no_cluster/small')
         split(train_small, os.path.join(path, 'small'))
 
@@ -404,7 +413,7 @@ def preprocess():
     # create URM
     lbls = ['Create URM from LOCAL dataset', 'Create URM from FULL dataset', 'Create URM from SMALL dataset', 'Skip URM creation' ]
     callbacks = [lambda: 'local', lambda:'full', lambda: 'small', lambda: 0]
-    res = menu.single_choice(title='What do you want to do?', labels=lbls, callbacks=callbacks, exitable=True)
+    res = menu.single_choice(title='What do you want to do?', labels=lbls, callbacks=callbacks)
     
     if res is None:
         exit(0)

@@ -217,7 +217,7 @@ def accomodations_one_hot():
         sess2vec.save_accomodations_one_hot(accomodations_original_df(), ACCOMODATIONS_1HOT_PATH)
     if _df_accomodations_one_hot is None:
         print('Loading accomodations one-hot...')
-        _df_accomodations_one_hot = pd.read_csv(ACCOMODATIONS_1HOT_PATH).set_index('item_id')
+        _df_accomodations_one_hot = pd.read_csv(ACCOMODATIONS_1HOT_PATH, index_col=0).astype('Int8')
     return _df_accomodations_one_hot
 
 
