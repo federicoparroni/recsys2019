@@ -65,7 +65,7 @@ class FeatureBase(ABC):
                 return
 
         df = pd.read_csv(path)
-        df = df.drop('Unnamed: 0', axis=1)
+        #df = df.drop('Unnamed: 0', axis=1)
 
         print('{} feature read'.format(self.name))
 
