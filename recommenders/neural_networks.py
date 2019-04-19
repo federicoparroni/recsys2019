@@ -4,6 +4,7 @@ from tqdm.auto import tqdm
 
 tqdm.pandas()
 import numpy as np
+from functools import reduce
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.utils import class_weight
 
@@ -28,7 +29,8 @@ class NeuralNetworks(RecommenderBase):
         super(NeuralNetworks, self).__init__(mode=mode, cluster=cluster, name=name)
 
         self.nn_dict_params = nn_dict_params
-        base_path_dataset = f'dataset/preprocessed/neural_network_dataset/{cluster}/{mode}'
+        self.dataset_name = nn_dict_params['dataset_name']
+        base_path_dataset = f'dataset/preprocessed/neural_network_dataset/{cluster}/{mode}/{self.dataset_name}'
 
         self.X_train = np.load(f'{base_path_dataset}/X_train.npy')
         self.Y_train = np.load(f'{base_path_dataset}/Y_train.npy')
@@ -61,7 +63,7 @@ class NeuralNetworks(RecommenderBase):
                        class_weight=self.class_weights_dict)
 
     def recommend_batch(self):
-        base_path = f'dataset/preprocessed/neural_network_dataset/{self.cluster}/{self.mode}'
+        base_path = f'dataset/preprocessed/neural_network_dataset/{self.cluster}/{self.mode}/{self.dataset_name}'
         X = np.load(f'{base_path}/X_test.npy')
         target_indeces = np.load(f'{base_path}/target_indeces.npy')
         print(target_indeces)
@@ -102,29 +104,87 @@ class NeuralNetworks(RecommenderBase):
         print('model created')
 
 
-def create_dataset_for_neural_networks(mode, cluster, columns_name_array):
-    SAVE_PATH = f'dataset/preprocessed/neural_network_dataset/{cluster}/{mode}'
-    #READ_PATH = f'dataset/preprocessed/FFNN_dataset/dataframes/{cluster}/{mode}/'
+def is_target(df, tgt_usersession):
+    if tuple(df.head(1)[['user_id', 'session_id']].values[0]) in tgt_usersession:
+        return True
+    else:
+        return False
+
+
+def create_dataset_for_neural_networks(mode, cluster, features_array, dataset_name):
+    # path in which the computed dataset will be stored
+    SAVE_PATH = f'dataset/preprocessed/neural_network_dataset/{cluster}/{mode}/{dataset_name}'
     check_folder.check_folder(SAVE_PATH)
 
-    #train_df = pd.read_csv(f'{READ_PATH}/train_df.csv')
-    #test_df = pd.read_csv(f'{READ_PATH}/test_df.csv')
+    READ_FEATURE_PATH = f'dataset/preprocessed/{cluster}/{mode}/feature'
 
-    #train_df = pd.read_csv(f'{READ_PATH}/train_df.csv')
-    #test_df = pd.read_csv(f'{READ_PATH}/test_df.csv')
+    """
+    RETRIEVE THE FEATURES
+    """
+    ################################################
 
-    READ_PATH = f'dataset/preprocessed/{cluster}/{mode}/'
+    # list of pandas dataframe each element represent a feature
+    pandas_dataframe_features_session_list = []
+    for f in features_array['session']:
+        pandas_dataframe_features_session_list.append(pd.read_csv(f'{READ_FEATURE_PATH}/{f}/features.csv'))
 
-    train_df = pd.read_csv(f'{READ_PATH}/classification_train_xgboost.csv')
-    test_df = pd.read_csv(f'{READ_PATH}/classification_test_xgboost.csv')
+    # merge all the dataframes
+    df_merged_session = reduce(lambda left, right: pd.merge(left, right, on=['user_id', 'session_id'],
+                                                    how='inner'), pandas_dataframe_features_session_list)
 
+    pandas_dataframe_features_item_list = []
+    for f in features_array['item_id']:
+        pandas_dataframe_features_item_list.append(pd.read_csv(f'{READ_FEATURE_PATH}/{f}/features.csv'))
+
+    # merge all the dataframes
+    df_merged_item = reduce(lambda left, right: pd.merge(left, right, on=['user_id', 'session_id', 'item_id'],
+                                                            how='inner'), pandas_dataframe_features_item_list)
+
+    df_merged = pd.merge(df_merged_item, df_merged_session, on=['user_id', 'session_id'])
+    ################################################
+
+
+    # load the target indeces of the mode
+    target_indeces = data.target_indices(mode, cluster)
+
+    # load the full df
+    full_df = data.full_df()
+
+    # dict that has as keys the couples (user_id, session_id) that are target
+    tgt_usersession = {}
+    for index in target_indeces:
+        tgt_usersession[tuple(full_df.iloc[index][['user_id', 'session_id']].values)] = index
+
+    is_target_ = df_merged.groupby(['user_id', 'session_id']).progress_apply(is_target, tgt_usersession=tgt_usersession)
+    df_merged = pd.merge(df_merged, is_target_.reset_index(), on=['user_id', 'session_id'])
+
+    test_df = df_merged[df_merged[0]==True]
+    train_df = df_merged[df_merged[0]==False]
+
+    train_df.drop(columns=[0], inplace=True)
+    test_df.drop(columns=[0], inplace=True)
+
+    # retrieve the target indeces in the right order
+    couples_dict = {}
+    couples_arr = test_df[['user_id', 'session_id']].values
+    for c in couples_arr:
+        if tuple(c) not in couples_dict:
+            couples_dict[tuple(c)] = 1
+
+    target_us_reordered = list(couples_dict.keys())
+
+    target_indeces_reordered = []
+    for k in target_us_reordered:
+        target_indeces_reordered.append(tgt_usersession[k])
+
+    target_indeces_reordered = np.array(target_indeces_reordered)
 
     """
     CREATE DATA FOR TRAIN
 
     """
     # the 5 column is the label
-    X, Y = train_df.iloc[:, columns_name_array], train_df.iloc[:, [3]]
+    X, Y = train_df.iloc[:, 4:], train_df['label']
     scaler = MinMaxScaler()
     # normalize the values
     X_norm = scaler.fit_transform(X)
@@ -132,6 +192,8 @@ def create_dataset_for_neural_networks(mode, cluster, columns_name_array):
 
     X_train, X_val, Y_train, Y_val = train_test_split(X_norm, Y_norm, test_size=0.2, shuffle=True)
 
+    X_test = test_df.iloc[:, 4:]
+    X_test_norm = scaler.fit_transform(X_test)
 
     print('saving training data...')
     np.save(f'{SAVE_PATH}/X_train', X_train)
@@ -143,36 +205,22 @@ def create_dataset_for_neural_networks(mode, cluster, columns_name_array):
     np.save(f'{SAVE_PATH}/Y_val', Y_val)
     print('done')
 
-    """
-    CREATE DATA FOR TEST
-
-    """
-    test_df.sort_values(['index', 'impression_position'], ascending=[True, True], inplace=True)
-    X_test = test_df.iloc[:, columns_name_array]
-    scaler = MinMaxScaler()
-
-    # retrieving target indeces
-    target_indices_duplicated = test_df['index']
-    target_indeces = target_indices_duplicated.unique()
-    # for i in range(0, target_indices_duplicated.shape[0], 25):
-    #    target_indeces.append(target_indices_duplicated[i])
-
-    target_indeces = np.array(target_indeces)
-
-    # normalize the values
-    X_test_norm = scaler.fit_transform(X_test)
-    print('saving training data...')
+    print('saving test data...')
     np.save(f'{SAVE_PATH}/X_test', X_test_norm)
-    np.save(f'{SAVE_PATH}/target_indeces', target_indeces)
+    np.save(f'{SAVE_PATH}/target_indeces', target_indeces_reordered)
     print('done')
 
 
 if __name__ == '__main__':
-    columns = np.concatenate((np.array(range(4, 25)), np.array(range(26, 80))))
-    #columns = np.array(range(4, 25))
-    create_dataset_for_neural_networks('small', 'no_cluster', columns)
+    features = {
+        'item_id': ['impression label', 'impression_position_session', 'impression_price_info_session'],
+        'session': ['session_length'],
+    }
+    dataset_name = 'prova'
+    create_dataset_for_neural_networks('small', 'no_cluster', features, dataset_name)
 
     nn_dict_params = {
+        'dataset_name': 'prova',
         'activation_function_internal_layers': 'relu',
         'neurons_per_layer': 128,
         'loss': 'binary_crossentropy',
