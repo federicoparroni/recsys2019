@@ -27,7 +27,9 @@ class TimesUserInteractedWithImpression(FeatureBase):
                 clk = y.tail(1)
                 head_index = x.head(1).index
                 impr = clk.impressions.values[0].split('|')
+                print(f'x before {x}')
                 x = x.loc[head_index.values[0]:clk.index.values[0]-1]
+                print(f'x after {x}')
                 df_only_numeric = x[pd.to_numeric(x['reference'], errors='coerce').notnull()][["reference", "action_type", "frequence"]]
                 refs = list(df_only_numeric.reference.values)
                 freqs = list(df_only_numeric.frequence.values)
@@ -42,10 +44,34 @@ class TimesUserInteractedWithImpression(FeatureBase):
                         r.append((i, 0))
             return r
 
+        def count_freq(x):
+            """
+            Versione fixata di quella sopra che conta le occorrenze per ogni impression
+            negli step precedenti della sessione.
+            TODO: se va bene questa cancellate quella sopra
+            """
+            r = []
+            y = x[x['action_type'] == 'clickout item']
+            if len(y) > 0:
+                clk = y.tail(1)
+                x = x[x['step']<int(clk['step'])]
+                df_only_numeric = x[x['reference'].astype(str).str.isdigit()]
+                refs = []
+                if df_only_numeric.shape[0]>0:
+                    refs = list(df_only_numeric.reference.values)
+                impr = clk.impressions.values[0].split('|')
+                for i in impr:
+                    if i in refs:
+                        occ = refs.count(i)
+                        r.append((i, occ))
+                    else:
+                        r.append((i, 0))
+            return r
+
         train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)
         df = pd.concat([train, test])
-        s = df.groupby(['user_id', 'session_id']).progress_apply(func)
+        s = df.groupby(['user_id', 'session_id']).progress_apply(count_freq)
         s = s.apply(pd.Series).reset_index().melt(id_vars = ['user_id', 'session_id'], value_name = 'tuple').sort_values(by=['user_id', 'session_id']).dropna()
         s[['item_id', 'n_times_clicked_before_clk']] = pd.DataFrame(s['tuple'].tolist(), index=s.index)
         s = s.drop(['variable', 'tuple'], axis=1)
