@@ -29,21 +29,18 @@ class ImpressionLabel(FeatureBase):
                 clicked_impr = clk.reference.values[0]
                 for i in impr:
                     if i == clicked_impr:
-                        r.append(1)
+                        r.append((i,1))
                     else:
-                        r.append(0)
-                print(r)
+                        r.append((i,0))
             return r
         train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)
         df = pd.concat([train, test])
         s = df.groupby(['user_id', 'session_id']).progress_apply(func)
         s = s.apply(pd.Series).reset_index().melt(id_vars = ['user_id', 'session_id'], value_name = 'tuple').sort_values(by=['user_id', 'session_id']).dropna()
-        #create dataframe with : user_id, session_id, label, item_id
-        df = s[['user_id', 'session_id', 'tuple']]
-        df['item_id'] = s['tuple'].index[:]
-        df.rename(columns={'tuple':'label'}, inplace=True) # renaming the column
-        df = df.reset_index(drop=True)
+        #create dataframe with : user_id, session_id, item_id, label (1 if it's the cliked impression, 0 otherwise)
+        df=s[['user_id', 'session_id']]
+        df[['item_id', 'label']] = pd.DataFrame(s['tuple'].tolist(), index=s.index)
         print(df)
         return df
 
