@@ -72,7 +72,7 @@ class RecommenderBase(ABC):
         self.fit()
         recommendations = self.recommend_batch()
         if export:
-            out.create_sub(recommendations, mode=self.mode, submission_name=self.name)
+            out.create_sub(recommendations, submission_name=self.name)
 
     def evaluate(self, send_MRR_on_telegram = False):
         """
@@ -106,7 +106,7 @@ class RecommenderBase(ABC):
         """
         assert (self.mode == 'local' or self.mode == 'small')
 
-        train_df = data.train_df("full", cluster=self.cluster)
+        train_df = data.train_df('full')   #data.train_df("full", cluster=self.cluster)
 
         target_indices, recs = zip(*predictions)
         target_indices = list(target_indices)
