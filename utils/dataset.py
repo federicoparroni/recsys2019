@@ -118,7 +118,7 @@ class SequenceDataset(Dataset):
             Xchunk_df = self._preprocess_x_df(Xchunk_df, partial=True)
             Ychunk_df = self._preprocess_y_df(Ychunk_df)
             
-            is use_weights:
+            if use_weights:
                 # weight only the last interaction (clickout item)
                 weights = np.zeros(Xchunk_df.shape[:2])
                 weights[:,-1] = 1
