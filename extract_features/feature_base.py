@@ -52,7 +52,7 @@ class FeatureBase(ABC):
                 return
         df = self.extract_feature()
         check_folder(path)
-        df.to_csv(path)
+        df.to_csv(path, index=False)
 
     def read_feature(self, one_hot=False):
         path = 'dataset/preprocessed/{}/{}/feature/{}/features.csv'.format(
