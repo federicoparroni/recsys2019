@@ -1,9 +1,8 @@
 import os
-import preprocess_utils.session2vec as sess2vec
 import numpy as np
 import pandas as pd
 import keras
-import utils.dataset_io as datasetio
+import utils.sparsedf as sparsedf
 
 class DataGenerator(keras.utils.Sequence):
     """
@@ -20,18 +19,22 @@ class DataGenerator(keras.utils.Sequence):
         rows_per_sample (int): number of rows per sample
         samples_per_batch (int): number of samples to load for each batch
         shuffle (bool): whether to shuffle or not the chunks in the batch
-        pre_fit_fn (fn): function called before the batch of data is fed to the model (arg: Xchunk_df, Ychunk_df, index).
+        pre_fit_fn (fn): function called before the batch of data is fed to the model (useful for some preprocessing)
+                         (arg: Xchunk_df, Ychunk_df, index).
         skip_rows (int): number of rows to skip from the beginning of the file (useful for the validation generator)
-        batches_per_epoch (int): number of batches to load at each epoch, -1 to load all samples (useful to leave some batches for validation)
+        batches_per_epoch (int): number of batches to load at each epoch, -1 to load all samples
+                        (useful to leave some batches for validation)
         """
-        config = datasetio.load_config(dataset_path)
+        from utils.dataset import Dataset
+
+        config = Dataset(dataset_path)
         self.tot_rows = config.train_len if for_train else config.test_len
         self.skip_rows = skip_rows
         self.rows_per_sample = config.rows_per_sample
         self.samples_per_batch = samples_per_batch
-        self.X_path = config.x_train_path
-        self.Y_path = config.y_train_path
-        self.Xtest_path = config.x_test_path
+        self.X_path = config.X_train_path
+        self.Y_path = config.Y_train_path
+        self.Xtest_path = config.X_test_path
         self.shuffle = shuffle
         self.prefit_fn = pre_fit_fn
         self.for_train = for_train
@@ -52,6 +55,7 @@ class DataGenerator(keras.utils.Sequence):
 
     def __getitem__(self, index):
         """ Generate and return one batch of data """
+        # print(index, '\n')
         row_start = index * self.rows_per_batch
 
         if self.for_train:
