@@ -32,17 +32,20 @@ class ImpressionLabel(FeatureBase):
                         r.append(1)
                     else:
                         r.append(0)
+                print(r)
             return r
-
         train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)
         df = pd.concat([train, test])
         s = df.groupby(['user_id', 'session_id']).progress_apply(func)
         s = s.apply(pd.Series).reset_index().melt(id_vars = ['user_id', 'session_id'], value_name = 'tuple').sort_values(by=['user_id', 'session_id']).dropna()
-        s[['item_id', 'label']] = pd.DataFrame(s['tuple'].tolist(), index=s.index)
-        s = s.drop(['variable', 'tuple'], axis=1)
-        s = s.reset_index(drop=True)
-        return s
+        #create dataframe with : user_id, session_id, label, item_id
+        df = s[['user_id', 'session_id', 'tuple']]
+        df['item_id'] = s['tuple'].index[:]
+        df.rename(columns={'tuple':'label'}, inplace=True) # renaming the column
+        df = df.reset_index(drop=True)
+        print(df)
+        return df
 
 if __name__ == '__main__':
     c = ImpressionLabel(mode='small', cluster='no_cluster')
