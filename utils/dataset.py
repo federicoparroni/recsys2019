@@ -1,6 +1,7 @@
 import os
 import math
 import pandas as pd
+import numpy as np
 
 from generator import DataGenerator
 import preprocess_utils.session2vec as sess2vec
@@ -19,6 +20,8 @@ class Dataset(object):
             return
 
         self.dataset_path = dataset_path
+        self.mode = data['mode']
+        self.cluster = data['cluster']
         # file names
         self.Xtrain_name = data['Xtrain_name']
         self.Ytrain_name = data['Ytrain_name']
@@ -108,14 +111,20 @@ class SequenceDataset(Dataset):
         print('X_test:', X_test_df.shape)
         return X_test_df, indices
 
-    def get_train_validation_generator(self, validation_percentage=0.15, sessions_per_batch=500):
+    def get_train_validation_generator(self, validation_percentage=0.15, sessions_per_batch=500, use_weights=True):
         # return the generator for the train and optionally the one for validation (set to 0 to skip validation)
         def prefit(Xchunk_df, Ychunk_df, index):
             """ Preprocess a chunk of the sequence dataset """
             Xchunk_df = self._preprocess_x_df(Xchunk_df, partial=True)
             Ychunk_df = self._preprocess_y_df(Ychunk_df)
             
-            return Xchunk_df, Ychunk_df
+            is use_weights:
+                # weight only the last interaction (clickout item)
+                weights = np.zeros(Xchunk_df.shape[:2])
+                weights[:,-1] = 1
+                return Xchunk_df, Ychunk_df, weights
+            else:
+                return Xchunk_df, Ychunk_df
 
         tot_sessions = int(self.train_len / self.rows_per_sample)
         number_of_validation_sessions = int(tot_sessions * validation_percentage)

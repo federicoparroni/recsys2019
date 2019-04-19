@@ -5,6 +5,7 @@ sys.path.append(os.getcwd())
 import data
 import pandas as pd
 import utils.sparsedf as sparsedf
+from utils.check_folder import check_folder
 from utils.df import scale_dataframe
 import utils.datasetconfig as datasetconfig
 import numpy as np
@@ -232,7 +233,13 @@ def sessions2tensor(df, drop_cols=[], return_index=False):
         return np.array(sessions_values_indices_df['tensor'].to_list())
 
 
-def create_dataset_for_regression(train_df, test_df, path):
+def create_dataset_for_regression(mode, cluster):
+    train_df = data.train_df(mode, cluster='cluster_recurrent')
+    test_df = data.test_df(mode, cluster='cluster_recurrent')
+
+    path = f'dataset/preprocessed/cluster_recurrent/{mode}'
+    check_folder(path)
+
     MAX_SESSION_LENGTH = 70
     devices_classes = ['mobile', 'desktop', 'tablet']
     actions_classes = ['show_impression', 'clickout item', 'interaction item rating', 'interaction item info',
@@ -322,7 +329,7 @@ def create_dataset_for_regression(train_df, test_df, path):
     # save the dataset config file that stores dataset length and the list of sparse columns
     features_cols = list(data.accomodations_one_hot().columns)
     x_sparse_cols = devices_classes + actions_classes + features_cols
-    datasetconfig.save_config(path, TRAIN_LEN, TEST_LEN, rows_per_sample=MAX_SESSION_LENGTH,
+    datasetconfig.save_config(path, mode, cluster, TRAIN_LEN, TEST_LEN, rows_per_sample=MAX_SESSION_LENGTH,
                             X_sparse_cols=x_sparse_cols, Y_sparse_cols=features_cols)
 
     
@@ -382,14 +389,7 @@ def get_session_groups_indices_df(X_df, Y_df, cols_to_group=['user_id','session_
 
 
 if __name__ == "__main__":
-    from utils.check_folder import check_folder
-
     mode = menu.mode_selection()
-    
-    train_df = data.train_df(mode, cluster='cluster_recurrent')
-    test_df = data.test_df(mode, cluster='cluster_recurrent')
+    cluster = 'cluster_recurrent'
 
-    folder_path = f'dataset/preprocessed/cluster_recurrent/{mode}'
-    check_folder(folder_path)
-
-    create_dataset_for_regression(train_df, test_df, folder_path)
+    create_dataset_for_regression(mode, cluster)

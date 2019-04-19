@@ -62,7 +62,7 @@ def single_choice(title, labels, callbacks, exitable=False):
     
 
 
-def yesno_choice(title, callback_yes, callback_no=None):
+def yesno_choice(title, callback_yes=None, callback_no=None):
     """
     Display a choice to the user. The corresponding callback will be called in case of
     affermative or negative answers.
@@ -80,32 +80,18 @@ def yesno_choice(title, callback_yes, callback_no=None):
         inp = input()
         if inp in valid_inp:
             if inp == 'y':
-                return callback_yes() if callable(callback_yes) else None
+                if callable(callback_yes):
+                    return callback_yes()
+                else:
+                    return 'y'
             elif inp == 'n':
-                return callback_no() if callable(callback_no) else None
+                if callable(callback_no):
+                    return callback_no()
+                else:
+                    return 'n'
         else:
             print('Wrong choice buddy ;) Retry:')
     
-def yesno_choice(title):
-    """
-    Display a choice to the user. Retrieves the user response.
-    :param title: text to display (e.g.: 'Do you want to go to Copenaghen?' )
-    Return the callback result
-    """
-    
-    print()
-    print(f'{title} (y/n)')
-    valid_inp = ['y','n']
-    
-    while(True):
-        inp = input()
-        if inp in valid_inp:
-            if inp == 'y':
-                return 'y'
-            elif inp == 'n':
-                return 'n'
-        else:
-            print('Wrong choice buddy ;) Retry:')
 
 def clear():
     os.system('clear')
