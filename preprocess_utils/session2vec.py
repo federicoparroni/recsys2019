@@ -75,7 +75,7 @@ def add_accomodations_features(df, path_to_save, logic='skip', row_indices=[]):
     # one-hot encoding of the accomodations features
     attributes_df = data.accomodations_one_hot()
     # accomodations features columns
-    features_columns = attributes_df.columns
+    #features_columns = attributes_df.columns
     # with open(one_hot_accomodations_features_path, 'w') as f:
     #     pickle.dump(features_columns, f)
 
@@ -233,7 +233,7 @@ def sessions2tensor(df, drop_cols=[], return_index=False):
         return np.array(sessions_values_indices_df['tensor'].to_list())
 
 
-def create_dataset_for_regression(mode, cluster):
+def create_dataset_for_regression(mode, cluster, add_item_features=True):
     train_df = data.train_df(mode, cluster='cluster_recurrent')
     test_df = data.test_df(mode, cluster='cluster_recurrent')
 
@@ -279,14 +279,29 @@ def create_dataset_for_regression(mode, cluster):
     TRAIN_LEN = train_df.shape[0]
     
     # join the accomodations one-hot features
-    print('Joining the accomodations features...')
-    # train
     X_train_path = os.path.join(path, 'X_train.csv')
-    add_accomodations_features(train_df.copy(), X_train_path, logic='skip', row_indices=train_clickouts_indices)
+    if add_item_features:
+        print('Joining the accomodations features...')
+        add_accomodations_features(train_df.copy(), X_train_path, logic='skip', row_indices=train_clickouts_indices)
+    else:
+        # set the last clickouts to NaN and save the X dataframe
+        backup_ref_serie = train_df.reference.values.copy()
+        train_df.loc[train_clickouts_indices, 'reference'] = np.nan
+        train_df.to_csv(X_train_path, index_label='orig_index', float_format='%.4f')
+        train_df.reference = backup_ref_serie
+        del backup_ref_serie
     
     Y_train_path = os.path.join(path, 'Y_train.csv')
     train_df = train_df[Y_COLUMNS]
-    add_accomodations_features(train_df.copy(), Y_train_path, logic='subset', row_indices=train_clickouts_indices)
+    if add_item_features:
+        add_accomodations_features(train_df.copy(), Y_train_path, logic='subset', row_indices=train_clickouts_indices)
+    else:
+        # set all clickouts to NaN except for the last clickouts and save the Y dataframe
+        backup_ref_serie = train_df.loc[train_clickouts_indices].reference.copy()
+        train_df.reference = np.nan
+        train_df.loc[train_clickouts_indices, 'reference'] = backup_ref_serie
+        train_df.to_csv(Y_train_path, index_label='orig_index', float_format='%.4f')
+
     # clean ram
     del train_df
     del train_clickouts_df
@@ -321,13 +336,21 @@ def create_dataset_for_regression(mode, cluster):
     TEST_LEN = test_df.shape[0]
 
     # join the accomodations one-hot features
-    print('Joining the accomodations features...')
     X_test_path = os.path.join(path, 'X_test.csv')
-    add_accomodations_features(test_df.copy(), X_test_path, logic='skip', row_indices=test_clickouts_indices)
+    if add_item_features:
+        print('Joining the accomodations features...')
+        add_accomodations_features(test_df.copy(), X_test_path, logic='skip', row_indices=test_clickouts_indices)
+    else:
+        # set the last clickouts to NaN and save the X dataframe
+        backup_ref_serie = test_df.reference.values.copy()
+        test_df.loc[test_clickouts_indices, 'reference'] = np.nan
+        test_df.to_csv(X_test_path, index_label='orig_index', float_format='%.4f')
+        #test_df.reference = backup_ref_serie
+        del backup_ref_serie
     
     ## ======== CONFIG ======== ##
     # save the dataset config file that stores dataset length and the list of sparse columns
-    features_cols = list(data.accomodations_one_hot().columns)
+    features_cols = list(data.accomodations_one_hot().columns) if add_item_features else []    
     x_sparse_cols = devices_classes + actions_classes + features_cols
     datasetconfig.save_config(path, mode, cluster, TRAIN_LEN, TEST_LEN, rows_per_sample=MAX_SESSION_LENGTH,
                             X_sparse_cols=x_sparse_cols, Y_sparse_cols=features_cols)
@@ -392,4 +415,5 @@ if __name__ == "__main__":
     mode = menu.mode_selection()
     cluster = 'cluster_recurrent'
 
-    create_dataset_for_regression(mode, cluster)
+    item_feat = menu.yesno_choice('Do you want to add item features?', lambda: True, lambda: False)
+    create_dataset_for_regression(mode, cluster, add_item_features=item_feat)
