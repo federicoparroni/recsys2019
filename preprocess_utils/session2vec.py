@@ -39,15 +39,16 @@ def save_accomodations_one_hot(accomodations_df, path):
     print('Done!')
     return attributes_df
 
-def one_hot_df_column(df, column_label, classes): #sparse=True):
+def one_hot_df_column(df, column_label, classes, sparse=False):
     """ Substitute a dataframe column with its one-hot encoding derived columns """
-    mlb = MultiLabelBinarizer(classes=classes, sparse_output=True)  #sparse)
+    mlb = MultiLabelBinarizer(classes=classes, sparse_output=sparse)
     res = mlb.fit_transform(df[column_label].values.reshape(-1,1))
     
-    #if sparse:
-    df[classes] = pd.SparseDataFrame(res, columns=mlb.classes_, dtype='Int8', index=df.index)
-    # else:     NOT WORKING!
-    #     df[classes] = pd.DataFrame(res, columns=mlb.classes_, index=df.index)
+    if sparse:
+        df[classes] = pd.SparseDataFrame(res, columns=mlb.classes_, dtype='Int8', index=df.index)
+    else:
+        for i,col in enumerate(mlb.classes_):
+            df[col] = pd.Series(res[:,i], dtype='int8', index=df.index)
     return df.drop(column_label, axis=1)
 
 def add_accomodations_features(df, path_to_save, logic='skip', row_indices=[]):
@@ -370,7 +371,7 @@ def create_dataset_for_regression(mode, cluster, pad_sessions_length=70, add_ite
                             rows_per_sample=pad_sessions_length,
                             X_sparse_cols=x_sparse_cols, Y_sparse_cols=features_cols)
 
-    
+
 
 
 # ======== POST-PROCESSING ========= #
