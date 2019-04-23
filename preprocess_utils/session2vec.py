@@ -233,14 +233,18 @@ def sessions2tensor(df, drop_cols=[], return_index=False):
         return np.array(sessions_values_indices_df['tensor'].to_list())
 
 
-def create_dataset_for_regression(mode, cluster, add_item_features=True):
+def create_dataset_for_regression(mode, cluster, pad_sessions_length=70, add_item_features=True, save_X_Y=True):
+    """
+    pad_sessions_length (int): final length of sessions after padding/truncating
+    add_item_features (bool): whether to add the one-hot accomodations features to the training data
+    save_X_Y (bool): whether to save the train data into 2 separate files (X_train, Y_train) or in a unique file (train_vec)
+    """
     train_df = data.train_df(mode, cluster='cluster_recurrent')
     test_df = data.test_df(mode, cluster='cluster_recurrent')
 
-    path = f'dataset/preprocessed/cluster_recurrent/{mode}'
+    path = f'dataset/preprocessed/cluster_recurrent/{mode}/dataset_regression'
     check_folder(path)
 
-    MAX_SESSION_LENGTH = 70
     devices_classes = ['mobile', 'desktop', 'tablet']
     actions_classes = ['show_impression', 'clickout item', 'interaction item rating', 'interaction item info',
            'interaction item image', 'interaction item deals', 'change of sort order', 'filter selection',
@@ -253,15 +257,17 @@ def create_dataset_for_regression(mode, cluster, add_item_features=True):
     print('Done!\n')
 
     # pad the sessions
-    print('Padding/truncating sessions...')
-    train_df = pad_sessions(train_df, max_session_length=MAX_SESSION_LENGTH)
-    print('Done!\n')
+    if pad_sessions_length > 0:
+        print('Padding/truncating sessions...')
+        train_df = pad_sessions(train_df, max_session_length=pad_sessions_length)
+        print('Done!\n')
 
-    print('Getting the last clickout of each session...')
-    train_clickouts_df = get_last_clickout(train_df, index_name='index', rename_index='orig_index')
-    train_clickouts_indices = train_clickouts_df.orig_index.values
-    train_clickouts_indices.sort()
-    print('Done!\n')
+    if save_X_Y:
+        print('Getting the last clickout of each session...')
+        train_clickouts_df = get_last_clickout(train_df, index_name='index', rename_index='orig_index')
+        train_clickouts_indices = train_clickouts_df.orig_index.values
+        train_clickouts_indices.sort()
+        print('Done!\n')
 
     # add the one-hot of the device
     print('Adding one-hot columns of device...', end=' ', flush=True)
@@ -273,39 +279,46 @@ def create_dataset_for_regression(mode, cluster, add_item_features=True):
     train_df = one_hot_df_column(train_df, 'action_type', classes=actions_classes)
     print('Done!\n')
 
-    # set the columns to be placed in the labels file
-    Y_COLUMNS = ['user_id','session_id','timestamp','step','reference']
-
     TRAIN_LEN = train_df.shape[0]
-    
-    # join the accomodations one-hot features
-    X_train_path = os.path.join(path, 'X_train.csv')
-    if add_item_features:
-        print('Joining the accomodations features...')
-        add_accomodations_features(train_df.copy(), X_train_path, logic='skip', row_indices=train_clickouts_indices)
-    else:
-        # set the last clickouts to NaN and save the X dataframe
-        backup_ref_serie = train_df.reference.values.copy()
-        train_df.loc[train_clickouts_indices, 'reference'] = np.nan
-        train_df.to_csv(X_train_path, index_label='orig_index', float_format='%.4f')
-        train_df.reference = backup_ref_serie
-        del backup_ref_serie
-    
-    Y_train_path = os.path.join(path, 'Y_train.csv')
-    train_df = train_df[Y_COLUMNS]
-    if add_item_features:
-        add_accomodations_features(train_df.copy(), Y_train_path, logic='subset', row_indices=train_clickouts_indices)
-    else:
-        # set all clickouts to NaN except for the last clickouts and save the Y dataframe
-        backup_ref_serie = train_df.loc[train_clickouts_indices].reference.copy()
-        train_df.reference = np.nan
-        train_df.loc[train_clickouts_indices, 'reference'] = backup_ref_serie
-        train_df.to_csv(Y_train_path, index_label='orig_index', float_format='%.4f')
+    TRAIN_NAME = ''
 
-    # clean ram
+    if save_X_Y:
+        # set the columns to be placed in the labels file
+        Y_COLUMNS = ['user_id','session_id','timestamp','step','reference']
+    
+        # join the accomodations one-hot features
+        X_train_path = os.path.join(path, 'X_train.csv')
+        if add_item_features:
+            print('Joining the accomodations features...')
+            add_accomodations_features(train_df.copy(), X_train_path, logic='skip', row_indices=train_clickouts_indices)
+        else:
+            # set the last clickouts to NaN and save the X dataframe
+            backup_ref_serie = train_df.reference.values.copy()
+            train_df.loc[train_clickouts_indices, 'reference'] = np.nan
+            train_df.to_csv(X_train_path, index_label='orig_index', float_format='%.4f')
+            train_df.reference = backup_ref_serie
+            del backup_ref_serie
+        
+        Y_train_path = os.path.join(path, 'Y_train.csv')
+        train_df = train_df[Y_COLUMNS]
+        if add_item_features:
+            add_accomodations_features(train_df.copy(), Y_train_path, logic='subset', row_indices=train_clickouts_indices)
+        else:
+            # set all clickouts to NaN except for the last clickouts and save the Y dataframe
+            backup_ref_serie = train_df.loc[train_clickouts_indices].reference.copy()
+            train_df.reference = np.nan
+            train_df.loc[train_clickouts_indices, 'reference'] = backup_ref_serie
+            train_df.to_csv(Y_train_path, index_label='orig_index', float_format='%.4f')
+
+        # clean ram
+        del train_clickouts_df
+        del train_clickouts_indices
+    else:
+        TRAIN_NAME = 'train_vec.csv'
+        train_path = os.path.join(path, TRAIN_NAME)
+        train_df.to_csv(train_path, index_label='orig_index', float_format='%.4f')
+
     del train_df
-    del train_clickouts_df
-    del train_clickouts_indices
 
     ## ======== TEST ======== ##
     print('Adding impressions as new actions...')
@@ -313,9 +326,10 @@ def create_dataset_for_regression(mode, cluster, add_item_features=True):
     print('Done!\n')
 
     # pad the sessions
-    print('Padding/truncating sessions...')
-    test_df = pad_sessions(test_df, max_session_length=MAX_SESSION_LENGTH)
-    print('Done!\n')
+    if pad_sessions_length > 0:
+        print('Padding/truncating sessions...')
+        test_df = pad_sessions(test_df, max_session_length=pad_sessions_length)
+        print('Done!\n')
 
     print('Getting the last clickout of each session...')
     test_clickouts_df = get_last_clickout(test_df, index_name='index', rename_index='orig_index')
@@ -352,7 +366,8 @@ def create_dataset_for_regression(mode, cluster, add_item_features=True):
     # save the dataset config file that stores dataset length and the list of sparse columns
     features_cols = list(data.accomodations_one_hot().columns) if add_item_features else []    
     x_sparse_cols = devices_classes + actions_classes + features_cols
-    datasetconfig.save_config(path, mode, cluster, TRAIN_LEN, TEST_LEN, rows_per_sample=MAX_SESSION_LENGTH,
+    datasetconfig.save_config(path, mode, cluster, TRAIN_LEN, TEST_LEN, train_name=TRAIN_NAME,
+                            rows_per_sample=pad_sessions_length,
                             X_sparse_cols=x_sparse_cols, Y_sparse_cols=features_cols)
 
     
@@ -415,5 +430,12 @@ if __name__ == "__main__":
     mode = menu.mode_selection()
     cluster = 'cluster_recurrent'
 
-    item_feat = menu.yesno_choice('Do you want to add item features?', lambda: True, lambda: False)
-    create_dataset_for_regression(mode, cluster, add_item_features=item_feat)
+    save_XY = menu.single_choice('Choose the dataset structure:',
+                                ['X_train, Y_train for training, X_test for testing',
+                                    'train_vec for training, X_test for testing'],
+                                [lambda: True, lambda: False])
+    print()
+    sess_length = int(input('Insert the desired sessions length, -1 to not to pad/truncate the sessions: '))
+    item_feat_choice = menu.yesno_choice('Do you want to add item features?', lambda: True, lambda: False)
+    create_dataset_for_regression(mode, cluster, pad_sessions_length=sess_length,
+                                add_item_features=item_feat_choice, save_X_Y=save_XY)

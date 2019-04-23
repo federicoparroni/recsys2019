@@ -23,6 +23,7 @@ class Dataset(object):
         self.mode = data['mode']
         self.cluster = data['cluster']
         # file names
+        self.train_name = data['train_name']
         self.Xtrain_name = data['Xtrain_name']
         self.Ytrain_name = data['Ytrain_name']
         self.Xtest_name = data['Xtest_name']
@@ -35,6 +36,7 @@ class Dataset(object):
         self.Y_sparse_columns = data['Y_sparse_columns']
     
         # paths
+        self.train_path = os.path.join(self.dataset_path, self.train_name)
         self.X_train_path = os.path.join(self.dataset_path, self.Xtrain_name)
         self.Y_train_path = os.path.join(self.dataset_path, self.Ytrain_name)
         self.X_test_path = os.path.join(self.dataset_path, self.Xtest_name)
@@ -60,7 +62,7 @@ class Dataset(object):
 
 ## ======= Datasets ======= ##
 
-class SequenceDataset(Dataset):
+class SequenceDatasetForRegression(Dataset):
 
     def _preprocess_x_df(self, X_df, partial, fillNaN=0, return_indices=False):
         """ Preprocess the loaded data (X)
@@ -92,6 +94,18 @@ class SequenceDataset(Dataset):
         cols_to_drop_in_Y = ['session_id','user_id','timestamp','step']
         return sess2vec.sessions2tensor(Y_df, drop_cols=cols_to_drop_in_Y)
 
+    def load_train(self):
+        train_df = pd.read_csv(self.train_path, index_col=0)
+        train_df = train_df.fillna(0)
+        # add day of year column
+        # train_df.datetime = pd.to_datetime(train_df.timestamp, unit='s')
+        # train_df['dayofyear'] = train_df.timestamp.dt.dayofyear
+        # scale
+        scaler = MinMaxScaler()
+        train_df.impression_price = scaler.fit_transform(train_df.impression_price.values.reshape(-1,1))
+
+        print('train_vec:', train_df.shape)
+        return train_df
 
     def load_Xtrain(self):
         X_train_df = pd.read_csv(self.X_train_path, index_col=0)

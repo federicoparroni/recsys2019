@@ -14,6 +14,8 @@ class RecommenderBase(ABC):
         """
         init should have on its firm the params of the algorithm
         """
+        assert mode in ['full', 'local', 'small']
+        
         self.name = name
         self.mode = mode
         self.cluster = cluster

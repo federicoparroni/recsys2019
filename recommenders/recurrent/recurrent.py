@@ -30,15 +30,13 @@ class RecurrentRecommender(RecommenderBase):
         num_units:        number of memory cells
         
         """
-        assert mode in ['full', 'local', 'small']
         assert num_layers > 0
         assert num_units > 0
         assert cell_type in ['LSTM', 'lstm', 'GRU', 'gru']
 
-        self.name = cell_type.upper()
-        self.mode = dataset.mode
-        self.cluster = dataset.cluster
         self.dataset = dataset
+        super().__init__(dataset.mode, dataset.cluster, 'RecurrentRecommender_{}'.format(cell_type.upper()))
+
         self.validation_split = validation_split
         self.use_generator = use_generator
         self.checkpoints_path = checkpoints_path
@@ -172,17 +170,17 @@ if __name__ == "__main__":
         units = 4
         tb_path = None
     else:
-        epochs = input('Insert number of epochs: ')
-        layers = input('Insert number of layers: ')
-        units = input('Insert number of units per layer: ')
+        epochs = int(input('Insert number of epochs: '))
+        layers = int(input('Insert number of layers: '))
+        units = int(input('Insert number of units per layer: '))
         tb_path = menu.yesno_choice('Do you want to enable Tensorboard?', lambda: 'recommenders/tensorboard', lambda: None)
 
     dataset = SequenceDataset(f'dataset/preprocessed/cluster_recurrent/{mode}')
     
     # model = RecurrentRecommender(dataset, use_generator=True, cell_type='gru', num_units=50, num_layers=2)
     # model.fit(epochs=5)
-    model = RecurrentRecommender(dataset, use_generator=True, cell_type=cell_type, num_layers=int(layers), num_units=int(units))
-    model.fit(epochs=int(epochs))
+    model = RecurrentRecommender(dataset, use_generator=True, cell_type=cell_type, num_layers=layers, num_units=units)
+    model.fit(epochs=epochs)
 
     print()
     print('Fit completed!')
