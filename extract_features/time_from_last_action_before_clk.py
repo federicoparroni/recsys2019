@@ -12,11 +12,11 @@ class TimePassedBeforeClickout(FeatureBase):
 
     """
     time passed before action before clickout. -1 if session consists of only an action
-    | user_id | session_id | time_last_action_before_clk | frenzy_factor
+    | user_id | session_id | time_last_action_before_clk
     """
 
     def __init__(self, mode, cluster='no_cluster'):
-        name = 'time passed before clk'
+        name = 'timing_last_action_before_clk'
         super(TimePassedBeforeClickout, self).__init__(
             name=name, mode=mode, cluster=cluster)
 
@@ -38,5 +38,5 @@ class TimePassedBeforeClickout(FeatureBase):
         return pd.DataFrame({'user_id': [x[0] for x in s.index.values], 'session_id':[x[1] for x in s.index.values], 'time_passed_before_clk':[x for x in s.values]})
 
 if __name__ == '__main__':
-    c = TimePassedBeforeClickout(mode='small', cluster='no_cluster')
+    c = TimePassedBeforeClickout(mode='full', cluster='no_cluster')
     c.save_feature()

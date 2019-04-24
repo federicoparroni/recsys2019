@@ -11,7 +11,7 @@ print(os.getcwd())
 class FrenzyFactorSession(FeatureBase):
 
     """
-    mean of time passed during consecutive steps and quared variance between every 2 consecutive steps in ms (frenzy factor of a user)
+    mean of time passed during consecutive steps and squared variance between every 2 consecutive steps in ms (frenzy factor of a user)
     | user_id | session_id | mean_time_per_step | frenzy_factor
 
     WARNING:
@@ -50,14 +50,14 @@ class FrenzyFactorSession(FeatureBase):
 
             return mean_time_per_step, var
 
-        train = data.train_df(mode=self.mode, cluster=self.cluster)
+        #train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)
-        df = pd.concat([train, test])
+        df =test# pd.concat([train, test])
         s = df.groupby(['user_id', 'session_id']).progress_apply(func)
 
         return pd.DataFrame({'user_id': [x[0] for x in s.index.values], 'session_id': [x[1] for x in s.index.values],
                              'mean_time_per_step': [x[0] for x in s.values], 'frenzy_factor': [x[1] for x in s.values]})
 
 if __name__ == '__main__':
-    c = FrenzyFactorSession(mode='small', cluster='no_cluster')
+    c = FrenzyFactorSession(mode='full', cluster='cluster_sessions_no_numerical_reference')
     c.save_feature()

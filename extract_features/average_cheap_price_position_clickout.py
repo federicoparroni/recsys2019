@@ -8,16 +8,16 @@ import os
 os.chdir("../")
 print(os.getcwd())
 
-class MeanCheapPricePositionClickout(FeatureBase):
+class AvgPriceAndPricePosition(FeatureBase):
 
     """
-    mean position of the item clicked AND interacted by the user during the session sorted by price ascendent. -1 if no other interaction is present
+    avg position of the item clicked AND interacted by the user during the session sorted by price ascendent. -1 if no other interaction is present
     | user_id | session_id | mean_price_interacted | mean_cheap_pos_interacted
     """
 
     def __init__(self, mode, cluster='no_cluster'):
-        name = 'mean cheap price position clickout'
-        super(MeanCheapPricePositionClickout, self).__init__(
+        name = 'average_price_position_and_price_interacted_item'
+        super(AvgPriceAndPricePosition, self).__init__(
             name=name, mode=mode, cluster=cluster)
 
     def extract_feature(self):
@@ -94,5 +94,5 @@ class MeanCheapPricePositionClickout(FeatureBase):
                              'mean_price_interacted': [x[0] for x in s.values], 'mean_cheap_pos_interacted': [x[1] for x in s.values]})
 
 if __name__ == '__main__':
-    c = MeanCheapPricePositionClickout(mode='small', cluster='no_cluster')
+    c = AvgPriceAndPricePosition(mode='full', cluster='no_cluster')
     c.save_feature()
