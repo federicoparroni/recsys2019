@@ -181,15 +181,21 @@ def get_labels(sess2vec_df, features_columns, columns_to_keep_in_labels=['orig_i
     return labels_sparse_df
 """
 
-def add_impressions_as_new_actions(df, new_rows_starting_index=99000000, drop_cols=['impressions','prices']):
+def add_impressions_as_new_actions(df, new_rows_starting_index=99000000, drop_cols=['impressions','prices'], append_every=1000000):
     """
     Add dummy actions before each clickout to indicate each one of the available impressions.
     Prices are incorporated inside the new rows in a new column called 'impression_price'.
+    Since this is the most expensive task of the creation process, a multicore implementation would allow to split
+    the work between the cpu cores (but obviuosly not working!)
     """
     df['impression_price'] = -1     #np.nan
     clickout_rows = df[df.action_type == 'clickout item']
     print('Total clickout interactions found:', clickout_rows.shape[0], flush=True)
-    
+
+    columns = clickout_rows.columns
+    def append_to_df(temp_df, df, columns, drop_cols):
+        return df.append(pd.DataFrame(temp_df, columns=columns), sort=False).drop(drop_cols, axis=1)
+
     temp_df = []
     for _, row in tqdm(clickout_rows.iterrows()):
         impressions = list(map(int, row.impressions.split('|')))
@@ -208,11 +214,16 @@ def add_impressions_as_new_actions(df, new_rows_starting_index=99000000, drop_co
             new_rows_starting_index += 1
 
             temp_df.append(r)
-
-    temp_df = pd.DataFrame(temp_df, columns=clickout_rows.columns)
-    df = df.append(temp_df).drop(drop_cols, axis=1)
-    df.index = df.index.set_names(['index'])
+        
+        if len(temp_df) >= append_every:
+            df = append_to_df(temp_df, df, columns, drop_cols)
+            temp_df = []
     
+    if len(temp_df) > 0:
+        df = append_to_df(temp_df, df, columns, drop_cols)
+
+
+    df.index = df.index.set_names(['index'])    
     return df.sort_values(['user_id','session_id','timestamp','step']), new_rows_starting_index
 
 def pad_sessions(df, max_session_length):
