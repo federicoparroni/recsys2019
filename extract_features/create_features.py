@@ -1,5 +1,5 @@
 from extract_features.actions_involving_impression_session import ActionsInvolvingImpressionSession
-from extract_features.average_price_clickout import MeanPriceClickout
+from extract_features.mean_price_clickout import MeanPriceClickout
 from extract_features.label import ImpressionLabel
 from extract_features.impression_position_session import ImpressionPositionSession
 from extract_features.session_length import SessionLength
