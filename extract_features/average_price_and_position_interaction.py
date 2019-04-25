@@ -5,6 +5,10 @@ from tqdm.auto import tqdm
 tqdm.pandas()
 
 
+import os
+os.chdir("../")
+print(os.getcwd())
+
 class MeanPriceClickout(FeatureBase):
 
     """
@@ -28,7 +32,8 @@ class MeanPriceClickout(FeatureBase):
 
                 df = y.loc[head_index.values[0]:clk.index.values[0] - 1]
                 if len(df) > 0:
-                    clickouts = df[df['action_type'] == 'clickout item']
+                    clickouts = df[ (df['action_type'] == 'clickout item')
+                                    & (pd.to_numeric(df['reference'], errors='coerce').notnull())]
                     if len(clickouts) > 0:
                         mean_price = 0
                         for i, row in clickouts.iterrows():
@@ -43,7 +48,6 @@ class MeanPriceClickout(FeatureBase):
                     mean_price = -1
                 return mean_price
 
-
         train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)
         df = pd.concat([train, test])
@@ -55,5 +59,5 @@ class MeanPriceClickout(FeatureBase):
         return s
 
 if __name__ == '__main__':
-    c = MeanPriceClickout(mode='small', cluster='no_cluster')
+    c = MeanPriceClickout(mode='local', cluster='no_cluster')
     c.save_feature()

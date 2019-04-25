@@ -1,13 +1,14 @@
 import os
 import json
 
-def save_config(dataset_path, mode, cluster, train_len, test_len, Xtrain_name='X_train.csv', Ytrain_name='Y_train.csv',
-                Xtest_name='X_test.csv', rows_per_sample=1, X_sparse_cols=[], Y_sparse_cols=[]):
+def save_config(dataset_path, mode, cluster, train_len, test_len, train_name='', Xtrain_name='X_train.csv', 
+                Ytrain_name='Y_train.csv', Xtest_name='X_test.csv', rows_per_sample=1, X_sparse_cols=[], Y_sparse_cols=[]):
     """ Save the config file for the specified dataset """
     path = os.path.join(dataset_path, 'dataset_config.json')
     data = {
         'mode': mode,
         'cluster': cluster,
+        'train_name': train_name,
         'Xtrain_name': Xtrain_name,
         'Ytrain_name': Ytrain_name,
         'train_len': train_len,

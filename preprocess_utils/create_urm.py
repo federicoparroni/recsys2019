@@ -1,3 +1,7 @@
+import os
+import sys
+sys.path.append(os.getcwd())
+
 import data
 from tqdm import tqdm
 from sklearn.preprocessing import MultiLabelBinarizer
@@ -619,5 +623,9 @@ def urm(mode, cluster, clickout_score=5, impressions_score=1):
 
 
 if __name__ == '__main__':
-    urm_creator = urm_creator(type='session', mode='small', cluster='no_cluster', name='urm_tlin_parro')
+    import utils.menu as menu
+
+    mode = menu.mode_selection()
+
+    urm_creator = urm_creator(type='session', mode=mode, cluster='no_cluster', name='urm_recurrent_models')
     urm_creator.create_urm()
