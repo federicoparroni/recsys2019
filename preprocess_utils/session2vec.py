@@ -10,7 +10,8 @@ from utils.df import scale_dataframe
 import utils.datasetconfig as datasetconfig
 import numpy as np
 import scipy.sparse as sps
-from sklearn.preprocessing import MultiLabelBinarizer
+from sklearn.preprocessing import MultiLabelBinarizer, MinMaxScaler
+from keras.utils import to_categorical
 from tqdm import tqdm
 import utils.menu as menu
 #import pickle
@@ -110,8 +111,6 @@ def add_reference_classes(df, actiontype_col='clickout item', action_equals=1, c
     For the clickout interactions, a 1 is placed in the column with name {classes_prefix}{reference index in impressions}.
     For the non-clickout interactions, 0s are placed in every columns with names {classes_prefix}{0...}
     """
-    from keras.utils import to_categorical
-
     tqdm.pandas()
     def set_class(row):
         if row[actiontype_col] == action_equals:
@@ -537,8 +536,6 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length=70):
 # ======== POST-PROCESSING ========= #
 
 def load_training_dataset_for_regression(mode):
-    from sklearn.preprocessing import MinMaxScaler
-    
     """ Load the one-hot dataset and return X_train, Y_train """
     path = f'dataset/preprocessed/cluster_recurrent/{mode}'
     X_path = os.path.join(path, 'X_train.csv')
