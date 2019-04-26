@@ -13,12 +13,12 @@ from extract_features.last_action_involving_impression import LastInteractionInv
 from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
 
 # define all the features to be made
-features = [ActionsInvolvingImpressionSession, MeanPriceClickout, ImpressionLabel, ImpressionPositionSession,
-            SessionLength, SessionDevice, SessionFilterActiveWhenClickout, SessionSortOrderWhenClickout,
-            ImpressionPriceInfoSession, TimesUserInteractedWithImpression, TimingFromLastInteractionImpression,
-            LastInteractionInvolvingImpression, SessionActionNumRefDiffFromImpressions]
+features = [MeanPriceClickout, ImpressionLabel, ImpressionPositionSession,
+            SessionLength, ImpressionPriceInfoSession, TimesUserInteractedWithImpression,
+            TimingFromLastInteractionImpression]
 
 # create all the features defined in the array 'features'
 for feature_name in features:
     feature = feature_name(mode='full', cluster='no_cluster')
     feature.save_feature()
+
