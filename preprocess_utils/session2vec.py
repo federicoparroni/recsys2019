@@ -10,7 +10,8 @@ from utils.df import scale_dataframe
 import utils.datasetconfig as datasetconfig
 import numpy as np
 import scipy.sparse as sps
-from sklearn.preprocessing import MultiLabelBinarizer
+from sklearn.preprocessing import MultiLabelBinarizer, MinMaxScaler
+from keras.utils import to_categorical
 from tqdm import tqdm
 import utils.menu as menu
 #import pickle
@@ -110,8 +111,6 @@ def add_reference_classes(df, actiontype_col='clickout item', action_equals=1, c
     For the clickout interactions, a 1 is placed in the column with name {classes_prefix}{reference index in impressions}.
     For the non-clickout interactions, 0s are placed in every columns with names {classes_prefix}{0...}
     """
-    from keras.utils import to_categorical
-
     tqdm.pandas()
     def set_class(row):
         if row[actiontype_col] == action_equals:
@@ -181,39 +180,54 @@ def get_labels(sess2vec_df, features_columns, columns_to_keep_in_labels=['orig_i
     return labels_sparse_df
 """
 
-def add_impressions_as_new_actions(df, new_rows_starting_index=99000000, drop_cols=['impressions','prices']):
+def add_impressions_as_new_actions(df, new_rows_starting_index=99000000, drop_cols=['impressions','prices'], append_every=1000000):
     """
     Add dummy actions before each clickout to indicate each one of the available impressions.
     Prices are incorporated inside the new rows in a new column called 'impression_price'.
+    Since this is the most expensive task of the creation process, a multicore implementation would allow to split
+    the work between the cpu cores (but obviuosly not working!)
     """
-    df['impression_price'] = -1     #np.nan
+    df['impression_price'] = 0     #np.nan
     clickout_rows = df[df.action_type == 'clickout item']
     print('Total clickout interactions found:', clickout_rows.shape[0], flush=True)
+
+    # build a new empty dataframe containing the original one with additional rows used to append the new interactions
+    columns = list(df.columns)
+    # since we don't know exactly the tot rows to append, estimate it with an upper bound, later we discard the exceeding rows 
+    rows_upper_bound = clickout_rows.shape[0] * 25
+    # indices are expanded with a new series (starting from 'new_rows_starting_index')
+    new_indices = np.concatenate([df.index.values, np.arange(new_rows_starting_index, new_rows_starting_index + rows_upper_bound)])
+    res_df = pd.DataFrame(index=new_indices, columns=columns)
+    # copy the original dataframe at the begininng
+    res_df.iloc[0:df.shape[0]] = df.values
+    # cache the column indices to access quickly at insertion time
+    show_impr_col_index = columns.index('action_type')
+    steps_col_index = columns.index('step')
+    reference_col_index = columns.index('reference')
+    price_col_index = columns.index('impression_price')
     
-    temp_df = []
+    j = new_rows_starting_index         # keep tracks of the inserted rows
     for _, row in tqdm(clickout_rows.iterrows()):
+        # for each clickout interaction, create a group of row to write at the end of the resulting dataframe
         impressions = list(map(int, row.impressions.split('|')))
+        imprs_count = len(impressions)
         prices = list(map(int, row.prices.split('|')))
-        row.action_type = 'show_impression'
-  
-        steps = np.linspace(row.step-1+1/len(impressions),row.step,len(impressions)+1)
-        for imprsn, impr_price, step in zip(impressions, prices, steps):
-            # a copy is needed otherwise row seems to be taken by reference
-            r = row.copy()
-            r.name = new_rows_starting_index
-            
-            r.reference = imprsn
-            r.impression_price = impr_price
-            r.step = step
-            new_rows_starting_index += 1
+        # repeat the clickout row as many times as the impressions count and set the action_type to 'show_impression'
+        rows_to_set = np.tile(row.values, (imprs_count,1))
+        rows_to_set[:,show_impr_col_index] = 'show_impression'
+        # set the new series of reference, prices, intermediate time steps
+        rows_to_set[:,reference_col_index] = impressions
+        rows_to_set[:,price_col_index] = prices
+        rows_to_set[:,steps_col_index] = np.linspace(row.step-1+1/imprs_count, row.step, imprs_count+1)[0:-1]
+        # write the group of rows into the right location by index
+        indices = np.arange(j, j+imprs_count)
+        res_df.loc[indices] = rows_to_set
 
-            temp_df.append(r)
+        j += imprs_count
 
-    temp_df = pd.DataFrame(temp_df, columns=clickout_rows.columns)
-    df = df.append(temp_df).drop(drop_cols, axis=1)
-    df.index = df.index.set_names(['index'])
-    
-    return df.sort_values(['user_id','session_id','timestamp','step']), new_rows_starting_index
+    # drop the specified columns and discard the exceeding empty rows
+    res_df = res_df.drop(drop_cols, axis=1).loc[0:j-1]
+    return res_df.sort_values(['user_id','session_id','timestamp','step']), j
 
 def pad_sessions(df, max_session_length):
     """ Pad/truncate each session to have the specified length (pad by adding a number of initial rows) """
@@ -526,8 +540,6 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length=70):
 # ======== POST-PROCESSING ========= #
 
 def load_training_dataset_for_regression(mode):
-    from sklearn.preprocessing import MinMaxScaler
-    
     """ Load the one-hot dataset and return X_train, Y_train """
     path = f'dataset/preprocessed/cluster_recurrent/{mode}'
     X_path = os.path.join(path, 'X_train.csv')
