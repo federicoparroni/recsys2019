@@ -28,7 +28,7 @@ def options(options, labels, title='', selected_item_prefix=None, selected_item_
         clear()
         if title != '':
             print(title)
-        for i, opt in enumerate(options):
+        for i, opt in enumerate(labels):
             prefix = selected_item_prefix if enabled[i] else spacer_prefix
             suffix = selected_item_suffix if enabled[i] else spacer_suffix
             print(f'({i}) {prefix}{opt}{suffix}')
