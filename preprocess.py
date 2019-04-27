@@ -366,7 +366,7 @@ def preprocess():
         labels = ['Remove \'From n stars\' attributes']
         pre_processing_f = [ remove_from_stars_features ]
         menu_title = 'Choose the preprocessing function(s) to apply to the accomodations.\nPress numbers to enable/disable the options, press X to confirm.'
-        activated_prefns = menu.options(options, labels, title=menu_title, custom_exit_label='Confirm')
+        activated_prefns = menu.options(pre_processing_f, labels, title=menu_title, custom_exit_label='Confirm')
        
         # preprocess accomodations dataframe
         preprocess_accomodations_df(activated_prefns)
