@@ -41,11 +41,14 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
         df = df[(df['action_type'] == 'clickout item')
                 & (~df['reference'].isnull())]
         clicked_references = list(map(int, list(df['reference'].values)))
-        for e in tqdm(clicked_references):
+        frequence = list(map(int, list(df['frequence'].values)))
+        for i in tqdm(range(len(clicked_references))):
+            e = clicked_references[i]
+            f = frequence[i]
             if int(e) in popularity:
-                popularity[int(e)] += 1
+                popularity[int(e)] += int(f)
             else:
-                popularity[int(e)] = 1
+                popularity[int(e)] = int(f)
         return popularity
 
     def func(x):
@@ -67,7 +70,7 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
                         'search_for_item_session_ref_not_in_impr': 0, 'session_length_in_step': 0,
                         'device': '', 'filters_when_clickout': '', 'session_length_in_time': 0, 'sort_order_active_when_clickout': 'sorted by default'}
 
-            features['session_length_in_step'] = len(x)
+            features['session_length_in_step'] = int(x.tail(1).step.values[0])
             features['device'] = clk['device'].values[0]
             if isinstance(clk.current_filters.values[0], str):
                 features['filters_when_clickout'] = '|'.join(
@@ -93,6 +96,7 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
 
             references = x['reference'].values
             actions = x['action_type'].values
+            frequency = x['frequence'].values
             not_to_cons_indices = []
 
             count = 0
@@ -104,7 +108,12 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
                 features['price_position'].append(
                     sorted_prices.index(prices[count]))
                 features['item_id'].append(int(i))
-                features['times_impression_appeared'].append(len(indices))
+
+                cc = 0
+                for jj in indices:
+                    cc += int(frequency[jj])
+                features['times_impression_appeared'].append(cc)
+
                 if len(indices) > 0:
                     row_reference = x.head(indices[-1]+1).tail(1)
                     features['steps_from_last_time_impression_appeared'].append(
@@ -114,9 +123,9 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
                     features['kind_action_reference_appeared_last_time'].append(
                         'last_time_impression_appeared_as_' + row_reference['action_type'].values[0].replace(' ', '_'))
                     for idx in indices:
-                        row_reference = x.head(indices[-1]+1).tail(1)
+                        row_reference = x.head(idx+1).tail(1)
                         features['_'.join(row_reference.action_type.values[0].split(
-                            ' ')) + '_session_ref_this_impr'][count] += 1
+                            ' ')) + '_session_ref_this_impr'][count] += int(row_reference.frequence.values[0])
 
                 else:
                     features['steps_from_last_time_impression_appeared'].append(
@@ -143,7 +152,7 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
             for ind in to_cons_indices:
                 if (actions[ind].replace(' ', '_') + '_session_ref_not_in_impr') in features:
                     features[actions[ind].replace(
-                        ' ', '_') + '_session_ref_not_in_impr'] += 1
+                        ' ', '_') + '_session_ref_not_in_impr'] += int(frequency[ind])
 
             return pd.DataFrame(features)
 
