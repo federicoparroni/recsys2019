@@ -363,18 +363,10 @@ def preprocess():
 
     def _preprocess_item_metadata():
         # interactively enable preprocessing function
-        pre_processing_f = [ [remove_from_stars_features, False] ]
-        valid_choices = [str(i) for i in range(len(pre_processing_f))]
-        inp = ''
-        while inp != 'x':
-            menu_title = 'Choose the preprocessing function(s) to apply to the accomodations.\nPress numbers to enable/disable the options, press X to confirm.'
-            options = ['Remove \'From n stars\' attributes']
-            prefixes = ['✓ ' if f[1] else '  ' for f in pre_processing_f]
-            inp = menu.options(options, title=menu_title, item_prefixes=prefixes, custom_exit_label='Confirm')
-            if inp in valid_choices:
-                selected_idx = int(inp)
-                pre_processing_f[selected_idx][1] = not pre_processing_f[selected_idx][1]
-        activated_prefns = [f[0] for f in pre_processing_f if f[1]]
+        labels = ['Remove \'From n stars\' attributes']
+        pre_processing_f = [ remove_from_stars_features ]
+        menu_title = 'Choose the preprocessing function(s) to apply to the accomodations.\nPress numbers to enable/disable the options, press X to confirm.'
+        activated_prefns = menu.options(options, labels, title=menu_title, custom_exit_label='Confirm')
        
         # preprocess accomodations dataframe
         preprocess_accomodations_df(activated_prefns)

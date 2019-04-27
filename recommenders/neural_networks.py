@@ -62,7 +62,7 @@ class NeuralNetworks(RecommenderBase):
                        shuffle=True,
                        class_weight=self.class_weights_dict)
 
-    def recommend_batch(self):
+    def recommend_batch(self, save=False):
         base_path = f'dataset/preprocessed/neural_network_dataset/{self.cluster}/{self.mode}/{self.dataset_name}'
         X = np.load(f'{base_path}/X_test.npy')
         target_indeces = np.load(f'{base_path}/target_indeces.npy')
@@ -213,20 +213,21 @@ def create_dataset_for_neural_networks(mode, cluster, features_array, dataset_na
 
 if __name__ == '__main__':
     features = {
-        'item_id': ['impression label', 'impression_position_session', 'impression_price_info_session'],
-        'session': ['session_length'],
+        'item_id': ['impression label', 'impression_price_info_session', 'impression_position_session',
+                    'times_user_interacted_with_impression', 'timing_from_last_interaction_impression'],
+        'session': ['mean price clickout', 'session_length'],
     }
-    dataset_name = 'prova'
+    dataset_name = 'all'
     create_dataset_for_neural_networks('small', 'no_cluster', features, dataset_name)
 
     nn_dict_params = {
-        'dataset_name': 'prova',
+        'dataset_name': 'all',
         'activation_function_internal_layers': 'relu',
         'neurons_per_layer': 128,
         'loss': 'binary_crossentropy',
         'optimizer': 'adam',
         'validation_split': 0.2,
-        'epochs': 10,
+        'epochs': 2,
         'batch_size': 256,
     }
 

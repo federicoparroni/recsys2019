@@ -44,9 +44,9 @@ class XGBoostWrapper(RecommenderBase):
                                      }
 
     def fit(self):
-        train = data.classification_train_df(
-            mode=self.mode, sparse=True, cluster=self.cluster)
-        X_train, y_train = train.iloc[:, 3:], train.iloc[:, 2]
+        train = data.xgboost_train_df(
+            mode=self.mode, sparse=True)
+        X_train, y_train = train.iloc[:, 3:-1], train.iloc[:, -1]
         X_train = X_train.to_coo().tocsr()
 
         print('data for train ready')
@@ -58,8 +58,8 @@ class XGBoostWrapper(RecommenderBase):
         pass
 
     def recommend_batch(self):
-        test = data.classification_test_df(
-            mode=self.mode, sparse=True, cluster=self.cluster)
+        test = data.xgboost_test_df(
+            mode=self.mode, sparse=True)
         test_scores = test[['user_id', 'session_id',
                             'impression_position']].to_dense()
         # build aux dictionary
@@ -73,7 +73,7 @@ class XGBoostWrapper(RecommenderBase):
 
         test_df = data.test_df(mode=self.mode, cluster=self.cluster)
 
-        X_test = test.iloc[:, 3:]
+        X_test = test.iloc[:, 3:-1]
         X_test = X_test.to_coo().tocsr()
 
         print('data for test ready')
@@ -113,4 +113,4 @@ class XGBoostWrapper(RecommenderBase):
 
 if __name__ == '__main__':
     model = XGBoostWrapper(mode='small', cluster='no_cluster')
-    model.evaluate(send_MRR_on_telegram=False)
+    model.evaluate(send_MRR_on_telegram=True)
