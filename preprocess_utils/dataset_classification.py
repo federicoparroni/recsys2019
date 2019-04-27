@@ -391,13 +391,13 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
 
         if count_chunk == 0:
             train.to_csv(
-                 'dataset/preprocessed/{}/{}/classification_train_{}.csv'.format(cluster, mode, algo))
+                 'dataset/preprocessed/{}/{}/{}/classification_train.csv'.format(cluster, mode, algo))
             test.to_csv(
-                'dataset/preprocessed/{}/{}/classification_test_{}.csv'.format(cluster, mode, algo))
+                'dataset/preprocessed/{}/{}/{}/classification_test.csv'.format(cluster, mode, algo))
         else:
-            with open('dataset/preprocessed/{}/{}/classification_train_{}.csv'.format(cluster, mode, algo), 'a') as f:
+            with open('dataset/preprocessed/{}/{}/{}/classification_train.csv'.format(cluster, mode, algo), 'a') as f:
                  train.to_csv(f, header=False)
-            with open('dataset/preprocessed/{}/{}/classification_test_{}.csv'.format(cluster, mode, algo), 'a') as f:
+            with open('dataset/preprocessed/{}/{}/{}/classification_test.csv'.format(cluster, mode, algo), 'a') as f:
                 test.to_csv(f, header=False)
 
         count_chunk += 1
