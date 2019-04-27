@@ -1,6 +1,22 @@
 import data
 import pandas as pd
 from tqdm.auto import tqdm
+import pickle
+
+from extract_features.actions_involving_impression_session import ActionsInvolvingImpressionSession
+from extract_features.mean_price_clickout import MeanPriceClickout
+from extract_features.label import ImpressionLabel
+from extract_features.impression_position_session import ImpressionPositionSession
+from extract_features.session_length import SessionLength
+from extract_features.session_device import SessionDevice
+from extract_features.session_filters_active_when_clickout import SessionFilterActiveWhenClickout
+from extract_features.session_sort_order_when_clickout import SessionSortOrderWhenClickout
+from extract_features.impression_price_info_session import ImpressionPriceInfoSession
+from extract_features.times_user_interacted_with_impression import TimesUserInteractedWithImpression
+from extract_features.timing_from_last_interaction_impression import TimingFromLastInteractionImpression
+from extract_features.last_action_involving_impression import LastInteractionInvolvingImpression
+from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
+
 
 tqdm.pandas()
 import numpy as np
@@ -20,6 +36,7 @@ from keras import regularizers
 from keras.layers import Dense, Dropout
 import out
 from sklearn.model_selection import train_test_split
+from extract_features.feature_base import FeatureBase
 
 
 class NeuralNetworks(RecommenderBase):
@@ -27,6 +44,8 @@ class NeuralNetworks(RecommenderBase):
     def __init__(self, mode, cluster, nn_dict_params):
         name = 'NeuralNetwork_2'
         super(NeuralNetworks, self).__init__(mode=mode, cluster=cluster, name=name)
+
+        self.scores_batch = None
 
         self.nn_dict_params = nn_dict_params
         self.dataset_name = nn_dict_params['dataset_name']
@@ -46,8 +65,16 @@ class NeuralNetworks(RecommenderBase):
         temp = np.concatenate((self.Y_train, self.Y_val))
         #class_weights = class_weight.compute_class_weight('balanced', np.unique(temp), temp)
 
+        """
         class_weights_dict = {
             0: 1,
+            1: (len(temp)-np.sum(temp))/np.sum(temp),
+        }
+        """
+
+
+        class_weights_dict = {
+            0: 1*10,
             1: (len(temp)-np.sum(temp))/np.sum(temp),
         }
         self.class_weights_dict=class_weights_dict
@@ -62,15 +89,17 @@ class NeuralNetworks(RecommenderBase):
                        shuffle=True,
                        class_weight=self.class_weights_dict)
 
-    def recommend_batch(self, save=False):
+    def recommend_batch(self):
         base_path = f'dataset/preprocessed/neural_network_dataset/{self.cluster}/{self.mode}/{self.dataset_name}'
         X = np.load(f'{base_path}/X_test.npy')
         target_indeces = np.load(f'{base_path}/target_indeces.npy')
         print(target_indeces)
 
         predictions = self.model.predict(X)
+        predictions = [a[0] for a in predictions]
 
         final_predictions = []
+        scores_batch = []
 
         count = 0
         accumulator = 0
@@ -79,19 +108,37 @@ class NeuralNetworks(RecommenderBase):
             pred = predictions[accumulator:accumulator + len(impr)]
             accumulator += len(impr)
             couples = list(zip(pred, impr))
-            couples.sort(key=lambda x: x[0], reverse=True)
-            _, sorted_impr = zip(*couples)
-            final_predictions.append((index, list(sorted_impr)))
-            count += 1
 
+            print(couples)
+
+            couples.sort(key=lambda x: x[0], reverse=True)
+            scores, sorted_impr = zip(*couples)
+            final_predictions.append((index, list(sorted_impr)))
+            scores_batch.append((index, list(sorted_impr), list(scores)))
+            count += 1
+        self.scores_batch = scores_batch
         return final_predictions
 
-    def get_scores_batch(self):
-        pass
+    def get_scores_batch(self, save=False):
+        _ = self.recommend_batch()
+        base_path = f'dataset/preprocessed/neural_network_dataset/{self.cluster}/{self.mode}/predictions/{self.dataset_name}.pickle'
+        check_folder.check_folder(base_path)
+        if save:
+            with open(base_path, 'wb') as f:
+                pickle.dump(self.scores_batch, f)
+            print(f'saved at: {base_path}')
+        else:
+            return self.scores_batch
 
     def _create_model(self):
         model = Sequential()
         model.add(Dense(self.nn_dict_params['neurons_per_layer'], input_dim=self.X_train.shape[1],
+                        activation=self.nn_dict_params['activation_function_internal_layers']))
+        model.add(Dense(self.nn_dict_params['neurons_per_layer'],
+                        activation=self.nn_dict_params['activation_function_internal_layers']))
+        model.add(Dense(self.nn_dict_params['neurons_per_layer'],
+                        activation=self.nn_dict_params['activation_function_internal_layers']))
+        model.add(Dense(self.nn_dict_params['neurons_per_layer'],
                         activation=self.nn_dict_params['activation_function_internal_layers']))
         model.add(Dense(self.nn_dict_params['neurons_per_layer'],
                         activation=self.nn_dict_params['activation_function_internal_layers']))
@@ -126,7 +173,7 @@ def create_dataset_for_neural_networks(mode, cluster, features_array, dataset_na
     # list of pandas dataframe each element represent a feature
     pandas_dataframe_features_session_list = []
     for f in features_array['session']:
-        pandas_dataframe_features_session_list.append(pd.read_csv(f'{READ_FEATURE_PATH}/{f}/features.csv'))
+        pandas_dataframe_features_session_list.append(f(mode=mode, cluster=cluster).read_feature(one_hot=True))
 
     # merge all the dataframes
     df_merged_session = reduce(lambda left, right: pd.merge(left, right, on=['user_id', 'session_id'],
@@ -134,7 +181,7 @@ def create_dataset_for_neural_networks(mode, cluster, features_array, dataset_na
 
     pandas_dataframe_features_item_list = []
     for f in features_array['item_id']:
-        pandas_dataframe_features_item_list.append(pd.read_csv(f'{READ_FEATURE_PATH}/{f}/features.csv'))
+        pandas_dataframe_features_item_list.append(f(mode=mode, cluster=cluster).read_feature(one_hot=True))
 
     # merge all the dataframes
     df_merged_item = reduce(lambda left, right: pd.merge(left, right, on=['user_id', 'session_id', 'item_id'],
@@ -146,6 +193,7 @@ def create_dataset_for_neural_networks(mode, cluster, features_array, dataset_na
 
     # load the target indeces of the mode
     target_indeces = data.target_indices(mode, cluster)
+    print(f'number of tgt index: {len(target_indeces)}')
 
     # load the full df
     full_df = data.full_df()
@@ -177,6 +225,7 @@ def create_dataset_for_neural_networks(mode, cluster, features_array, dataset_na
     for k in target_us_reordered:
         target_indeces_reordered.append(tgt_usersession[k])
 
+    print(f'number of tgt index: {len(target_indeces_reordered)}')
     target_indeces_reordered = np.array(target_indeces_reordered)
 
     """
@@ -213,17 +262,17 @@ def create_dataset_for_neural_networks(mode, cluster, features_array, dataset_na
 
 if __name__ == '__main__':
     features = {
-        'item_id': ['impression label', 'impression_price_info_session', 'impression_position_session',
-                    'times_user_interacted_with_impression', 'timing_from_last_interaction_impression'],
-        'session': ['mean price clickout', 'session_length'],
+        'item_id': [ImpressionLabel, ImpressionPriceInfoSession, LastInteractionInvolvingImpression],
+        'session': [MeanPriceClickout, SessionLength, SessionDevice],
     }
+
     dataset_name = 'all'
-    create_dataset_for_neural_networks('small', 'no_cluster', features, dataset_name)
+    #create_dataset_for_neural_networks('small', 'no_cluster', features, dataset_name)
 
     nn_dict_params = {
-        'dataset_name': 'all',
+        'dataset_name': 'prova',
         'activation_function_internal_layers': 'relu',
-        'neurons_per_layer': 128,
+        'neurons_per_layer': 256,
         'loss': 'binary_crossentropy',
         'optimizer': 'adam',
         'validation_split': 0.2,
@@ -232,8 +281,9 @@ if __name__ == '__main__':
     }
 
     model = NeuralNetworks(mode='small', cluster='no_cluster', nn_dict_params=nn_dict_params)
+    #model.fit()
+    #model.get_scores_batch(save=True)
     model.evaluate()
-
     # out.create_sub(recs, 'prova')
 
 

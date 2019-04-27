@@ -82,13 +82,11 @@ class FeatureBase(ABC):
                 if t[1] == 'single':
                     oh = pd.get_dummies(col)
                 else:
-                    mid = col.apply(
-                                lambda x: x.split('|') if isinstance(x, str) else x)
+                    mid = col.apply(lambda x: x.split('|') if isinstance(x, str) else x)
                     mid.fillna(value='', inplace=True)
                     mlb = MultiLabelBinarizer()
                     oh = mlb.fit_transform(mid)
-                    oh = pd.DataFrame(
-                        oh, columns=mlb.classes_)
+                    oh = pd.DataFrame(oh, columns=mlb.classes_)
 
                 df = df.drop([t[0]], axis=1)
                 df = df.join(oh)
