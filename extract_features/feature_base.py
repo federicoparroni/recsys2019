@@ -4,6 +4,7 @@ from utils.check_folder import check_folder
 import pandas as pd
 from utils.menu import yesno_choice
 import os
+from sklearn.preprocessing import MultiLabelBinarizer
 
 """
 extend this class and give an implementation to extract_feature to 
@@ -36,7 +37,7 @@ class FeatureBase(ABC):
 
     in case of categorical features, DO NOT RETURN A ONEHOT!
     In particular, return a single categorical value or a list of pipe-separated categorical values, and
-    take care of setting self.categorical_variables nicely: base class will take care of one honetizing
+    take care of setting self.columns_to_onehot nicely: base class will take care of one honetizing
     when read_feature is called.
     """
     @abstractmethod
@@ -54,6 +55,11 @@ class FeatureBase(ABC):
         check_folder(path)
         df.to_csv(path, index=False)
 
+    """
+    it reads a feature from disk and returns it.
+    if one_hot = True, it returns it as was saved.
+    if one_hot = False, returns the onehot of the categorical columns, by means of self.columns_to_onehot
+    """
     def read_feature(self, one_hot=False):
         path = 'dataset/preprocessed/{}/{}/feature/{}/features.csv'.format(
             self.cluster, self.mode, self.name)
@@ -76,12 +82,17 @@ class FeatureBase(ABC):
                 if t[1] == 'single':
                     oh = pd.get_dummies(col)
                 else:
-                    oh = col.str.split(
-                        '|', expand=True).stack().str.get_dummies().sum(level=0)
+                    mid = col.apply(
+                                lambda x: x.split('|') if isinstance(x, str) else x)
+                    mid.fillna(value='', inplace=True)
+                    mlb = MultiLabelBinarizer()
+                    oh = mlb.fit_transform(mid)
+                    oh = pd.DataFrame(
+                        oh, columns=mlb.classes_)
+
                 df = df.drop([t[0]], axis=1)
-                df = df.join(one_hot)
+                df = df.join(oh)
             
             print('{} onehot completed'.format(self.name))
 
         return df
-
