@@ -181,8 +181,20 @@ def classification_test_df(mode, sparse=True, cluster='no_cluster', algo='xgboos
 
     if tot_path not in _df_classification_test:
         if sparse:
-            data = ddf.read_csv(path)
-            data = data.map_partitions(lambda part: part.to_sparse(fill_value=0))
+            data = ddf.read_csv(path, dtype={'1 Night filter active when clickout': 'float64',
+                                             '1 Star filter active when clickout': 'float64',
+                                             '2 Nights filter active when clickout': 'float64',
+                                             '2 Star filter active when clickout': 'float64',
+                                             '3 Star filter active when clickout': 'float64',
+                                             '4 Star filter active when clickout': 'float64',
+                                             '5 Star filter active when clickout': 'float64',
+                                             'Accessible Hotel filter active when clickout': 'float64',
+                                             'interaction_item_deals_session_ref_not_in_impr': 'float64',
+                                             'interaction_item_deals_session_ref_this_impr': 'float64',
+                                             'interaction_item_image_session_ref_not_in_impr': 'float64',
+                                             'interaction_item_rating_session_ref_not_in_impr': 'float64'})
+            data = data.map_partitions(
+                lambda part: part.to_sparse(fill_value=0))
             data = data.compute().reset_index(drop=True)
             data = data.drop(['Unnamed: 0'], axis=1)
             _df_classification_test[tot_path] = data
