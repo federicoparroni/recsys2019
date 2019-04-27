@@ -17,7 +17,7 @@ class SessionFilterActiveWhenClickout(FeatureBase):
         name = 'filter_active_when_clickout'
         columns_to_onehot = [('filter_active_when_clickout', 'multiple')]
         super(SessionFilterActiveWhenClickout, self).__init__(
-            name=name, mode=mode, cluster=cluster)
+            name=name, mode=mode, cluster=cluster, columns_to_onehot=columns_to_onehot)
 
     def extract_feature(self):
 
@@ -35,7 +35,9 @@ class SessionFilterActiveWhenClickout(FeatureBase):
         test = data.test_df(mode=self.mode, cluster=self.cluster)
         df = pd.concat([train, test])
         s = df.groupby(['user_id', 'session_id']).progress_apply(func)
-        return pd.DataFrame({'user_id':[x[0] for x in s.index.values], 'session_id':[x[1] for x in s.index.values], 'filter_active_when_clickout': s.values})
+        r = pd.DataFrame({'user_id':[x[0] for x in s.index.values], 'session_id':[x[1] for x in s.index.values], 'filter_active_when_clickout': s.values})
+        r = r.fillna(value='no filter')
+        return r
 
 if __name__ == '__main__':
     c = SessionFilterActiveWhenClickout(mode='small', cluster='no_cluster')
