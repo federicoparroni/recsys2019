@@ -5,6 +5,7 @@ import pandas as pd
 from tqdm.auto import tqdm
 import math
 tqdm.pandas()
+from utils.check_folder import check_folder
 
 """
 creates train and test dataframe that can be used for classification,
@@ -390,10 +391,13 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
             target_user_id) & features['session_id'].isin(target_session_id)) == False]
 
         if count_chunk == 0:
-            train.to_csv(
-                 'dataset/preprocessed/{}/{}/{}/classification_train.csv'.format(cluster, mode, algo))
-            test.to_csv(
-                'dataset/preprocessed/{}/{}/{}/classification_test.csv'.format(cluster, mode, algo))
+            path = 'dataset/preprocessed/{}/{}/{}/classification_train.csv'.format(cluster, mode, algo)
+            check_folder(path)
+            train.to_csv(path)
+
+            path = 'dataset/preprocessed/{}/{}/{}/classification_test.csv'.format(cluster, mode, algo)
+            check_folder(path)
+            test.to_csv(path)
         else:
             with open('dataset/preprocessed/{}/{}/{}/classification_train.csv'.format(cluster, mode, algo), 'a') as f:
                  train.to_csv(f, header=False)

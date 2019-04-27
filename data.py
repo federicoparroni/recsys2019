@@ -153,7 +153,8 @@ def classification_test_df(mode, sparse=True, cluster='no_cluster', algo='xgboos
                                              'interaction_item_deals_session_ref_not_in_impr': 'float64',
                                              'interaction_item_deals_session_ref_this_impr': 'float64',
                                              'interaction_item_image_session_ref_not_in_impr': 'float64',
-                                             'interaction_item_rating_session_ref_not_in_impr': 'float64'})
+                                             'interaction_item_rating_session_ref_not_in_impr': 'float64',
+                                             'Accessible Parking filter active when clickout': 'float64'})
             data = data.map_partitions(
                 lambda part: part.to_sparse(fill_value=0))
             data = data.compute().reset_index(drop=True)
