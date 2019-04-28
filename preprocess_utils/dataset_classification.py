@@ -61,6 +61,101 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
                 popularity[int(e)] = int(f)
         return popularity
 
+    def get_price_info_and_interaction_position(x, y):
+        """
+        Getting avg price of interacted items and average price position inside a given session
+        :param x:
+        :param y:
+        :return:
+        """
+        impressions_pos_available = y[y['impressions'] != None][['impressions', 'prices']].drop_duplicates()
+
+        # [13, 43, 4352, 543, 345, 3523] impressions
+        # [45, 34, 54, 54, 56, 54] prices
+        # -> [(13,45), (43,34), ...]
+        # Then create dict
+        # {13: 45, 43: 34, ... }
+
+        tuples_impr_prices = []
+        tuples_impr_price_pos_asc = []
+
+        # [13, 43, 4352, 543, 345, 3523] impressions
+        # Then create dict impression-position
+        # {13: 1, 43: 2, ... }
+        tuples_impr_pos = []
+
+        for i in impressions_pos_available.index:
+            impr = impressions_pos_available.at[i, 'impressions'].split('|')
+            prices = impressions_pos_available.at[i, 'prices'].split('|')
+            tuples_impr_prices += list(zip(impr, prices))
+
+            tuples_impr_pos += [(impr[idx], idx + 1) for idx in range(len(impr))]
+
+            sorted(tuples_impr_prices, key=lambda x: x[1])
+            tuples_impr_price_pos_asc += list(zip(impr, list(range(1, len(tuples_impr_prices) + 1))))
+
+        tuples_impr_prices = list(set(tuples_impr_prices))
+        dict_impr_price = dict(tuples_impr_prices)
+
+        dict_impr_pos = dict(list(set(tuples_impr_pos)))
+
+        sum_pos_impr = 0
+        count_interacted_pos_impr = 0
+
+        # Create dict for getting position wrt clicked impression based on cheapest item
+        tuples_impr_price_pos_asc = list(set(tuples_impr_price_pos_asc))
+        dict_impr_price_pos = dict(tuples_impr_price_pos_asc)
+
+        sum_price = 0
+        sum_pos_price = 0
+        count_interacted = 0
+
+        # IMPORTANT: I decided to consider impressions and clickouts distinctively.
+        # If an impression is also clicked, that price counts double
+
+        #considering reference, impressions and action type as a row, I can distinguish from clickouts and impressions dropping duplicates
+        df_only_numeric = x[pd.to_numeric(x['reference'], errors='coerce').notnull()][
+            ["reference", "impressions", "action_type"]].drop_duplicates()
+
+        # Not considering last clickout in the train sessions
+        clks_num_reference = df_only_numeric[df_only_numeric['action_type'] == 'clickout item']
+        if len(y) > 0 and len(clks_num_reference) == len(y):  # is it a train session?
+            idx_last_clk = y.tail(1).index.values[0]
+            df_only_numeric = df_only_numeric.drop(idx_last_clk)
+
+        for i in df_only_numeric.index:
+            reference = df_only_numeric.at[i, 'reference']
+
+            if reference in dict_impr_price.keys():
+
+                sum_pos_impr += int(dict_impr_pos[reference])
+                count_interacted_pos_impr += 1
+                count_interacted += 1
+
+                sum_price += int(dict_impr_price[reference])
+                sum_pos_price += int(dict_impr_price_pos[reference])
+
+        mean_pos = -1
+        pos_last_reference = -1
+
+        mean_cheap_position = -1
+        mean_price_interacted = -1
+
+        if count_interacted > 0:
+            mean_cheap_position = round(sum_pos_price / count_interacted, 2)
+            mean_price_interacted = round(sum_price / count_interacted, 2)
+
+            mean_pos = round(sum_pos_impr / count_interacted_pos_impr, 2)
+            last_reference = df_only_numeric.tail(1).reference.values[0]
+
+            # Saving the impressions appearing in the last clickout (they will be used to get the 'pos_last_reference'
+            impressions_last_clickout = y.tail(1).impressions.values[0].split('|')
+            if last_reference in impressions_last_clickout:
+                pos_last_reference = impressions_last_clickout.index(last_reference) + 1
+
+        return mean_cheap_position, mean_price_interacted, mean_pos, pos_last_reference
+
+
     def get_frenzy_and_avg_time_per_step(x):
         if len(x) > 1:
             session_actions_num = int(x.tail(1).step)
@@ -71,8 +166,10 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
 
             var = 0
             prev_tm = 0
+
             for i in x.index:
                 curr_tm = int(x.at[i, 'timestamp'])
+
                 if prev_tm == 0:
                     prev_tm = curr_tm
                 else:
@@ -93,10 +190,13 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
             head_index = x.head(1).index
             impr = clk['impressions'].values[0].split('|')
 
+            #!! considering only the past for all non-test sessions! !!
+            x = x.loc[head_index.values[0]:clk.index.values[0]-1]
+
             # features
             features = {'label': [], 'times_impression_appeared': [], 'time_elapsed_from_last_time_impression_appeared': [], 'impression_position': [],
                         'steps_from_last_time_impression_appeared': [], 'kind_action_reference_appeared_last_time': [], 'price': [], 'price_position': [],
-                        'item_id': [], 'popularity': [], 'clickout_item_session_ref_this_impr': list(np.zeros(len(impr), dtype=np.int)),
+                        'item_id': [], 'popularity': [], 'impression_position_wrt_last_interaction': [], 'impression_position_wrt_second_last_interaction': [], 'clickout_item_session_ref_this_impr': list(np.zeros(len(impr), dtype=np.int)),
                         'interaction_item_deals_session_ref_this_impr': list(np.zeros(len(impr), dtype=np.int)), 'interaction_item_image_session_ref_this_impr': list(np.zeros(len(impr), dtype=np.int)),
                         'interaction_item_info_session_ref_this_impr': list(np.zeros(len(impr), dtype=np.int)), 'interaction_item_rating_session_ref_this_impr': list(np.zeros(len(impr), dtype=np.int)),
                         'search_for_item_session_ref_this_impr': list(np.zeros(len(impr), dtype=np.int)), 'clickout_item_session_ref_not_in_impr': 0,
@@ -105,22 +205,54 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
                         'search_for_item_session_ref_not_in_impr': 0, 'session_length_in_step': 0,
                         'device': '', 'filters_when_clickout': '', 'session_length_in_time': 0, 'sort_order_active_when_clickout': 'sorted by default'}
 
-            features['session_length_in_step'] = int(x.tail(1).step.values[0])
+            features['session_length_in_step'] = int(clk.step.values[0])
             features['device'] = clk['device'].values[0]
+
             if isinstance(clk.current_filters.values[0], str):
                 features['filters_when_clickout'] = '|'.join(
                     [x + ' filter active when clickout' for x in clk.current_filters.values[0].split('|')])
-            features['session_length_in_time'] = abs(
-                int(clk['timestamp'].values[0]) - int(x.head(1)['timestamp'].values[0]))
 
             if len(x) > 1:
+                features['session_length_in_time'] = abs(
+                    int(clk['timestamp'].values[0]) - int(x.head(1)['timestamp'].values[0]))
+
                 features['timing_last_action_before_clk'] = int(x.tail().timestamp.values[1]) - int(x.tail().timestamp.values[0])
             else:
+                features['session_length_in_time'] = -1
                 features['timing_last_action_before_clk'] = -1
 
+            features['average_price_position'], \
+            features['avg_price_interacted_item'], \
+            features['avg_pos_interacted_items_in_impressions'], \
+            features['pos_last_interaction_in_impressions'] = get_price_info_and_interaction_position(x, y)
+
             features['time_per_step'], features['frenzy_factor'] = get_frenzy_and_avg_time_per_step(x)
-            # considering only the past!
-            x = x.loc[head_index.values[0]:clk.index.values[0]-1]
+
+            times_doubleclickout_on_item = 0
+            for item in set(y.reference.values):
+                if len(y[y.reference == item]) > 1:
+                    times_doubleclickout_on_item += 1
+
+            features['times_doubleclickout_on_item'] = times_doubleclickout_on_item
+
+            poi_search_df = x[x.action_type == 'search for poi']
+            if poi_search_df.shape[0] > 0:
+                last_poi_search_step = int(poi_search_df.tail(1).step.values[0])
+                features['search_for_poi_distance_from_last_clickout'] = int(clk.step.values[0]) - last_poi_search_step
+                features['search_for_poi_distance_from_first_action'] = last_poi_search_step - int(x.head(1).step.values[0])
+            else:
+                features['search_for_poi_distance_from_last_clickout'] = -1
+                features['search_for_poi_distance_from_first_action'] = -1
+
+            sort_change_df = x[x.action_type == 'change of sort order']
+            if sort_change_df.shape[0] > 0:
+                sort_change_step = int(sort_change_df.tail(1).step.values[0])
+                features['change_sort_order_distance_from_last_clickout'] = int(clk.step.values[0]) - sort_change_step
+                features['change_sort_order_distance_from_first_action'] = sort_change_step - int(
+                    x.head(1).step.values[0])
+            else:
+                features['change_sort_order_distance_from_last_clickout'] = -1
+                features['change_sort_order_distance_from_first_action'] = -1
 
             impr = clk['impressions'].values[0].split('|')
             prices = list(map(int, clk['prices'].values[0].split('|')))
@@ -144,13 +276,42 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
             else:
                 frequency = [1]*len(x)
 
-            not_to_cons_indices = []
+            position_of_last_refence_on_impressions = None
+            position_of_second_last_refence_on_impressions = None
 
+            num_references = x[pd.to_numeric(x['reference'], errors='coerce').notnull()].drop_duplicates(subset = ['reference'], keep = 'last')
+
+            if num_references.shape[0] > 0:
+                last_num_reference = num_references.tail(1).reference.values[0]
+                if last_num_reference in impr:
+                    position_of_last_refence_on_impressions = impr.index(last_num_reference) + 1
+
+            if num_references.shape[0] > 1:
+                second_last_num_reference = num_references.tail(2).reference.values[0]
+                if second_last_num_reference in impr:
+                    position_of_second_last_refence_on_impressions = impr.index(second_last_num_reference) + 1
+
+            not_to_cons_indices = []
             count = 0
+            # Start features impressions
             for i in impr:
                 indices = np.where(references == str(i))[0]
+
                 not_to_cons_indices += list(indices)
                 features['impression_position'].append(count+1)
+
+                # Feature position wrt last interaction: if not exists a numeric reference in impressions,
+                # default value is -999 (can't be -1 because values range is -24 to 24)
+                if position_of_last_refence_on_impressions is not None:
+                    features['impression_position_wrt_last_interaction'].append(count+1 - position_of_last_refence_on_impressions)
+                else:
+                    features['impression_position_wrt_last_interaction'].append(-999)
+
+                if position_of_second_last_refence_on_impressions is not None:
+                    features['impression_position_wrt_second_last_interaction'].append(count+1 - position_of_second_last_refence_on_impressions)
+                else:
+                    features['impression_position_wrt_second_last_interaction'].append(-999)
+
                 features['price'].append(prices[count])
                 features['price_position'].append(
                     sorted_prices.index(prices[count]))
@@ -159,6 +320,7 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
                 cc = 0
                 for jj in indices:
                     cc += int(frequency[jj])
+
                 features['times_impression_appeared'].append(cc)
 
                 if len(indices) > 0:
@@ -298,22 +460,131 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
 
     accomodations_df = data.accomodations_df()
     one_hot_accomodation = one_hot_of_accomodation(accomodations_df)
+
+    #Popularity build on given full to avoid considering also clicks removed for test
     popularity_df = build_popularity(full)
-    poss_filters = []
-    for f in full[~full['current_filters'].isnull()]['current_filters'].values:
-        poss_filters += [x +
-                         ' filter active when clickout' for x in f.split('|')]
-    poss_filters = set(poss_filters)
-    poss_devices = set(list(full['device'].values))
-    poss_actions = set(['last_time_reference_did_not_appeared', 'last_time_impression_appeared_as_clickout_item',
-                        'last_time_impression_appeared_as_interaction_item_deals', 'last_time_impression_appeared_as_interaction_item_image',
-                        'last_time_impression_appeared_as_interaction_item_info', 'last_time_impression_appeared_as_interaction_item_rating',
-                        'last_time_impression_appeared_as_search_for_item'])
-    poss_sort_orders = set(['sort by ' + x for x in full[pd.to_numeric(full['reference'], errors='coerce').notnull()][full['action_type'] == 'change of sort order']['reference'].values])
+
+    poss_filters = {'Free WiFi (Rooms) filter active when clickout', 'Casa Rural (ES) filter active when clickout',
+                    'Singles filter active when clickout', 'Satisfactory Rating filter active when clickout',
+                    'Laundry Service filter active when clickout', 'Bowling filter active when clickout',
+                    'Deals + Beach (DE) filter active when clickout', 'Flatscreen TV filter active when clickout',
+                    'Large Groups filter active when clickout', 'Safe (Hotel) filter active when clickout',
+                    'Steam Room filter active when clickout', 'On-Site Boutique Shopping filter active when clickout',
+                    'Hydrotherapy filter active when clickout', 'Fan filter active when clickout',
+                    'Hammam filter active when clickout', 'All Inclusive (Upon Inquiry) filter active when clickout',
+                    'Senior Travellers filter active when clickout', 'Shooting Sports filter active when clickout',
+                    'Hostal (ES) filter active when clickout',
+                    'Express Check-In / Check-Out filter active when clickout',
+                    'Computer with Internet filter active when clickout', 'WiFi (Rooms) filter active when clickout',
+                    'Openable Windows filter active when clickout', 'Good Rating filter active when clickout',
+                    'Golf Course filter active when clickout', 'Self Catering filter active when clickout',
+                    'Last Minute filter active when clickout', 'Sitting Area (Rooms) filter active when clickout',
+                    'Hot Stone Massage filter active when clickout', 'Accessible Parking filter active when clickout',
+                    'Bathtub filter active when clickout', 'Television filter active when clickout',
+                    'Cable TV filter active when clickout', '5 Star filter active when clickout',
+                    'Swimming Pool (Combined Filter) filter active when clickout',
+                    'Small Hotel filter active when clickout', 'Deals + Beach (PT) filter active when clickout',
+                    'Sort by Price filter active when clickout', 'Next Sunday filter active when clickout',
+                    'Business Centre filter active when clickout', 'Pool Table filter active when clickout',
+                    'Motel filter active when clickout', 'Microwave filter active when clickout',
+                    'Washing Machine filter active when clickout', 'Towels filter active when clickout',
+                    'Air Conditioning filter active when clickout', 'Deals + Beach (NL/BE) filter active when clickout',
+                    'Breakfast Included filter active when clickout', 'Lift filter active when clickout',
+                    'Ironing Board filter active when clickout', 'Mid-Size Hotel filter active when clickout',
+                    'Hotel Chain filter active when clickout', 'Excellent Rating filter active when clickout',
+                    'Tomorrow filter active when clickout', 'Adults Only filter active when clickout',
+                    'Family Friendly filter active when clickout', '5 Nights filter active when clickout',
+                    'Sauna filter active when clickout', 'Water Slide filter active when clickout',
+                    'Hairdryer filter active when clickout', 'Beauty Salon filter active when clickout',
+                    'Cheap filter active when clickout', 'Bungalows filter active when clickout',
+                    'Top Deals filter active when clickout', 'This Weekend filter active when clickout',
+                    'Wheelchair Accessible filter active when clickout', 'Body Treatments filter active when clickout',
+                    'Non-Smoking Rooms filter active when clickout', 'Hairdresser filter active when clickout',
+                    'Hotel filter active when clickout', 'Fitness filter active when clickout',
+                    'Balcony filter active when clickout', 'Kitchen filter active when clickout',
+                    'Sort By Distance filter active when clickout', 'Convenience Store filter active when clickout',
+                    'Organised Activities filter active when clickout', 'Next Weekend filter active when clickout',
+                    '4 Star filter active when clickout', 'Szep Kartya filter active when clickout',
+                    'Halal Food filter active when clickout', 'Club Hotel filter active when clickout',
+                    'Deals + Beach (IT) filter active when clickout', 'Safe (Rooms) filter active when clickout',
+                    'Reception (24/7) filter active when clickout', 'Car Park filter active when clickout',
+                    'Conference Rooms filter active when clickout', 'From 2 Stars filter active when clickout',
+                    'Sun Umbrellas filter active when clickout', 'Next Monday filter active when clickout',
+                    'Airport Hotel filter active when clickout', 'Bed & Breakfast filter active when clickout',
+                    'Desk filter active when clickout', 'Today filter active when clickout',
+                    'From 3 Stars filter active when clickout', 'Deals + Beach (TR) filter active when clickout',
+                    'Hiking Trail filter active when clickout', 'Hypoallergenic Bedding filter active when clickout',
+                    'Design Hotel filter active when clickout', 'Beach filter active when clickout',
+                    'Central Heating filter active when clickout', 'Kosher Food filter active when clickout',
+                    'Tennis Court (Indoor) filter active when clickout', 'Boat Rental filter active when clickout',
+                    'Deals + Beach (DK) filter active when clickout', 'Pay-TV filter active when clickout',
+                    'Shower filter active when clickout', 'WiFi (Public Areas) filter active when clickout',
+                    "Kids' Club filter active when clickout", 'Theme Hotel filter active when clickout',
+                    'Sort By Popularity filter active when clickout', 'Camping Site filter active when clickout',
+                    'Teleprinter filter active when clickout', 'OFF - Rating Good filter active when clickout',
+                    'Doctor On-Site filter active when clickout', 'From 4 Stars filter active when clickout',
+                    'Guest House filter active when clickout', 'Best Value filter active when clickout',
+                    'Swimming Pool (Indoor) filter active when clickout', 'Onsen filter active when clickout',
+                    'Volleyball filter active when clickout', '3 Star filter active when clickout',
+                    'Table Tennis filter active when clickout', 'Deals + Beach (AR) filter active when clickout',
+                    'Pet Friendly filter active when clickout', 'Swimming Pool (Bar) filter active when clickout',
+                    'Hotel Bar filter active when clickout', 'Pousada (BR) filter active when clickout',
+                    'Room Service (24/7) filter active when clickout', 'Concierge filter active when clickout',
+                    'Direct beach access filter active when clickout', 'Gay Friendly filter active when clickout',
+                    'Playground filter active when clickout', 'Luxury Hotel filter active when clickout',
+                    'Deck Chairs filter active when clickout', 'Sailing filter active when clickout',
+                    'Room Service filter active when clickout', 'Massage filter active when clickout',
+                    'Next Friday filter active when clickout', 'Skiing filter active when clickout',
+                    'Internet (Rooms) filter active when clickout', 'Next Saturday filter active when clickout',
+                    'Romantic filter active when clickout', 'Surfing filter active when clickout',
+                    '3 Nights filter active when clickout', 'Hostel filter active when clickout',
+                    'Resort filter active when clickout', 'Terrace (Hotel) filter active when clickout',
+                    'Disneyland Paris filter active when clickout', 'Bike Rental filter active when clickout',
+                    'Jacuzzi (Hotel) filter active when clickout', 'Free WiFi (Combined) filter active when clickout',
+                    'Solarium filter active when clickout', 'Diving filter active when clickout',
+                    'Free WiFi (Public Areas) filter active when clickout', 'Best Rates filter active when clickout',
+                    'Health Retreat filter active when clickout', 'Tennis Court filter active when clickout',
+                    'Hypoallergenic Rooms filter active when clickout', 'Very Good Rating filter active when clickout',
+                    'Large Hotel filter active when clickout', 'Airport Shuttle filter active when clickout',
+                    'Casino (Hotel) filter active when clickout', 'Farmstay filter active when clickout',
+                    'Horse Riding filter active when clickout', 'Country Hotel filter active when clickout',
+                    'House / Apartment filter active when clickout', 'Disneyland filter active when clickout',
+                    'Focus on Distance filter active when clickout',
+                    'Swimming Pool (Outdoor) filter active when clickout', 'Holiday filter active when clickout',
+                    'Deals + Beach (MX) filter active when clickout', '1 Star filter active when clickout',
+                    'Radio filter active when clickout', 'Telephone filter active when clickout',
+                    'Focus on Rating filter active when clickout', 'This Monday filter active when clickout',
+                    '1 Night filter active when clickout', 'Satellite TV filter active when clickout',
+                    'Porter filter active when clickout', '2 Nights filter active when clickout',
+                    '2 Star filter active when clickout', 'Cot filter active when clickout',
+                    'Gym filter active when clickout', 'Convention Hotel filter active when clickout',
+                    'Restaurant filter active when clickout', 'Fridge filter active when clickout',
+                    'Serviced Apartment filter active when clickout', 'Minigolf filter active when clickout',
+                    'Eco-Friendly hotel filter active when clickout', 'Nightclub filter active when clickout',
+                    'Cosmetic Mirror filter active when clickout', 'Ski Resort filter active when clickout',
+                    'Deals + Beach (JP) filter active when clickout', 'Childcare filter active when clickout',
+                    'Sort By Rating filter active when clickout', 'Boutique Hotel filter active when clickout',
+                    'Accessible Hotel filter active when clickout', 'Beach Bar filter active when clickout',
+                    'Electric Kettle filter active when clickout', 'OFF - Rating Very Good filter active when clickout',
+                    'Deals + Beach (GR) filter active when clickout',
+                    'Spa (Wellness Facility) filter active when clickout', 'Honeymoon filter active when clickout',
+                    'Business Hotel filter active when clickout', 'Spa Hotel filter active when clickout'}
+    poss_devices = {'mobile', 'desktop', 'tablet'}
+    poss_actions = {'last_time_reference_did_not_appeared', 'last_time_impression_appeared_as_clickout_item',
+                    'last_time_impression_appeared_as_interaction_item_deals',
+                    'last_time_impression_appeared_as_interaction_item_image',
+                    'last_time_impression_appeared_as_interaction_item_info',
+                    'last_time_impression_appeared_as_interaction_item_rating',
+                    'last_time_impression_appeared_as_search_for_item'}
+
+    poss_sort_orders = {'sort by distance and recommended', 'sort by our recommendations',
+                        'sort by rating and recommended', 'sort by rating only',
+                        'sort by price and recommended', 'sort by price only',
+                        'sort by distance only', 'sort by interaction sort button'}
 
     # build in chunk
     count_chunk = 0
-    chunk_size = 15000
+    chunk_size = 22000
 
     groups = full.groupby(np.arange(len(full))//chunk_size)
     # create the dataset in parallel threads: one thread saves, the other create the dataset for the actual group 
