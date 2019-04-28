@@ -16,6 +16,8 @@ from extract_features.times_user_interacted_with_impression import TimesUserInte
 from extract_features.timing_from_last_interaction_impression import TimingFromLastInteractionImpression
 from extract_features.last_action_involving_impression import LastInteractionInvolvingImpression
 from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
+from extract_features.impression_features import ImpressionFeature
+from extract_features.item_popularity_session import ItemPopularitySession
 
 
 tqdm.pandas()
@@ -65,18 +67,12 @@ class NeuralNetworks(RecommenderBase):
         temp = np.concatenate((self.Y_train, self.Y_val))
         #class_weights = class_weight.compute_class_weight('balanced', np.unique(temp), temp)
 
-        """
+
         class_weights_dict = {
             0: 1,
             1: (len(temp)-np.sum(temp))/np.sum(temp),
         }
-        """
 
-
-        class_weights_dict = {
-            0: 1*10,
-            1: (len(temp)-np.sum(temp))/np.sum(temp),
-        }
         self.class_weights_dict=class_weights_dict
 
 
@@ -188,6 +184,7 @@ def create_dataset_for_neural_networks(mode, cluster, features_array, dataset_na
                                                             how='inner'), pandas_dataframe_features_item_list)
 
     df_merged = pd.merge(df_merged_item, df_merged_session, on=['user_id', 'session_id'])
+
     ################################################
 
 
@@ -239,7 +236,7 @@ def create_dataset_for_neural_networks(mode, cluster, features_array, dataset_na
     X_norm = scaler.fit_transform(X)
     Y_norm = Y.values
 
-    X_train, X_val, Y_train, Y_val = train_test_split(X_norm, Y_norm, test_size=0.2, shuffle=True)
+    X_train, X_val, Y_train, Y_val = train_test_split(X_norm, Y_norm, test_size=0.2, shuffle=False)
 
     X_test = test_df.iloc[:, 4:]
     X_test_norm = scaler.fit_transform(X_test)
@@ -262,21 +259,23 @@ def create_dataset_for_neural_networks(mode, cluster, features_array, dataset_na
 
 if __name__ == '__main__':
     features = {
-        'item_id': [ImpressionLabel, ImpressionPriceInfoSession, LastInteractionInvolvingImpression],
-        'session': [MeanPriceClickout, SessionLength, SessionDevice],
+        'item_id': [ImpressionLabel, ImpressionPriceInfoSession, LastInteractionInvolvingImpression,
+                    ItemPopularitySession, ImpressionPositionSession,
+                    TimingFromLastInteractionImpression, TimesUserInteractedWithImpression],
+        'session': [MeanPriceClickout, SessionLength, SessionDevice]
     }
 
-    dataset_name = 'all'
+    dataset_name = 'prova2'
     #create_dataset_for_neural_networks('small', 'no_cluster', features, dataset_name)
 
     nn_dict_params = {
-        'dataset_name': 'prova',
+        'dataset_name': 'prova2',
         'activation_function_internal_layers': 'relu',
         'neurons_per_layer': 256,
         'loss': 'binary_crossentropy',
         'optimizer': 'adam',
         'validation_split': 0.2,
-        'epochs': 2,
+        'epochs': 1,
         'batch_size': 256,
     }
 

@@ -53,7 +53,7 @@ class NeuralNetworks(RecommenderBase):
                                  restore_best_weights=True)
         self.model.fit(self.X_train, self.Y_train, validation_data=(self.X_val, self.Y_val),
                        epochs=self.nn_dict_params['epochs'],
-                       #batch_size=self.nn_dict_params['batch_size'],
+                       batch_size=self.nn_dict_params['batch_size'],
                        shuffle=True)
 
     def recommend_batch(self):
@@ -263,7 +263,7 @@ def create_dataset_for_FFNN(mode, cluster, augmentation_power):
     CREATE DATA FOR TRAIN
     
     """
-    X, Y = train_df.iloc[:, [0, 1, 2, 4, 6, 7, 8]], train_df.iloc[:, 5]
+    X, Y = train_df.iloc[:, [0, 1, 2, 6, 7]], train_df.iloc[:, 5]
     X_session_features = train_df.iloc[:, [9, 10, 11, 12]]
     scaler1 = MinMaxScaler()
     scaler2 = MinMaxScaler()
@@ -301,7 +301,7 @@ def create_dataset_for_FFNN(mode, cluster, augmentation_power):
 
     print('reshaping...')
     # create the train and test data to be saved
-    data_train = np.array(X_norm_shuffled).reshape((-1, 25 * 7))  # 25* NUM_FEATURES
+    data_train = np.array(X_norm_shuffled).reshape((-1, 25 * 5))  # 25* NUM_FEATURES
     labels = np.array(Y_norm_shuffled)
 
     # add the session features to the samples
@@ -324,7 +324,7 @@ def create_dataset_for_FFNN(mode, cluster, augmentation_power):
     CREATE DATA FOR TEST
     
     """
-    X = test_df.iloc[:, [0, 1, 2, 4, 6, 7, 8]]
+    X = test_df.iloc[:, [0, 1, 2, 6, 7]]
     X_session_features = test_df.iloc[:, [9, 10, 11, 12]]
     scaler1 = MinMaxScaler()
     scaler2 = MinMaxScaler()
@@ -352,7 +352,7 @@ def create_dataset_for_FFNN(mode, cluster, augmentation_power):
 
     print('reshaping...')
     # create the train and test data to be saved
-    data_train = np.array(X_norm).reshape((-1, 25 * 7))  # 25* NUM_FEATURES
+    data_train = np.array(X_norm).reshape((-1, 25 * 5))  # 25* NUM_FEATURES
 
     # add the session features to the samples
     data_train = np.concatenate((data_train, X_session_features), axis=1)
@@ -366,7 +366,7 @@ def create_dataset_for_FFNN(mode, cluster, augmentation_power):
 
 if __name__ == '__main__':
     #create_features_dataframe('full', 'no_cluster')
-    create_dataset_for_FFNN('small', 'no_cluster', augmentation_power=4)
+    #create_dataset_for_FFNN('small', 'no_cluster', augmentation_power=4)
 
     nn_dict_params = {
         'activation_function_internal_layers': 'relu',
@@ -374,8 +374,8 @@ if __name__ == '__main__':
         'loss': 'categorical_crossentropy',
         'optimizer': 'adam',
         'validation_split': 0.2,
-        'epochs': 10,
-        'batch_size': 250,
+        'epochs': 100,
+        'batch_size': 128,
     }
 
     model = NeuralNetworks(mode='small', cluster='no_cluster', nn_dict_params=nn_dict_params)
