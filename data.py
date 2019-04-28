@@ -110,49 +110,10 @@ def target_indices(mode, cluster='no_cluster'):
         _target_indices[path] = np.load(path)
     return _target_indices[path]
 
-def xgboost_train_df(mode, sparse=True, cluster='no_cluster'):
-    global _xgboost_train_df
-    path = 'dataset/preprocessed/{}/{}/xgboost/classification_train.csv'.format(cluster, mode)
-    if sparse:
-        tot_path = path + 'sparse'
-    else:
-        tot_path = path + 'dense'
-
-    if tot_path not in _xgboost_train_df:
-        if sparse:
-            data = ddf.read_csv(path)
-            data = data.map_partitions(lambda part: part.to_sparse(fill_value=0))
-            data = data.compute().reset_index(drop=True)
-            data = data.drop(['Unnamed: 0'], axis=1)
-            _xgboost_train_df[tot_path] = data
-        else:
-            _xgboost_train_df[tot_path] = pd.read_csv(path, index_col=0)
-
-    return _xgboost_train_df[tot_path]
-
-def xgboost_test_df(mode, sparse=True, cluster='no_cluster'):
-    global _xgboost_test_df
-    path = 'dataset/preprocessed/{}/{}/xgboost/classification_test.csv'.format(cluster, mode)
-    if sparse:
-        tot_path = path + 'sparse'
-    else:
-        tot_path = path + 'dense'
-
-    if tot_path not in _xgboost_train_df:
-        if sparse:
-            data = ddf.read_csv(path)
-            data = data.map_partitions(lambda part: part.to_sparse(fill_value=0))
-            data = data.compute().reset_index(drop=True)
-            data = data.drop(['Unnamed: 0'], axis=1)
-            _xgboost_test_df[tot_path] = data
-        else:
-            _xgboost_test_df[tot_path] = pd.read_csv(path, index_col=0)
-
-    return _xgboost_test_df[tot_path]
 
 def classification_train_df(mode, sparse=True, cluster='no_cluster', algo='xgboost'):
     global _df_classification_train
-    path = 'dataset/preprocessed/{}/{}/classification_train_{}.csv'.format(cluster, mode, algo)
+    path = 'dataset/preprocessed/{}/{}/{}/classification_train.csv'.format(cluster, mode, algo)
     if sparse:
         tot_path = path + 'dense'
     else:
@@ -160,7 +121,10 @@ def classification_train_df(mode, sparse=True, cluster='no_cluster', algo='xgboo
 
     if tot_path not in _df_classification_train:
         if sparse:
-            data = ddf.read_csv(path)
+            data = ddf.read_csv(path, dtype={'1 Star filter active when clickout': 'float64',
+                                             '2 Nights filter active when clickout': 'float64',
+                                             'impression_position': 'float64',
+                                             'interaction_item_deals_session_ref_not_in_impr': 'float64'})
             data = data.map_partitions(lambda part: part.to_sparse(fill_value=0))
             data = data.compute().reset_index(drop=True)
             data = data.drop(['Unnamed: 0'], axis=1)
@@ -173,7 +137,7 @@ def classification_train_df(mode, sparse=True, cluster='no_cluster', algo='xgboo
 
 def classification_test_df(mode, sparse=True, cluster='no_cluster', algo='xgboost'):
     global _df_classification_test
-    path = 'dataset/preprocessed/{}/{}/classification_test_{}.csv'.format(cluster, mode, algo)
+    path = 'dataset/preprocessed/{}/{}/{}/classification_test.csv'.format(cluster, mode, algo)
     if sparse:
         tot_path = path + 'dense'
     else:
@@ -181,8 +145,21 @@ def classification_test_df(mode, sparse=True, cluster='no_cluster', algo='xgboos
 
     if tot_path not in _df_classification_test:
         if sparse:
-            data = ddf.read_csv(path)
-            data = data.map_partitions(lambda part: part.to_sparse(fill_value=0))
+            data = ddf.read_csv(path, dtype={'1 Night filter active when clickout': 'float64',
+                                             '1 Star filter active when clickout': 'float64',
+                                             '2 Nights filter active when clickout': 'float64',
+                                             '2 Star filter active when clickout': 'float64',
+                                             '3 Star filter active when clickout': 'float64',
+                                             '4 Star filter active when clickout': 'float64',
+                                             '5 Star filter active when clickout': 'float64',
+                                             'Accessible Hotel filter active when clickout': 'float64',
+                                             'interaction_item_deals_session_ref_not_in_impr': 'float64',
+                                             'interaction_item_deals_session_ref_this_impr': 'float64',
+                                             'interaction_item_image_session_ref_not_in_impr': 'float64',
+                                             'interaction_item_rating_session_ref_not_in_impr': 'float64',
+                                             'Accessible Parking filter active when clickout': 'float64'})
+            data = data.map_partitions(
+                lambda part: part.to_sparse(fill_value=0))
             data = data.compute().reset_index(drop=True)
             data = data.drop(['Unnamed: 0'], axis=1)
             _df_classification_test[tot_path] = data
