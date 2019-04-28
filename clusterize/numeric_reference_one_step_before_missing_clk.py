@@ -2,6 +2,11 @@ from clusterize.clusterize_base import ClusterizeBase
 import data
 
 
+import os
+os.chdir("recsys2019")
+print(os.getcwd())
+
+
 class NumericReferenceOneStepBeforeMissingClk(ClusterizeBase):
 
     """
