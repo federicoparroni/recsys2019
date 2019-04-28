@@ -61,6 +61,101 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
                 popularity[int(e)] = int(f)
         return popularity
 
+    def get_price_info_and_interaction_position(x, y):
+        """
+        Getting avg price of interacted items and average price position inside a given session
+        :param x:
+        :param y:
+        :return:
+        """
+        impressions_pos_available = y[y['impressions'] != None][['impressions', 'prices']].drop_duplicates()
+
+        # [13, 43, 4352, 543, 345, 3523] impressions
+        # [45, 34, 54, 54, 56, 54] prices
+        # -> [(13,45), (43,34), ...]
+        # Then create dict
+        # {13: 45, 43: 34, ... }
+
+        tuples_impr_prices = []
+        tuples_impr_price_pos_asc = []
+
+        # [13, 43, 4352, 543, 345, 3523] impressions
+        # Then create dict impression-position
+        # {13: 1, 43: 2, ... }
+        tuples_impr_pos = []
+
+        for i in impressions_pos_available.index:
+            impr = impressions_pos_available.at[i, 'impressions'].split('|')
+            prices = impressions_pos_available.at[i, 'prices'].split('|')
+            tuples_impr_prices += list(zip(impr, prices))
+
+            tuples_impr_pos += [(impr[idx], idx + 1) for idx in range(len(impr))]
+
+            sorted(tuples_impr_prices, key=lambda x: x[1])
+            tuples_impr_price_pos_asc += list(zip(impr, list(range(1, len(tuples_impr_prices) + 1))))
+
+        tuples_impr_prices = list(set(tuples_impr_prices))
+        dict_impr_price = dict(tuples_impr_prices)
+
+        dict_impr_pos = dict(list(set(tuples_impr_pos)))
+
+        sum_pos_impr = 0
+        count_interacted_pos_impr = 0
+
+        # Create dict for getting position wrt clicked impression based on cheapest item
+        tuples_impr_price_pos_asc = list(set(tuples_impr_price_pos_asc))
+        dict_impr_price_pos = dict(tuples_impr_price_pos_asc)
+
+        sum_price = 0
+        sum_pos_price = 0
+        count_interacted = 0
+
+        # IMPORTANT: I decided to consider impressions and clickouts distinctively.
+        # If an impression is also clicked, that price counts double
+
+        #considering reference, impressions and action type as a row, I can distinguish from clickouts and impressions dropping duplicates
+        df_only_numeric = x[pd.to_numeric(x['reference'], errors='coerce').notnull()][
+            ["reference", "impressions", "action_type"]].drop_duplicates()
+
+        # Not considering last clickout in the train sessions
+        clks_num_reference = df_only_numeric[df_only_numeric['action_type'] == 'clickout item']
+        if len(y) > 0 and len(clks_num_reference) == len(y):  # is it a train session?
+            idx_last_clk = y.tail(1).index.values[0]
+            df_only_numeric = df_only_numeric.drop(idx_last_clk)
+
+        for i in df_only_numeric.index:
+            reference = df_only_numeric.at[i, 'reference']
+
+            if reference in dict_impr_price.keys():
+
+                sum_pos_impr += int(dict_impr_pos[reference])
+                count_interacted_pos_impr += 1
+                count_interacted += 1
+
+                sum_price += int(dict_impr_price[reference])
+                sum_pos_price += int(dict_impr_price_pos[reference])
+
+        mean_pos = -1
+        pos_last_reference = -1
+
+        mean_cheap_position = -1
+        mean_price_interacted = -1
+
+        if count_interacted > 0:
+            mean_cheap_position = round(sum_pos_price / count_interacted, 2)
+            mean_price_interacted = round(sum_price / count_interacted, 2)
+
+            mean_pos = round(sum_pos_impr / count_interacted_pos_impr, 2)
+            last_reference = df_only_numeric.tail(1).reference.values[0]
+
+            # Saving the impressions appearing in the last clickout (they will be used to get the 'pos_last_reference'
+            impressions_last_clickout = y.tail(1).impressions.values[0].split('|')
+            if last_reference in impressions_last_clickout:
+                pos_last_reference = impressions_last_clickout.index(last_reference) + 1
+
+        return mean_cheap_position, mean_price_interacted, mean_pos, pos_last_reference
+
+
     def get_frenzy_and_avg_time_per_step(x):
         if len(x) > 1:
             session_actions_num = int(x.tail(1).step)
@@ -126,6 +221,11 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
                 features['session_length_in_time'] = -1
                 features['timing_last_action_before_clk'] = -1
 
+            features['average_price_position'], \
+            features['avg_price_interacted_item'], \
+            features['avg_pos_interacted_items_in_impressions'], \
+            features['pos_last_interaction_in_impressions'] = get_price_info_and_interaction_position(x, y)
+
             features['time_per_step'], features['frenzy_factor'] = get_frenzy_and_avg_time_per_step(x)
 
             times_doubleclickout_on_item = 0
@@ -179,7 +279,7 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
             position_of_last_refence_on_impressions = None
             position_of_second_last_refence_on_impressions = None
 
-            num_references = x[pd.to_numeric(x['reference'], errors='coerce').notnull()]
+            num_references = x[pd.to_numeric(x['reference'], errors='coerce').notnull()].drop_duplicates(subset = ['reference'], keep = 'last')
 
             if num_references.shape[0] > 0:
                 last_num_reference = num_references.tail(1).reference.values[0]
@@ -484,7 +584,7 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
 
     # build in chunk
     count_chunk = 0
-    chunk_size = 2200000
+    chunk_size = 22000
 
     groups = full.groupby(np.arange(len(full))//chunk_size)
     # create the dataset in parallel threads: one thread saves, the other create the dataset for the actual group 
