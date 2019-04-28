@@ -6,6 +6,7 @@ from tqdm.auto import tqdm
 import math
 tqdm.pandas()
 from utils.check_folder import check_folder
+from multiprocessing import Process, Queue
 
 """
 creates train and test dataframe that can be used for classification,
@@ -295,7 +296,7 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
 
             return pd.DataFrame(features)
 
-    def construct_features(df):
+    def construct_features(df, q):
         dataset = df.groupby(['user_id', 'session_id']).progress_apply(func)
 
         # if the algorithm is xgboost, get the onehot of all the features. otherwise leave it categorical
@@ -350,8 +351,30 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
         sorted_col = sorted(dataset.columns[3:], reverse=True)
         #Sort columns to avoid incoherences with different classification datasets
         dataset = dataset.reindex(['user_id', 'session_id', 'label'] + sorted_col, axis=1)
+        q.put(dataset)
 
-        return dataset
+    def save_features(features, count_chunk, target_session_id, target_user_id):
+        print('started saving chunk {}'.format(count_chunk))
+        test = features[features['user_id'].isin(
+            target_user_id) & features['session_id'].isin(target_session_id)]
+        train = features[(features['user_id'].isin(
+            target_user_id) & features['session_id'].isin(target_session_id)) == False]
+
+        if count_chunk == 1:
+            path = 'dataset/preprocessed/{}/{}/{}/classification_train.csv'.format(cluster, mode, algo)
+            check_folder(path)
+            train.to_csv(path)
+
+            path = 'dataset/preprocessed/{}/{}/{}/classification_test.csv'.format(cluster, mode, algo)
+            check_folder(path)
+            test.to_csv(path)
+        else:
+            with open('dataset/preprocessed/{}/{}/{}/classification_train.csv'.format(cluster, mode, algo), 'a') as f:
+                 train.to_csv(f, header=False)
+            with open('dataset/preprocessed/{}/{}/{}/classification_test.csv'.format(cluster, mode, algo), 'a') as f:
+                test.to_csv(f, header=False)
+
+        print('chunk {} over {} completed'.format(count_chunk, len(groups)))
 
     train = data.train_df(mode=mode, cluster=cluster)
     test = data.test_df(mode=mode, cluster=cluster)
@@ -383,30 +406,19 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
     chunk_size = 20000
 
     groups = full.groupby(np.arange(len(full))//chunk_size)
+    # create the dataset in parallel threads: one thread saves, the other create the dataset for the actual group 
+    p2 = None
     for idxs, gr in groups:
-        features = construct_features(gr)
-        test = features[features['user_id'].isin(
-            target_user_id) & features['session_id'].isin(target_session_id)]
-        train = features[(features['user_id'].isin(
-            target_user_id) & features['session_id'].isin(target_session_id)) == False]
-
-        if count_chunk == 0:
-            path = 'dataset/preprocessed/{}/{}/{}/classification_train.csv'.format(cluster, mode, algo)
-            check_folder(path)
-            train.to_csv(path)
-
-            path = 'dataset/preprocessed/{}/{}/{}/classification_test.csv'.format(cluster, mode, algo)
-            check_folder(path)
-            test.to_csv(path)
-        else:
-            with open('dataset/preprocessed/{}/{}/{}/classification_train.csv'.format(cluster, mode, algo), 'a') as f:
-                 train.to_csv(f, header=False)
-            with open('dataset/preprocessed/{}/{}/{}/classification_test.csv'.format(cluster, mode, algo), 'a') as f:
-                test.to_csv(f, header=False)
-
+        q = Queue()
+        p1 = Process(target=construct_features, args=(gr,q,))
+        p1.start()
+        if p2 != None:
+            p2.join()
+        features = q.get()
+        p1.join()
         count_chunk += 1
-        print('chunk {} over {} completed'.format(count_chunk, len(groups)))
-
+        p2 = Process(target=save_features, args=(features, count_chunk, target_session_id, target_user_id,))
+        p2.start()
 
 if __name__ == "__main__":
     build_dataset(mode='small', cluster='no_cluster', algo='xgboost')

@@ -121,7 +121,10 @@ def classification_train_df(mode, sparse=True, cluster='no_cluster', algo='xgboo
 
     if tot_path not in _df_classification_train:
         if sparse:
-            data = ddf.read_csv(path)
+            data = ddf.read_csv(path, dtype={'1 Star filter active when clickout': 'float64',
+                                             '2 Nights filter active when clickout': 'float64',
+                                             'impression_position': 'float64',
+                                             'interaction_item_deals_session_ref_not_in_impr': 'float64'})
             data = data.map_partitions(lambda part: part.to_sparse(fill_value=0))
             data = data.compute().reset_index(drop=True)
             data = data.drop(['Unnamed: 0'], axis=1)
