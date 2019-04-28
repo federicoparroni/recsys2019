@@ -61,7 +61,8 @@ class NeuralNetworks(RecommenderBase):
 
         self.class_weights_dict = None
         self._compute_class_weights()
-        self._create_model()
+        #self._create_model()
+        self._create_model_from_arr()
 
     def _compute_class_weights(self):
         temp = np.concatenate((self.Y_train, self.Y_val))
@@ -102,12 +103,17 @@ class NeuralNetworks(RecommenderBase):
         for index in tqdm(target_indeces):
             impr = list(map(int, data.full_df().loc[index]['impressions'].split('|')))
             pred = predictions[accumulator:accumulator + len(impr)]
+            # threshold the prediction score
+            #pred = [a if a > 0.8 else 0 for a in pred]
+
             accumulator += len(impr)
             couples = list(zip(pred, impr))
 
-            print(couples)
+            print(couples[0])
 
             couples.sort(key=lambda x: x[0], reverse=True)
+
+            print(couples[0])
             scores, sorted_impr = zip(*couples)
             final_predictions.append((index, list(sorted_impr)))
             scores_batch.append((index, list(sorted_impr), list(scores)))
@@ -141,6 +147,54 @@ class NeuralNetworks(RecommenderBase):
         model.add(Dense(1, activation='sigmoid'))
 
         # compile the model
+        model.compile(loss=self.nn_dict_params['loss'], optimizer=self.nn_dict_params['optimizer'],
+                      metrics=['accuracy'])
+        self.model = model
+        print('model created')
+
+    def _create_model_from_arr(self):
+        """
+        the array have to be composed by tuples, the possible tuples are
+
+        NOTE the first element of the array have to be the nuber of neurons of the first dense layer!
+
+        -Dense layer (#continguos equals layer, d, #neurons)
+        -Dropout layer (#continguos equals layer, drop, rate)
+
+        example:
+        (3, d, 128) will create 3 layer dense with 128 neurons each
+
+        [128, (2,d,128), (1, d, 64)] will create a network with 3 layers dense with 128 neurons 1 dense with
+        64 neurons and a last layer dense with 1 neurons
+
+        :param arr: array with network structure
+        :return: -
+        """
+        arr = self.nn_dict_params['model_array']
+
+        model = Sequential()
+        for i in range(len(arr)):
+            # the network is initialized with a dense layer
+            if i == 0:
+                model.add(Dense(arr[i], input_dim=self.X_train.shape[1],
+                                activation=self.nn_dict_params['activation_function_internal_layers']))
+            else:
+                layers_number = arr[i][0]
+                layer_type = arr[i][1]
+
+                if layer_type == 'd':
+                    for j in range(layers_number):
+                        model.add(Dense(arr[i][2], activation=self.nn_dict_params['activation_function_internal_layers']))
+
+                elif layer_type == 'drop':
+                    for j in range(layers_number):
+                        model.add(Dropout(rate=arr[i][2]))
+                else:
+                    print('not yet implemented!!!')
+                    exit(0)
+        # add at the end the last dense layer composed by only one neuron
+        model.add(Dense(1, activation='sigmoid'))
+
         model.compile(loss=self.nn_dict_params['loss'], optimizer=self.nn_dict_params['optimizer'],
                       metrics=['accuracy'])
         self.model = model
@@ -259,20 +313,20 @@ def create_dataset_for_neural_networks(mode, cluster, features_array, dataset_na
 
 if __name__ == '__main__':
     features = {
-        'item_id': [ImpressionLabel, ImpressionPriceInfoSession, LastInteractionInvolvingImpression,
-                    ItemPopularitySession, ImpressionPositionSession,
-                    TimingFromLastInteractionImpression, TimesUserInteractedWithImpression],
+        'item_id': [ImpressionLabel, ImpressionPriceInfoSession, LastInteractionInvolvingImpression, TimingFromLastInteractionImpression],
         'session': [MeanPriceClickout, SessionLength, SessionDevice]
     }
 
-    dataset_name = 'prova2'
+    dataset_name = 'all'
     #create_dataset_for_neural_networks('small', 'no_cluster', features, dataset_name)
 
     nn_dict_params = {
-        'dataset_name': 'prova2',
+        'model_array': [256, (2, 'd', 128), (1, 'drop', 0.2), (2, 'd', 64), (1, 'drop', 0.2), (2, 'd', 32)],
+        'dataset_name': 'all',
         'activation_function_internal_layers': 'relu',
         'neurons_per_layer': 256,
-        'loss': 'binary_crossentropy',
+        #'loss': 'binary_crossentropy',
+        'loss': 'mean_squared_error',
         'optimizer': 'adam',
         'validation_split': 0.2,
         'epochs': 1,
