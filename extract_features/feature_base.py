@@ -73,7 +73,6 @@ class FeatureBase(ABC):
         """ Join this feature to the specified dataframe. The default implementation will join based on the
         common column between the 2 dataframes. Override to provide a custom join logic. """
         feature_df = self.read_feature(one_hot=one_hot)
-        #common_cols = list(set(df.columns) & set(feature_df.columns))
         return df.merge(feature_df, how='left')
 
     def read_feature(self, one_hot=False):
