@@ -5,6 +5,9 @@ from tqdm.auto import tqdm
 
 tqdm.pandas()
 
+import os
+os.chdir("recsys2019/")
+print(os.getcwd())
 
 class ClusterSessionsWithoutNumericalReferences(ClusterizeBase):
 
@@ -30,7 +33,10 @@ class ClusterSessionsWithoutNumericalReferences(ClusterizeBase):
         if len(y) == 1 and (x[pd.to_numeric(x['reference'], errors='coerce').notnull()].shape[0] == 0):
             # keep only sessions until last clickout
             x = x[x["step"] <= int(clk["step"])]
-            return pd.DataFrame(x)
+
+            if (x[x['action_type'] == 'clickout item'].shape[0] == 1) and (
+                    x[pd.to_numeric(x['reference'], errors='coerce').notnull()].shape[0] == 0):
+                return pd.DataFrame(x)
 
     def _fit(self, mode):
         """
@@ -52,22 +58,18 @@ class ClusterSessionsWithoutNumericalReferences(ClusterizeBase):
 
         test = data.test_df(mode)
 
-        test_groups = test.groupby(['session_id', 'user_id'], as_index=False).progress_apply(
+        test_df = test.groupby(['session_id', 'user_id'])
+
+        test_df = test_df.progress_apply(
             self.func_remove_steps_over_clk_test)
 
-        # Getting target indices of test
-        self.test_indices = [x[1] for x in test_groups.index.values]
-
-        x = test.groupby(['session_id', 'user_id'])
-
-        # Getting as test only sessions with no numeric interaction
-        test_df = x.filter(lambda x: (x[x['action_type'] == 'clickout item'].shape[0] == 1) & (
-                    x[pd.to_numeric(x['reference'], errors='coerce').notnull()].shape[0] == 0))
+        print(test_df[:100])
 
         if test_df.shape[0] > 0:
             self.target_indices = test_df[test_df.action_type == 'clickout item'].index.values
             # test_df has only those indices belonging to desired sessions cluster
-            self.test_indices = test_df.index.values
+            self.test_indices = list(list(zip(*test_df.index.values))[2])
+
 
 
 if __name__ == '__main__':

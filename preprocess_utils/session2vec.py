@@ -277,7 +277,7 @@ def sessions2tensor(df, drop_cols=[], return_index=False):
         return np.array(sessions_values_indices_df['tensor'].to_list())
 
 
-def create_dataset_for_regression(mode, cluster, pad_sessions_length=70, add_item_features=True, save_X_Y=True):
+def create_dataset_for_regression(mode, cluster, pad_sessions_length=80, add_item_features=True, save_X_Y=True):
     """
     pad_sessions_length (int): final length of sessions after padding/truncating
     add_item_features (bool): whether to add the one-hot accomodations features to the training data
@@ -415,10 +415,10 @@ def create_dataset_for_regression(mode, cluster, pad_sessions_length=70, add_ite
                             X_sparse_cols=x_sparse_cols, Y_sparse_cols=features_cols)
 
     
-def create_dataset_for_classification(mode, cluster, pad_sessions_length=70):
+def create_dataset_for_classification(mode, cluster, pad_sessions_length=80, features=[]):
     """
     pad_sessions_length (int): final length of sessions after padding/truncating
-    add_item_features (bool): whether to add the one-hot accomodations features to the training data
+    features (list): list of classes (inheritng from FeatureBase) that will provide additional features to be joined
     """
     train_df = data.train_df(mode, cluster='cluster_recurrent')
     test_df = data.test_df(mode, cluster='cluster_recurrent')
@@ -432,6 +432,12 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length=70):
            'search for item', 'search for destination', 'search for poi']
     
     ## ======== TRAIN ======== ##
+    # merge the features
+    print('Merging the features...')
+    for f in features:
+        train_df = f.join_to(train_df)
+    print('Done!\n')
+    
     # add the impressions as new interactions
     print('Adding impressions as new actions...')
     train_df, final_new_index = add_impressions_as_new_actions(train_df, drop_cols=['prices'])
@@ -489,6 +495,12 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length=70):
     del train_df
 
     ## ======== TEST ======== ##
+    # merge the features
+    print('Merging the features...')
+    for f in features:
+        test_df = f.join_to(test_df)
+    print('Done!\n')
+    
     print('Adding impressions as new actions...')
     test_df, _ = add_impressions_as_new_actions(test_df, final_new_index)
     print('Done!\n')
@@ -514,6 +526,9 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length=70):
     print('Adding one-hot columns of action_type...', end=' ', flush=True)
     test_df = one_hot_df_column(test_df, 'action_type', classes=actions_classes)
     print('Done!\n')
+    
+    # add the reference classes
+    # not done because is test!
 
     TEST_LEN = test_df.shape[0]
 
@@ -539,44 +554,44 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length=70):
 
 # ======== POST-PROCESSING ========= #
 
-def load_training_dataset_for_regression(mode):
-    """ Load the one-hot dataset and return X_train, Y_train """
-    path = f'dataset/preprocessed/cluster_recurrent/{mode}'
-    X_path = os.path.join(path, 'X_train.csv')
-    Y_path = os.path.join(path, 'Y_train.csv')
+# def load_training_dataset_for_regression(mode):
+#     """ Load the one-hot dataset and return X_train, Y_train """
+#     path = f'dataset/preprocessed/cluster_recurrent/{mode}'
+#     X_path = os.path.join(path, 'X_train.csv')
+#     Y_path = os.path.join(path, 'Y_train.csv')
 
-    X_train_df = pd.read_csv(X_path, index_col=0) #sparsedf.read(X_path, sparse_cols=X_sparsecols).set_index('orig_index')
-    Y_train_df = pd.read_csv(Y_path, index_col=0) #sparsedf.read(Y_path, sparse_cols=Y_sparsecols).set_index('orig_index')
+#     X_train_df = pd.read_csv(X_path, index_col=0) #sparsedf.read(X_path, sparse_cols=X_sparsecols).set_index('orig_index')
+#     Y_train_df = pd.read_csv(Y_path, index_col=0) #sparsedf.read(Y_path, sparse_cols=Y_sparsecols).set_index('orig_index')
 
-    #X_test_df = pd.read_csv(f'dataset/preprocessed/cluster_recurrent/{mode}/X_test.csv').set_index('orig_index')
+#     #X_test_df = pd.read_csv(f'dataset/preprocessed/cluster_recurrent/{mode}/X_test.csv').set_index('orig_index')
 
-    # turn the timestamp into the day of year
-    X_train_df.timestamp = pd.to_datetime(X_train_df.timestamp, unit='s')
-    X_train_df['dayofyear'] = X_train_df.timestamp.dt.dayofyear
+#     # turn the timestamp into the day of year
+#     X_train_df.timestamp = pd.to_datetime(X_train_df.timestamp, unit='s')
+#     X_train_df['dayofyear'] = X_train_df.timestamp.dt.dayofyear
 
-    cols_to_drop_in_X = ['user_id','session_id','timestamp','step','platform','city','current_filters']
-    cols_to_drop_in_Y = ['session_id','user_id','timestamp','step']
+#     cols_to_drop_in_X = ['user_id','session_id','timestamp','step','platform','city','current_filters']
+#     cols_to_drop_in_Y = ['session_id','user_id','timestamp','step']
     
-    # scale the dataframe
-    #X_train_df = scale_dataframe(X_train_df, ['impression_price'])
-    scaler = MinMaxScaler()
-    X_train_df.loc[:,~X_train_df.columns.isin(cols_to_drop_in_X)] = scaler.fit_transform(
-        X_train_df.drop(cols_to_drop_in_X, axis=1).astype('float64').values)
+#     # scale the dataframe
+#     #X_train_df = scale_dataframe(X_train_df, ['impression_price'])
+#     scaler = MinMaxScaler()
+#     X_train_df.loc[:,~X_train_df.columns.isin(cols_to_drop_in_X)] = scaler.fit_transform(
+#         X_train_df.drop(cols_to_drop_in_X, axis=1).astype('float64').values)
 
-    # get the tensors and drop currently unused columns
-    X_train = sessions2tensor(X_train_df, drop_cols=cols_to_drop_in_X)
-    print('X_train:', X_train.shape)
+#     # get the tensors and drop currently unused columns
+#     X_train = sessions2tensor(X_train_df, drop_cols=cols_to_drop_in_X)
+#     print('X_train:', X_train.shape)
 
-    Y_train = sessions2tensor(Y_train_df, drop_cols=cols_to_drop_in_Y)
-    print('Y_train:', Y_train.shape)
+#     Y_train = sessions2tensor(Y_train_df, drop_cols=cols_to_drop_in_Y)
+#     print('Y_train:', Y_train.shape)
 
-    # X_test = sessions2tensor(X_test_df, drop_cols=['user_id','session_id','step','reference','platform','city','current_filters'], return_index=False)
-    # print('X_test:', X_test.shape)
+#     # X_test = sessions2tensor(X_test_df, drop_cols=['user_id','session_id','step','reference','platform','city','current_filters'], return_index=False)
+#     # print('X_test:', X_test.shape)
 
-    # X_train.impression_price = X_train.impression_price.fillna(value=0)
-    # X_test.impression_price = X_test.impression_price.fillna(value=0)
+#     # X_train.impression_price = X_train.impression_price.fillna(value=0)
+#     # X_test.impression_price = X_test.impression_price.fillna(value=0)
     
-    return X_train, Y_train #, X_test
+#     return X_train, Y_train #, X_test
 
 
 def get_session_groups_indices_df(X_df, Y_df, cols_to_group=['user_id','session_id'], indices_col_name='intrctns_indices'):

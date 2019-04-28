@@ -3,7 +3,6 @@ from sklearn.preprocessing import MultiLabelBinarizer
 import data
 import pandas as pd
 from tqdm.auto import tqdm
-import math
 tqdm.pandas()
 from utils.check_folder import check_folder
 from multiprocessing import Process, Queue
@@ -41,12 +40,18 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
         return attributes_df
         # return accomodations_df
 
-    def build_popularity(accomodations_df, df):
+    def build_popularity(df):
         popularity = {}
         df = df[(df['action_type'] == 'clickout item')
                 & (~df['reference'].isnull())]
         clicked_references = list(map(int, list(df['reference'].values)))
-        frequence = list(map(int, list(df['frequence'].values)))
+
+        ## FREQUENCY EDIT - in case of presence of 'frequence' column in dataset
+        if 'frequence' in df.columns.values:
+            frequence = list(map(int, list(df['frequence'].values)))
+        else:
+            frequence = [1] * len(df)
+
         for i in tqdm(range(len(clicked_references))):
             e = clicked_references[i]
             f = frequence[i]
@@ -55,106 +60,6 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
             else:
                 popularity[int(e)] = int(f)
         return popularity
-
-
-    def get_price_info_and_interaction_position(x, y):
-        """
-        Getting avg price of interacted items and average price position inside a given session
-        :param x:
-        :param y:
-        :return:
-        """
-        impressions_pos_available = y[y['impressions'] != None][["impressions", "prices"]].drop_duplicates()
-
-        # [13, 43, 4352, 543, 345, 3523] impressions
-        # [45, 34, 54, 54, 56, 54] prices
-        # -> [(13,45), (43,34), ...]
-        # Then create dict
-        # {13: 45, 43: 34, ... }
-
-        tuples_impr_prices = []
-        tuples_impr_price_pos_asc = []
-
-        # [13, 43, 4352, 543, 345, 3523] impressions
-        # Then create dict impression-position
-        # {13: 1, 43: 2, ... }
-        tuples_impr_pos = []
-
-        for i in impressions_pos_available.index:
-            impr = impressions_pos_available.at[i, 'impressions'].split('|')
-            prices = impressions_pos_available.at[i, 'prices'].split('|')
-            tuples_impr_prices += list(zip(impr, prices))
-
-            tuples_impr_pos += [(impr[idx], idx + 1) for idx in range(len(impr))]
-
-            sorted(tuples_impr_prices, key=lambda x: x[1])
-            tuples_impr_price_pos_asc += list(zip(impr, list(range(1, len(tuples_impr_prices) + 1))))
-
-        tuples_impr_prices = list(set(tuples_impr_prices))
-        dict_impr_price = dict(tuples_impr_prices)
-
-        dict_impr_pos = dict(list(set(tuples_impr_pos)))
-
-        sum_pos_impr = 0
-        count_interacted_pos_impr = 0
-
-        # Create dict for getting position wrt clicked impression based on cheapest item
-        tuples_impr_price_pos_asc = list(set(tuples_impr_price_pos_asc))
-        dict_impr_price_pos = dict(tuples_impr_price_pos_asc)
-
-        sum_price = 0
-        sum_pos_price = 0
-        count_interacted = 0
-
-        # IMPORTANT: I decided to consider impressions and clickouts distinctively.
-        # If an impression is also clicked, that price counts double
-        df_only_numeric = x[pd.to_numeric(x['reference'], errors='coerce').notnull()][
-            ["reference", "impressions", "action_type"]].drop_duplicates()
-
-        #Saving the impressions appearing in the last clickout (they will be used to get the 'pos_last_reference'
-        impressions_last_clickout = y.tail(1).impressions.values[0].split('|')
-
-        # Not considering last clickout in the train sessions
-        clks_num_reference = df_only_numeric[df_only_numeric['action_type'] == 'clickout item']
-        if len(y) > 0 and len(clks_num_reference) == len(y):  # is it a train session?
-            idx_last_clk = y.tail(1).index.values[0]
-            df_only_numeric = df_only_numeric.drop(idx_last_clk)
-
-        for idx, row in df_only_numeric.iterrows():
-            reference = row.reference
-
-            if reference in dict_impr_price.keys():
-
-                sum_pos_impr += int(dict_impr_pos[reference])
-                count_interacted_pos_impr += 1
-
-                if row.action_type == "clickout item":
-                    sum_price += int(dict_impr_price[reference]) * 2
-                    sum_pos_price += int(dict_impr_price_pos[reference]) * 2
-                    count_interacted += 2
-
-                else:
-                    sum_price += int(dict_impr_price[reference])
-                    sum_pos_price += int(dict_impr_price_pos[reference])
-                    count_interacted += 1
-
-        mean_pos = -1
-        pos_last_reference = -1
-
-        mean_cheap_position = -1
-        mean_price_interacted = -1
-
-        if count_interacted > 0:
-            mean_cheap_position = round(sum_pos_price / count_interacted, 2)
-            mean_price_interacted = round(sum_price / count_interacted, 2)
-
-            mean_pos = round(sum_pos_impr / count_interacted_pos_impr, 2)
-            last_reference = df_only_numeric.tail(1).reference.values[0]
-            if last_reference in impressions_last_clickout:
-                pos_last_reference = impressions_last_clickout.index(last_reference) + 1
-
-        return mean_cheap_position, mean_price_interacted, mean_pos, pos_last_reference
-
 
     def get_frenzy_and_avg_time_per_step(x):
         if len(x) > 1:
@@ -166,12 +71,13 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
 
             var = 0
             prev_tm = 0
-            for i, row in x.iterrows():
+            for i in x.index:
+                curr_tm = int(x.at[i, 'timestamp'])
                 if prev_tm == 0:
-                    prev_tm = int(row.timestamp)
+                    prev_tm = curr_tm
                 else:
-                    var += (mean_time_per_step - (int(row.timestamp) - prev_tm)) ** 2
-                    prev_tm = int(row.timestamp)
+                    var += (mean_time_per_step - (curr_tm - prev_tm)) ** 2
+                    prev_tm = curr_tm
 
             var = round((var / session_actions_num) ** 0.5, 2)
         else:
@@ -207,11 +113,6 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
             features['session_length_in_time'] = abs(
                 int(clk['timestamp'].values[0]) - int(x.head(1)['timestamp'].values[0]))
 
-            features['average_price_position'], \
-            features['avg_price_interacted_item'], \
-            features['avg_pos_interacted_items_in_impressions'], \
-            features['pos_last_interaction_in_impressions'] = get_price_info_and_interaction_position(x,y)
-
             if len(x) > 1:
                 features['timing_last_action_before_clk'] = int(x.tail().timestamp.values[1]) - int(x.tail().timestamp.values[0])
             else:
@@ -236,7 +137,13 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
 
             references = x['reference'].values
             actions = x['action_type'].values
-            frequency = x['frequence'].values
+
+            ## FREQUENCY EDIT - in case of presence of 'frequence' column in dataset
+            if 'frequence' in x.columns.values:
+                frequency = x['frequence'].values
+            else:
+                frequency = [1]*len(x)
+
             not_to_cons_indices = []
 
             count = 0
@@ -264,8 +171,14 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
                         'last_time_impression_appeared_as_' + row_reference['action_type'].values[0].replace(' ', '_'))
                     for idx in indices:
                         row_reference = x.head(idx+1).tail(1)
+
+                        if 'frequence' in row_reference.columns.values:
+                            freq = int(row_reference.frequence.values[0])
+                        else:
+                            freq = 1
+
                         features['_'.join(row_reference.action_type.values[0].split(
-                            ' ')) + '_session_ref_this_impr'][count] += int(row_reference.frequence.values[0])
+                            ' ')) + '_session_ref_this_impr'][count] += freq
 
                 else:
                     features['steps_from_last_time_impression_appeared'].append(
@@ -299,6 +212,18 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
     def construct_features(df, q):
         dataset = df.groupby(['user_id', 'session_id']).progress_apply(func)
 
+        one_hot = dataset['filters_when_clickout'].astype(
+            str).str.get_dummies()
+        missing = poss_filters - set(one_hot.columns)
+        to_drop = set(one_hot.columns) - poss_filters
+
+        for e in missing:
+            one_hot[e] = 0
+        for e in to_drop:
+            one_hot = one_hot.drop([e], axis=1)
+        dataset = dataset.drop(['filters_when_clickout'], axis=1)
+        dataset = dataset.join(one_hot)
+
         # if the algorithm is xgboost, get the onehot of all the features. otherwise leave it categorical
         if algo == 'xgboost':
             one_hot = pd.get_dummies(dataset['device'])
@@ -308,7 +233,6 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
             dataset = dataset.drop(['device'], axis=1)
             dataset = dataset.join(one_hot)
 
-            print("join1")
             one_hot = pd.get_dummies(
                 dataset['kind_action_reference_appeared_last_time'])
             missing = poss_actions - set(one_hot.columns)
@@ -317,7 +241,7 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
             dataset = dataset.drop(
                 ['kind_action_reference_appeared_last_time'], axis=1)
             dataset = dataset.join(one_hot)
-            print("join2")
+
             one_hot = pd.get_dummies(
                 dataset['sort_order_active_when_clickout'])
             missing = poss_sort_orders - set(one_hot.columns)
@@ -326,19 +250,8 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
             dataset = dataset.drop(
                 ['sort_order_active_when_clickout'], axis=1)
             dataset = dataset.join(one_hot)
-            print("join3")
-            one_hot = dataset['filters_when_clickout'].astype(
-                str).str.get_dummies()
-            missing = poss_filters - set(one_hot.columns)
-            to_drop = set(one_hot.columns) - poss_filters
 
-            for e in missing:
-                one_hot[e] = 0
-            for e in to_drop:
-                one_hot = one_hot.drop([e], axis=1)
-            dataset = dataset.drop(['filters_when_clickout'], axis=1)
-            dataset = dataset.join(one_hot)
-            print("joined!!!")
+
         dataset = dataset.reset_index().drop(['level_2'], axis=1)
         dataset = pd.merge(dataset, one_hot_accomodation, on=['item_id'])
 
@@ -348,9 +261,6 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
         if 'Unnamed: 0' in dataset.columns.values:
             dataset = dataset.drop(['Unnamed: 0'], axis=1)
 
-        sorted_col = sorted(dataset.columns[3:], reverse=True)
-        #Sort columns to avoid incoherences with different classification datasets
-        dataset = dataset.reindex(['user_id', 'session_id', 'label'] + sorted_col, axis=1)
         q.put(dataset)
 
     def save_features(features, count_chunk, target_session_id, target_user_id):
@@ -388,7 +298,7 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
 
     accomodations_df = data.accomodations_df()
     one_hot_accomodation = one_hot_of_accomodation(accomodations_df)
-    popularity_df = build_popularity(accomodations_df, full)
+    popularity_df = build_popularity(full)
     poss_filters = []
     for f in full[~full['current_filters'].isnull()]['current_filters'].values:
         poss_filters += [x +
@@ -403,7 +313,7 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
 
     # build in chunk
     count_chunk = 0
-    chunk_size = 20000
+    chunk_size = 15000
 
     groups = full.groupby(np.arange(len(full))//chunk_size)
     # create the dataset in parallel threads: one thread saves, the other create the dataset for the actual group 

@@ -388,7 +388,9 @@ def preprocess():
 
     # create full_df.csv
     check_folder(data.FULL_PATH)
-    if not os.path.isfile(data.FULL_PATH):
+    if os.path.isfile(data.FULL_PATH):
+        menu.yesno_choice('An old full dataframe has been found. Do you want to delete it and create again?', callback_yes=create_full_df)
+    else:
         print('The full dataframe (index master) is missing. Creating it...', end=' ', flush=True)
         create_full_df()
         print('Done!')
