@@ -287,7 +287,7 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
                     position_of_last_refence_on_impressions = impr.index(last_num_reference) + 1
 
             if num_references.shape[0] > 1:
-                second_last_num_reference = num_references.tail(2).reference.values[1]
+                second_last_num_reference = num_references.tail(2).reference.values[0]
                 if second_last_num_reference in impr:
                     position_of_second_last_refence_on_impressions = impr.index(second_last_num_reference) + 1
 
