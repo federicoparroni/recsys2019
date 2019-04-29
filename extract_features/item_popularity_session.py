@@ -25,10 +25,16 @@ class ItemPopularitySession(FeatureBase):
 
         def build_popularity(df, popularity):
             df = df[(df['action_type'] == 'clickout item')
-                    & (~df['reference'].isnull())]
+                & (~df['reference'].isnull())]
             clicked_references = list(map(int, list(df['reference'].values)))
-            for e in clicked_references:
-                popularity[int(e)] += 1
+            frequence = list(map(int, list(df['frequence'].values)))
+            for i in tqdm(range(len(clicked_references))):
+                e = clicked_references[i]
+                f = frequence[i]
+                if int(e) in popularity:
+                    popularity[int(e)] += int(f)
+                else:
+                    popularity[int(e)] = int(f)
             return popularity
 
         def func(x):

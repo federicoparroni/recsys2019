@@ -38,13 +38,13 @@ class SessionActionNumRefDiffFromImpressions(FeatureBase):
                 impr = clk.impressions.values[0]
                 x = x.loc[head_index.values[0]:clk.index.values[0]-1]
                 df_only_numeric = x[pd.to_numeric(x['reference'], errors='coerce').notnull()][[
-                    "reference", "action_type"]]
+                    "reference", "action_type", "frequence"]]
                 df_only_numeric = df_only_numeric.reset_index(drop=True)
                 refs = df_only_numeric.reference.values
                 for i in range(len(refs)):
                     if refs[i] not in impr:
                         c += 1
-                        r[df_only_numeric.loc[i].action_type] += 1
+                        r[df_only_numeric.loc[i].action_type] += int(df_only_numeric.loc[i].frequence)
                 if c == 0:
                     r['no action'] += 1
                 return r

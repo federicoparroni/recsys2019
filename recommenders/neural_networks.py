@@ -16,6 +16,8 @@ from extract_features.times_user_interacted_with_impression import TimesUserInte
 from extract_features.timing_from_last_interaction_impression import TimingFromLastInteractionImpression
 from extract_features.last_action_involving_impression import LastInteractionInvolvingImpression
 from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
+from extract_features.impression_features import ImpressionFeature
+from extract_features.item_popularity_session import ItemPopularitySession
 
 
 tqdm.pandas()
@@ -59,24 +61,19 @@ class NeuralNetworks(RecommenderBase):
 
         self.class_weights_dict = None
         self._compute_class_weights()
-        self._create_model()
+        #self._create_model()
+        self._create_model_from_arr()
 
     def _compute_class_weights(self):
         temp = np.concatenate((self.Y_train, self.Y_val))
         #class_weights = class_weight.compute_class_weight('balanced', np.unique(temp), temp)
 
-        """
+
         class_weights_dict = {
             0: 1,
             1: (len(temp)-np.sum(temp))/np.sum(temp),
         }
-        """
 
-
-        class_weights_dict = {
-            0: 1*10,
-            1: (len(temp)-np.sum(temp))/np.sum(temp),
-        }
         self.class_weights_dict=class_weights_dict
 
 
@@ -106,12 +103,17 @@ class NeuralNetworks(RecommenderBase):
         for index in tqdm(target_indeces):
             impr = list(map(int, data.full_df().loc[index]['impressions'].split('|')))
             pred = predictions[accumulator:accumulator + len(impr)]
+            # threshold the prediction score
+            #pred = [a if a > 0.8 else 0 for a in pred]
+
             accumulator += len(impr)
             couples = list(zip(pred, impr))
 
-            print(couples)
+            print(couples[0])
 
             couples.sort(key=lambda x: x[0], reverse=True)
+
+            print(couples[0])
             scores, sorted_impr = zip(*couples)
             final_predictions.append((index, list(sorted_impr)))
             scores_batch.append((index, list(sorted_impr), list(scores)))
@@ -145,6 +147,54 @@ class NeuralNetworks(RecommenderBase):
         model.add(Dense(1, activation='sigmoid'))
 
         # compile the model
+        model.compile(loss=self.nn_dict_params['loss'], optimizer=self.nn_dict_params['optimizer'],
+                      metrics=['accuracy'])
+        self.model = model
+        print('model created')
+
+    def _create_model_from_arr(self):
+        """
+        the array have to be composed by tuples, the possible tuples are
+
+        NOTE the first element of the array have to be the nuber of neurons of the first dense layer!
+
+        -Dense layer (#continguos equals layer, d, #neurons)
+        -Dropout layer (#continguos equals layer, drop, rate)
+
+        example:
+        (3, d, 128) will create 3 layer dense with 128 neurons each
+
+        [128, (2,d,128), (1, d, 64)] will create a network with 3 layers dense with 128 neurons 1 dense with
+        64 neurons and a last layer dense with 1 neurons
+
+        :param arr: array with network structure
+        :return: -
+        """
+        arr = self.nn_dict_params['model_array']
+
+        model = Sequential()
+        for i in range(len(arr)):
+            # the network is initialized with a dense layer
+            if i == 0:
+                model.add(Dense(arr[i], input_dim=self.X_train.shape[1],
+                                activation=self.nn_dict_params['activation_function_internal_layers']))
+            else:
+                layers_number = arr[i][0]
+                layer_type = arr[i][1]
+
+                if layer_type == 'd':
+                    for j in range(layers_number):
+                        model.add(Dense(arr[i][2], activation=self.nn_dict_params['activation_function_internal_layers']))
+
+                elif layer_type == 'drop':
+                    for j in range(layers_number):
+                        model.add(Dropout(rate=arr[i][2]))
+                else:
+                    print('not yet implemented!!!')
+                    exit(0)
+        # add at the end the last dense layer composed by only one neuron
+        model.add(Dense(1, activation='sigmoid'))
+
         model.compile(loss=self.nn_dict_params['loss'], optimizer=self.nn_dict_params['optimizer'],
                       metrics=['accuracy'])
         self.model = model
@@ -188,6 +238,7 @@ def create_dataset_for_neural_networks(mode, cluster, features_array, dataset_na
                                                             how='inner'), pandas_dataframe_features_item_list)
 
     df_merged = pd.merge(df_merged_item, df_merged_session, on=['user_id', 'session_id'])
+
     ################################################
 
 
@@ -239,7 +290,7 @@ def create_dataset_for_neural_networks(mode, cluster, features_array, dataset_na
     X_norm = scaler.fit_transform(X)
     Y_norm = Y.values
 
-    X_train, X_val, Y_train, Y_val = train_test_split(X_norm, Y_norm, test_size=0.2, shuffle=True)
+    X_train, X_val, Y_train, Y_val = train_test_split(X_norm, Y_norm, test_size=0.2, shuffle=False)
 
     X_test = test_df.iloc[:, 4:]
     X_test_norm = scaler.fit_transform(X_test)
@@ -262,21 +313,23 @@ def create_dataset_for_neural_networks(mode, cluster, features_array, dataset_na
 
 if __name__ == '__main__':
     features = {
-        'item_id': [ImpressionLabel, ImpressionPriceInfoSession, LastInteractionInvolvingImpression],
-        'session': [MeanPriceClickout, SessionLength, SessionDevice],
+        'item_id': [ImpressionLabel, ImpressionPriceInfoSession, LastInteractionInvolvingImpression, TimingFromLastInteractionImpression],
+        'session': [MeanPriceClickout, SessionLength, SessionDevice]
     }
 
     dataset_name = 'all'
     #create_dataset_for_neural_networks('small', 'no_cluster', features, dataset_name)
 
     nn_dict_params = {
-        'dataset_name': 'prova',
+        'model_array': [256, (2, 'd', 128), (1, 'drop', 0.2), (2, 'd', 64), (1, 'drop', 0.2), (2, 'd', 32)],
+        'dataset_name': 'all',
         'activation_function_internal_layers': 'relu',
         'neurons_per_layer': 256,
-        'loss': 'binary_crossentropy',
+        #'loss': 'binary_crossentropy',
+        'loss': 'mean_squared_error',
         'optimizer': 'adam',
         'validation_split': 0.2,
-        'epochs': 2,
+        'epochs': 1,
         'batch_size': 256,
     }
 
