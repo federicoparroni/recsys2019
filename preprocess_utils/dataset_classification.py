@@ -155,14 +155,6 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
 
             features['time_per_step'], features['frenzy_factor'] = get_frenzy_and_avg_time_per_step(x, clk)
 
-            times_doubleclickout_on_item = 0
-            x_only_clickouts = x[x.action_type == 'clickout item']
-            for item in set(x_only_clickouts.reference.values):
-                if len(x_only_clickouts[x_only_clickouts.reference == item]) > 1:
-                    times_doubleclickout_on_item += 1
-
-            features['times_doubleclickout_on_item'] = times_doubleclickout_on_item
-
             poi_search_df = x[x.action_type == 'search for poi']
             if poi_search_df.shape[0] > 0:
                 last_poi_search_step = int(poi_search_df.tail(1).step.values[0])
@@ -399,7 +391,7 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
         has_frequency_columns = True
 
     del train
-    #del test
+    del test
 
     accomodations_df = data.accomodations_df()
     one_hot_accomodation = one_hot_of_accomodation(accomodations_df)
@@ -422,8 +414,6 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
                     'last_time_impression_appeared_as_interaction_item_rating',
                     'last_time_impression_appeared_as_search_for_item'}
 
-    full = test
-
     # build in chunk
     count_chunk = 0
     chunk_size = 20000
@@ -445,4 +435,4 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
 
 
 if __name__ == "__main__":
-    build_dataset(mode='full', cluster='no_cluster', algo='xgboost')
+    build_dataset(mode='small', cluster='no_cluster', algo='catboost')
