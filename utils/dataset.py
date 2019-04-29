@@ -58,13 +58,13 @@ class Dataset(object):
         """ Load the entire X_test dataframe """
         return pd.read_csv(self.X_test_path).values
 
-    def _get_auto_samples_per_batch(self, bytes_to_keep_free=3 *2**30):
+    def _get_auto_samples_per_batch(self):
         """ Estimate the number of samples per batch that will fit in memory """
         # one batch of data should not exceed the 40% of the available memory (to allow to cache at least 2 batches)
         memory_usage_perc_per_batch = 0.4
         TOT_MEMORY = psutil.virtual_memory().available
-        available_memory = int((TOT_MEMORY - bytes_to_keep_free) * memory_usage_perc_per_batch) # bytes
-        estimated_bytes_per_sample = self.rows_per_sample * 100 * 8                             # bytes
+        available_memory = int(TOT_MEMORY * memory_usage_perc_per_batch) # bytes
+        estimated_bytes_per_sample = self.rows_per_sample * 100 * 8      # bytes
         return math.floor( available_memory / estimated_bytes_per_sample )
 
     @abstractmethod
