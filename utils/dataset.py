@@ -2,10 +2,13 @@ import os
 import math
 import pandas as pd
 import numpy as np
+from abc import abstractmethod
 
 from generator import DataGenerator
 import preprocess_utils.session2vec as sess2vec
 from sklearn.preprocessing import MinMaxScaler
+
+import psutil
 
 ## ======= Datasets - Base class ======= ##
 
@@ -44,18 +47,40 @@ class Dataset(object):
     # load data
 
     def load_Xtrain(self):
+        """ Load the entire X_train dataframe """
         return pd.read_csv(self.X_train_path).values
 
     def load_Ytrain(self):
+        """ Load the entire Y_train dataframe """
         return pd.read_csv(self.Y_train_path).values
 
     def load_Xtest(self):
+        """ Load the entire X_test dataframe """
         return pd.read_csv(self.X_test_path).values
 
-    def get_train_validation_generator(self, validation_percentage=0.15):
+    def _get_auto_samples_per_batch(self):
+        """ Estimate the number of samples per batch that will fit in memory """
+        # one batch of data should not exceed the 40% of the available memory (to allow to cache at least 2 batches)
+        memory_usage_perc_per_batch = 0.4
+        TOT_MEMORY = psutil.virtual_memory().available
+        available_memory = int(TOT_MEMORY * memory_usage_perc_per_batch) # bytes
+        estimated_bytes_per_sample = self.rows_per_sample * 100 * 8      # bytes
+        return math.floor( available_memory / estimated_bytes_per_sample )
+
+    @abstractmethod
+    def get_train_validation_generator(self, samples_per_batch='auto', validation_percentage=0.15):
+        """ Return 2 generators (train and validation).
+        samples_per_batch (int or 'auto'): number of samples to load for each batch, 'auto' will choose based on the available ram
+        validation_percentage (float): percentage of samples to use for validation
+        """
         pass
     
-    def get_test_generator(self):
+    @abstractmethod
+    def get_test_generator(self, samples_per_batch='auto'):
+        """ Return 2 generators (train and validation).
+        samples_per_batch (int or 'auto'): number of samples to load for each batch, 'auto' will choose based on the available ram
+        validation_percentage (float): percentage of samples to use for validation
+        """
         pass
 
 
@@ -125,17 +150,20 @@ class SequenceDatasetForRegression(Dataset):
         print('X_test:', X_test_df.shape)
         return X_test_df, indices
 
-    def get_train_validation_generator(self, validation_percentage=0.15, sessions_per_batch=500, use_weights=True):
+    def get_train_validation_generator(self, validation_percentage=0.15, sessions_per_batch='auto', class_weights=[]):
         # return the generator for the train and optionally the one for validation (set to 0 to skip validation)
+        if sessions_per_batch == 'auto':
+            sessions_per_batch = self._get_auto_samples_per_batch()
+        
         def prefit(Xchunk_df, Ychunk_df, index):
             """ Preprocess a chunk of the sequence dataset """
             Xchunk_df = self._preprocess_x_df(Xchunk_df, partial=True)
             Ychunk_df = self._preprocess_y_df(Ychunk_df)
             
-            if use_weights:
-                # weight only the last interaction (clickout item)
+            if len(class_weights) > 0:
+                # weight only the last interaction (clickout item) by the class_weight
                 weights = np.zeros(Xchunk_df.shape[:2])
-                weights[:,-1] = 1
+                weights[:,-1] = Ychunk_df[:,-1,:] @ class_weights
                 return Xchunk_df, Ychunk_df, weights
             else:
                 return Xchunk_df, Ychunk_df
@@ -155,9 +183,11 @@ class SequenceDatasetForRegression(Dataset):
 
         return train_gen, val_gen
 
-
-    def get_test_generator(self):
+    def get_test_generator(self, sessions_per_batch='auto'):
         # return the generator for the test
+        if sessions_per_batch == 'auto':
+            sessions_per_batch = self._get_auto_samples_per_batch()
+        
         def prefit(Xchunk_df, index):
             """ Preprocess a chunk of the sequence dataset """
             Xchunk_df = self._preprocess_x_df(Xchunk_df, partial=True)
@@ -230,17 +260,20 @@ class SequenceDatasetForClassification(Dataset):
         print('X_test:', X_test_df.shape)
         return X_test_df, indices
 
-    def get_train_validation_generator(self, validation_percentage=0.15, sessions_per_batch=500, use_weights=True):
+    def get_train_validation_generator(self, validation_percentage=0.15, sessions_per_batch='auto', class_weights=[]):
         # return the generator for the train and optionally the one for validation (set to 0 to skip validation)
+        if sessions_per_batch == 'auto':
+            sessions_per_batch = self._get_auto_samples_per_batch()
+        
         def prefit(Xchunk_df, Ychunk_df, index):
             """ Preprocess a chunk of the sequence dataset """
             Xchunk_df = self._preprocess_x_df(Xchunk_df, partial=True)
             Ychunk_df = self._preprocess_y_df(Ychunk_df)
             
-            if use_weights:
-                # weight only the last interaction (clickout item)
+            if len(class_weights) > 0:
+                # weight only the last interaction (clickout item) by the class_weight
                 weights = np.zeros(Xchunk_df.shape[:2])
-                weights[:,-1] = 1
+                weights[:,-1] = Ychunk_df[:,-1,:] @ class_weights
                 return Xchunk_df, Ychunk_df, weights
             else:
                 return Xchunk_df, Ychunk_df
@@ -261,8 +294,11 @@ class SequenceDatasetForClassification(Dataset):
         return train_gen, val_gen
 
 
-    def get_test_generator(self):
+    def get_test_generator(self, sessions_per_batch='auto'):
         # return the generator for the test
+        if sessions_per_batch == 'auto':
+            sessions_per_batch = self._get_auto_samples_per_batch()
+        
         def prefit(Xchunk_df, index):
             """ Preprocess a chunk of the sequence dataset """
             Xchunk_df = self._preprocess_x_df(Xchunk_df, partial=True)
