@@ -20,12 +20,15 @@ class RNNRegressionRecommender(RecurrentRecommender):
         (the goal is to predict the features of the right clickout reference)
     """
 
-    def __init__(self, dataset, cell_type, num_units, num_layers, use_generator=True, validation_split=0.15,
-                 optimizer='rmsprop', class_weights=None, checkpoints_path=None, tensorboard_path=None):
+    def __init__(self, dataset, cell_type, num_recurrent_layers, num_recurrent_units, num_dense_layers,
+                use_generator=True, validation_split=0.15, class_weights=None,
+                optimizer='rmsprop', checkpoints_path=None, tensorboard_path=None):
         
-        super().__init__(dataset=dataset, cell_type=cell_type, num_units=num_units, num_layers=num_layers,
-                        use_generator=use_generator, validation_split=validation_split, loss='mean_squared_error',
-                        optimizer=optimizer, checkpoints_path=checkpoints_path, tensorboard_path=tensorboard_path)
+        super().__init__(dataset=dataset, cell_type=cell_type, num_recurrent_layers=num_recurrent_layers,
+                        num_recurrent_units=num_recurrent_units, num_dense_layers=num_dense_layers,
+                        use_generator=use_generator, validation_split=validation_split,
+                        loss='mean_squared_error', optimizer=optimizer, class_weights=class_weights,
+                        checkpoints_path=checkpoints_path, tensorboard_path=tensorboard_path)
 
         self.name += '_regr'
 
@@ -84,19 +87,22 @@ if __name__ == "__main__":
     if cell_type == 'auto':
         cell_type = 'GRU'
         epochs = 1
-        embed_size = -1
-        layers = 1
+        rec_layers = 1
+        dense_layers = 2
         units = 4
         tb_path = None
     else:
         epochs = int(input('Insert number of epochs: '))
-        layers = int(input('Insert number of layers: '))
+        rec_layers = int(input('Insert number of recurrent layers: '))
         units = int(input('Insert number of units per layer: '))
+        dense_layers = int(input('Insert number of dense layers: '))
         tb_path = menu.yesno_choice('Do you want to enable Tensorboard?', lambda: 'recommenders/tensorboard', lambda: None)
 
     dataset = SequenceDatasetForRegression(f'dataset/preprocessed/cluster_recurrent/{mode}/dataset_regression')
     
-    model = RNNRegressionRecommender(dataset, use_generator=True, cell_type=cell_type, num_layers=layers, num_units=units)
+    model = RNNRegressionRecommender(dataset, use_generator=True, cell_type=cell_type,
+                                    num_recurrent_layers=rec_layers, num_recurrent_units=units,
+                                    num_dense_layers=dense_layers)
     model.fit(epochs=epochs)
 
     print('\nFit completed!')
@@ -109,4 +115,4 @@ if __name__ == "__main__":
     
     model.compute_MRR(recommendations)
 
-    model.save(folderpath='.')
+    menu.yesno_choice('Do you want to save the model?', lambda: model.save(folderpath='.'))

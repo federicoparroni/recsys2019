@@ -20,16 +20,18 @@ from tqdm import tqdm
 
 class RecurrentRecommender(RecommenderBase):
     
-    def __init__(self, dataset, cell_type, num_units, num_layers, use_generator=True, validation_split=0.15,
-                 loss='mean_squared_error', optimizer='rmsprop', class_weights=[],
-                 checkpoints_path=None, tensorboard_path=None):
+    def __init__(self, dataset, cell_type, num_recurrent_layers, num_recurrent_units, num_dense_layers,
+                use_generator=True, validation_split=0.15,
+                loss='mean_squared_error', optimizer='rmsprop', class_weights=[],
+                checkpoints_path=None, tensorboard_path=None):
         """ Create the recurrent model
         dataset (Dataset): dataset object to use
-        num_units:        number of memory cells
+        num_recurrent_units (int): number of memory cells
         
         """
-        assert num_layers > 0
-        assert num_units > 0
+        assert num_recurrent_layers > 0
+        assert num_recurrent_units > 0
+        assert num_dense_layers > 0
         assert cell_type in ['LSTM', 'lstm', 'GRU', 'gru']
 
         self.dataset = dataset
@@ -40,7 +42,7 @@ class RecurrentRecommender(RecommenderBase):
         self.checkpoints_path = checkpoints_path
         self.tensorboard_path = tensorboard_path
 
-        name = 'recurrent_{}_{}layers_{}units'.format(cell_type.upper(), num_layers, num_units)
+        name = 'recurrent_{}_{}layers_{}units'.format(cell_type.upper(), num_recurrent_layers, num_recurrent_units)
         name += '_w' if self.use_weights else ''
         super().__init__(dataset.mode, dataset.cluster, name=name)
         
@@ -62,12 +64,17 @@ class RecurrentRecommender(RecommenderBase):
         # build the model
         CELL = LSTM if self.name == 'LSTM' else GRU
         self.model = Sequential()
-        self.model.add( CELL(num_units, input_shape=(input_shape[1], input_shape[2]), dropout=0.1, return_sequences=True) )
-        for i in range(num_layers-1):
-            self.model.add( CELL(num_units, dropout=0.1, return_sequences=(i < num_layers-1) ))
+        self.model.add( CELL(num_recurrent_units, input_shape=(input_shape[1], input_shape[2]), dropout=0.1, return_sequences=True) )
+        for i in range(num_recurrent_layers-1):
+            self.model.add( CELL(num_recurrent_units, dropout=0.1, return_sequences=(i < num_recurrent_layers-1) ))
 
-        self.model.add( Dense(output_size, activation='sigmoid') )
-        self.model.add( Dense(output_size, activation='sigmoid') )
+        if num_dense_layers == 1:
+            self.model.add( Dense(output_size, activation='sigmoid') )    
+        else:
+            dense_neurons = np.linspace(num_recurrent_units, output_size, num_dense_layers)
+            for n in dense_neurons:
+                self.model.add( Dense(int(n), activation='sigmoid') )
+        
         self.model.compile(sample_weight_mode='temporal', loss=loss, optimizer=optimizer, metrics=['accuracy'])
 
         print(self.model.summary())
@@ -92,7 +99,7 @@ class RecurrentRecommender(RecommenderBase):
         
         if self.use_generator:
             self.history = self.model.fit_generator(self.train_gen, epochs=epochs, validation_data=self.val_gen,
-                                                    max_queue_size=2, callbacks=callbacks)
+                                                    callbacks=callbacks)
         else:
             self.history = self.model.fit(self.X, self.Y, epochs=epochs, validation_split=self.validation_split, 
                                             callbacks=callbacks)
