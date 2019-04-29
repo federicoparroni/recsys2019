@@ -180,7 +180,7 @@ def get_labels(sess2vec_df, features_columns, columns_to_keep_in_labels=['orig_i
     return labels_sparse_df
 """
 
-def add_impressions_as_new_actions(df, new_rows_starting_index=99000000, drop_cols=['impressions','prices'], append_every=1000000):
+def add_impressions_as_new_actions(df, new_rows_starting_index=99000000, drop_cols=['impressions','prices']):
     """
     Add dummy actions before each clickout to indicate each one of the available impressions.
     Prices are incorporated inside the new rows in a new column called 'impression_price'.
