@@ -49,7 +49,7 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
         clicked_references = list(map(int, list(df['reference'].values)))
 
         ## FREQUENCY EDIT - in case of presence of 'frequence' column in dataset
-        if 'frequence' in df.columns.values:
+        if has_frequency_columns:
             frequence = list(map(int, list(df['frequence'].values)))
 
             for i in tqdm(range(len(clicked_references))):
@@ -200,107 +200,114 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
             actions = x['action_type'].values
 
             ## FREQUENCY EDIT - in case of presence of 'frequence' column in dataset
-            if 'frequence' in x.columns.values:
+            if has_frequency_columns:
                 frequency = x['frequence'].values
 
-                position_of_last_refence_on_impressions = None
-                position_of_second_last_refence_on_impressions = None
+            position_of_last_refence_on_impressions = None
+            position_of_second_last_refence_on_impressions = None
 
-                num_references = x[pd.to_numeric(x['reference'], errors='coerce').notnull()].drop_duplicates(
-                    subset=['reference'], keep='last')
+            num_references = x[pd.to_numeric(x['reference'], errors='coerce').notnull()].drop_duplicates(
+                subset=['reference'], keep='last')
 
-                if num_references.shape[0] > 0:
-                    last_num_reference = num_references.tail(1).reference.values[0]
-                    if last_num_reference in impr:
-                        position_of_last_refence_on_impressions = impr.index(last_num_reference) + 1
+            if num_references.shape[0] > 0:
+                last_num_reference = num_references.tail(1).reference.values[0]
+                if last_num_reference in impr:
+                    position_of_last_refence_on_impressions = impr.index(last_num_reference) + 1
 
-                if num_references.shape[0] > 1:
-                    second_last_num_reference = num_references.tail(2).reference.values[0]
-                    if second_last_num_reference in impr:
-                        position_of_second_last_refence_on_impressions = impr.index(second_last_num_reference) + 1
+            if num_references.shape[0] > 1:
+                second_last_num_reference = num_references.tail(2).reference.values[0]
+                if second_last_num_reference in impr:
+                    position_of_second_last_refence_on_impressions = impr.index(second_last_num_reference) + 1
 
-                not_to_cons_indices = []
-                count = 0
-                # Start features impressions
-                for i in impr:
-                    indices = np.where(references == str(i))[0]
+            not_to_cons_indices = []
+            count = 0
+            # Start features impressions
+            for i in impr:
+                indices = np.where(references == str(i))[0]
 
-                    not_to_cons_indices += list(indices)
-                    features['impression_position'].append(count + 1)
+                not_to_cons_indices += list(indices)
+                features['impression_position'].append(count + 1)
 
-                    # Feature position wrt last interaction: if not exists a numeric reference in impressions,
-                    # default value is -999 (can't be -1 because values range is -24 to 24)
-                    if position_of_last_refence_on_impressions is not None:
-                        features['impression_position_wrt_last_interaction'].append(
-                            count + 1 - position_of_last_refence_on_impressions)
-                    else:
-                        features['impression_position_wrt_last_interaction'].append(-999)
+                # Feature position wrt last interaction: if not exists a numeric reference in impressions,
+                # default value is -999 (can't be -1 because values range is -24 to 24)
+                if position_of_last_refence_on_impressions is not None:
+                    features['impression_position_wrt_last_interaction'].append(
+                        count + 1 - position_of_last_refence_on_impressions)
+                else:
+                    features['impression_position_wrt_last_interaction'].append(-999)
 
-                    if position_of_second_last_refence_on_impressions is not None:
-                        features['impression_position_wrt_second_last_interaction'].append(
-                            count + 1 - position_of_second_last_refence_on_impressions)
-                    else:
-                        features['impression_position_wrt_second_last_interaction'].append(-999)
+                if position_of_second_last_refence_on_impressions is not None:
+                    features['impression_position_wrt_second_last_interaction'].append(
+                        count + 1 - position_of_second_last_refence_on_impressions)
+                else:
+                    features['impression_position_wrt_second_last_interaction'].append(-999)
 
-                    features['price'].append(prices[count])
-                    features['price_position'].append(
-                        sorted_prices.index(prices[count]))
-                    features['item_id'].append(int(i))
+                features['price'].append(prices[count])
+                features['price_position'].append(
+                    sorted_prices.index(prices[count]))
+                features['item_id'].append(int(i))
 
-                    if 'frequence' in x.columns.values:
-                        cc = 0
-                        for jj in indices:
-                            cc += int(frequency[jj])
+                if has_frequency_columns:
+                    cc = 0
+                    for jj in indices:
+                        cc += int(frequency[jj])
 
-                        features['times_impression_appeared'].append(cc)
-                    else:
-                        features['times_impression_appeared'].append(len(indices))
+                    features['times_impression_appeared'].append(cc)
+                else:
+                    features['times_impression_appeared'].append(len(indices))
 
-                    if len(indices) > 0:
-                        row_reference = x.head(indices[-1] + 1).tail(1)
-                        features['steps_from_last_time_impression_appeared'].append(
-                            len(x) - indices[-1])
-                        features['time_elapsed_from_last_time_impression_appeared'].append(
-                            int(clk['timestamp'].values[0] - row_reference['timestamp'].values[0]))
-                        features['kind_action_reference_appeared_last_time'].append(
-                            'last_time_impression_appeared_as_' + row_reference['action_type'].values[0].replace(' ',
-                                                                                                                 '_'))
+                if len(indices) > 0:
+                    row_reference = x.head(indices[-1] + 1).tail(1)
+                    features['steps_from_last_time_impression_appeared'].append(
+                        len(x) - indices[-1])
+                    features['time_elapsed_from_last_time_impression_appeared'].append(
+                        int(clk['timestamp'].values[0] - row_reference['timestamp'].values[0]))
+                    features['kind_action_reference_appeared_last_time'].append(
+                        'last_time_impression_appeared_as_' + row_reference['action_type'].values[0].replace(' ',
+                                                                                                             '_'))
 
-                        for idx in indices:
-                            row_reference = x.head(idx + 1).tail(1)
-                            if 'frequence' in row_reference.columns.values:
-                                freq = int(row_reference.frequence.values[0])
-                            else:
-                                freq = 1
-                            features['_'.join(row_reference.action_type.values[0].split(
-                                ' ')) + '_session_ref_this_impr'][count] += freq
+                    for idx in indices:
+                        row_reference = x.head(idx + 1).tail(1)
+                        if has_frequency_columns:
+                            freq = int(row_reference.frequence.values[0])
+                        else:
+                            freq = 1
+                        features['_'.join(row_reference.action_type.values[0].split(
+                            ' ')) + '_session_ref_this_impr'][count] += freq
 
-                    else:
-                        features['steps_from_last_time_impression_appeared'].append(
-                            0)
-                        features['time_elapsed_from_last_time_impression_appeared'].append(
-                            -1)
-                        features['kind_action_reference_appeared_last_time'].append(
-                            'last_time_reference_did_not_appeared')
+                else:
+                    features['steps_from_last_time_impression_appeared'].append(
+                        0)
+                    features['time_elapsed_from_last_time_impression_appeared'].append(
+                        -1)
+                    features['kind_action_reference_appeared_last_time'].append(
+                        'last_time_reference_did_not_appeared')
 
-                    popularity = 0
-                    if int(i) in popularity_df:
-                        popularity = popularity_df[int(i)]
-                    if clk['reference'].values[0] == i:
-                        features['label'].append(1)
-                        features['popularity'].append(popularity - 1)
-                    else:
-                        features['label'].append(0)
-                        features['popularity'].append(popularity)
+                popularity = 0
+                if int(i) in popularity_df:
+                    popularity = popularity_df[int(i)]
+                if clk['reference'].values[0] == i:
+                    features['label'].append(1)
+                    features['popularity'].append(popularity - 1)
+                else:
+                    features['label'].append(0)
+                    features['popularity'].append(popularity)
 
-                    count += 1
+                count += 1
 
-                to_cons_indices = list(
-                    set(list(range(len(actions)))) - set(not_to_cons_indices))
+            to_cons_indices = list(
+                set(list(range(len(actions)))) - set(not_to_cons_indices))
+            if has_frequency_columns:
                 for ind in to_cons_indices:
                     if (actions[ind].replace(' ', '_') + '_session_ref_not_in_impr') in features:
                         features[actions[ind].replace(
                             ' ', '_') + '_session_ref_not_in_impr'] += int(frequency[ind])
+            else:
+                for ind in to_cons_indices:
+                    if (actions[ind].replace(' ', '_') + '_session_ref_not_in_impr') in features:
+                        features[actions[ind].replace(
+                            ' ', '_') + '_session_ref_not_in_impr'] += 1
+
 
             return pd.DataFrame(features)
 
@@ -386,8 +393,13 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
     target_session_id = test.loc[target_indices]['session_id'].values
 
     full = pd.concat([train, test])
+
+    has_frequency_columns = False
+    if 'frequence' in full.columns.values:
+        has_frequency_columns = True
+
     del train
-    del test
+    #del test
 
     accomodations_df = data.accomodations_df()
     one_hot_accomodation = one_hot_of_accomodation(accomodations_df)
@@ -410,6 +422,8 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
                     'last_time_impression_appeared_as_interaction_item_rating',
                     'last_time_impression_appeared_as_search_for_item'}
 
+    full = test
+
     # build in chunk
     count_chunk = 0
     chunk_size = 20000
@@ -431,4 +445,4 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
 
 
 if __name__ == "__main__":
-    build_dataset(mode='small', cluster='no_cluster', algo='xgboost')
+    build_dataset(mode='full', cluster='no_cluster', algo='xgboost')
