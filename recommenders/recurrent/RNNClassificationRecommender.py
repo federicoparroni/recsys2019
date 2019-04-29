@@ -27,6 +27,8 @@ class RNNClassificationRecommender(RecurrentRecommender):
                         loss='categorical_crossentropy', optimizer=optimizer, class_weights=class_weights,
                         checkpoints_path=checkpoints_path, tensorboard_path=tensorboard_path)
         
+        self.name += '_class'
+        
 
     def recommend_batch(self, target_indices):
         X, indices = self.dataset.load_Xtest()
@@ -74,7 +76,7 @@ if __name__ == "__main__":
     import utils.menu as menu
 
     mode = menu.mode_selection()
-    cell_type = menu.single_choice('Choose a cell mode:', ['LSTM', 'GRU', 'auto'], [lambda: 'LSTM', lambda: 'GRU', lambda: 'auto'])
+    cell_type = menu.single_choice('Choose a network architecture:', ['LSTM', 'GRU', 'default architecture'], [lambda: 'LSTM', lambda: 'GRU', lambda: 'auto'])
     print()
     if cell_type == 'auto':
         cell_type = 'GRU'
@@ -112,3 +114,5 @@ if __name__ == "__main__":
     print('Recommendation count: ', len(recommendations))
     
     model.compute_MRR(recommendations)
+
+    model.save(folderpath='.')

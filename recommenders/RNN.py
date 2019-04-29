@@ -1,3 +1,4 @@
+import os
 import data
 import pandas as pd
 import numpy as np
@@ -20,7 +21,7 @@ from tqdm import tqdm
 class RecurrentRecommender(RecommenderBase):
     
     def __init__(self, dataset, cell_type, num_units, num_layers, use_generator=True, validation_split=0.15,
-                 loss='mean_squared_error', optimizer='rmsprop', class_weights=None,
+                 loss='mean_squared_error', optimizer='rmsprop', class_weights=[],
                  checkpoints_path=None, tensorboard_path=None):
         """ Create the recurrent model
         dataset (Dataset): dataset object to use
@@ -32,18 +33,24 @@ class RecurrentRecommender(RecommenderBase):
         assert cell_type in ['LSTM', 'lstm', 'GRU', 'gru']
 
         self.dataset = dataset
-        super().__init__(dataset.mode, dataset.cluster, 'RecurrentRecommender_{}'.format(cell_type.upper()))
-
         self.validation_split = validation_split
-        self.class_weights = class_weights
+        self.class_weights = np.array(class_weights)
+        self.use_weights = len(self.class_weights) > 0
         self.use_generator = use_generator
         self.checkpoints_path = checkpoints_path
         self.tensorboard_path = tensorboard_path
+
+        name = 'recurrent_{}_{}layers_{}units'.format(cell_type.upper(), num_layers, num_units)
+        name += '_w' if self.use_weights else ''
+        super().__init__(dataset.mode, dataset.cluster, name=name)
         
         if use_generator:
             # generator
-            self.train_gen, self.val_gen = dataset.get_train_validation_generator(validation_split)
-            batch_x, batch_y, _ = self.train_gen.__getitem__(0)
+            self.train_gen, self.val_gen = dataset.get_train_validation_generator(validation_split, class_weights=self.class_weights)
+            if self.use_weights:
+                batch_x, batch_y, _ = self.train_gen.__getitem__(0)
+            else:
+                batch_x, batch_y = self.train_gen.__getitem__(0)
             input_shape = (None, batch_x.shape[1], batch_x.shape[2])
             output_size = batch_y.shape[-1]
         else:
@@ -64,6 +71,11 @@ class RecurrentRecommender(RecommenderBase):
         self.model.compile(sample_weight_mode='temporal', loss=loss, optimizer=optimizer, metrics=['accuracy'])
 
         print(self.model.summary())
+        print()
+        if self.use_generator:
+            print('Train with batches of shape X: {} - Y: {}'.format(batch_x.shape, batch_y.shape))
+        else:
+            print('Train with a dataset of shape X: {} - Y: {}'.format(self.X.shape, self.Y.shape))
 
 
     def fit(self, epochs, early_stopping_patience=10):
@@ -80,10 +92,10 @@ class RecurrentRecommender(RecommenderBase):
         
         if self.use_generator:
             self.history = self.model.fit_generator(self.train_gen, epochs=epochs, validation_data=self.val_gen,
-                                                    class_weight=self.class_weights, callbacks=callbacks)
+                                                    max_queue_size=2, callbacks=callbacks)
         else:
             self.history = self.model.fit(self.X, self.Y, epochs=epochs, validation_split=self.validation_split, 
-                                            class_weight=self.class_weights, callbacks=callbacks)
+                                            callbacks=callbacks)
         
     def save(self, folderpath):
         """ Save the full state of the model, including:
