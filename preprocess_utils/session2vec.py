@@ -480,7 +480,9 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length=80, fea
     X_train_path = os.path.join(path, 'X_train.csv')
     
     # save the X dataframe without the reference classes
+    print('Saving X_train...', end=' ', flush=True)
     train_df.drop(ref_classes + ['impressions','reference'], axis=1).to_csv(X_train_path, index_label='orig_index', float_format='%.4f')
+    print('Done!\n')
     
     Y_train_path = os.path.join(path, 'Y_train.csv')
     train_df = train_df[Y_COLUMNS]
@@ -489,7 +491,9 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length=80, fea
     # else:
 
     # set all clickouts to NaN except for the last clickouts and save the Y dataframe
+    print('Saving Y_train...', end=' ', flush=True)
     train_df.to_csv(Y_train_path, index_label='orig_index', float_format='%.4f')
+    print('Done!\n')
 
     # clean ram
     del train_df
@@ -533,7 +537,9 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length=80, fea
     TEST_LEN = test_df.shape[0]
 
     # join the accomodations one-hot features
+    print('Saving X_train...', end=' ', flush=True)
     X_test_path = os.path.join(path, 'X_test.csv')
+    print('Done!\n')
     # if add_item_features:
     #     print('Joining the accomodations features...')
     #     add_accomodations_features(test_df.copy(), X_test_path, logic='skip', row_indices=test_clickouts_indices)
@@ -624,4 +630,7 @@ if __name__ == "__main__":
                                     add_item_features=item_feat_choice, save_X_Y=save_XY)
     
     elif dataset_type == 'classification':
-        create_dataset_for_classification(mode, cluster, pad_sessions_length=sess_length)
+        ref_pos_next_clk_feat = ReferencePositionInNextClickoutImpressions(mode=mode, cluster=cluster_name)
+        features = [ref_pos_next_clk_feat]
+        
+        create_dataset_for_classification(mode, cluster, pad_sessions_length=sess_length, features=features)
