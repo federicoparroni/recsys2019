@@ -5,8 +5,8 @@ from tqdm.auto import tqdm
 tqdm.pandas()
 
 import os
-os.chdir("../")
-print(os.getcwd())
+#os.chdir("../")
+#print(os.getcwd())
 
 class FrenzyFactorSession(FeatureBase):
 
