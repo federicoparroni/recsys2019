@@ -60,12 +60,9 @@ class Dataset(object):
 
     def _get_auto_samples_per_batch(self):
         """ Estimate the number of samples per batch that will fit in memory """
-        # one batch of data should not exceed the 40% of the available memory (to allow to cache at least 2 batches)
-        memory_usage_perc_per_batch = 0.4
-        TOT_MEMORY = psutil.virtual_memory().available
-        available_memory = int(TOT_MEMORY * memory_usage_perc_per_batch) # bytes
-        estimated_bytes_per_sample = self.rows_per_sample * 100 * 8      # bytes
-        return math.floor( available_memory / estimated_bytes_per_sample )
+        max_batch_size = 3 * 2**30                                      # bytes
+        estimated_bytes_per_sample = self.rows_per_sample * 100 * 8     # bytes
+        return math.floor( max_batch_size / estimated_bytes_per_sample )
 
     @abstractmethod
     def get_train_validation_generator(self, samples_per_batch='auto', validation_percentage=0.15):
