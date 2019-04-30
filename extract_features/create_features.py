@@ -1,6 +1,6 @@
 import os
 import sys
-sys.path.append(os.getcwd())
+#sys.path.append(os.getcwd())
 
 import utils.menu as menu
 from extract_features.actions_involving_impression_session import ActionsInvolvingImpressionSession
@@ -17,6 +17,12 @@ from extract_features.timing_from_last_interaction_impression import TimingFromL
 from extract_features.last_action_involving_impression import LastInteractionInvolvingImpression
 from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
 
+from extract_features.average_cheap_price_position_clickout import AvgPriceAndPricePosition
+from extract_features.average_impression_pos_interacted import ImpressionPositionInteracted
+from extract_features.frenzy_factor_consecutive_steps import FrenzyFactorSession
+
+
+
 
 if __name__ == "__main__":    
     mode = menu.mode_selection()
@@ -26,11 +32,13 @@ if __name__ == "__main__":
     features = [ActionsInvolvingImpressionSession, MeanPriceClickout, ImpressionLabel, ImpressionPositionSession,
                 SessionLength, SessionDevice, SessionFilterActiveWhenClickout, SessionSortOrderWhenClickout,
                 ImpressionPriceInfoSession, TimesUserInteractedWithImpression, TimingFromLastInteractionImpression,
-                LastInteractionInvolvingImpression, SessionActionNumRefDiffFromImpressions]
+                LastInteractionInvolvingImpression, SessionActionNumRefDiffFromImpressions, AvgPriceAndPricePosition,
+                ImpressionPositionInteracted, FrenzyFactorSession]
     labels = ['ActionsInvolvingImpressionSession', 'MeanPriceClickout', 'ImpressionLabel', 'ImpressionPositionSession',
                 'SessionLength', 'SessionDevice', 'SessionFilterActiveWhenClickout', 'SessionSortOrderWhenClickout',
                 'ImpressionPriceInfoSession', 'TimesUserInteractedWithImpression', 'TimingFromLastInteractionImpression',
-                'LastInteractionInvolvingImpression', 'SessionActionNumRefDiffFromImpressions']
+                'LastInteractionInvolvingImpression', 'SessionActionNumRefDiffFromImpressions', 'AvgPriceAndPricePosition',
+              'ImpressionPositionInteracted', 'FrenzyFactorSession']
     
     selected_features = menu.options(features, labels, 'Choose the features to create:', enable_all=True)
 
