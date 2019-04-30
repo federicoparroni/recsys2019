@@ -1,12 +1,12 @@
+from multiprocessing import Process, Queue
+from utils.check_folder import check_folder
 import numpy as np
 from sklearn.preprocessing import MultiLabelBinarizer
 import data
 import pandas as pd
 from tqdm.auto import tqdm
-
+import math
 tqdm.pandas()
-from utils.check_folder import check_folder
-from multiprocessing import Process, Queue
 
 """
 creates train and test dataframe that can be used for classification,
@@ -48,7 +48,7 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
                 & (~df['reference'].isnull())]
         clicked_references = list(map(int, list(df['reference'].values)))
 
-        ## FREQUENCY EDIT - in case of presence of 'frequence' column in dataset
+        # FREQUENCY EDIT - in case of presence of 'frequence' column in dataset
         if has_frequency_columns:
             frequence = list(map(int, list(df['frequence'].values)))
 
@@ -80,7 +80,8 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
             clickout_tm = int(clk.timestamp.values[0])
             time_length = clickout_tm - int(x.head(1).timestamp.values[0])
 
-            mean_time_per_step = round(time_length / (session_actions_num - 1), 2)
+            mean_time_per_step = round(
+                time_length / (session_actions_num - 1), 2)
 
             var = 0
             prev_tm = 0
@@ -142,6 +143,8 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
             if isinstance(clk.current_filters.values[0], str):
                 features['filters_when_clickout'] = '|'.join(
                     [x + ' filter active when clickout' for x in clk.current_filters.values[0].split('|')])
+            else:
+                features['filters_when_clickout'] = 'no filter when clickout'
 
             if len(x) > 0:
                 features['session_length_in_time'] = int(clk['timestamp'].values[0]) - int(
@@ -153,12 +156,15 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
                 features['session_length_in_time'] = -1
                 features['timing_last_action_before_clk'] = -1
 
-            features['time_per_step'], features['frenzy_factor'] = get_frenzy_and_avg_time_per_step(x, clk)
+            features['time_per_step'], features['frenzy_factor'] = get_frenzy_and_avg_time_per_step(
+                x, clk)
 
             poi_search_df = x[x.action_type == 'search for poi']
             if poi_search_df.shape[0] > 0:
-                last_poi_search_step = int(poi_search_df.tail(1).step.values[0])
-                features['search_for_poi_distance_from_last_clickout'] = int(clk.step.values[0]) - last_poi_search_step
+                last_poi_search_step = int(
+                    poi_search_df.tail(1).step.values[0])
+                features['search_for_poi_distance_from_last_clickout'] = int(
+                    clk.step.values[0]) - last_poi_search_step
                 features['search_for_poi_distance_from_first_action'] = last_poi_search_step - int(
                     x.head(1).step.values[0])
             else:
@@ -168,7 +174,8 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
             sort_change_df = x[x.action_type == 'change of sort order']
             if sort_change_df.shape[0] > 0:
                 sort_change_step = int(sort_change_df.tail(1).step.values[0])
-                features['change_sort_order_distance_from_last_clickout'] = int(clk.step.values[0]) - sort_change_step
+                features['change_sort_order_distance_from_last_clickout'] = int(
+                    clk.step.values[0]) - sort_change_step
                 features['change_sort_order_distance_from_first_action'] = sort_change_step - int(
                     x.head(1).step.values[0])
             else:
@@ -191,7 +198,7 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
             references = x['reference'].values
             actions = x['action_type'].values
 
-            ## FREQUENCY EDIT - in case of presence of 'frequence' column in dataset
+            # FREQUENCY EDIT - in case of presence of 'frequence' column in dataset
             if has_frequency_columns:
                 frequency = x['frequence'].values
 
@@ -204,12 +211,15 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
             if num_references.shape[0] > 0:
                 last_num_reference = num_references.tail(1).reference.values[0]
                 if last_num_reference in impr:
-                    position_of_last_refence_on_impressions = impr.index(last_num_reference) + 1
+                    position_of_last_refence_on_impressions = impr.index(
+                        last_num_reference) + 1
 
             if num_references.shape[0] > 1:
-                second_last_num_reference = num_references.tail(2).reference.values[0]
+                second_last_num_reference = num_references.tail(
+                    2).reference.values[0]
                 if second_last_num_reference in impr:
-                    position_of_second_last_refence_on_impressions = impr.index(second_last_num_reference) + 1
+                    position_of_second_last_refence_on_impressions = impr.index(
+                        second_last_num_reference) + 1
 
             not_to_cons_indices = []
             count = 0
@@ -226,13 +236,15 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
                     features['impression_position_wrt_last_interaction'].append(
                         count + 1 - position_of_last_refence_on_impressions)
                 else:
-                    features['impression_position_wrt_last_interaction'].append(-999)
+                    features['impression_position_wrt_last_interaction'].append(
+                        -999)
 
                 if position_of_second_last_refence_on_impressions is not None:
                     features['impression_position_wrt_second_last_interaction'].append(
                         count + 1 - position_of_second_last_refence_on_impressions)
                 else:
-                    features['impression_position_wrt_second_last_interaction'].append(-999)
+                    features['impression_position_wrt_second_last_interaction'].append(
+                        -999)
 
                 features['price'].append(prices[count])
                 features['price_position'].append(
@@ -300,83 +312,87 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
                         features[actions[ind].replace(
                             ' ', '_') + '_session_ref_not_in_impr'] += 1
 
-
             return pd.DataFrame(features)
 
     def construct_features(df, q):
         dataset = df.groupby(['user_id', 'session_id']).progress_apply(func)
-
-        one_hot = dataset['filters_when_clickout'].astype(
-            str).str.get_dummies()
-        missing = poss_filters - set(one_hot.columns)
-        to_drop = set(one_hot.columns) - poss_filters
-
-        for e in missing:
-            one_hot[e] = 0
-        for e in to_drop:
-            one_hot = one_hot.drop([e], axis=1)
-        dataset = dataset.drop(['filters_when_clickout'], axis=1)
-        dataset = dataset.join(one_hot)
-
-        # if the algorithm is xgboost, get the onehot of all the features. otherwise leave it categorical
-        if algo == 'xgboost':
-            one_hot = pd.get_dummies(dataset['device'])
-            missing = poss_devices - set(one_hot.columns)
-            for e in missing:
-                one_hot[e] = 0
-            dataset = dataset.drop(['device'], axis=1)
-            dataset = dataset.join(one_hot)
-
-            one_hot = pd.get_dummies(
-                dataset['kind_action_reference_appeared_last_time'])
-            missing = poss_actions - set(one_hot.columns)
-            for e in missing:
-                one_hot[e] = 0
-            dataset = dataset.drop(
-                ['kind_action_reference_appeared_last_time'], axis=1)
-            dataset = dataset.join(one_hot)
-
-            one_hot = pd.get_dummies(
-                dataset['sort_order_active_when_clickout'])
-            missing = poss_sort_orders - set(one_hot.columns)
-            for e in missing:
-                one_hot[e] = 0
-            dataset = dataset.drop(
-                ['sort_order_active_when_clickout'], axis=1)
-            dataset = dataset.join(one_hot)
-
-        dataset = dataset.reset_index().drop(['level_2'], axis=1)
-        dataset = pd.merge(dataset, one_hot_accomodation, on=['item_id'])
-
-        if 'item_id' in dataset.columns.values:
-            dataset = dataset.drop(['item_id'], axis=1)
-        if 'Unnamed: 0' in dataset.columns.values:
-            dataset = dataset.drop(['Unnamed: 0'], axis=1)
-
         q.put(dataset)
 
-    def save_features(features, count_chunk, target_session_id, target_user_id):
-        print('started saving chunk {}'.format(count_chunk))
-        test = features[features['user_id'].isin(
-            target_user_id) & features['session_id'].isin(target_session_id)]
-        train = features[(features['user_id'].isin(
-            target_user_id) & features['session_id'].isin(target_session_id)) == False]
+    def save_features(dataset, count_chunk, target_session_id, target_user_id):
+        print('started onehot chunk {}'.format(count_chunk))
+        if len(dataset) > 0:
+            one_hot = dataset['filters_when_clickout'].astype(
+                str).str.get_dummies()
+            missing = poss_filters - set(one_hot.columns)
+            to_drop = set(one_hot.columns) - poss_filters
 
-        if count_chunk == 1:
-            path = 'dataset/preprocessed/{}/{}/{}/classification_train.csv'.format(cluster, mode, algo)
-            check_folder(path)
-            train.to_csv(path)
+            for e in missing:
+                one_hot[e] = 0
+            for e in to_drop:
+                one_hot = one_hot.drop([e], axis=1)
+            dataset = dataset.drop(['filters_when_clickout'], axis=1)
+            dataset = dataset.join(one_hot)
 
-            path = 'dataset/preprocessed/{}/{}/{}/classification_test.csv'.format(cluster, mode, algo)
-            check_folder(path)
-            test.to_csv(path)
-        else:
-            with open('dataset/preprocessed/{}/{}/{}/classification_train.csv'.format(cluster, mode, algo), 'a') as f:
-                train.to_csv(f, header=False)
-            with open('dataset/preprocessed/{}/{}/{}/classification_test.csv'.format(cluster, mode, algo), 'a') as f:
-                test.to_csv(f, header=False)
+            # if the algorithm is xgboost, get the onehot of all the features. otherwise leave it categorical
+            if algo == 'xgboost':
+                one_hot = pd.get_dummies(dataset['device'])
+                missing = poss_devices - set(one_hot.columns)
+                for e in missing:
+                    one_hot[e] = 0
+                dataset = dataset.drop(['device'], axis=1)
+                dataset = dataset.join(one_hot)
 
-        print('chunk {} over {} completed'.format(count_chunk, len(groups)))
+                one_hot = pd.get_dummies(
+                    dataset['kind_action_reference_appeared_last_time'])
+                missing = poss_actions - set(one_hot.columns)
+                for e in missing:
+                    one_hot[e] = 0
+                dataset = dataset.drop(
+                    ['kind_action_reference_appeared_last_time'], axis=1)
+                dataset = dataset.join(one_hot)
+
+                one_hot = pd.get_dummies(
+                    dataset['sort_order_active_when_clickout'])
+                missing = poss_sort_orders - set(one_hot.columns)
+                for e in missing:
+                    one_hot[e] = 0
+                dataset = dataset.drop(
+                    ['sort_order_active_when_clickout'], axis=1)
+                dataset = dataset.join(one_hot)
+
+            dataset = dataset.reset_index().drop(['level_2'], axis=1)
+            dataset = pd.merge(dataset, one_hot_accomodation, on=['item_id'])
+
+            if 'item_id' in dataset.columns.values:
+                dataset = dataset.drop(['item_id'], axis=1)
+            if 'Unnamed: 0' in dataset.columns.values:
+                dataset = dataset.drop(['Unnamed: 0'], axis=1)
+
+
+            print('started saving chunk {}'.format(count_chunk))
+            test = dataset[dataset['user_id'].isin(
+                target_user_id) & dataset['session_id'].isin(target_session_id)]
+            train = dataset[(dataset['user_id'].isin(
+                target_user_id) & dataset['session_id'].isin(target_session_id)) == False]
+
+            if count_chunk == 1:
+                path = 'dataset/preprocessed/{}/{}/{}/classification_train.csv'.format(
+                    cluster, mode, algo)
+                check_folder(path)
+                train.to_csv(path)
+
+                path = 'dataset/preprocessed/{}/{}/{}/classification_test.csv'.format(
+                    cluster, mode, algo)
+                check_folder(path)
+                test.to_csv(path)
+            else:
+                with open('dataset/preprocessed/{}/{}/{}/classification_train.csv'.format(cluster, mode, algo), 'a') as f:
+                    train.to_csv(f, header=False)
+                with open('dataset/preprocessed/{}/{}/{}/classification_test.csv'.format(cluster, mode, algo), 'a') as f:
+                    test.to_csv(f, header=False)
+
+        print('chunk {} over {} completed'.format(count_chunk, math.ceil(
+            len(session_indices)/session_to_consider_in_chunk)))
 
     train = data.train_df(mode=mode, cluster=cluster)
     test = data.test_df(mode=mode, cluster=cluster)
@@ -395,6 +411,7 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
 
     accomodations_df = data.accomodations_df()
     one_hot_accomodation = one_hot_of_accomodation(accomodations_df)
+    one_hot_accomodation = one_hot_accomodation.fillna(0)
 
     popularity_df = build_popularity(full)
 
@@ -404,8 +421,8 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
                          ' filter active when clickout' for x in f.split('|')]
     poss_filters = set(poss_filters)
     poss_devices = set(list(full['device'].values))
-    poss_sort_orders = set(['sort by ' + x for x in full[pd.to_numeric(full['reference'], errors='coerce').notnull()][
-        full['action_type'] == 'change of sort order']['reference'].values])
+    poss_sort_orders = set(['sort by ' + x for x in full[full['action_type']
+                                                         == 'change of sort order']['reference'].values])
 
     poss_actions = {'last_time_reference_did_not_appeared', 'last_time_impression_appeared_as_clickout_item',
                     'last_time_impression_appeared_as_interaction_item_deals',
@@ -415,13 +432,24 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
                     'last_time_impression_appeared_as_search_for_item'}
 
     # build in chunk
+    # avoid session truncation, explicitly specify how many session you want in a chunk
     count_chunk = 0
-    chunk_size = 20000
+    session_to_consider_in_chunk = 200
+    full = full.reset_index(drop=True)
+    session_indices = list(
+        full[['user_id']].drop_duplicates(keep='last').index.values)
 
-    groups = full.groupby(np.arange(len(full)) // chunk_size)
-    # create the dataset in parallel threads: one thread saves, the other create the dataset for the actual group 
+    # create the dataset in parallel threads: one thread saves, the other create the dataset for the actual group
     p2 = None
-    for idxs, gr in groups:
+    lower_index = full.head(1).index.values[0]
+    session_indices_to_iterate_in = session_indices[session_to_consider_in_chunk:len(
+        session_indices):session_to_consider_in_chunk]
+    session_indices_to_iterate_in.append(
+        session_indices[-1]) if session_indices[-1] != session_indices_to_iterate_in[-1] else session_indices_to_iterate_in
+    for idx in session_indices_to_iterate_in:
+        print('lower index {} upper index {}'.format(lower_index, idx))
+        gr = full.loc[lower_index:idx]
+        lower_index = idx + 1
         q = Queue()
         p1 = Process(target=construct_features, args=(gr, q,))
         p1.start()
@@ -430,9 +458,11 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
         features = q.get()
         p1.join()
         count_chunk += 1
-        p2 = Process(target=save_features, args=(features, count_chunk, target_session_id, target_user_id,))
-        p2.start()
+        if len(features > 0):
+            p2 = Process(target=save_features, args=(
+                features, count_chunk, target_session_id, target_user_id,))
+            p2.start()
 
 
 if __name__ == "__main__":
-    build_dataset(mode='small', cluster='no_cluster', algo='catboost')
+    build_dataset(mode='small', cluster='no_cluster', algo='xgboost')
