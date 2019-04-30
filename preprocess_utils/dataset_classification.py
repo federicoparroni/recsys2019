@@ -20,10 +20,10 @@ the accomodation_ids are the ones showing up in the impressions
 label is 1 in case the accomodation is the one clicked in the clickout
 """
 
-import os
+# import os
 
-os.chdir("../")
-print(os.getcwd())
+# os.chdir("../")
+# print(os.getcwd())
 
 
 def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
@@ -435,7 +435,7 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
         features = q.get()
         p1.join()
         count_chunk += 1
-        if len(features > 0):
+        if len(features) > 0:
             p2 = Process(target=save_features, args=(
                 features, count_chunk, target_session_id, target_user_id,))
             p2.start()
