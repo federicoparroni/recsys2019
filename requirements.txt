@@ -14,3 +14,4 @@ traitlets>=4.3.2
 telepot
 dask>=1.1.4
 xgboost=0.82
+psutil
