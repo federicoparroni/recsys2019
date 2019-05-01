@@ -346,6 +346,9 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
             if 'Unnamed: 0' in dataset.columns.values:
                 dataset = dataset.drop(['Unnamed: 0'], axis=1)
 
+            if algo == 'xgboost':
+                dataset = dataset.sort_values(by=['user_id', 'session_id'])
+
             # print('started saving chunk {}'.format(count_chunk))
             test = dataset[dataset['user_id'].isin(
                 target_user_id) & dataset['session_id'].isin(target_session_id)]
@@ -411,7 +414,7 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
     # build in chunk
     # avoid session truncation, explicitly specify how many session you want in a chunk
     count_chunk = 0
-    session_to_consider_in_chunk = 200
+    session_to_consider_in_chunk = 2000
     full = full.reset_index(drop=True)
     session_indices = list(
         full[['user_id']].drop_duplicates(keep='last').index.values)
