@@ -60,7 +60,7 @@ class Dataset(object):
 
     def _get_auto_samples_per_batch(self):
         """ Estimate the number of samples per batch that will fit in memory """
-        max_batch_size = 0.5 * 2**30                                      # bytes
+        max_batch_size = 0.1 * 2**30                                    # bytes
         estimated_bytes_per_sample = self.rows_per_sample * 100 * 8     # bytes
         return math.floor( max_batch_size / estimated_bytes_per_sample )
 

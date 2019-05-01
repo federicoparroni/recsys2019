@@ -54,7 +54,7 @@ class DataGenerator(keras.utils.Sequence):
                 self.dataset_X = pd.read_csv(self.X_path, index_col=0, skiprows=range(1, self.skip_rows+1))
                 self.dataset_Y = pd.read_csv(self.Y_path, index_col=0, skiprows=range(1, self.skip_rows+1))
             else:
-                self.dataset_X = pd.read_csv(self.Xtest_path, index_col=0, skiprows=range(1, self.skip_rows))
+                self.dataset_X = pd.read_csv(self.Xtest_path, index_col=0, skiprows=range(1, self.skip_rows+1))
         #self.on_epoch_end()
 
     def __len__(self):
