@@ -13,7 +13,7 @@ class ImpressionLabel(FeatureBase):
     """
 
     def __init__(self, mode, cluster='no_cluster'):
-        name = 'impression label'
+        name = 'impression_label'
         super(ImpressionLabel, self).__init__(
             name=name, mode=mode, cluster=cluster)
 
