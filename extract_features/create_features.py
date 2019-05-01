@@ -17,7 +17,7 @@ from extract_features.timing_from_last_interaction_impression import TimingFromL
 from extract_features.last_action_involving_impression import LastInteractionInvolvingImpression
 from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
 
-from extract_features.average_cheap_price_position_clickout import AvgPriceAndPricePosition
+from extract_features.average_cheap_price_position_clickout import PricePositionInfoInteractedReferences
 from extract_features.average_impression_pos_interacted import ImpressionPositionInteracted
 from extract_features.frenzy_factor_consecutive_steps import FrenzyFactorSession
 
@@ -32,7 +32,7 @@ if __name__ == "__main__":
     features = [ActionsInvolvingImpressionSession, MeanPriceClickout, ImpressionLabel, ImpressionPositionSession,
                 SessionLength, SessionDevice, SessionFilterActiveWhenClickout, SessionSortOrderWhenClickout,
                 ImpressionPriceInfoSession, TimesUserInteractedWithImpression, TimingFromLastInteractionImpression,
-                LastInteractionInvolvingImpression, SessionActionNumRefDiffFromImpressions, AvgPriceAndPricePosition,
+                LastInteractionInvolvingImpression, SessionActionNumRefDiffFromImpressions, PricePositionInfoInteractedReferences,
                 ImpressionPositionInteracted, FrenzyFactorSession]
     labels = ['ActionsInvolvingImpressionSession', 'MeanPriceClickout', 'ImpressionLabel', 'ImpressionPositionSession',
                 'SessionLength', 'SessionDevice', 'SessionFilterActiveWhenClickout', 'SessionSortOrderWhenClickout',

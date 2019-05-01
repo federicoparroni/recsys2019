@@ -2,10 +2,23 @@ import numpy as np
 import data
 from tqdm import tqdm
 
+def groups(users):
+    au = users[0]
+    groups = []
+    count = 1
+    for u in tqdm(users):
+        if u != au:
+            groups.append(count - 1)
+            count = 1
+            au = u
+        count += 1
+    groups.append(count - 1)
+    return groups
+
 def create_groups(df, mode, cluster):
-    train = df[['user_id', 'session_id', 'impression_position']].to_dense()
-    train = train.sort_values(['user_id', 'session_id'])
-    group = train.groupby(['user_id']).apply(lambda x: len(x)).values
+    users = df['user_id'].to_dense().values
+    print('data are ready')
+    group = groups(list(users))
     np.save('dataset/preprocessed/{}/{}/xgboost/group'.format(cluster, mode), group)
 
 if __name__ == "__main__":
