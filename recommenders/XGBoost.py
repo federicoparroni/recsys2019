@@ -46,7 +46,6 @@ class XGBoostWrapper(RecommenderBase):
     def fit(self):
         train = data.classification_train_df(
             mode=self.mode, sparse=True, cluster=self.cluster)
-        train = train.sort_values(by=['user_id', 'session_id'])
         X_train, y_train = train.iloc[:, 3:], train.iloc[:, 2]
         X_train = X_train.to_coo().tocsr()
         
