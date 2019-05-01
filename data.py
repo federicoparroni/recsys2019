@@ -39,8 +39,8 @@ _target_indices = {}
 _df_classification_train = {}
 _df_classification_test = {}
 
-_xgboost_train_df = {}
-_xgboost_test_df = {}
+_dataset_xgboost_train = {}
+_dataset_xgboost_test = {}
 
 _df_accomodations_one_hot = None
 
@@ -105,15 +105,47 @@ def test_df(mode, cluster='no_cluster'):
 
 def target_indices(mode, cluster='no_cluster'):
     global _target_indices
-    path = 'dataset/preprocessed/{}/{}/target_indices.npy'.format(cluster, mode)
+    path = 'dataset/preprocessed/{}/{}/target_indices.npy'.format(
+        cluster, mode)
     if path not in _target_indices:
         _target_indices[path] = np.load(path)
     return _target_indices[path]
 
 
+def dataset_xgboost_train(mode, cluster='no_cluster'):
+    global _dataset_xgboost_train
+    bp = 'dataset/preprocessed/{}/{}/xgboost'.format(cluster, mode)
+    if not 'a' in _dataset_xgboost_train:
+        _dataset_xgboost_train['a'] = sps.load_npz(
+            os.path.join(bp, 'X_train.npz'))
+        _dataset_xgboost_train['b'] = pd.read_csv(
+            os.path.join(bp, 'y_train.csv'), index_col=0)['label'].to_dense()
+        _dataset_xgboost_train['c'] = np.load(
+            os.path.join(bp, 'group.npy'))
+    return _dataset_xgboost_train['a'], \
+        _dataset_xgboost_train['b'], \
+        _dataset_xgboost_train['c']
+
+
+def dataset_xgboost_test(mode, cluster='no_cluster'):
+    global _dataset_xgboost_test
+    bp = 'dataset/preprocessed/{}/{}/xgboost'.format(cluster, mode)
+    if not 'a' in _dataset_xgboost_test:
+        _dataset_xgboost_test['a'] = sps.load_npz(
+            os.path.join(bp, 'X_test.npz'))
+        _dataset_xgboost_test['b'] = pd.read_csv(
+            os.path.join(bp, 'test_scores.csv'), index_col=0)
+        with open(os.path.join(bp, 'dict'), 'rb') as f:
+            _dataset_xgboost_test['c'] = pickle.load(f)
+    return _dataset_xgboost_test['a'], \
+        _dataset_xgboost_test['b'], \
+        _dataset_xgboost_test['c']
+
+
 def classification_train_df(mode, sparse=True, cluster='no_cluster', algo='xgboost'):
     global _df_classification_train
-    path = 'dataset/preprocessed/{}/{}/{}/classification_train.csv'.format(cluster, mode, algo)
+    path = 'dataset/preprocessed/{}/{}/{}/classification_train.csv'.format(
+        cluster, mode, algo)
     if sparse:
         tot_path = path + 'dense'
     else:
