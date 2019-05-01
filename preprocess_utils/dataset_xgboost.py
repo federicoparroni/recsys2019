@@ -70,6 +70,7 @@ def create_dataset(mode, cluster):
     print('dict saved')
 
     X_test = test.iloc[:, 3:]
+    X_test = X_test.astype(np.float64)
     X_test = X_test.to_coo().tocsr()
     save_npz('dataset/preprocessed/{}/{}/xgboost/X_test'.format(cluster, mode), X_test)
     print('X_test saved')
