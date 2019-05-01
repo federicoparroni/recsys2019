@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import keras
 import utils.sparsedf as sparsedf
+import time
 
 class DataGenerator(keras.utils.Sequence):
     """
@@ -43,6 +44,7 @@ class DataGenerator(keras.utils.Sequence):
         else:
             self.tot_batches = int(np.ceil( (self.tot_rows - skip_rows) / self.rows_per_batch ))
 
+        t0 = time.time()
         # load the entire dataset if read_chunks is False
         if not read_chunks:
             if self.for_train:
@@ -52,7 +54,8 @@ class DataGenerator(keras.utils.Sequence):
                 self.dataset_X = pd.read_csv(self.dataset.X_test_path, index_col=0, skiprows=range(1, self.skip_rows+1))
         
         #self.on_epoch_end()
-        print(str(self), '\n')
+        print(str(self))
+        print('Preloading time: {}s\n'.format(time.time() - t0))
 
     def __len__(self):
         """ Return the number of batches that compose the entire dataset """
@@ -74,6 +77,7 @@ class DataGenerator(keras.utils.Sequence):
 
     def __getitem__(self, index):
         """ Generate and return one batch of data """
+        t0 = time.time()
         if self.for_train:
             # return X and Y
             if self.read_chunks:
@@ -91,9 +95,8 @@ class DataGenerator(keras.utils.Sequence):
 
             if callable(self.prefit_fn):
                 out = self.prefit_fn(Xchunk_df, Ychunk_df, index)
-                return out
-        
-            return Xchunk_df.values, Ychunk_df.values
+            else:
+                out = Xchunk_df.values, Ychunk_df.values
         else:
             #return only X
             if self.read_chunks:
@@ -109,6 +112,8 @@ class DataGenerator(keras.utils.Sequence):
             
             if callable(self.prefit_fn):
                 out = self.prefit_fn(Xchunk_df, index)
-                return out
+            else:
+                out = Xchunk_df.values
         
-            return Xchunk_df.values
+        print('Batch creation time: {}s\n'.format(time.time() - t0))
+        return out
