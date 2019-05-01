@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from abc import abstractmethod
 
+import utils.datasetconfig as datasetconfig
 from generator import DataGenerator
 import preprocess_utils.session2vec as sess2vec
 from sklearn.preprocessing import MinMaxScaler
@@ -17,7 +18,6 @@ class Dataset(object):
 
     def __init__(self, dataset_path):
         # load the dataset config file
-        import utils.datasetconfig as datasetconfig
         data = datasetconfig.load_config(dataset_path)
         if data is None:
             return
@@ -60,7 +60,7 @@ class Dataset(object):
 
     def _get_auto_samples_per_batch(self):
         """ Estimate the number of samples per batch that will fit in memory """
-        max_batch_size = 3 * 2**30                                      # bytes
+        max_batch_size = 0.1 * 2**30                                    # bytes
         estimated_bytes_per_sample = self.rows_per_sample * 100 * 8     # bytes
         return math.floor( max_batch_size / estimated_bytes_per_sample )
 
@@ -154,8 +154,8 @@ class SequenceDatasetForRegression(Dataset):
         
         def prefit(Xchunk_df, Ychunk_df, index):
             """ Preprocess a chunk of the sequence dataset """
-            Xchunk_df = self._preprocess_x_df(Xchunk_df, partial=True)
-            Ychunk_df = self._preprocess_y_df(Ychunk_df)
+            # Xchunk_df = self._preprocess_x_df(Xchunk_df, partial=True)
+            # Ychunk_df = self._preprocess_y_df(Ychunk_df)
             
             if len(class_weights) > 0:
                 # weight only the last interaction (clickout item) by the class_weight
@@ -173,9 +173,9 @@ class SequenceDatasetForRegression(Dataset):
         batches_in_train = math.ceil(number_of_train_sessions / sessions_per_batch)
         batches_in_val = math.ceil(number_of_validation_sessions / sessions_per_batch)
 
-        train_gen = DataGenerator(self.dataset_path, pre_fit_fn=prefit, samples_per_batch=sessions_per_batch,
+        train_gen = DataGenerator(self, pre_fit_fn=prefit, samples_per_batch=sessions_per_batch,
                                  batches_per_epoch=batches_in_train)
-        val_gen = DataGenerator(self.dataset_path, pre_fit_fn=prefit, samples_per_batch=sessions_per_batch,
+        val_gen = DataGenerator(self, pre_fit_fn=prefit, samples_per_batch=sessions_per_batch,
                                 batches_per_epoch=batches_in_val, skip_rows=validation_rows)
 
         return train_gen, val_gen
@@ -185,11 +185,10 @@ class SequenceDatasetForRegression(Dataset):
         if sessions_per_batch == 'auto':
             sessions_per_batch = self._get_auto_samples_per_batch()
         
-        def prefit(Xchunk_df, index):
+        #def prefit(Xchunk_df, index):
             """ Preprocess a chunk of the sequence dataset """
-            Xchunk_df = self._preprocess_x_df(Xchunk_df, partial=True)
-            
-            return Xchunk_df
+            #Xchunk_df = self._preprocess_x_df(Xchunk_df, partial=True)
+            #return Xchunk_df
 
         return DataGenerator(self.dataset_path, for_train=False, pre_fit_fn=prefit)
 
@@ -264,8 +263,8 @@ class SequenceDatasetForClassification(Dataset):
         
         def prefit(Xchunk_df, Ychunk_df, index):
             """ Preprocess a chunk of the sequence dataset """
-            Xchunk_df = self._preprocess_x_df(Xchunk_df, partial=True)
-            Ychunk_df = self._preprocess_y_df(Ychunk_df)
+            #Xchunk_df = self._preprocess_x_df(Xchunk_df, partial=True)
+            #Ychunk_df = self._preprocess_y_df(Ychunk_df)
             
             if len(class_weights) > 0:
                 # weight only the last interaction (clickout item) by the class_weight
@@ -283,9 +282,9 @@ class SequenceDatasetForClassification(Dataset):
         batches_in_train = math.ceil(number_of_train_sessions / sessions_per_batch)
         batches_in_val = math.ceil(number_of_validation_sessions / sessions_per_batch)
 
-        train_gen = DataGenerator(self.dataset_path, pre_fit_fn=prefit, samples_per_batch=sessions_per_batch,
+        train_gen = DataGenerator(self, pre_fit_fn=prefit, samples_per_batch=sessions_per_batch,
                                  batches_per_epoch=batches_in_train)
-        val_gen = DataGenerator(self.dataset_path, pre_fit_fn=prefit, samples_per_batch=sessions_per_batch,
+        val_gen = DataGenerator(self, pre_fit_fn=prefit, samples_per_batch=sessions_per_batch,
                                 batches_per_epoch=batches_in_val, skip_rows=validation_rows)
 
         return train_gen, val_gen
@@ -296,10 +295,9 @@ class SequenceDatasetForClassification(Dataset):
         if sessions_per_batch == 'auto':
             sessions_per_batch = self._get_auto_samples_per_batch()
         
-        def prefit(Xchunk_df, index):
+        #def prefit(Xchunk_df, index):
             """ Preprocess a chunk of the sequence dataset """
-            Xchunk_df = self._preprocess_x_df(Xchunk_df, partial=True)
-            
-            return Xchunk_df
+            #Xchunk_df = self._preprocess_x_df(Xchunk_df, partial=True)
+            #return Xchunk_df
 
-        return DataGenerator(self.dataset_path, for_train=False, pre_fit_fn=prefit)
+        return DataGenerator(self, for_train=False) #, pre_fit_fn=prefit)
