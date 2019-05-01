@@ -69,5 +69,5 @@ class FrenzyFactorSession(FeatureBase):
                              'mean_time_per_step': [x[0] for x in s.values], 'frenzy_factor': [x[1] for x in s.values]})
 
 if __name__ == '__main__':
-    c = FrenzyFactorSession(mode='full', cluster='cluster_sessions_no_numerical_reference')
+    c = FrenzyFactorSession(mode='small', cluster='no_cluster')
     c.save_feature()

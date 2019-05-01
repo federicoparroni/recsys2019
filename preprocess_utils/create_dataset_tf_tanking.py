@@ -194,8 +194,8 @@ if __name__ == '__main__':
     features_array = {
         'item_id': [ImpressionLabel, ImpressionPriceInfoSession, LastInteractionInvolvingImpression,
                     TimingFromLastInteractionImpression, ImpressionPositionSession,
-                    TimesUserInteractedWithImpression],
-        'session': [MeanPriceClickout, SessionLength, SessionDevice,
+                    TimesUserInteractedWithImpression, ItemPopularitySession],
+        'session': [MeanPriceClickout, SessionLength, SessionDevice, SessionActionNumRefDiffFromImpressions,
                     ImpressionPositionInteracted, AvgPriceAndPricePosition]
     }
     create_dataset(mode=mode, cluster=cluster, features_array=features_array, dataset_name=dataset_name)
