@@ -99,7 +99,7 @@ class RecurrentRecommender(RecommenderBase):
         
         if self.use_generator:
             self.history = self.model.fit_generator(self.train_gen, epochs=epochs, validation_data=self.val_gen,
-                                                    callbacks=callbacks)
+                                                    callbacks=callbacks, max_queue_size=3)
         else:
             self.history = self.model.fit(self.X, self.Y, epochs=epochs, validation_split=self.validation_split, 
                                             callbacks=callbacks)
