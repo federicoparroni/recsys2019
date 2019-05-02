@@ -106,23 +106,41 @@ def add_accomodations_features(df, path_to_save, logic='skip', row_indices=[]):
     # return the features columns and the one-hot attributes
     #return df
 
-def add_reference_classes(df, actiontype_col='clickout item', action_equals=1, classes_prefix='ref_', num_classes=25):
+def add_reference_classes(df, actiontype_col='clickout item', action_equals=1, classes_prefix='ref_',
+                            num_classes=25, only_clickouts=False):
     """ Add the reference index in the impressions list as a new column for each clickout in the dataframe.
     For the clickout interactions, a 1 is placed in the column with name {classes_prefix}{reference index in impressions}.
-    For the non-clickout interactions, 0s are placed in every columns with names {classes_prefix}{0...}
+    For the non-clickout interactions, 0s are placed in every columns with names {classes_prefix}{0...} if 
+    only_clickouts is True, else set the label for all the interactions in the session
     """
     tqdm.pandas()
-    def set_class(row):
-        if row[actiontype_col] == action_equals:
-            try:
-                ref_class = row.impressions.split('|').index(row.reference)
-            except ValueError:
-                ref_class = 0
-            return ref_class
-        else:
-            return -1
+    if only_clickouts:
+        def set_class(row):
+            if row[actiontype_col] == action_equals:
+                try:
+                    ref_class = row.impressions.split('|').index(row.reference)
+                except ValueError:
+                    ref_class = 0
+                return ref_class
+            else:
+                return -1
+    else:
+        def set_class(group):
+            clickouts = group[group[actiontype_col] == action_equals]
+            if len(clickouts) > 0:
+                last_clickout = clickouts.iloc[-1]
+                try:
+                    ref_class = last_clickout.impressions.split('|').index(last_clickout.reference)
+                except ValueError:
+                    ref_class = 0
+                group['temp_ref_class'] = ref_class
+            return group
 
-    df['temp_ref_class'] = df.progress_apply(set_class, axis=1)
+    df['temp_ref_class'] = -1
+    if only_clickouts:
+        df['temp_ref_class'] = df.progress_apply(set_class, axis=1)
+    else:
+        df = df.groupby('session_id').progress_apply(set_class)
     # one-hot encode the classes
     ref_classes = ['{}nan'.format(classes_prefix)] + ['{}{}'.format(classes_prefix, i) for i in range(num_classes)]
     encoding = to_categorical(df['temp_ref_class']+1, num_classes=len(ref_classes), dtype='int8')
@@ -415,10 +433,10 @@ def create_dataset_for_regression(mode, cluster, pad_sessions_length=80, add_ite
                             X_sparse_cols=x_sparse_cols, Y_sparse_cols=features_cols)
 
     
-def create_dataset_for_classification(mode, cluster, pad_sessions_length=80, features=[]):
+def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_dummy_actions=False, features=[]):
     """
     pad_sessions_length (int): final length of sessions after padding/truncating
-    features (list): list of classes (inheritng from FeatureBase) that will provide additional features to be joined
+    features (list): list of classes (inheriting from FeatureBase) that will provide additional features to be joined
     """
     train_df = data.train_df(mode, cluster='cluster_recurrent')
     test_df = data.test_df(mode, cluster='cluster_recurrent')
@@ -439,9 +457,12 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length=80, fea
     print('Done!\n')
     
     # add the impressions as new interactions
-    print('Adding impressions as new actions...')
-    train_df, final_new_index = add_impressions_as_new_actions(train_df, drop_cols=['prices'])
-    print('Done!\n')
+    if add_dummy_actions:
+        print('Adding impressions as new actions...')
+        train_df, final_new_index = add_impressions_as_new_actions(train_df, drop_cols=['prices'])
+        print('Done!\n')
+    else:
+        train_df = train_df.drop('prices', axis=1)
 
     # pad the sessions
     if pad_sessions_length > 0:
@@ -490,7 +511,7 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length=80, fea
     #     add_accomodations_features(train_df.copy(), Y_train_path, logic='subset', row_indices=train_clickouts_indices)
     # else:
 
-    # set all clickouts to NaN except for the last clickouts and save the Y dataframe
+    # save the Y dataframe
     print('Saving Y_train...', end=' ', flush=True)
     train_df.to_csv(Y_train_path, index_label='orig_index', float_format='%.4f')
     print('Done!\n')
@@ -505,21 +526,18 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length=80, fea
         test_df = f.join_to(test_df)
     print('Done!\n')
     
-    print('Adding impressions as new actions...')
-    test_df, _ = add_impressions_as_new_actions(test_df, final_new_index)
-    print('Done!\n')
+    if add_dummy_actions:
+        print('Adding impressions as new actions...')
+        test_df, _ = add_impressions_as_new_actions(test_df, final_new_index, drop_cols=['prices'])
+        print('Done!\n')
+    else:
+        test_df = test_df.drop('prices', axis=1)
 
     # pad the sessions
     if pad_sessions_length > 0:
         print('Padding/truncating sessions...')
         test_df = pad_sessions(test_df, max_session_length=pad_sessions_length)
         print('Done!\n')
-
-    # print('Getting the last clickout of each session...')
-    # test_clickouts_df = get_last_clickout(test_df, index_name='index', rename_index='orig_index')
-    # test_clickouts_indices = test_clickouts_df.orig_index.values
-    # test_clickouts_indices.sort()
-    # print('Done!\n')
 
     # add the one-hot of the device
     print('Adding one-hot columns of device...', end=' ', flush=True)
@@ -548,7 +566,7 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length=80, fea
     # save the test X dataframe without the reference column
     #test_df.drop('reference', axis=1).to_csv(X_test_path, index_label='orig_index', float_format='%.4f')
 
-    test_df.to_csv(X_test_path, index_label='orig_index', float_format='%.4f')
+    test_df.drop(['impressions'],axis=1).to_csv(X_test_path, index_label='orig_index', float_format='%.4f')
     
     
     ## ======== CONFIG ======== ##
