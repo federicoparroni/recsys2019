@@ -52,7 +52,7 @@ class TensorflowRankig(RecommenderBase):
             impr = list(map(int, data.full_df().loc[index]['impressions'].split('|')))
             pred = self.predictions[count][0:len(impr)]
             couples = list(zip(pred, impr))
-            print(couples)
+            #print(couples)
             couples.sort(key=lambda x: x[0], reverse=True)
             _, sorted_impr = zip(*couples)
             final_predictions.append((index, list(sorted_impr)))
@@ -62,6 +62,8 @@ class TensorflowRankig(RecommenderBase):
     def get_scores_batch(self):
         #TODO: IMPLEMENT GET_SCORES_BATCH
         pass
+
+
 
 
 if __name__ == '__main__':

@@ -63,8 +63,6 @@ class ClusterSessionsWithoutNumericalReferences(ClusterizeBase):
         test_df = test_df.progress_apply(
             self.func_remove_steps_over_clk_test)
 
-        print(test_df[:100])
-
         if test_df.shape[0] > 0:
             self.target_indices = test_df[test_df.action_type == 'clickout item'].index.values
             # test_df has only those indices belonging to desired sessions cluster

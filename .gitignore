@@ -35,3 +35,4 @@ recommenders/notebooks/Xgboost_dataset/
 catboost_info/
 
 recommenders/recurrent/checkpoints
+*.txt
