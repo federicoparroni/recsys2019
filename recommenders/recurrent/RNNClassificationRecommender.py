@@ -46,7 +46,7 @@ class RNNClassificationRecommender(RecurrentRecommender):
         pred_df = pd.DataFrame(predictions)
         pred_df['orig_index'] = indices
         pred_df = pred_df.set_index('orig_index')
-        predictions = pred_df.loc[target_indices].values
+        predictions = pred_df.loc[target_indices]
         del pred_df
 
         assert len(predictions) == len(target_indices)
@@ -54,11 +54,11 @@ class RNNClassificationRecommender(RecurrentRecommender):
         train_df = data.train_df('full')
 
         result_predictions = []
-        for k,index in tqdm(enumerate(target_indices)):
+        for index in tqdm(target_indices):
             # get the impressions of the clickout to predict
             impr = list(map(int, train_df.loc[index]['impressions'].split('|')))
             # build a list of (impression, score)
-            prediction_impressions_distances = [ (impr[j], predictions[k,j]) for j in range(len(impr)) ]
+            prediction_impressions_distances = [ (impr[j], predictions.at[index,j]) for j in range(len(impr)) ]
             # order the list based on scores (greater is better)
             prediction_impressions_distances.sort(key=lambda tup: tup[1], reverse=True)
             # get only the impressions ids
@@ -119,4 +119,5 @@ if __name__ == "__main__":
     
     model.compute_MRR(recommendations)
 
-    menu.yesno_choice('Do you want to save the model?', lambda: model.save(folderpath='.'))
+    #menu.yesno_choice('Do you want to save the model?', lambda: model.save(folderpath='.'))
+    model.save(folderpath='.')

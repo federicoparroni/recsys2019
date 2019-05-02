@@ -58,11 +58,11 @@ class Dataset(object):
         """ Load the entire X_test dataframe """
         return pd.read_csv(self.X_test_path).values
 
-    def _get_auto_samples_per_batch(self):
-        """ Estimate the number of samples per batch that will fit in memory """
-        max_batch_size = 0.1 * 2**30                                    # bytes
-        estimated_bytes_per_sample = self.rows_per_sample * 100 * 8     # bytes
-        return math.floor( max_batch_size / estimated_bytes_per_sample )
+    #def _get_auto_samples_per_batch(self):
+    #    """ Estimate the number of samples per batch that will fit in memory """
+    #    max_batch_size = 0.1 * 2**30                                    # bytes
+    #    estimated_bytes_per_sample = self.rows_per_sample * 100 * 8     # bytes
+    #    return math.floor( max_batch_size / estimated_bytes_per_sample )
 
     @abstractmethod
     def get_train_validation_generator(self, samples_per_batch='auto', validation_percentage=0.15):
@@ -203,19 +203,19 @@ class SequenceDatasetForClassification(Dataset):
         X_df = X_df.fillna(fillNaN)
 
         # add day of year column
-        X_df.timestamp = pd.to_datetime(X_df.timestamp, unit='s')
-        X_df['dayofyear'] = X_df.timestamp.dt.dayofyear
+        #X_df.timestamp = pd.to_datetime(X_df.timestamp, unit='s')
+        #X_df['dayofyear'] = X_df.timestamp.dt.dayofyear
 
-        cols_to_drop_in_X = ['user_id','session_id','timestamp','step','platform','city','current_filters']
+        cols_to_drop_in_X = ['user_id','session_id','timestamp','reference','step','platform','city','current_filters']
         
         # scale the dataframe
-        if partial:
-            X_df.dayofyear /= 365
-            X_df.impression_price /= 3000
-        else:
-            scaler = MinMaxScaler()
-            X_df.loc[:,~X_df.columns.isin(cols_to_drop_in_X)] = scaler.fit_transform(
-                X_df.drop(cols_to_drop_in_X, axis=1).values)
+        # if partial:
+        #     X_df.dayofyear /= 365
+        #     X_df.impression_price /= 3000
+        # else:
+        #     scaler = MinMaxScaler()
+        #     X_df.loc[:,~X_df.columns.isin(cols_to_drop_in_X)] = scaler.fit_transform(
+        #         X_df.drop(cols_to_drop_in_X, axis=1).values)
 
         return sess2vec.sessions2tensor(X_df, drop_cols=cols_to_drop_in_X, return_index=return_indices)
 
@@ -256,10 +256,10 @@ class SequenceDatasetForClassification(Dataset):
         print('X_test:', X_test_df.shape)
         return X_test_df, indices
 
-    def get_train_validation_generator(self, validation_percentage=0.15, sessions_per_batch='auto', class_weights=[]):
+    def get_train_validation_generator(self, validation_percentage=0.15, sessions_per_batch=256, class_weights=[]):
         # return the generator for the train and optionally the one for validation (set to 0 to skip validation)
-        if sessions_per_batch == 'auto':
-            sessions_per_batch = self._get_auto_samples_per_batch()
+        # if sessions_per_batch == 'auto':
+        #     sessions_per_batch = self._get_auto_samples_per_batch()
         
         def prefit(Xchunk_df, Ychunk_df, index):
             """ Preprocess a chunk of the sequence dataset """
@@ -275,17 +275,21 @@ class SequenceDatasetForClassification(Dataset):
                 return Xchunk_df, Ychunk_df
 
         tot_sessions = int(self.train_len / self.rows_per_sample)
+        #tot_batches = math.ceil(tot_sessions / sessions_per_batch)
+        
         number_of_validation_sessions = int(tot_sessions * validation_percentage)
         number_of_train_sessions = tot_sessions - number_of_validation_sessions
-        validation_rows = number_of_validation_sessions * self.rows_per_sample
+        train_rows = number_of_train_sessions * self.rows_per_sample
 
-        batches_in_train = math.ceil(number_of_train_sessions / sessions_per_batch)
-        batches_in_val = math.ceil(number_of_validation_sessions / sessions_per_batch)
+        #batches_in_train = math.ceil(number_of_train_sessions / sessions_per_batch)
+        #batches_in_val = tot_batches - batches_in_train
 
-        train_gen = DataGenerator(self, pre_fit_fn=prefit, samples_per_batch=sessions_per_batch,
-                                 batches_per_epoch=batches_in_train)
-        val_gen = DataGenerator(self, pre_fit_fn=prefit, samples_per_batch=sessions_per_batch,
-                                batches_per_epoch=batches_in_val, skip_rows=validation_rows)
+        print('Train generator:')
+        train_gen = DataGenerator(self, pre_fit_fn=prefit, rows_to_read=train_rows)
+        #train_gen.name = 'train_gen'
+        print('Validation generator:')
+        val_gen = DataGenerator(self, pre_fit_fn=prefit, skip_rows=train_rows)
+        #val_gen.name = 'val_gen'
 
         return train_gen, val_gen
 
