@@ -2,10 +2,14 @@ import os
 import math
 import pandas as pd
 import numpy as np
+from abc import abstractmethod
 
+import utils.datasetconfig as datasetconfig
 from generator import DataGenerator
 import preprocess_utils.session2vec as sess2vec
 from sklearn.preprocessing import MinMaxScaler
+
+import psutil
 
 ## ======= Datasets - Base class ======= ##
 
@@ -14,7 +18,6 @@ class Dataset(object):
 
     def __init__(self, dataset_path):
         # load the dataset config file
-        import utils.datasetconfig as datasetconfig
         data = datasetconfig.load_config(dataset_path)
         if data is None:
             return
@@ -44,18 +47,37 @@ class Dataset(object):
     # load data
 
     def load_Xtrain(self):
+        """ Load the entire X_train dataframe """
         return pd.read_csv(self.X_train_path).values
 
     def load_Ytrain(self):
+        """ Load the entire Y_train dataframe """
         return pd.read_csv(self.Y_train_path).values
 
     def load_Xtest(self):
+        """ Load the entire X_test dataframe """
         return pd.read_csv(self.X_test_path).values
 
-    def get_train_validation_generator(self, validation_percentage=0.15):
+    #def _get_auto_samples_per_batch(self):
+    #    """ Estimate the number of samples per batch that will fit in memory """
+    #    max_batch_size = 0.1 * 2**30                                    # bytes
+    #    estimated_bytes_per_sample = self.rows_per_sample * 100 * 8     # bytes
+    #    return math.floor( max_batch_size / estimated_bytes_per_sample )
+
+    @abstractmethod
+    def get_train_validation_generator(self, samples_per_batch='auto', validation_percentage=0.15):
+        """ Return 2 generators (train and validation).
+        samples_per_batch (int or 'auto'): number of samples to load for each batch, 'auto' will choose based on the available ram
+        validation_percentage (float): percentage of samples to use for validation
+        """
         pass
     
-    def get_test_generator(self):
+    @abstractmethod
+    def get_test_generator(self, samples_per_batch='auto'):
+        """ Return 2 generators (train and validation).
+        samples_per_batch (int or 'auto'): number of samples to load for each batch, 'auto' will choose based on the available ram
+        validation_percentage (float): percentage of samples to use for validation
+        """
         pass
 
 
@@ -125,17 +147,20 @@ class SequenceDatasetForRegression(Dataset):
         print('X_test:', X_test_df.shape)
         return X_test_df, indices
 
-    def get_train_validation_generator(self, validation_percentage=0.15, sessions_per_batch=500, use_weights=True):
+    def get_train_validation_generator(self, validation_percentage=0.15, sessions_per_batch='auto', class_weights=[]):
         # return the generator for the train and optionally the one for validation (set to 0 to skip validation)
+        if sessions_per_batch == 'auto':
+            sessions_per_batch = self._get_auto_samples_per_batch()
+        
         def prefit(Xchunk_df, Ychunk_df, index):
             """ Preprocess a chunk of the sequence dataset """
-            Xchunk_df = self._preprocess_x_df(Xchunk_df, partial=True)
-            Ychunk_df = self._preprocess_y_df(Ychunk_df)
+            # Xchunk_df = self._preprocess_x_df(Xchunk_df, partial=True)
+            # Ychunk_df = self._preprocess_y_df(Ychunk_df)
             
-            if use_weights:
-                # weight only the last interaction (clickout item)
+            if len(class_weights) > 0:
+                # weight only the last interaction (clickout item) by the class_weight
                 weights = np.zeros(Xchunk_df.shape[:2])
-                weights[:,-1] = 1
+                weights[:,-1] = Ychunk_df[:,-1,:] @ class_weights
                 return Xchunk_df, Ychunk_df, weights
             else:
                 return Xchunk_df, Ychunk_df
@@ -148,21 +173,22 @@ class SequenceDatasetForRegression(Dataset):
         batches_in_train = math.ceil(number_of_train_sessions / sessions_per_batch)
         batches_in_val = math.ceil(number_of_validation_sessions / sessions_per_batch)
 
-        train_gen = DataGenerator(self.dataset_path, pre_fit_fn=prefit, samples_per_batch=sessions_per_batch,
+        train_gen = DataGenerator(self, pre_fit_fn=prefit, samples_per_batch=sessions_per_batch,
                                  batches_per_epoch=batches_in_train)
-        val_gen = DataGenerator(self.dataset_path, pre_fit_fn=prefit, samples_per_batch=sessions_per_batch,
+        val_gen = DataGenerator(self, pre_fit_fn=prefit, samples_per_batch=sessions_per_batch,
                                 batches_per_epoch=batches_in_val, skip_rows=validation_rows)
 
         return train_gen, val_gen
 
-
-    def get_test_generator(self):
+    def get_test_generator(self, sessions_per_batch='auto'):
         # return the generator for the test
-        def prefit(Xchunk_df, index):
+        if sessions_per_batch == 'auto':
+            sessions_per_batch = self._get_auto_samples_per_batch()
+        
+        #def prefit(Xchunk_df, index):
             """ Preprocess a chunk of the sequence dataset """
-            Xchunk_df = self._preprocess_x_df(Xchunk_df, partial=True)
-            
-            return Xchunk_df
+            #Xchunk_df = self._preprocess_x_df(Xchunk_df, partial=True)
+            #return Xchunk_df
 
         return DataGenerator(self.dataset_path, for_train=False, pre_fit_fn=prefit)
 
@@ -177,19 +203,19 @@ class SequenceDatasetForClassification(Dataset):
         X_df = X_df.fillna(fillNaN)
 
         # add day of year column
-        X_df.timestamp = pd.to_datetime(X_df.timestamp, unit='s')
-        X_df['dayofyear'] = X_df.timestamp.dt.dayofyear
+        #X_df.timestamp = pd.to_datetime(X_df.timestamp, unit='s')
+        #X_df['dayofyear'] = X_df.timestamp.dt.dayofyear
 
-        cols_to_drop_in_X = ['user_id','session_id','timestamp','step','platform','city','current_filters']
+        cols_to_drop_in_X = ['user_id','session_id','timestamp','reference','step','platform','city','current_filters']
         
         # scale the dataframe
-        if partial:
-            X_df.dayofyear /= 365
-            X_df.impression_price /= 3000
-        else:
-            scaler = MinMaxScaler()
-            X_df.loc[:,~X_df.columns.isin(cols_to_drop_in_X)] = scaler.fit_transform(
-                X_df.drop(cols_to_drop_in_X, axis=1).values)
+        # if partial:
+        #     X_df.dayofyear /= 365
+        #     X_df.impression_price /= 3000
+        # else:
+        #     scaler = MinMaxScaler()
+        #     X_df.loc[:,~X_df.columns.isin(cols_to_drop_in_X)] = scaler.fit_transform(
+        #         X_df.drop(cols_to_drop_in_X, axis=1).values)
 
         return sess2vec.sessions2tensor(X_df, drop_cols=cols_to_drop_in_X, return_index=return_indices)
 
@@ -230,43 +256,52 @@ class SequenceDatasetForClassification(Dataset):
         print('X_test:', X_test_df.shape)
         return X_test_df, indices
 
-    def get_train_validation_generator(self, validation_percentage=0.15, sessions_per_batch=500, use_weights=True):
+    def get_train_validation_generator(self, validation_percentage=0.15, sessions_per_batch=256, class_weights=[]):
         # return the generator for the train and optionally the one for validation (set to 0 to skip validation)
+        # if sessions_per_batch == 'auto':
+        #     sessions_per_batch = self._get_auto_samples_per_batch()
+        
         def prefit(Xchunk_df, Ychunk_df, index):
             """ Preprocess a chunk of the sequence dataset """
-            Xchunk_df = self._preprocess_x_df(Xchunk_df, partial=True)
-            Ychunk_df = self._preprocess_y_df(Ychunk_df)
+            #Xchunk_df = self._preprocess_x_df(Xchunk_df, partial=True)
+            #Ychunk_df = self._preprocess_y_df(Ychunk_df)
             
-            if use_weights:
-                # weight only the last interaction (clickout item)
+            if len(class_weights) > 0:
+                # weight only the last interaction (clickout item) by the class_weight
                 weights = np.zeros(Xchunk_df.shape[:2])
-                weights[:,-1] = 1
+                weights[:,-1] = Ychunk_df[:,-1,:] @ class_weights
                 return Xchunk_df, Ychunk_df, weights
             else:
                 return Xchunk_df, Ychunk_df
 
         tot_sessions = int(self.train_len / self.rows_per_sample)
+        #tot_batches = math.ceil(tot_sessions / sessions_per_batch)
+        
         number_of_validation_sessions = int(tot_sessions * validation_percentage)
         number_of_train_sessions = tot_sessions - number_of_validation_sessions
-        validation_rows = number_of_validation_sessions * self.rows_per_sample
+        train_rows = number_of_train_sessions * self.rows_per_sample
 
-        batches_in_train = math.ceil(number_of_train_sessions / sessions_per_batch)
-        batches_in_val = math.ceil(number_of_validation_sessions / sessions_per_batch)
+        #batches_in_train = math.ceil(number_of_train_sessions / sessions_per_batch)
+        #batches_in_val = tot_batches - batches_in_train
 
-        train_gen = DataGenerator(self.dataset_path, pre_fit_fn=prefit, samples_per_batch=sessions_per_batch,
-                                 batches_per_epoch=batches_in_train)
-        val_gen = DataGenerator(self.dataset_path, pre_fit_fn=prefit, samples_per_batch=sessions_per_batch,
-                                batches_per_epoch=batches_in_val, skip_rows=validation_rows)
+        print('Train generator:')
+        train_gen = DataGenerator(self, pre_fit_fn=prefit, rows_to_read=train_rows)
+        #train_gen.name = 'train_gen'
+        print('Validation generator:')
+        val_gen = DataGenerator(self, pre_fit_fn=prefit, skip_rows=train_rows)
+        #val_gen.name = 'val_gen'
 
         return train_gen, val_gen
 
 
-    def get_test_generator(self):
+    def get_test_generator(self, sessions_per_batch='auto'):
         # return the generator for the test
-        def prefit(Xchunk_df, index):
+        if sessions_per_batch == 'auto':
+            sessions_per_batch = self._get_auto_samples_per_batch()
+        
+        #def prefit(Xchunk_df, index):
             """ Preprocess a chunk of the sequence dataset """
-            Xchunk_df = self._preprocess_x_df(Xchunk_df, partial=True)
-            
-            return Xchunk_df
+            #Xchunk_df = self._preprocess_x_df(Xchunk_df, partial=True)
+            #return Xchunk_df
 
-        return DataGenerator(self.dataset_path, for_train=False, pre_fit_fn=prefit)
+        return DataGenerator(self, for_train=False) #, pre_fit_fn=prefit)

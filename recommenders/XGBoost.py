@@ -20,12 +20,12 @@ class XGBoostWrapper(RecommenderBase):
         self.preds = None
         self.scores_batch = None
         self.target_indices = data.target_indices(mode=mode, cluster=cluster)
-        self.xg = xgb.XGBClassifier(
+        self.xg = xgb.XGBRanker(
             learning_rate=learning_rate, min_child_weight=min_child_weight, max_depth=math.ceil(
                 max_depth),
             n_estimators=math.ceil(
                 n_estimators),
-            subsample=subsample, colsample_bytree=colsample_bytree, reg_lambda=reg_lambda, reg_alpha=reg_alpha, n_jobs=-1)
+            subsample=subsample, colsample_bytree=colsample_bytree, reg_lambda=reg_lambda, reg_alpha=reg_alpha, n_jobs=-1, objective='rank:pairwise')
 
         self.fixed_params_dict = {
             'mode': mode,
@@ -44,42 +44,22 @@ class XGBoostWrapper(RecommenderBase):
                                      }
 
     def fit(self):
-        train = data.xgboost_train_df(
-            mode=self.mode, sparse=True)
-        X_train, y_train = train.iloc[:, 3:-1], train.iloc[:, -1]
-        X_train = X_train.to_coo().tocsr()
-
+        X_train, y_train, group = data.dataset_xgboost_train(mode=self.mode, cluster=self.cluster)
         print('data for train ready')
 
-        self.xg.fit(X_train, y_train.to_dense())
+        self.xg.fit(X_train, y_train, group)
         print('fit done')
 
     def get_scores_batch(self):
         pass
 
     def recommend_batch(self):
-        test = data.xgboost_test_df(
-            mode=self.mode, sparse=True)
-        test_scores = test[['user_id', 'session_id',
-                            'impression_position']].to_dense()
-        # build aux dictionary
-        d = {}
-        for idx, row in test_scores.iterrows():
-            sess_id = row['session_id']
-            if sess_id in d:
-                d[sess_id] += [idx]
-            else:
-                d[sess_id] = [idx]
-
+        X_test, test_scores, d = data.dataset_xgboost_test(mode=self.mode, cluster=self.cluster)
         test_df = data.test_df(mode=self.mode, cluster=self.cluster)
-
-        X_test = test.iloc[:, 3:-1]
-        X_test = X_test.to_coo().tocsr()
 
         print('data for test ready')
 
-        preds = self.xg.predict_proba(X_test)
-        scores = [a[1] for a in preds]
+        scores = list(self.xg.predict(X_test))
         test_scores['scores'] = Series(scores, index=test_scores.index)
 
         predictions = []

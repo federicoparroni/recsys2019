@@ -1,7 +1,4 @@
-from recommenders.only_test_based.lazy_user_recommender import LazyUserRecommender
+import utils.submit as sub
 
-model = LazyUserRecommender(mode='local')
-model.evaluate()
+sub.send()
 
-#val = BayesianValidator(model)
-#val.validate(iterations=50)

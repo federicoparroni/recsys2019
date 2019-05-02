@@ -4,10 +4,6 @@ import pandas as pd
 from tqdm.auto import tqdm
 tqdm.pandas()
 
-import os
-os.chdir("../")
-print(os.getcwd())
-
 class FrenzyFactorSession(FeatureBase):
 
     """
@@ -27,37 +23,53 @@ class FrenzyFactorSession(FeatureBase):
 
         def func(x):
 
-            if len(x) > 1:
-                session_actions_num = int(x.tail(1).step)
+            y = x[x['action_type'] == 'clickout item']
 
-                time_length = int(x.tail(1).timestamp) - int(x.head(1).timestamp)
+            var = -1
+            mean_time_per_step = -1
 
-                mean_time_per_step = round(time_length / session_actions_num , 2)
+            if len(y) > 0:
+                clk = y.tail(1)
+                head_index = x.head(1).index
+                x = x.loc[head_index.values[0]:clk.index.values[0]-1]
 
-                var = 0
-                prev_tm = 0
-                for i, row in x.iterrows():
-                    if prev_tm == 0:
-                        prev_tm = int(row.timestamp)
-                    else:
-                        var += (mean_time_per_step - (int(row.timestamp) - prev_tm) )**2
-                        prev_tm = int(row.timestamp)
+                if len(x) > 1:
+                    session_actions_num = int(clk.step.values[0])
 
-                var = round((var/session_actions_num)**0.5, 2)
-            else:
-                var = -1
-                mean_time_per_step = -1
+                    clickout_tm = int(clk.timestamp.values[0])
+                    time_length = clickout_tm - int(x.head(1).timestamp.values[0])
+
+                    mean_time_per_step = round(
+                        time_length / (session_actions_num - 1), 2)
+
+                    var = 0
+                    prev_tm = 0
+
+                    for i in x.index:
+                        curr_tm = int(x.at[i, 'timestamp'])
+
+                        if prev_tm == 0:
+                            prev_tm = curr_tm
+                        else:
+                            var += (mean_time_per_step - (curr_tm - prev_tm)) ** 2
+                            prev_tm = curr_tm
+
+                    # summing var wrt of clickout
+                    var += (mean_time_per_step - (clickout_tm - prev_tm)) ** 2
+
+                    var = round((var / session_actions_num) ** 0.5, 2)
 
             return mean_time_per_step, var
 
-        #train = data.train_df(mode=self.mode, cluster=self.cluster)
+        train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)
-        df =test# pd.concat([train, test])
+        df = pd.concat([train, test])
+
         s = df.groupby(['user_id', 'session_id']).progress_apply(func)
 
         return pd.DataFrame({'user_id': [x[0] for x in s.index.values], 'session_id': [x[1] for x in s.index.values],
                              'mean_time_per_step': [x[0] for x in s.values], 'frenzy_factor': [x[1] for x in s.values]})
 
 if __name__ == '__main__':
-    c = FrenzyFactorSession(mode='full', cluster='cluster_sessions_no_numerical_reference')
+    c = FrenzyFactorSession(mode='small', cluster='no_cluster')
     c.save_feature()

@@ -6,8 +6,8 @@ tqdm.pandas()
 
 
 import os
-os.chdir("../")
-print(os.getcwd())
+#os.chdir("../")
+#print(os.getcwd())
 
 class MeanPriceClickout(FeatureBase):
 
@@ -55,6 +55,7 @@ class MeanPriceClickout(FeatureBase):
         s = s.apply(pd.Series).reset_index().melt(id_vars=['user_id', 'session_id'], value_name='mean price')\
             .sort_values(by=['user_id', 'session_id']).dropna()
         s = s.drop('variable', axis=1)
+
         #create dataframe with : user_id, session_id, item_id, label (1 if it's the cliked impression, 0 otherwise)
         return s
 

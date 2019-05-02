@@ -4,6 +4,16 @@ import pandas as pd
 from tqdm.auto import tqdm
 tqdm.pandas()
 
+def _reinsert_clickout(df):
+    # take the row of the missing clickout
+    clickout_rows_df = df[(df['action_type'] == 'clickout item') & df['reference'].isnull()]
+    # check if it exsists
+    if len(clickout_rows_df)>0:
+        # retrieve from the full_df the clickout
+        missing_click = data.full_df().loc[clickout_rows_df.index[0]]['reference']
+        # reinsert the clickout on the df
+        df.at[clickout_rows_df.index[0], 'reference']= missing_click
+    return df
 
 class ImpressionLabel(FeatureBase):
 
@@ -13,7 +23,7 @@ class ImpressionLabel(FeatureBase):
     """
 
     def __init__(self, mode, cluster='no_cluster'):
-        name = 'impression label'
+        name = 'impression_label'
         super(ImpressionLabel, self).__init__(
             name=name, mode=mode, cluster=cluster)
 
@@ -35,6 +45,9 @@ class ImpressionLabel(FeatureBase):
             return r
         train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)
+        if self.mode in ['small', 'local']:
+            print('reinserting clickout')
+            test = test.groupby(['session_id', 'user_id']).progress_apply(_reinsert_clickout)
         df = pd.concat([train, test])
         s = df.groupby(['user_id', 'session_id']).progress_apply(func)
         s = s.apply(pd.Series).reset_index().melt(id_vars = ['user_id', 'session_id'], value_name = 'tuple').sort_values(by=['user_id', 'session_id']).dropna()
