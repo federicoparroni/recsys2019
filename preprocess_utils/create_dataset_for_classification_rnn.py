@@ -26,6 +26,6 @@ if __name__ == "__main__":
 
     features = [ref_pos_next_clk_feat]
     # create the tensors dataset
-    sess2vec.create_dataset_for_classification(mode, cluster_name, pad_sessions_length=80, features=features)
+    sess2vec.create_dataset_for_classification(mode, cluster_name, pad_sessions_length=10, features=features)
 
 
