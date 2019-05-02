@@ -120,8 +120,6 @@ class PricePositionInfoInteractedReferences(FeatureBase):
         df = pd.concat([train, test])
         s = df.groupby(['user_id', 'session_id']).progress_apply(func)
 
-        print(s)
-
         return pd.DataFrame({'user_id': [x[0] for x in s.index.values], 'session_id': [x[1] for x in s.index.values],
                              'mean_price_interacted': [x[0] for x in s.values], 'mean_cheap_pos_interacted': [x[1] for x in s.values],
                              'mean_pos': [x[2] for x in s.values], 'pos_last_reference': [x[3] for x in s.values]})
