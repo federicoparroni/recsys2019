@@ -46,7 +46,7 @@ class RNNClassificationRecommender(RecurrentRecommender):
         pred_df = pd.DataFrame(predictions)
         pred_df['orig_index'] = indices
         pred_df = pred_df.set_index('orig_index')
-        predictions = pred_df.loc[target_indices].values
+        predictions = pred_df.loc[target_indices]
         del pred_df
 
         assert len(predictions) == len(target_indices)

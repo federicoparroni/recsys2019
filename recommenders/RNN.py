@@ -72,11 +72,12 @@ class RecurrentRecommender(RecommenderBase):
             self.model.add( CELL(num_recurrent_units, dropout=0.1, return_sequences=(i < num_recurrent_layers-1) ))
 
         if num_dense_layers == 1:
-            self.model.add( Dense(output_size, activation='sigmoid') )
+            self.model.add( Dense(output_size, activation='softmax') )
         else:
             dense_neurons = np.linspace(num_recurrent_units, output_size, num_dense_layers)
-            for n in dense_neurons:
-                self.model.add( Dense(int(n), activation='sigmoid') )
+            for i,n in enumerate(dense_neurons):
+                act = 'softmax' if i == len(dense_neurons)-1 else 'sigmoid'
+                self.model.add( Dense(int(n), activation=act) )
         
         self.model.compile(sample_weight_mode='temporal', loss=loss, optimizer=optimizer, metrics=['accuracy', self.mrr])
 
@@ -134,7 +135,7 @@ class RecurrentRecommender(RecommenderBase):
     
     def load(self, path):
         """ Load the full state of a model """
-        self.model = load_model(path)
+        self.model = load_model(path, custom_objects={"mrr": self.mrr})
 
     def load_from_checkpoint(self, filename):
         self.model.load_weights(filename)
