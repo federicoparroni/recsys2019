@@ -8,6 +8,7 @@ from abc import abstractmethod
 from keras.models import Sequential, load_model
 from keras.layers import Dense, LSTM, GRU, Embedding
 from keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard
+from keras import metrics
 
 from recommenders.recommender_base import RecommenderBase
 import preprocess_utils.session2vec as sess2vec
@@ -16,6 +17,8 @@ from numpy.linalg import norm as L2Norm
 from utils.check_folder import check_folder
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+
+from utils.telegram_bot import TelegramBotKerasCallback
 
 
 class RecurrentRecommender(RecommenderBase):
@@ -75,7 +78,7 @@ class RecurrentRecommender(RecommenderBase):
             for n in dense_neurons:
                 self.model.add( Dense(int(n), activation='sigmoid') )
         
-        self.model.compile(sample_weight_mode='temporal', loss=loss, optimizer=optimizer, metrics=['accuracy'])
+        self.model.compile(sample_weight_mode='temporal', loss=loss, optimizer=optimizer, metrics=['accuracy', self.mrr])
 
         print(self.model.summary())
         print()
@@ -84,9 +87,23 @@ class RecurrentRecommender(RecommenderBase):
         else:
             print('Train with a dataset of shape X: {} - Y: {}'.format(self.X.shape, self.Y.shape))
 
+    def mrr(self, y_true, y_pred):
+        y_true = y_true[:,-1,:]
+        y_pred = y_pred[:,-1,:]
+        mrr = 0
+        current_percentage = 0
+        for i in range(1, 26, 1):
+            if i == 1:
+                mrr = metrics.top_k_categorical_accuracy(y_true, y_pred, k=i)
+                current_percentage = metrics.top_k_categorical_accuracy(y_true, y_pred, k=i)
+            else:
+                t = metrics.top_k_categorical_accuracy(y_true, y_pred, k=i)
+                mrr += (t - current_percentage) * (1 / i)
+                current_percentage = t
+        return mrr
 
     def fit(self, epochs, early_stopping_patience=10):
-        callbacks = []
+        callbacks = [ TelegramBotKerasCallback() ]
         # early stopping callback
         if isinstance(early_stopping_patience, int):
             assert early_stopping_patience > 0

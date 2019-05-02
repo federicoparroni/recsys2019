@@ -77,7 +77,7 @@ class DataGenerator(keras.utils.Sequence):
 
     def __getitem__(self, index):
         """ Generate and return one batch of data """
-        t0 = time.time()
+        #t0 = time.time()
         if self.for_train:
             # return X and Y
             if self.read_chunks:
@@ -115,5 +115,5 @@ class DataGenerator(keras.utils.Sequence):
             else:
                 out = Xchunk_df.values
         
-        print('Batch creation time: {}s\n'.format(time.time() - t0))
+        #print('Batch creation time: {}s\n'.format(time.time() - t0))
         return out
