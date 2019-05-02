@@ -65,6 +65,7 @@ def create_dataset(mode, cluster, features_array, dataset_name):
     # merge all the dataframes
     df_merged_session = reduce(lambda left, right: pd.merge(left, right, on=['user_id', 'session_id'],
                                                             how='inner'), pandas_dataframe_features_session_list)
+    print(f'session shape: {print(df_merged_session.shape)}')
 
     pandas_dataframe_features_item_list = []
     for f in features_array['item_id']:
@@ -73,13 +74,16 @@ def create_dataset(mode, cluster, features_array, dataset_name):
     # merge all the dataframes
     df_merged_item = reduce(lambda left, right: pd.merge(left, right, on=['user_id', 'session_id', 'item_id'],
                                                          how='inner'), pandas_dataframe_features_item_list)
+    print(f'item shape: {print(df_merged_item.shape)}')
 
     df_merged = pd.merge(df_merged_item, df_merged_session, on=['user_id', 'session_id'])
+    print(f'full shape: {print(df_merged.shape)}')
 
     # merge also the impression feature
     df_merged = pd.merge(df_merged, impr_feature_df)
+    print(f'full shape: {print(df_merged.shape)}')
 
-        ################################################
+    ################################################
 
     # load the target indeces of the mode
     target_indeces = data.target_indices(mode, cluster)
@@ -219,4 +223,4 @@ if __name__ == '__main__':
                     SessionActionNumRefDiffFromImpressions, SessionFilterActiveWhenClickout,
                     SessionSortOrderWhenClickout, TimePassedBeforeClickout]
     }
-    create_dataset(mode=mode, cluster=cluster, features_array=features_array, dataset_name=dataset_name) 
+    create_dataset(mode=mode, cluster=cluster, features_array=features_array, dataset_name=dataset_name)
