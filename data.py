@@ -69,6 +69,11 @@ def full_df():
         print('Done!')
     return _df_full
 
+def refresh_full_df():
+    global _df_full
+    print('refreshing df_full...')
+    _df_full = pd.read_csv(FULL_PATH, index_col=0)
+    print('Done!')
 
 def original_train_df():
     global _df_train_original
