@@ -481,7 +481,7 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length=80, fea
     
     # save the X dataframe without the reference classes
     print('Saving X_train...', end=' ', flush=True)
-    train_df.drop(ref_classes + ['impressions','reference'], axis=1).to_csv(X_train_path, index_label='orig_index', float_format='%.4f')
+    train_df.drop(ref_classes + ['impressions'], axis=1).to_csv(X_train_path, index_label='orig_index', float_format='%.4f')
     print('Done!\n')
     
     Y_train_path = os.path.join(path, 'Y_train.csv')
@@ -546,7 +546,9 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length=80, fea
     # else:
 
     # save the test X dataframe without the reference column
-    test_df.drop('reference', axis=1).to_csv(X_test_path, index_label='orig_index', float_format='%.4f')
+    #test_df.drop('reference', axis=1).to_csv(X_test_path, index_label='orig_index', float_format='%.4f')
+
+    test_df.to_csv(X_test_path, index_label='orig_index', float_format='%.4f')
     
     
     ## ======== CONFIG ======== ##
@@ -611,7 +613,7 @@ def get_session_groups_indices_df(X_df, Y_df, cols_to_group=['user_id','session_
 
 if __name__ == "__main__":
     mode = menu.mode_selection()
-    cluster = 'cluster_recurrent'
+    cluster_name = 'cluster_recurrent'
 
     dataset_type = menu.single_choice('Choose which type of dataset you want to create:',
                                 ['For regression', 'For classification'],
@@ -626,11 +628,13 @@ if __name__ == "__main__":
                                         'train_vec for training, X_test for testing'],
                                     [lambda: True, lambda: False])
         item_feat_choice = menu.yesno_choice('Do you want to add item features?', lambda: True, lambda: False)
-        create_dataset_for_regression(mode, cluster, pad_sessions_length=sess_length,
+        create_dataset_for_regression(mode, cluster_name, pad_sessions_length=sess_length,
                                     add_item_features=item_feat_choice, save_X_Y=save_XY)
     
     elif dataset_type == 'classification':
+        from extract_features.reference_position_in_next_clickout_impressions import ReferencePositionInNextClickoutImpressions
+        
         ref_pos_next_clk_feat = ReferencePositionInNextClickoutImpressions(mode=mode, cluster=cluster_name)
         features = [ref_pos_next_clk_feat]
         
-        create_dataset_for_classification(mode, cluster, pad_sessions_length=sess_length, features=features)
+        create_dataset_for_classification(mode, cluster_name, pad_sessions_length=sess_length, features=features)

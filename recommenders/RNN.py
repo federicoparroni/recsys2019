@@ -72,7 +72,7 @@ class RecurrentRecommender(RecommenderBase):
             self.model.add( CELL(num_recurrent_units, dropout=0.1, return_sequences=(i < num_recurrent_layers-1) ))
 
         if num_dense_layers == 1:
-            self.model.add( Dense(output_size, activation='sigmoid') )    
+            self.model.add( Dense(output_size, activation='sigmoid') )
         else:
             dense_neurons = np.linspace(num_recurrent_units, output_size, num_dense_layers)
             for n in dense_neurons:

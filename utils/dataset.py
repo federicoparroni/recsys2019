@@ -203,19 +203,19 @@ class SequenceDatasetForClassification(Dataset):
         X_df = X_df.fillna(fillNaN)
 
         # add day of year column
-        X_df.timestamp = pd.to_datetime(X_df.timestamp, unit='s')
-        X_df['dayofyear'] = X_df.timestamp.dt.dayofyear
+        #X_df.timestamp = pd.to_datetime(X_df.timestamp, unit='s')
+        #X_df['dayofyear'] = X_df.timestamp.dt.dayofyear
 
-        cols_to_drop_in_X = ['user_id','session_id','timestamp','step','platform','city','current_filters']
+        cols_to_drop_in_X = ['user_id','session_id','timestamp','reference','step','platform','city','current_filters']
         
         # scale the dataframe
-        if partial:
-            X_df.dayofyear /= 365
-            X_df.impression_price /= 3000
-        else:
-            scaler = MinMaxScaler()
-            X_df.loc[:,~X_df.columns.isin(cols_to_drop_in_X)] = scaler.fit_transform(
-                X_df.drop(cols_to_drop_in_X, axis=1).values)
+        # if partial:
+        #     X_df.dayofyear /= 365
+        #     X_df.impression_price /= 3000
+        # else:
+        #     scaler = MinMaxScaler()
+        #     X_df.loc[:,~X_df.columns.isin(cols_to_drop_in_X)] = scaler.fit_transform(
+        #         X_df.drop(cols_to_drop_in_X, axis=1).values)
 
         return sess2vec.sessions2tensor(X_df, drop_cols=cols_to_drop_in_X, return_index=return_indices)
 
