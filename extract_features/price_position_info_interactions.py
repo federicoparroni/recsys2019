@@ -27,6 +27,12 @@ class PricePositionInfoInteractedReferences(FeatureBase):
         def func(x):
             y = x[x['action_type'] == 'clickout item']
 
+            mean_pos = -1
+            pos_last_reference = -1
+
+            mean_cheap_position = -1
+            mean_price_interacted = -1
+
             if len(y) > 0:
                 clk = y.tail(1)
                 head_index = x.head(1).index
@@ -95,12 +101,6 @@ class PricePositionInfoInteractedReferences(FeatureBase):
                             sum_price += int(dict_impr_price[reference])
                             sum_pos_price += int(dict_impr_price_pos[reference])
 
-                    mean_pos = -1
-                    pos_last_reference = -1
-
-                    mean_cheap_position = -1
-                    mean_price_interacted = -1
-
                     if count_interacted > 0:
                         mean_cheap_position = round(sum_pos_price / count_interacted, 2)
                         mean_price_interacted = round(sum_price / count_interacted, 2)
@@ -113,7 +113,7 @@ class PricePositionInfoInteractedReferences(FeatureBase):
                         if last_reference in impressions_last_clickout:
                             pos_last_reference = impressions_last_clickout.index(last_reference) + 1
 
-                    return mean_cheap_position, mean_price_interacted, mean_pos, pos_last_reference
+            return mean_cheap_position, mean_price_interacted, mean_pos, pos_last_reference
 
         train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)

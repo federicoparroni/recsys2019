@@ -25,11 +25,12 @@ class FrenzyFactorSession(FeatureBase):
 
             y = x[x['action_type'] == 'clickout item']
 
+            var = -1
+            mean_time_per_step = -1
+
             if len(y) > 0:
                 clk = y.tail(1)
                 head_index = x.head(1).index
-                impr = clk.impressions.values[0].split('|')
-
                 x = x.loc[head_index.values[0]:clk.index.values[0]-1]
 
                 if len(x) > 1:
@@ -57,11 +58,8 @@ class FrenzyFactorSession(FeatureBase):
                     var += (mean_time_per_step - (clickout_tm - prev_tm)) ** 2
 
                     var = round((var / session_actions_num) ** 0.5, 2)
-                else:
-                    var = -1
-                    mean_time_per_step = -1
 
-                return mean_time_per_step, var
+            return mean_time_per_step, var
 
         train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)

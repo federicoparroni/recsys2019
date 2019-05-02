@@ -348,7 +348,7 @@ if __name__ == "__main__":
     flags.DEFINE_string("test_path", _TEST_PATH, "Input file path used for testing.")
     flags.DEFINE_string("output_dir", _OUTPUT_DIR, "Output directory for models.")
 
-    flags.DEFINE_integer("train_batch_size", 32, "The batch size for training.")
+    flags.DEFINE_integer("train_batch_size", 16, "The batch size for training.")
     # 32
     flags.DEFINE_integer("num_train_steps", 100000, "Number of steps for training.")
 
@@ -356,7 +356,7 @@ if __name__ == "__main__":
     #0.01
     flags.DEFINE_float("dropout_rate", 0.5, "The dropout rate before output layer.")
     # 0.5
-    flags.DEFINE_list("hidden_layer_dims", ['256','128','64'],
+    flags.DEFINE_list("hidden_layer_dims", ['1024','512','512','256','256','128','128','64','64'],
                     "Sizes for hidden layers.")
     # ["256", "128", "64"]
 
@@ -365,7 +365,7 @@ if __name__ == "__main__":
     flags.DEFINE_integer("group_size", 1, "Group size used in score function.")
     #1
 
-    flags.DEFINE_string("loss", "sigmoid_cross_entropy_loss",
+    flags.DEFINE_string("loss", "pairwise_logistic_loss",
                       "The RankingLossKey for loss function.")
 
     FLAGS = flags.FLAGS

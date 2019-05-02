@@ -1,17 +1,24 @@
-from extract_features.timing_from_last_interaction_impression import TimingFromLastInteractionImpression
-from extract_features.times_user_interacted_with_impression import TimesUserInteractedWithImpression
-from extract_features.session_filters_active_when_clickout import SessionFilterActiveWhenClickout
-from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
-from extract_features.last_action_involving_impression import LastInteractionInvolvingImpression
-from extract_features.impression_price_info_session import ImpressionPriceInfoSession
-from extract_features.impression_position_session import ImpressionPositionSession
-from extract_features.item_popularity_session import ItemPopularitySession
 from extract_features.actions_involving_impression_session import ActionsInvolvingImpressionSession
+from extract_features.average_impression_pos_interacted import ImpressionPositionInteracted
+from extract_features.average_price_and_position_interaction import MeanPriceClickout
+#from extract_features.frenzy_factor_consecutive_steps import FrenzyFactorSession
 from extract_features.impression_features import ImpressionFeature
+from extract_features.impression_position_session import ImpressionPositionSession
+from extract_features.impression_price_info_session import ImpressionPriceInfoSession
+from extract_features.item_popularity_session import ItemPopularitySession
 from extract_features.label import ImpressionLabel
-from extract_features.session_sort_order_when_clickout import SessionSortOrderWhenClickout
+from extract_features.last_action_involving_impression import LastInteractionInvolvingImpression
+from extract_features.mean_price_clickout import MeanPriceClickout_edo
+#from extract_features.price_position_info_interactions import PricePositionInfoInteractedReferences
+from extract_features.reference_position_in_next_clickout_impressions import ReferencePositionInNextClickoutImpressions
+from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
 from extract_features.session_device import SessionDevice
+from extract_features.session_filters_active_when_clickout import SessionFilterActiveWhenClickout
 from extract_features.session_length import SessionLength
+from extract_features.session_sort_order_when_clickout import SessionSortOrderWhenClickout
+from extract_features.time_from_last_action_before_clk import TimePassedBeforeClickout
+from extract_features.times_user_interacted_with_impression import TimesUserInteractedWithImpression
+from extract_features.timing_from_last_interaction_impression import TimingFromLastInteractionImpression
 import numpy as np
 from sklearn.preprocessing import MultiLabelBinarizer
 import data
@@ -23,7 +30,7 @@ from multiprocessing import Process, Queue
 tqdm.pandas()
 
 
-def build_dataset(mode, cluster='no_cluster'):
+def build_dataset(mode, features_array, cluster='no_cluster'):
 
     def func(x):
         y = x[x.action_type == 'clickout item']
@@ -48,69 +55,14 @@ def build_dataset(mode, cluster='no_cluster'):
         # at this time we have session_id | user_id | item_id
         # now we should merge the features
 
-        # o = TimingFromLastInteractionImpression(mode=mode, cluster=cluster)
-        # df = o.read_feature(one_hot=True)
-        # dataset = pd.merge(
-        #     dataset, df, on=['user_id', 'session_id', 'item_id'])
+        # load in the array all the features
+        pandas_dataframe_features_list = []
+        for f in features_array:
+            pandas_dataframe_features_list.append(f(mode=mode, cluster=cluster).read_feature(one_hot=True))
 
-        # o = ImpressionFeature(mode=mode, cluster=cluster)
-        # df = o.read_feature(one_hot=True)
-        # dataset = pd.merge(dataset, df, on=['item_id'])
-
-        # o = SessionSortOrderWhenClickout(mode=mode, cluster=cluster)
-        # df = o.read_feature(one_hot=True)
-        # dataset = pd.merge(dataset, df, on=['user_id', 'session_id'])
-
-        o = TimesUserInteractedWithImpression(mode=mode, cluster=cluster)
-        df = o.read_feature(one_hot=True)
-        dataset = pd.merge(
-            dataset, df, on=['user_id', 'session_id', 'item_id'])
-
-        # o = SessionDevice(mode=mode, cluster=cluster)
-        # df = o.read_feature(one_hot=True)
-        # dataset = pd.merge(dataset, df, on=['user_id', 'session_id'])
-
-        # o = SessionLength(mode=mode, cluster=cluster)
-        # df = o.read_feature(one_hot=True)
-        # dataset = pd.merge(dataset, df, on=['user_id', 'session_id'])
-
-        # o = SessionFilterActiveWhenClickout(mode=mode, cluster=cluster)
-        # df = o.read_feature(one_hot=True)
-        # dataset = pd.merge(dataset, df, on=['user_id', 'session_id'])
-
-        o = SessionActionNumRefDiffFromImpressions(mode=mode, cluster=cluster)
-        df = o.read_feature(one_hot=True)
-        dataset = pd.merge(dataset, df, on=['user_id', 'session_id'])
-
-        # o = LastInteractionInvolvingImpression(mode=mode, cluster=cluster)
-        # df = o.read_feature(one_hot=True)
-        # dataset = pd.merge(
-        #     dataset, df, on=['user_id', 'session_id', 'item_id'])
-
-        # o = ImpressionPriceInfoSession(mode=mode, cluster=cluster)
-        # df = o.read_feature(one_hot=True)
-        # dataset = pd.merge(
-        #     dataset, df, on=['user_id', 'session_id', 'item_id'])
-
-        # o = ImpressionPositionSession(mode=mode, cluster=cluster)
-        # df = o.read_feature(one_hot=True)
-        # dataset = pd.merge(
-        #     dataset, df, on=['user_id', 'session_id', 'item_id'])
-
-        o = ItemPopularitySession(mode=mode, cluster=cluster)
-        df = o.read_feature(one_hot=True)
-        dataset = pd.merge(
-            dataset, df, on=['user_id', 'session_id', 'item_id'])
-
-        # o = ActionsInvolvingImpressionSession(mode=mode, cluster=cluster)
-        # df = o.read_feature(one_hot=True)
-        # dataset = pd.merge(
-        #     dataset, df, on=['user_id', 'session_id', 'item_id'])
-
-        # o = ImpressionLabel(mode=mode, cluster=cluster)
-        # df = o.read_feature(one_hot=True)
-        # dataset = pd.merge(
-        #     dataset, df, on=['user_id', 'session_id', 'item_id'])
+        # merge the features on the dataframe
+        for i in range(len(pandas_dataframe_features_list)):
+            dataset = pd.merge(dataset, pandas_dataframe_features_list[i], how='inner')
 
         q.put(dataset)
 
@@ -182,4 +134,10 @@ def build_dataset(mode, cluster='no_cluster'):
 
 
 if __name__ == "__main__":
-    build_dataset(mode='small')
+    features_array = [ImpressionLabel, ImpressionPriceInfoSession, LastInteractionInvolvingImpression,
+                    TimingFromLastInteractionImpression, ImpressionPositionSession, ActionsInvolvingImpressionSession,
+                    TimesUserInteractedWithImpression, ItemPopularitySession,MeanPriceClickout, MeanPriceClickout_edo,
+                    SessionLength, SessionDevice, SessionActionNumRefDiffFromImpressions,
+                    ImpressionPositionInteracted, ReferencePositionInNextClickoutImpressions,SessionFilterActiveWhenClickout,
+                    SessionSortOrderWhenClickout,TimePassedBeforeClickout]
+    build_dataset(mode='small', features_array=features_array)
