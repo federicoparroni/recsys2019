@@ -300,32 +300,36 @@ def train_and_eval():
       start_delay_secs=0,
       throttle_secs=30)
 
-
   # Train and validate
   tf.estimator.train_and_evaluate(estimator, train_spec, vali_spec)
 
-  # Evaluate on the test data.
-  print('evaluation on test')
-  estimator.evaluate(input_fn=test_input_fn, hooks=[test_hook])
+  print('\n\n\n PREDICT TEST AND SAVE PREDICTIONS')
 
   predictor = estimator.predict(input_fn=test_input_fn, hooks=[test_hook])
   predictions = list(predictor)
   np.save(f'{FLAGS.save_path}/predictions', np.array(predictions))
 
+  print('DONE! \n\n\n ')
+
+  # Evaluate on the test data.
+  print('\n\n\nevaluation on test')
+  estimator.evaluate(input_fn=test_input_fn, hooks=[test_hook])
+
+  print('DONE! \n\n\n ')
 
 
 def main(_):
   tf.logging.set_verbosity(tf.logging.INFO)
 
   #TODO: save the prediction in numpy arry format
-  predictions = train_and_eval()
+  train_and_eval()
 
 
 if __name__ == "__main__":
 
     print('type mode: small, local or full')
     mode = input()
-    
+
     print('type cluster')
     #cluster = input()
     cluster='no_cluster'
@@ -354,13 +358,13 @@ if __name__ == "__main__":
 
     flags.DEFINE_float("learning_rate", 0.01, "Learning rate for optimizer.")
     #0.01
-    flags.DEFINE_float("dropout_rate", 0.2, "The dropout rate before output layer.")
+    flags.DEFINE_float("dropout_rate", 0.5, "The dropout rate before output layer.")
     # 0.5
     flags.DEFINE_list("hidden_layer_dims", ['256','128','64'],
                     "Sizes for hidden layers.")
     # ["256", "128", "64"]
 
-    flags.DEFINE_integer("num_features", 219, "Number of features per document.")
+    flags.DEFINE_integer("num_features", 225, "Number of features per document.")
     flags.DEFINE_integer("list_size", 25, "List size used for training.")
     flags.DEFINE_integer("group_size", 1, "Group size used in score function.")
     #1
