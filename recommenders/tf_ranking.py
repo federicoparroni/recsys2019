@@ -67,7 +67,7 @@ class TensorflowRankig(RecommenderBase):
 
 
 if __name__ == '__main__':
-    recommender = TensorflowRankig(mode='small', cluster='no_cluster', dataset_name='prova')
+    recommender = TensorflowRankig(mode='small', cluster='no_cluster', dataset_name='prova3')
     recommender.evaluate(send_MRR_on_telegram=True)
 
 

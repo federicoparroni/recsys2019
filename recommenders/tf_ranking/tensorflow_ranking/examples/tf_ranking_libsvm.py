@@ -165,7 +165,9 @@ def get_train_inputs(features, labels, batch_size):
     labels_placeholder = tf.placeholder(labels.dtype, labels.shape)
     dataset = tf.data.Dataset.from_tensor_slices((features_placeholder,
                                                   labels_placeholder))
+
     dataset = dataset.shuffle(1000).repeat().batch(batch_size)
+
     #1000
     iterator = dataset.make_initializable_iterator()
     feed_dict = {labels_placeholder: labels}
@@ -174,32 +176,12 @@ def get_train_inputs(features, labels, batch_size):
     iterator_initializer_hook.iterator_initializer_fn = (
         lambda sess: sess.run(iterator.initializer, feed_dict=feed_dict))
     return iterator.get_next()
-
   return _train_input_fn, iterator_initializer_hook
 
 
-def get_eval_inputs(features, labels):
-  """Set up eval inputs in a single batch."""
-  iterator_initializer_hook = IteratorInitializerHook()
-
-  def _eval_input_fn():
-    """Defines eval input fn."""
-    features_placeholder = {
-        k: tf.placeholder(v.dtype, v.shape) for k, v in six.iteritems(features)
-    }
-    labels_placeholder = tf.placeholder(labels.dtype, labels.shape)
-    dataset = tf.data.Dataset.from_tensors((features_placeholder,
-                                            labels_placeholder))
-    iterator = dataset.make_initializable_iterator()
-    feed_dict = {labels_placeholder: labels}
-    feed_dict.update(
-        {features_placeholder[k]: features[k] for k in features_placeholder})
-    iterator_initializer_hook.iterator_initializer_fn = (
-        lambda sess: sess.run(iterator.initializer, feed_dict=feed_dict))
-    return iterator.get_next()
-
-  return _eval_input_fn, iterator_initializer_hook
-
+def batch_inputs(features, labels, batch_size):
+    dataset = tf.data.Dataset.from_tensor_slices((features, labels))
+    return dataset.batch(batch_size)
 
 def make_score_fn():
   """Returns a groupwise score fn to build `EstimatorSpec`."""
@@ -246,7 +228,6 @@ def get_eval_metric_fns():
           tfr.metrics.RankingMetricKey.NDCG, topn=topn)
       for topn in [1, 3, 5, 10]
   })
-
   return metric_fns
 
 
@@ -259,11 +240,10 @@ def train_and_eval():
 
   features_vali, labels_vali = load_libsvm_data(FLAGS.vali_path,
                                                 FLAGS.list_size)
-  vali_input_fn, vali_hook = get_eval_inputs(features_vali, labels_vali)
 
   features_test, labels_test = load_libsvm_data(FLAGS.test_path,
                                                 FLAGS.list_size)
-  test_input_fn, test_hook = get_eval_inputs(features_test, labels_test)
+
 
   def _train_op_fn(loss):
     """Defines train op used in ranking head."""
@@ -294,31 +274,32 @@ def train_and_eval():
       hooks=[train_hook],
       max_steps=FLAGS.num_train_steps)
   vali_spec = tf.estimator.EvalSpec(
-      input_fn=vali_input_fn,
-      hooks=[vali_hook],
-      steps=1,
+      input_fn=lambda:batch_inputs(features_vali,labels_vali,FLAGS.train_batch_size),
+      #hooks=[vali_hook],
+      steps=None,
       start_delay_secs=0,
       throttle_secs=30)
 
   # Train and validate
   tf.estimator.train_and_evaluate(estimator, train_spec, vali_spec)
 
-  """
+  if FLAGS.mode != 'full':
+      # Evaluate on the test data.
+      print('\n\n\nevaluation on test')
+      estimator.evaluate(input_fn=lambda: batch_inputs(features_test,labels_test,FLAGS.train_batch_size))
+      print('DONE! \n\n\n ')
+
+
   print('\n\n\n PREDICT TEST AND SAVE PREDICTIONS')
-    
-  predictor = estimator.predict(input_fn=test_input_fn, hooks=[test_hook])
+
+  predictor = estimator.predict(lambda: batch_inputs(features_test,labels_test,FLAGS.train_batch_size))
   predictions = list(predictor)
   np.save(f'{FLAGS.save_path}/predictions', np.array(predictions))
 
   print('DONE! \n\n\n ')
-  """
-
-  # Evaluate on the test data.
-  print('\n\n\nevaluation on test')
-  estimator.evaluate(input_fn=test_input_fn, hooks=[test_hook])
 
 
-  print('DONE! \n\n\n ')
+
 
 
 def main(_):
@@ -354,10 +335,11 @@ if __name__ == "__main__":
     flags.DEFINE_string("vali_path", _VALI_PATH, "Input file path used for validation.")
     flags.DEFINE_string("test_path", _TEST_PATH, "Input file path used for testing.")
     flags.DEFINE_string("output_dir", _OUTPUT_DIR, "Output directory for models.")
+    flags.DEFINE_string("mode", mode, "mode of the models.")
 
     flags.DEFINE_integer("train_batch_size", 32, "The batch size for training.")
     # 32
-    flags.DEFINE_integer("num_train_steps", 5000, "Number of steps for training.")
+    flags.DEFINE_integer("num_train_steps", 100000, "Number of steps for training.")
 
     flags.DEFINE_float("learning_rate", 0.01, "Learning rate for optimizer.")
     #0.01
@@ -367,7 +349,7 @@ if __name__ == "__main__":
                     "Sizes for hidden layers.")
     # ["256", "128", "64"]
 
-    flags.DEFINE_integer("num_features", 12, "Number of features per document.")
+    flags.DEFINE_integer("num_features", 225, "Number of features per document.")
     flags.DEFINE_integer("list_size", 25, "List size used for training.")
     flags.DEFINE_integer("group_size", 1, "Group size used in score function.")
     #1
