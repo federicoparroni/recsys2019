@@ -259,11 +259,11 @@ def train_and_eval():
 
   features_vali, labels_vali = load_libsvm_data(FLAGS.vali_path,
                                                 FLAGS.list_size)
-  vali_input_fn, vali_hook = get_eval_inputs(features_vali, labels_vali)
+  vali_input_fn, vali_hook = get_train_inputs(features_vali, labels_vali, 32)
 
   features_test, labels_test = load_libsvm_data(FLAGS.test_path,
                                                 FLAGS.list_size)
-  test_input_fn, test_hook = get_eval_inputs(features_test, labels_test)
+  test_input_fn, test_hook = get_train_inputs(features_test, labels_test,32)
 
   def _train_op_fn(loss):
     """Defines train op used in ranking head."""
@@ -275,7 +275,7 @@ def train_and_eval():
   #Adagrad
 
   ranking_head = tfr.head.create_ranking_head(
-      loss_fn=tfr.losses.make_loss_fn(FLAGS.loss),
+      loss_fn=tfr.losses.make_loss_fn(FLAGS.loss,lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight()),
       eval_metric_fns=get_eval_metric_fns(),
       train_op_fn=_train_op_fn)
   #lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight()
@@ -303,13 +303,15 @@ def train_and_eval():
   # Train and validate
   tf.estimator.train_and_evaluate(estimator, train_spec, vali_spec)
 
+  """
   print('\n\n\n PREDICT TEST AND SAVE PREDICTIONS')
-
+    
   predictor = estimator.predict(input_fn=test_input_fn, hooks=[test_hook])
   predictions = list(predictor)
   np.save(f'{FLAGS.save_path}/predictions', np.array(predictions))
 
   print('DONE! \n\n\n ')
+  """
 
   # Evaluate on the test data.
   print('\n\n\nevaluation on test')
@@ -354,7 +356,7 @@ if __name__ == "__main__":
 
     flags.DEFINE_integer("train_batch_size", 32, "The batch size for training.")
     # 32
-    flags.DEFINE_integer("num_train_steps", 100000, "Number of steps for training.")
+    flags.DEFINE_integer("num_train_steps", 2000, "Number of steps for training.")
 
     flags.DEFINE_float("learning_rate", 0.01, "Learning rate for optimizer.")
     #0.01
@@ -369,7 +371,7 @@ if __name__ == "__main__":
     flags.DEFINE_integer("group_size", 1, "Group size used in score function.")
     #1
 
-    flags.DEFINE_string("loss", "pairwise_logistic_loss",
+    flags.DEFINE_string("loss", "sigmoid_cross_entropy_loss",
                       "The RankingLossKey for loss function.")
 
     FLAGS = flags.FLAGS
