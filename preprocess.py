@@ -397,7 +397,7 @@ def preprocess():
         full_df["unified_session_id"] = pd.Series(new_col)
         print("Saving new df to file")
         with open(data.FULL_PATH, 'w', encoding='utf-8') as f:
-            full_df.to_csv(f, header=False)
+            full_df.to_csv(f)
         data.refresh_full_df()
 
     print("Hello buddy... Copenaghen is waiting...")
