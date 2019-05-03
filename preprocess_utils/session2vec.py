@@ -173,31 +173,6 @@ def get_last_clickout(df, index_name=None, rename_index=None):
     df = df[cols].groupby('session_id').progress_apply(take_last_clickout, index_name=index_name, rename_index=rename_index)
     return df.dropna().astype(int)
 
-"""
-def get_labels(sess2vec_df, features_columns, columns_to_keep_in_labels=['orig_index']):
-    #Get the labels: features of the clickout references.
-    #For the clickout interactions, the target vector is the reference fearures.
-    #For the non-clickout interactions, the target vector is all zeros.
-    #EDIT:
-    #Extracts only the labels of clickout interactions in the sessions
-    
-    df_of_cols_to_keep = sess2vec_df[columns_to_keep_in_labels]
-
-    rows_to_set_mask = sess2vec_df['action_type_clickout item'] == 0
-    sess2vec_df = sess2vec_df[features_columns]
-    # create a sparse matrix to store the result
-    labels_sparse_matrix = sps.csr_matrix(sess2vec_df.shape, dtype=np.uint8)
-    # set the labels from the dataframe target columns
-    labels_sparse_matrix[np.array(rows_to_set_mask).nonzero()] = sess2vec_df[rows_to_set_mask].values
-    # set to 0 the non-clickout interactions
-    #labels_df.loc[ (sess2vec_df['action_type_clickout item'] == 0), : ] = 0
-    
-    # rebuild the dataframe
-    labels_sparse_df = pd.SparseDataFrame(labels_sparse_matrix)
-    labels_sparse_df[columns_to_keep_in_labels] = df_of_cols_to_keep
-    return labels_sparse_df
-"""
-
 def add_impressions_as_new_actions(df, new_rows_starting_index=99000000, drop_cols=['impressions','prices']):
     """
     Add dummy actions before each clickout to indicate each one of the available impressions.
