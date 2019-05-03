@@ -259,11 +259,11 @@ def train_and_eval():
 
   features_vali, labels_vali = load_libsvm_data(FLAGS.vali_path,
                                                 FLAGS.list_size)
-  vali_input_fn, vali_hook = get_train_inputs(features_vali, labels_vali, 32)
+  vali_input_fn, vali_hook = get_eval_inputs(features_vali, labels_vali)
 
   features_test, labels_test = load_libsvm_data(FLAGS.test_path,
                                                 FLAGS.list_size)
-  test_input_fn, test_hook = get_train_inputs(features_test, labels_test,32)
+  test_input_fn, test_hook = get_eval_inputs(features_test, labels_test)
 
   def _train_op_fn(loss):
     """Defines train op used in ranking head."""
@@ -271,7 +271,7 @@ def train_and_eval():
         loss=loss,
         global_step=tf.train.get_global_step(),
         learning_rate=FLAGS.learning_rate,
-        optimizer="Adam")
+        optimizer="Adagrad")
   #Adagrad
 
   ranking_head = tfr.head.create_ranking_head(
@@ -317,6 +317,7 @@ def train_and_eval():
   print('\n\n\nevaluation on test')
   estimator.evaluate(input_fn=test_input_fn, hooks=[test_hook])
 
+
   print('DONE! \n\n\n ')
 
 
@@ -356,7 +357,7 @@ if __name__ == "__main__":
 
     flags.DEFINE_integer("train_batch_size", 32, "The batch size for training.")
     # 32
-    flags.DEFINE_integer("num_train_steps", 2000, "Number of steps for training.")
+    flags.DEFINE_integer("num_train_steps", 5000, "Number of steps for training.")
 
     flags.DEFINE_float("learning_rate", 0.01, "Learning rate for optimizer.")
     #0.01
@@ -366,7 +367,7 @@ if __name__ == "__main__":
                     "Sizes for hidden layers.")
     # ["256", "128", "64"]
 
-    flags.DEFINE_integer("num_features", 225, "Number of features per document.")
+    flags.DEFINE_integer("num_features", 12, "Number of features per document.")
     flags.DEFINE_integer("list_size", 25, "List size used for training.")
     flags.DEFINE_integer("group_size", 1, "Group size used in score function.")
     #1
