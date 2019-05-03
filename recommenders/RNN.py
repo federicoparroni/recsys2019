@@ -67,9 +67,9 @@ class RecurrentRecommender(RecommenderBase):
         # build the model
         CELL = LSTM if self.name == 'LSTM' else GRU
         self.model = Sequential()
-        self.model.add( CELL(num_recurrent_units, input_shape=(input_shape[1], input_shape[2]), dropout=0.1, return_sequences=True) )
+        self.model.add( CELL(num_recurrent_units, input_shape=(input_shape[1], input_shape[2]), dropout=0.2,recurrent_dropout=0.2, return_sequences=True) )
         for i in range(num_recurrent_layers-1):
-            self.model.add( CELL(num_recurrent_units, dropout=0.1, return_sequences=(i < num_recurrent_layers-1) ))
+            self.model.add( CELL(num_recurrent_units, dropout=0.2,recurrent_dropout=0.2, return_sequences=(i < num_recurrent_layers-1) ))
 
         if num_dense_layers == 1:
             self.model.add( Dense(output_size, activation='softmax') )
