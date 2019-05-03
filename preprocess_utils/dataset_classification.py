@@ -401,8 +401,9 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
                          ' filter active when clickout' for x in f.split('|')]
     poss_filters = set(poss_filters + ['no filter when clickout'])
     poss_devices = set(list(full['device'].values))
-    poss_sort_orders = set(['sort by ' + x for x in list(full[full['action_type']
-                                                         == 'change of sort order'].reference.values)] + ['sorted by default'])
+    poss_sort_orders = set(list(full[full['action_type'] == 'change of sort order'].reference.values))
+    poss_sort_orders = [x for x in poss_sort_orders if isinstance(x, str)]
+    poss_sort_orders = set(['sort by ' + x for x in poss_sort_orders] + ['sorted by default'])
 
     poss_actions = {'last_time_reference_did_not_appeared', 'last_time_impression_appeared_as_clickout_item',
                     'last_time_impression_appeared_as_interaction_item_deals',
@@ -414,7 +415,7 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
     # build in chunk
     # avoid session truncation, explicitly specify how many session you want in a chunk
     count_chunk = 0
-    session_to_consider_in_chunk = 2000
+    session_to_consider_in_chunk = 200
     full = full.reset_index(drop=True)
     session_indices = list(
         full[['user_id']].drop_duplicates(keep='last').index.values)
@@ -445,4 +446,4 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
 
 
 if __name__ == "__main__":
-    build_dataset(mode='small', cluster='no_cluster', algo='xgboost')
+    build_dataset(mode='full', cluster='no_cluster', algo='xgboost')

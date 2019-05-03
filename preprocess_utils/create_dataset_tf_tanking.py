@@ -145,10 +145,13 @@ def create_dataset(mode, cluster, features_array, dataset_name):
 
     # the 5 column is the label
     X, Y = train_df.iloc[:, 4:], train_df['label']
+    del train_df
     scaler = MinMaxScaler()
     # normalize the values
     X_norm = scaler.fit_transform(X)
+    del X
     Y_norm = Y.values
+    del Y
 
     X_train, X_val, Y_train, Y_val, qid_train, qid_val = \
         train_test_split(X_norm, Y_norm, np_qid_train, test_size=0.2, shuffle=False)
@@ -160,6 +163,7 @@ def create_dataset(mode, cluster, features_array, dataset_name):
     print('SAVING VALI DATA...')
     dump_svmlight_file(X_val, Y_val, f'{_SAVE_BASE_PATH}/vali.txt', query_id=qid_val, zero_based=False)
     print('DONE')
+    del X_train, X_val, Y_train, Y_val
 
     """
     CREATE DATA FOR TEST
@@ -180,7 +184,9 @@ def create_dataset(mode, cluster, features_array, dataset_name):
 
     if mode!='full':
         X_test, Y_test = test_df.iloc[:, 4:], test_df['label']
+        del test_df
         X_test_norm = scaler.fit_transform(X_test)
+        del X_test
         Y_test_norm = Y_test.values
         # dummy_label = np.zeros(len(X_test),dtype=np.int)
 
@@ -195,7 +201,10 @@ def create_dataset(mode, cluster, features_array, dataset_name):
     else:
         print('I KNOW IM FULL ;)')
         X_test = test_df.iloc[:, 4:]
+        del test_df
         X_test_norm = scaler.fit_transform(X_test)
+        del X_test
+
         dummy_label = np.zeros(len(X_test),dtype=np.int)
 
 

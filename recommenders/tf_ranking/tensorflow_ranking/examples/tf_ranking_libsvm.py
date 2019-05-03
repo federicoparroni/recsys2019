@@ -275,7 +275,7 @@ def train_and_eval():
   #Adagrad
 
   ranking_head = tfr.head.create_ranking_head(
-      loss_fn=tfr.losses.make_loss_fn(FLAGS.loss, lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight(topn=25)),
+      loss_fn=tfr.losses.make_loss_fn(FLAGS.loss),
       eval_metric_fns=get_eval_metric_fns(),
       train_op_fn=_train_op_fn)
   #lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight()
@@ -324,14 +324,14 @@ def main(_):
 if __name__ == "__main__":
 
     print('type mode: small, local or full')
-    #mode = input()
-    mode = 'small'
+    mode = input()
+    
     print('type cluster')
     #cluster = input()
-    cluster = 'no_cluster'
+    cluster='no_cluster'
     print('type dataset_name')
     #dataset_name = input()
-    dataset_name = 'prova'
+    dataset_name = 'prova2'
 
     _BASE_PATH = f'dataset/preprocessed/tf_ranking/{cluster}/{mode}/{dataset_name}'
 
@@ -348,19 +348,19 @@ if __name__ == "__main__":
     flags.DEFINE_string("test_path", _TEST_PATH, "Input file path used for testing.")
     flags.DEFINE_string("output_dir", _OUTPUT_DIR, "Output directory for models.")
 
-    flags.DEFINE_integer("train_batch_size", 16, "The batch size for training.")
+    flags.DEFINE_integer("train_batch_size", 32, "The batch size for training.")
     # 32
     flags.DEFINE_integer("num_train_steps", 100000, "Number of steps for training.")
 
     flags.DEFINE_float("learning_rate", 0.01, "Learning rate for optimizer.")
     #0.01
-    flags.DEFINE_float("dropout_rate", 0.5, "The dropout rate before output layer.")
+    flags.DEFINE_float("dropout_rate", 0.2, "The dropout rate before output layer.")
     # 0.5
-    flags.DEFINE_list("hidden_layer_dims", ['1024','512','512','256','256','128','128','64','64'],
+    flags.DEFINE_list("hidden_layer_dims", ['256','128','64'],
                     "Sizes for hidden layers.")
     # ["256", "128", "64"]
 
-    flags.DEFINE_integer("num_features", 23, "Number of features per document.")
+    flags.DEFINE_integer("num_features", 219, "Number of features per document.")
     flags.DEFINE_integer("list_size", 25, "List size used for training.")
     flags.DEFINE_integer("group_size", 1, "Group size used in score function.")
     #1
