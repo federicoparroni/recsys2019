@@ -69,6 +69,7 @@ import six
 import tensorflow as tf
 import tensorflow_ranking as tfr
 import datetime
+from utils.best_checkpoint_copier import BestCheckpointCopier
 
 
 
@@ -254,6 +255,15 @@ def train_and_eval():
         optimizer="Adagrad")
   #Adagrad
 
+  best_copier = BestCheckpointCopier(
+      name='best',  # directory within model directory to copy checkpoints to
+      checkpoints_to_keep=10,  # number of checkpoints to keep
+      score_metric='metric/mrr',  # metric to use to determine "best"
+      compare_fn=lambda x, y: x.score < y.score,
+      # comparison function used to determine "best" checkpoint (x is the current checkpoint; y is the previously copied checkpoint with the highest/worst score)
+      sort_key_fn=lambda x: x.score,
+      sort_reverse=True)
+
   ranking_head = tfr.head.create_ranking_head(
       loss_fn=tfr.losses.make_loss_fn(FLAGS.loss,lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight()),
       eval_metric_fns=get_eval_metric_fns(),
@@ -277,6 +287,7 @@ def train_and_eval():
       input_fn=lambda:batch_inputs(features_vali,labels_vali,FLAGS.train_batch_size),
       #hooks=[vali_hook],
       steps=None,
+      exporters=best_copier,
       start_delay_secs=0,
       throttle_secs=30)
 
