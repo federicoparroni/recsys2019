@@ -24,7 +24,7 @@ from utils.telegram_bot import TelegramBotKerasCallback
 class RecurrentRecommender(RecommenderBase):
     
     def __init__(self, dataset, cell_type, num_recurrent_layers, num_recurrent_units, num_dense_layers,
-                use_generator=True, validation_split=0.15, use_batch_normalization=True,
+                use_generator=True, validation_split=0.15, use_batch_normalization=False,
                 loss='mean_squared_error', optimizer='rmsprop', class_weights=[],
                 checkpoints_path=None, tensorboard_path=None):
         """ Create the recurrent model
@@ -74,16 +74,20 @@ class RecurrentRecommender(RecommenderBase):
         if num_dense_layers > 1:
             dense_neurons = np.linspace(num_recurrent_units, output_size, num_dense_layers)
             for n in dense_neurons[:-1]:
-                self.model.add( Dense(int(n), activation=None) )
                 if use_batch_normalization:
+                    self.model.add( Dense(int(n), activation=None) )
                     self.model.add( BatchNormalization() )
-                self.model.add( Activation('relu') )
+                    self.model.add( Activation('relu') )
+                else:
+                    self.model.add( Dense(int(n), activation='relu') )
         
-        self.model.add( Dense(output_size, activation=None) )
         if use_batch_normalization:
+            self.model.add( Dense(output_size, activation=None) )
             self.model.add( BatchNormalization() )
-        self.model.add( Activation('softmax') )
-        self.model.add( Dropout(rate=0.1) )
+            self.model.add( Activation('softmax') )
+        else:
+            self.model.add( Dense(output_size, activation='softmax') )
+        self.model.add( Dropout(rate=0.3) )
         
         self.model.compile(sample_weight_mode='temporal', loss=loss, optimizer=optimizer, metrics=['accuracy', self.mrr])
 
