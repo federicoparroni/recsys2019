@@ -166,6 +166,7 @@ def get_train_inputs(features, labels, batch_size):
     dataset = tf.data.Dataset.from_tensor_slices((features_placeholder,
                                                   labels_placeholder))
     dataset = dataset.shuffle(1000).repeat().batch(batch_size)
+    #1000
     iterator = dataset.make_initializable_iterator()
     feed_dict = {labels_placeholder: labels}
     feed_dict.update(
@@ -237,8 +238,6 @@ def get_eval_metric_fns():
   metric_fns = {}
   metric_fns.update({
       "metric/%s" % name: tfr.metrics.make_ranking_metric_fn(name) for name in [
-          tfr.metrics.RankingMetricKey.ARP,
-          tfr.metrics.RankingMetricKey.ORDERED_PAIR_ACCURACY,
           tfr.metrics.RankingMetricKey.MRR,
       ]
   })
@@ -274,11 +273,12 @@ def train_and_eval():
         learning_rate=FLAGS.learning_rate,
         optimizer="Adam")
   #Adagrad
-#, lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight()
+
   ranking_head = tfr.head.create_ranking_head(
-      loss_fn=tfr.losses.make_loss_fn(FLAGS.loss, lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight()),
+      loss_fn=tfr.losses.make_loss_fn(FLAGS.loss),
       eval_metric_fns=get_eval_metric_fns(),
       train_op_fn=_train_op_fn)
+  #lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight()
 
   estimator = tf.estimator.Estimator(
       model_fn=tfr.model.make_groupwise_ranking_fn(
@@ -299,6 +299,7 @@ def train_and_eval():
       steps=1,
       start_delay_secs=0,
       throttle_secs=30)
+
 
   # Train and validate
   tf.estimator.train_and_evaluate(estimator, train_spec, vali_spec)
@@ -324,10 +325,13 @@ if __name__ == "__main__":
 
     print('type mode: small, local or full')
     mode = input()
+    
     print('type cluster')
-    cluster = input()
+    #cluster = input()
+    cluster='no_cluster'
     print('type dataset_name')
-    dataset_name = input()
+    #dataset_name = input()
+    dataset_name = 'prova2'
 
     _BASE_PATH = f'dataset/preprocessed/tf_ranking/{cluster}/{mode}/{dataset_name}'
 
@@ -346,19 +350,20 @@ if __name__ == "__main__":
 
     flags.DEFINE_integer("train_batch_size", 32, "The batch size for training.")
     # 32
-    flags.DEFINE_integer("num_train_steps", 10000, "Number of steps for training.")
+    flags.DEFINE_integer("num_train_steps", 100000, "Number of steps for training.")
 
-    flags.DEFINE_float("learning_rate", 0.001, "Learning rate for optimizer.")
+    flags.DEFINE_float("learning_rate", 0.01, "Learning rate for optimizer.")
     #0.01
-    flags.DEFINE_float("dropout_rate", 0.5, "The dropout rate before output layer.")
+    flags.DEFINE_float("dropout_rate", 0.2, "The dropout rate before output layer.")
     # 0.5
-    flags.DEFINE_list("hidden_layer_dims", ["256", "256", "128", "128", "64"],
+    flags.DEFINE_list("hidden_layer_dims", ['256','128','64'],
                     "Sizes for hidden layers.")
     # ["256", "128", "64"]
 
-    flags.DEFINE_integer("num_features", 23, "Number of features per document.")
+    flags.DEFINE_integer("num_features", 219, "Number of features per document.")
     flags.DEFINE_integer("list_size", 25, "List size used for training.")
     flags.DEFINE_integer("group_size", 1, "Group size used in score function.")
+    #1
 
     flags.DEFINE_string("loss", "pairwise_logistic_loss",
                       "The RankingLossKey for loss function.")

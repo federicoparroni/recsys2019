@@ -6,7 +6,7 @@ from tqdm.auto import tqdm
 tqdm.pandas()
 
 
-class MeanPriceClickout(FeatureBase):
+class MeanPriceClickout_edo(FeatureBase):
     """
     mean price of the item clicked by the user during the session, if there aren't other clickout it is equal -1
     | user_id | session_id | mean_price
@@ -14,7 +14,7 @@ class MeanPriceClickout(FeatureBase):
 
     def __init__(self, mode, cluster='no_cluster'):
         name = 'mean price clickout'
-        super(MeanPriceClickout, self).__init__(
+        super(MeanPriceClickout_edo, self).__init__(
             name=name, mode=mode, cluster=cluster)
 
     def extract_feature(self):
@@ -55,5 +55,5 @@ class MeanPriceClickout(FeatureBase):
 
 
 if __name__ == '__main__':
-    c = MeanPriceClickout(mode='small', cluster='no_cluster')
+    c = MeanPriceClickout_edo(mode='small', cluster='no_cluster')
     c.save_feature()

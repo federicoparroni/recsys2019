@@ -9,23 +9,25 @@ from sklearn.model_selection import train_test_split
 import utils.check_folder as cf
 
 from extract_features.actions_involving_impression_session import ActionsInvolvingImpressionSession
-from extract_features.mean_price_clickout import MeanPriceClickout
-from extract_features.label import ImpressionLabel
+#from extract_features.average_impression_pos_interacted import ImpressionPositionInteracted
+from extract_features.average_price_and_position_interaction import MeanPriceClickout
+#from extract_features.frenzy_factor_consecutive_steps import FrenzyFactorSession
+from extract_features.impression_features import ImpressionFeature
 from extract_features.impression_position_session import ImpressionPositionSession
-from extract_features.session_length import SessionLength
+from extract_features.impression_price_info_session import ImpressionPriceInfoSession
+from extract_features.item_popularity_session import ItemPopularitySession
+from extract_features.label import ImpressionLabel
+from extract_features.last_action_involving_impression import LastInteractionInvolvingImpression
+from extract_features.mean_price_clickout import MeanPriceClickout_edo
+#from extract_features.price_position_info_interactions import PricePositionInfoInteractedReferences
+from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
 from extract_features.session_device import SessionDevice
 from extract_features.session_filters_active_when_clickout import SessionFilterActiveWhenClickout
+from extract_features.session_length import SessionLength
 from extract_features.session_sort_order_when_clickout import SessionSortOrderWhenClickout
-from extract_features.impression_price_info_session import ImpressionPriceInfoSession
+from extract_features.time_from_last_action_before_clk import TimePassedBeforeClickout
 from extract_features.times_user_interacted_with_impression import TimesUserInteractedWithImpression
 from extract_features.timing_from_last_interaction_impression import TimingFromLastInteractionImpression
-from extract_features.last_action_involving_impression import LastInteractionInvolvingImpression
-from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
-from extract_features.impression_features import ImpressionFeature
-from extract_features.item_popularity_session import ItemPopularitySession
-from extract_features.average_cheap_price_position_clickout import AvgPriceAndPricePosition
-from extract_features.average_impression_pos_interacted import ImpressionPositionInteracted
-from extract_features.frenzy_factor_consecutive_steps import FrenzyFactorSession
 
 def is_target(df, tgt_usersession):
     if tuple(df.head(1)[['user_id', 'session_id']].values[0]) in tgt_usersession:
@@ -52,9 +54,8 @@ def create_dataset(mode, cluster, features_array, dataset_name):
     RETRIEVE THE FEATURES
     """
     ################################################
-
     # retrieve the impression feture df
-    # impr_feature_df = ImpressionFeature(mode=mode, cluster=cluster).read_feature(one_hot=True)
+    #impr_feature_df = ImpressionFeature(mode=mode, cluster=cluster).read_feature(one_hot=True)
 
     # list of pandas dataframe each element represent a feature
     pandas_dataframe_features_session_list = []
@@ -64,6 +65,7 @@ def create_dataset(mode, cluster, features_array, dataset_name):
     # merge all the dataframes
     df_merged_session = reduce(lambda left, right: pd.merge(left, right, on=['user_id', 'session_id'],
                                                             how='inner'), pandas_dataframe_features_session_list)
+    print(f'session shape: {df_merged_session.shape}')
 
     pandas_dataframe_features_item_list = []
     for f in features_array['item_id']:
@@ -72,11 +74,14 @@ def create_dataset(mode, cluster, features_array, dataset_name):
     # merge all the dataframes
     df_merged_item = reduce(lambda left, right: pd.merge(left, right, on=['user_id', 'session_id', 'item_id'],
                                                          how='inner'), pandas_dataframe_features_item_list)
+    print(f'item shape: {df_merged_item.shape}')
 
     df_merged = pd.merge(df_merged_item, df_merged_session, on=['user_id', 'session_id'])
+    print(f'full shape: {df_merged.shape}')
 
     # merge also the impression feature
-    # df_merged = pd.merge(df_merged, impr_feature_df)
+    #df_merged = pd.merge(df_merged, impr_feature_df)
+    print(f'full shape: {df_merged.shape}')
 
     ################################################
 
@@ -140,10 +145,13 @@ def create_dataset(mode, cluster, features_array, dataset_name):
 
     # the 5 column is the label
     X, Y = train_df.iloc[:, 4:], train_df['label']
+    del train_df
     scaler = MinMaxScaler()
     # normalize the values
     X_norm = scaler.fit_transform(X)
+    del X
     Y_norm = Y.values
+    del Y
 
     X_train, X_val, Y_train, Y_val, qid_train, qid_val = \
         train_test_split(X_norm, Y_norm, np_qid_train, test_size=0.2, shuffle=False)
@@ -155,6 +163,7 @@ def create_dataset(mode, cluster, features_array, dataset_name):
     print('SAVING VALI DATA...')
     dump_svmlight_file(X_val, Y_val, f'{_SAVE_BASE_PATH}/vali.txt', query_id=qid_val, zero_based=False)
     print('DONE')
+    del X_train, X_val, Y_train, Y_val
 
     """
     CREATE DATA FOR TEST
@@ -173,29 +182,54 @@ def create_dataset(mode, cluster, features_array, dataset_name):
     np_qid_test = np.array(qid_test)
     print(np_qid_test)
 
-    X_test, Y_test = test_df.iloc[:, 4:], test_df['label']
-    X_test_norm = scaler.fit_transform(X_test)
-    Y_test_norm = Y_test.values
-    # dummy_label = np.zeros(len(X_test),dtype=np.int)
+    if mode!='full':
+        X_test, Y_test = test_df.iloc[:, 4:], test_df['label']
+        del test_df
+        X_test_norm = scaler.fit_transform(X_test)
+        del X_test
+        Y_test_norm = Y_test.values
+        # dummy_label = np.zeros(len(X_test),dtype=np.int)
 
-    print('SAVING TEST DATA...')
-    dump_svmlight_file(X_test_norm, Y_test_norm, f'{_SAVE_BASE_PATH}/test.txt', query_id=np_qid_test, zero_based=False)
-    print('DONE')
+        print('SAVING TEST DATA...')
+        dump_svmlight_file(X_test_norm, Y_test_norm, f'{_SAVE_BASE_PATH}/test.txt', query_id=np_qid_test, zero_based=False)
+        print('DONE')
 
-    print('SAVING TARGET_INDICES...')
-    np.save(f'{_SAVE_BASE_PATH}/target_indices', target_indeces_reordered)
-    print('DONE')
-    print('PROCEDURE ENDED CORRECTLY')
+        print('SAVING TARGET_INDICES...')
+        np.save(f'{_SAVE_BASE_PATH}/target_indices', target_indeces_reordered)
+        print('DONE')
+        print('PROCEDURE ENDED CORRECTLY')
+    else:
+        print('I KNOW IM FULL ;)')
+        X_test = test_df.iloc[:, 4:]
+        del test_df
+        X_test_norm = scaler.fit_transform(X_test)
+        del X_test
+
+        dummy_label = np.zeros(len(X_test),dtype=np.int)
+
+
+        print('SAVING TEST DATA...')
+        dump_svmlight_file(X_test_norm, dummy_label, f'{_SAVE_BASE_PATH}/test.txt', query_id=np_qid_test,
+                           zero_based=False)
+        print('DONE')
+
+        print('SAVING TARGET_INDICES...')
+        np.save(f'{_SAVE_BASE_PATH}/target_indices', target_indeces_reordered)
+        print('DONE')
+        print('PROCEDURE ENDED CORRECTLY')
+
 
 if __name__ == '__main__':
     mode = 'small'
     cluster = 'no_cluster'
-    dataset_name = 'prova'
+    dataset_name = 'prova2'
+
     features_array = {
-        'item_id': [ImpressionLabel, ImpressionPriceInfoSession, LastInteractionInvolvingImpression,
-                    TimingFromLastInteractionImpression, ImpressionPositionSession,
-                    TimesUserInteractedWithImpression],
-        'session': [MeanPriceClickout, SessionLength, SessionDevice,
-                    ImpressionPositionInteracted, AvgPriceAndPricePosition]
+        'item_id': [ImpressionLabel,ImpressionPriceInfoSession,LastInteractionInvolvingImpression,
+                    TimingFromLastInteractionImpression,ActionsInvolvingImpressionSession,ImpressionPositionSession,
+                    TimesUserInteractedWithImpression,ItemPopularitySession],
+        'session': [MeanPriceClickout, MeanPriceClickout_edo, SessionLength, SessionDevice,
+                    SessionActionNumRefDiffFromImpressions, SessionFilterActiveWhenClickout,
+                    SessionSortOrderWhenClickout, TimePassedBeforeClickout]
     }
     create_dataset(mode=mode, cluster=cluster, features_array=features_array, dataset_name=dataset_name)

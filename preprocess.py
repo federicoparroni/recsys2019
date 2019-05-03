@@ -381,8 +381,25 @@ def preprocess():
         NOTE: CHANGE THE PARAMETERS OF THE CLICKOUT_ONLY URM HERE !!!!
         """
         create_urm.urm(mode, cluster, clickout_score=5, impressions_score=1)
-        
-    
+
+    def _merge_sessions():
+        print("Merging similar sessions (same user_id and city)")
+        print("Loading full_df")
+        full_df = data.full_df()
+        print("Sorting, grouping, and other awesome things")
+        grouped = full_df.sort_values(["user_id", "timestamp"], ascending=[True, True]).groupby(["user_id", "city"])
+        new_col = np.array(["" for _ in range(len(full_df))], dtype=object)
+        print("Now I'm really merging...")
+        for name, g in tqdm(grouped):
+            s_id = g.iloc[0]["session_id"]
+            new_col[g.index.values] = s_id
+        print("Writing on the df")
+        full_df["unified_session_id"] = pd.Series(new_col)
+        print("Saving new df to file")
+        with open(data.FULL_PATH, 'w', encoding='utf-8') as f:
+            full_df.to_csv(f, header=False)
+        data.refresh_full_df()
+
     print("Hello buddy... Copenaghen is waiting...")
     print()
 
@@ -394,7 +411,10 @@ def preprocess():
         print('The full dataframe (index master) is missing. Creating it...', end=' ', flush=True)
         create_full_df()
         print('Done!')
-    
+
+    # create CSV files
+    menu.yesno_choice(title='Do you want to merge similar sessions?', callback_yes=_merge_sessions)
+
     # create CSV files
     menu.yesno_choice(title='Do you want to create the CSV files?', callback_yes=_create_csvs)
 
