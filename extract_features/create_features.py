@@ -5,7 +5,6 @@ import sys
 import utils.menu as menu
 
 from extract_features.actions_involving_impression_session import ActionsInvolvingImpressionSession
-from extract_features.average_impression_pos_interacted import ImpressionPositionInteracted
 from extract_features.average_price_and_position_interaction import MeanPriceClickout
 from extract_features.frenzy_factor_consecutive_steps import FrenzyFactorSession
 from extract_features.impression_features import ImpressionFeature
@@ -32,13 +31,13 @@ if __name__ == "__main__":
     cluster = menu.cluster_selection()
 
     # define all the features to be made
-    features = [ActionsInvolvingImpressionSession,ImpressionPositionInteracted,MeanPriceClickout,ImpressionFeature,
+    features = [ActionsInvolvingImpressionSession,MeanPriceClickout,ImpressionFeature,
                 ImpressionPositionSession,ImpressionPriceInfoSession,ItemPopularitySession,ImpressionLabel,
                 LastInteractionInvolvingImpression,MeanPriceClickout_edo,
                 ReferencePositionInNextClickoutImpressions,SessionActionNumRefDiffFromImpressions,SessionDevice,
                 SessionFilterActiveWhenClickout,SessionLength,SessionSortOrderWhenClickout,TimePassedBeforeClickout,
                 TimesUserInteractedWithImpression,TimingFromLastInteractionImpression]
-    labels = ['ActionsInvolvingImpressionSession','ImpressionPositionInteracted','MeanPriceClickout','ImpressionFeature',
+    labels = ['ActionsInvolvingImpressionSession','MeanPriceClickout','ImpressionFeature',
               'ImpressionPositionSession','ImpressionPriceInfoSession','ItemPopularitySession','ImpressionLabel',
               'LastInteractionInvolvingImpression','MeanPriceClickout_edo',
               'ReferencePositionInNextClickoutImpressions','SessionActionNumRefDiffFromImpressions','SessionDevice',

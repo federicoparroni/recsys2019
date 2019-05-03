@@ -54,22 +54,34 @@ def create_dataset(mode, cluster, features_array, dataset_name):
     RETRIEVE THE FEATURES
     """
     ################################################
+    # retrieve the impression feture df
+    #impr_feature_df = ImpressionFeature(mode=mode, cluster=cluster).read_feature(one_hot=True)
+
     # list of pandas dataframe each element represent a feature
-    pandas_dataframe_features_list= []
-    for f in features_array:
-        pandas_dataframe_features_list.append(f(mode=mode, cluster=cluster).read_feature(one_hot=True))
-        print(f)
+    pandas_dataframe_features_session_list = []
+    for f in features_array['session']:
+        pandas_dataframe_features_session_list.append(f(mode=mode, cluster=cluster).read_feature(one_hot=True))
+
     # merge all the dataframes
-    df_merged = None
-    for i in range(len(pandas_dataframe_features_list)):
-        print(f'len:{len(pandas_dataframe_features_list[i])}')
-        if i == 0:
-            df_merged = pandas_dataframe_features_list[i]
-        else:
-            df_merged = df_merged.merge(pandas_dataframe_features_list[i], how='inner')
-    del pandas_dataframe_features_list
-    print(len(df_merged.columns))
-    print('df_merged created')
+    df_merged_session = reduce(lambda left, right: pd.merge(left, right, on=['user_id', 'session_id'],
+                                                            how='inner'), pandas_dataframe_features_session_list)
+    print(f'session shape: {df_merged_session.shape}')
+
+    pandas_dataframe_features_item_list = []
+    for f in features_array['item_id']:
+        pandas_dataframe_features_item_list.append(f(mode=mode, cluster=cluster).read_feature(one_hot=True))
+
+    # merge all the dataframes
+    df_merged_item = reduce(lambda left, right: pd.merge(left, right, on=['user_id', 'session_id', 'item_id'],
+                                                         how='inner'), pandas_dataframe_features_item_list)
+    print(f'item shape: {df_merged_item.shape}')
+
+    df_merged = pd.merge(df_merged_item, df_merged_session, on=['user_id', 'session_id'])
+    print(f'full shape: {df_merged.shape}')
+
+    # merge also the impression feature
+    #df_merged = pd.merge(df_merged, impr_feature_df)
+    print(f'full shape: {df_merged.shape}')
 
     ################################################
 
@@ -166,35 +178,49 @@ def create_dataset(mode, cluster, features_array, dataset_name):
     np_qid_test = np.array(qid_test)
     print(np_qid_test)
 
-    X_test, Y_test = test_df.iloc[:, 4:], test_df['label']
-    X_test_norm = scaler.fit_transform(X_test)
-    Y_test_norm = Y_test.values
-    # dummy_label = np.zeros(len(X_test),dtype=np.int)
+    if mode!='full':
+        X_test, Y_test = test_df.iloc[:, 4:], test_df['label']
+        X_test_norm = scaler.fit_transform(X_test)
+        Y_test_norm = Y_test.values
+        # dummy_label = np.zeros(len(X_test),dtype=np.int)
 
-    print('SAVING TEST DATA...')
-    dump_svmlight_file(X_test_norm, Y_test_norm, f'{_SAVE_BASE_PATH}/test.txt', query_id=np_qid_test, zero_based=False)
-    print('DONE')
+        print('SAVING TEST DATA...')
+        dump_svmlight_file(X_test_norm, Y_test_norm, f'{_SAVE_BASE_PATH}/test.txt', query_id=np_qid_test, zero_based=False)
+        print('DONE')
 
-    print('SAVING TARGET_INDICES...')
-    np.save(f'{_SAVE_BASE_PATH}/target_indices', target_indeces_reordered)
-    print('DONE')
-    print('PROCEDURE ENDED CORRECTLY')
+        print('SAVING TARGET_INDICES...')
+        np.save(f'{_SAVE_BASE_PATH}/target_indices', target_indeces_reordered)
+        print('DONE')
+        print('PROCEDURE ENDED CORRECTLY')
+    else:
+        print('I KNOW IM FULL ;)')
+        X_test = test_df.iloc[:, 4:]
+        X_test_norm = scaler.fit_transform(X_test)
+        dummy_label = np.zeros(len(X_test),dtype=np.int)
+
+
+        print('SAVING TEST DATA...')
+        dump_svmlight_file(X_test_norm, dummy_label, f'{_SAVE_BASE_PATH}/test.txt', query_id=np_qid_test,
+                           zero_based=False)
+        print('DONE')
+
+        print('SAVING TARGET_INDICES...')
+        np.save(f'{_SAVE_BASE_PATH}/target_indices', target_indeces_reordered)
+        print('DONE')
+        print('PROCEDURE ENDED CORRECTLY')
+
 
 if __name__ == '__main__':
     mode = 'small'
     cluster = 'no_cluster'
-    dataset_name = 'all_1'
+    dataset_name = 'prova2'
 
-
-    features_array = [ImpressionLabel, ImpressionPriceInfoSession, LastInteractionInvolvingImpression,
-                       TimingFromLastInteractionImpression, ActionsInvolvingImpressionSession,
-                       ImpressionPositionSession,TimesUserInteractedWithImpression,ItemPopularitySession,
-                      MeanPriceClickout, MeanPriceClickout_edo, SessionLength, SessionDevice,
-                      SessionActionNumRefDiffFromImpressions, SessionFilterActiveWhenClickout,
-                      SessionSortOrderWhenClickout, TimePassedBeforeClickout, ImpressionFeature
-                      ]
-    
-
-create_dataset(mode=mode, cluster=cluster, features_array=features_array, dataset_name=dataset_name)
-
-#ImpressionPositionInteracted
+    features_array = {
+        'item_id': [ImpressionLabel,ImpressionPriceInfoSession,LastInteractionInvolvingImpression,
+                    TimingFromLastInteractionImpression,ActionsInvolvingImpressionSession,ImpressionPositionSession,
+                    TimesUserInteractedWithImpression,ItemPopularitySession],
+        'session': [MeanPriceClickout, MeanPriceClickout_edo, SessionLength, SessionDevice,
+                    SessionActionNumRefDiffFromImpressions, SessionFilterActiveWhenClickout,
+                    SessionSortOrderWhenClickout, TimePassedBeforeClickout]
+    }
+    create_dataset(mode=mode, cluster=cluster, features_array=features_array, dataset_name=dataset_name)
