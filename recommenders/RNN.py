@@ -23,7 +23,7 @@ from utils.telegram_bot import TelegramBotKerasCallback
 
 class RecurrentRecommender(RecommenderBase):
     
-    def __init__(self, dataset, cell_type, num_recurrent_layers, num_recurrent_units, num_dense_layers,
+    def __init__(self, dataset, cell_type, num_recurrent_layers, num_recurrent_units, num_dense_layers, output_size,
                 use_generator=True, validation_split=0.15, use_batch_normalization=False,
                 loss='mean_squared_error', optimizer='rmsprop', class_weights=[],
                 checkpoints_path=None, tensorboard_path=None):
@@ -51,18 +51,18 @@ class RecurrentRecommender(RecommenderBase):
         
         if use_generator:
             # generator
-            self.train_gen, self.val_gen = dataset.get_train_validation_generator(validation_split, class_weights=self.class_weights)
+            self.test_gen = dataset.get_test_generator()
             if self.use_weights:
-                batch_x, batch_y, _ = self.train_gen.__getitem__(0)
+                batch_x = self.test_gen.__getitem__(0)
             else:
-                batch_x, batch_y = self.train_gen.__getitem__(0)
+                batch_x = self.test_gen.__getitem__(0)
             input_shape = (None, batch_x.shape[1], batch_x.shape[2])
-            output_size = batch_y.shape[-1]
+            #output_size = batch_y.shape[-1]
         else:
             # full dataset
             self.X, self.Y = dataset.load_Xtrain(), dataset.load_Ytrain()
             input_shape = self.X.shape
-            output_size = self.Y.shape[-1]
+            #output_size = self.Y.shape[-1]
         
         # build the model
         CELL = LSTM if self.name == 'LSTM' else GRU
@@ -94,7 +94,7 @@ class RecurrentRecommender(RecommenderBase):
         print(self.model.summary())
         print()
         if self.use_generator:
-            print('Train with batches of shape X: {} - Y: {}'.format(batch_x.shape, batch_y.shape))
+            print('Train with batches of shape X: {}'.format(batch_x.shape))
         else:
             print('Train with a dataset of shape X: {} - Y: {}'.format(self.X.shape, self.Y.shape))
 
@@ -114,6 +114,8 @@ class RecurrentRecommender(RecommenderBase):
         return mrr
 
     def fit(self, epochs, early_stopping_patience=10):
+        self.train_gen, self.val_gen = self.dataset.get_train_validation_generator(self.validation_split, class_weights=self.class_weights)
+
         callbacks = [ TelegramBotKerasCallback() ]
         # early stopping callback
         if isinstance(early_stopping_patience, int):
