@@ -1,4 +1,4 @@
-import utils.submit as sub
+from recommenders.hybrid.borda_hybrid import Borda_Hybrid
 
-sub.send()
-
+model = Borda_Hybrid(mode='local')
+model.run()
