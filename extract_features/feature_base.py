@@ -55,7 +55,7 @@ class FeatureBase(ABC):
             self.cluster, self.mode, self.name)
         if os.path.exists(path):
             if overwrite_if_exists == None:
-                choice = yesno_choice('feature exists yet. want to recreate?')
+                choice = yesno_choice('The feature \'{}\' already exists. Want to recreate?'.format(self.name))
                 if choice == 'n':
                     return
             elif not overwrite_if_exists:
