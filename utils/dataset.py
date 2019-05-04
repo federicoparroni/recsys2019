@@ -318,9 +318,9 @@ class SequenceDatasetForClassification(Dataset):
     def get_test_generator(self, sessions_per_batch=256):
         # return the generator for the test
         
-        #def prefit(Xchunk_df, index):
-        """ Preprocess a chunk of the sequence dataset """
-        #Xchunk_df = self._preprocess_x_df(Xchunk_df, partial=True)
-        #return Xchunk_df
+        def prefit(Xchunk_df, index):
+            """ Preprocess a chunk of the sequence dataset """
+            #Xchunk_df = self._preprocess_x_df(Xchunk_df, partial=True)
+            return Xchunk_df
 
-        return DataGenerator(self, for_train=False) #, pre_fit_fn=prefit)
+        return DataGenerator(self, for_train=False, pre_fit_fn=prefit)
