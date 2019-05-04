@@ -408,12 +408,14 @@ def create_dataset_for_regression(mode, cluster, pad_sessions_length=80, add_ite
                             X_sparse_cols=x_sparse_cols, Y_sparse_cols=features_cols)
 
     
-def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_item_features, add_dummy_actions=False, features=[]):
+def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_item_features, add_dummy_actions=False,
+                                    features=[], only_test=False):
     """
     pad_sessions_length (int): final length of sessions after padding/truncating
     add_item_features (bool): whether to add the accomodations features as additional columns
     add_dummy_actions (bool): whether to add dummy interactions representing the impressions before each clickout
     features (list): list of classes (inheriting from FeatureBase) that will provide additional features to be joined
+    only_test (bool): whether to create only the test dataset (useful to make predictions with a pre-trained model)
     """
     
     path = f'dataset/preprocessed/cluster_recurrent/{mode}/dataset_classification'
@@ -511,11 +513,14 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_it
             
         return X_LEN, new_row_index
 
-
-    ## ======== TRAIN ======== ##
-    train_df = data.train_df(mode, cluster='cluster_recurrent')
-    TRAIN_LEN, final_new_index = create_ds_class(train_df, path, for_train=True)
-    del train_df
+    final_new_index = 99000000
+    TRAIN_LEN = 0
+    
+    if not only_test:
+        ## ======== TRAIN ======== ##
+        train_df = data.train_df(mode, cluster='cluster_recurrent')
+        TRAIN_LEN, final_new_index = create_ds_class(train_df, path, for_train=True, new_row_index=final_new_index)
+        del train_df
 
     ## ======== TEST ======== ##
     test_df = data.test_df(mode, cluster='cluster_recurrent')
@@ -526,7 +531,7 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_it
     # save the dataset config file that stores dataset length and the list of sparse columns
     #x_sparse_cols = devices_classes + actions_classes
     datasetconfig.save_config(path, mode, cluster, TRAIN_LEN, TEST_LEN,
-                            rows_per_sample=pad_sessions_length)
+                                rows_per_sample=pad_sessions_length)
                             #X_sparse_cols=x_sparse_cols, Y_sparse_cols=ref_classes)
 
 
