@@ -16,6 +16,7 @@ if __name__ == "__main__":
     cluster_name = 'cluster_recurrent'
 
     # create the cluster
+    print('Creating the cluster...')
     cluster = ClusterRecurrent()
     cluster.save(mode)
     print()
@@ -27,6 +28,8 @@ if __name__ == "__main__":
 
     features = [ref_pos_next_clk_feat]
     # create the tensors dataset
-    sess2vec.create_dataset_for_classification(mode, cluster_name, pad_sessions_length=sess_length, features=features)
+    print('Creating the dataset...')
+    sess2vec.create_dataset_for_classification(mode, cluster_name, pad_sessions_length=sess_length,
+                                                add_item_features=False, features=features)
 
 
