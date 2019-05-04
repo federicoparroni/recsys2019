@@ -224,11 +224,6 @@ def get_eval_metric_fns():
           tfr.metrics.RankingMetricKey.MRR,
       ]
   })
-  metric_fns.update({
-      "metric/ndcg@%d" % topn: tfr.metrics.make_ranking_metric_fn(
-          tfr.metrics.RankingMetricKey.NDCG, topn=topn)
-      for topn in [1, 3, 5, 10]
-  })
   return metric_fns
 
 
@@ -262,7 +257,14 @@ def train_and_eval():
       compare_fn=lambda x, y: x.score < y.score,
       # comparison function used to determine "best" checkpoint (x is the current checkpoint; y is the previously copied checkpoint with the highest/worst score)
       sort_key_fn=lambda x: x.score,
-      sort_reverse=True)
+      sort_reverse=True,
+      dataset_name=FLAGS.dataset_name,
+      save_path=f'{FLAGS.save_path}/predictions',
+      test_x=features_test,
+      test_y=labels_test,
+      mode = FLAGS.mode
+      )
+
 
   ranking_head = tfr.head.create_ranking_head(
       loss_fn=tfr.losses.make_loss_fn(FLAGS.loss,lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight()),
@@ -294,12 +296,13 @@ def train_and_eval():
   # Train and validate
   tf.estimator.train_and_evaluate(estimator, train_spec, vali_spec)
 
+  """
   if FLAGS.mode != 'full':
       # Evaluate on the test data.
       print('\n\n\nevaluation on test')
       estimator.evaluate(input_fn=lambda: batch_inputs(features_test,labels_test,FLAGS.train_batch_size))
       print('DONE! \n\n\n ')
-
+  
 
   print('\n\n\n PREDICT TEST AND SAVE PREDICTIONS')
 
@@ -308,10 +311,7 @@ def train_and_eval():
   np.save(f'{FLAGS.save_path}/predictions', np.array(predictions))
 
   print('DONE! \n\n\n ')
-
-
-
-
+  """
 
 def main(_):
   tf.logging.set_verbosity(tf.logging.INFO)
@@ -323,16 +323,15 @@ def main(_):
 if __name__ == "__main__":
 
     print('type mode: small, local or full')
-    mode = input()
+    _MODE = input()
 
     print('type cluster')
     #cluster = input()
-    cluster='no_cluster'
+    _CLUSTER='no_cluster'
     print('type dataset_name')
-    #dataset_name = input()
-    dataset_name = 'prova2'
+    _DATASET_NAME = input()
 
-    _BASE_PATH = f'dataset/preprocessed/tf_ranking/{cluster}/{mode}/{dataset_name}'
+    _BASE_PATH = f'dataset/preprocessed/tf_ranking/{_CLUSTER}/{_MODE}/{_DATASET_NAME}'
 
     _TRAIN_PATH = f'{_BASE_PATH}/train.txt'
     _TEST_PATH = f'{_BASE_PATH}/test.txt'
@@ -346,9 +345,10 @@ if __name__ == "__main__":
     flags.DEFINE_string("vali_path", _VALI_PATH, "Input file path used for validation.")
     flags.DEFINE_string("test_path", _TEST_PATH, "Input file path used for testing.")
     flags.DEFINE_string("output_dir", _OUTPUT_DIR, "Output directory for models.")
-    flags.DEFINE_string("mode", mode, "mode of the models.")
+    flags.DEFINE_string("mode", _MODE, "mode of the models.")
+    flags.DEFINE_string("dataset_name", _DATASET_NAME, "name of the dataset")
 
-    flags.DEFINE_integer("train_batch_size", 32, "The batch size for training.")
+    flags.DEFINE_integer("train_batch_size", 8, "The batch size for training.")
     # 32
     flags.DEFINE_integer("num_train_steps", 100000, "Number of steps for training.")
 

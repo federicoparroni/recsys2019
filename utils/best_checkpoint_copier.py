@@ -2,7 +2,9 @@ import glob
 import os
 import shutil
 import tensorflow as tf
+import numpy as np
 import utils.telegram_bot as HERA
+from recommenders.tf_ranking import TensorflowRankig
 
 class Checkpoint(object):
   dir = None
@@ -26,7 +28,8 @@ class BestCheckpointCopier(tf.estimator.Exporter):
   sort_key_fn = None
   sort_reverse = None
 
-  def __init__(self, name='best_checkpoints', checkpoints_to_keep=5, score_metric='Loss/total_loss', compare_fn=lambda x,y: x.score < y.score, sort_key_fn=lambda x: x.score, sort_reverse=False):
+  def __init__(self, dataset_name, save_path, test_x, test_y, mode, name='best_checkpoints', checkpoints_to_keep=5, score_metric='Loss/total_loss',
+               compare_fn=lambda x,y: x.score < y.score, sort_key_fn=lambda x: x.score, sort_reverse=False):
     self.checkpoints = []
     self.checkpoints_to_keep = checkpoints_to_keep
     self.compare_fn = compare_fn
@@ -34,6 +37,12 @@ class BestCheckpointCopier(tf.estimator.Exporter):
     self.score_metric = score_metric
     self.sort_key_fn = sort_key_fn
     self.sort_reverse = sort_reverse
+
+    self.mode = mode
+    self.test_x = test_x
+    self.test_y = test_y
+    self.save_path = save_path
+    self.dataset_name = dataset_name
     super(BestCheckpointCopier, self).__init__()
 
   def _copyCheckpoint(self, checkpoint):
@@ -79,6 +88,20 @@ class BestCheckpointCopier(tf.estimator.Exporter):
     return len(self.checkpoints) < self.checkpoints_to_keep or self.compare_fn(checkpoint, self.checkpoints[-1])
 
   def export(self, estimator, export_path, checkpoint_path, eval_result, is_the_final_export):
+
+    def batch_inputs(features, labels, batch_size):
+      dataset = tf.data.Dataset.from_tensor_slices((features, labels))
+      return dataset.batch(batch_size)
+
+    def create_sub(estimator, checkpoint_path, eval_result, batch_size=64):
+      if self.mode == 'full':
+        pred = np.array(list(estimator.predict(lambda: batch_inputs(self.test_x, self.test_y, batch_size))))
+        np.save(self.save_path, pred)
+        HERA.send_message(f'EXPORTING A SUB... {eval_result}')
+        model = TensorflowRankig(mode='full', cluster='no_cluster',dataset_name=self.dataset_name)
+        model.name = f'tf_ranking_{eval_result}'
+        model.run()
+
     self._log('export checkpoint {}'.format(checkpoint_path))
 
     score = self._score(eval_result)
@@ -86,6 +109,9 @@ class BestCheckpointCopier(tf.estimator.Exporter):
 
     if self._shouldKeep(checkpoint):
       self._keepCheckpoint(checkpoint)
+
+      create_sub(estimator, checkpoint_path, eval_result)
+
       self._pruneCheckpoints(checkpoint)
     else:
       self._log('skipping checkpoint {}'.format(checkpoint.path))
