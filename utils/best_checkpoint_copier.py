@@ -28,7 +28,7 @@ class BestCheckpointCopier(tf.estimator.Exporter):
   sort_key_fn = None
   sort_reverse = None
 
-  def __init__(self, dataset_name, save_path, test_x, test_y, mode, name='best_checkpoints', checkpoints_to_keep=5, score_metric='Loss/total_loss',
+  def __init__(self, min_mrr_start, loss, dataset_name, save_path, test_x, test_y, mode, name='best_checkpoints', checkpoints_to_keep=5, score_metric='Loss/total_loss',
                compare_fn=lambda x,y: x.score < y.score, sort_key_fn=lambda x: x.score, sort_reverse=False):
     self.checkpoints = []
     self.checkpoints_to_keep = checkpoints_to_keep
@@ -43,6 +43,8 @@ class BestCheckpointCopier(tf.estimator.Exporter):
     self.test_y = test_y
     self.save_path = save_path
     self.dataset_name = dataset_name
+    self.loss = loss
+    self.min_mrr = min_mrr_start
     super(BestCheckpointCopier, self).__init__()
 
   def _copyCheckpoint(self, checkpoint):
@@ -93,14 +95,19 @@ class BestCheckpointCopier(tf.estimator.Exporter):
       dataset = tf.data.Dataset.from_tensor_slices((features, labels))
       return dataset.batch(batch_size)
 
-    def create_sub(estimator, checkpoint_path, eval_result, batch_size=64):
+    def create_sub(estimator, checkpoint_path, eval_result, batch_size=8, patience=0.001):
       if self.mode == 'full':
-        pred = np.array(list(estimator.predict(lambda: batch_inputs(self.test_x, self.test_y, batch_size))))
-        np.save(self.save_path, pred)
-        HERA.send_message(f'EXPORTING A SUB... {eval_result}')
-        model = TensorflowRankig(mode='full', cluster='no_cluster',dataset_name=self.dataset_name)
-        model.name = f'tf_ranking_{eval_result}'
-        model.run()
+        # create a sub only if the MMR is > 0.65
+        if eval_result[self.score_metric]>self.min_mrr+patience:
+          # set as new threshold the new mrr
+          self.min_mrr = eval_result[self.score_metric]
+
+          pred = np.array(list(estimator.predict(lambda: batch_inputs(self.test_x, self.test_y, batch_size))))
+          np.save(self.save_path, pred)
+          HERA.send_message(f'EXPORTING A SUB... {eval_result}')
+          model = TensorflowRankig(mode='full', cluster='no_cluster', dataset_name=self.dataset_name)
+          model.name = f'tf_ranking_{self.loss}_{eval_result}'
+          model.run()
 
     self._log('export checkpoint {}'.format(checkpoint_path))
 

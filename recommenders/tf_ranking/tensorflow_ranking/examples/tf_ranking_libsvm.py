@@ -252,7 +252,7 @@ def train_and_eval():
 
   best_copier = BestCheckpointCopier(
       name='best',  # directory within model directory to copy checkpoints to
-      checkpoints_to_keep=10,  # number of checkpoints to keep
+      checkpoints_to_keep=5,  # number of checkpoints to keep
       score_metric='metric/mrr',  # metric to use to determine "best"
       compare_fn=lambda x, y: x.score < y.score,
       # comparison function used to determine "best" checkpoint (x is the current checkpoint; y is the previously copied checkpoint with the highest/worst score)
@@ -262,7 +262,9 @@ def train_and_eval():
       save_path=f'{FLAGS.save_path}/predictions',
       test_x=features_test,
       test_y=labels_test,
-      mode = FLAGS.mode
+      mode = FLAGS.mode,
+      loss = FLAGS.loss,
+      min_mrr_start=FLAGS.min_mrr_start,
       )
 
 
@@ -278,8 +280,9 @@ def train_and_eval():
           group_size=FLAGS.group_size,
           transform_fn=None,
           ranking_head=ranking_head),
-      config=tf.estimator.RunConfig(
-          FLAGS.output_dir, save_checkpoints_steps=1000))
+    config=tf.estimator.RunConfig(
+      FLAGS.output_dir, save_checkpoints_steps=1000))
+
 
   train_spec = tf.estimator.TrainSpec(
       input_fn=train_input_fn,
@@ -347,12 +350,13 @@ if __name__ == "__main__":
     flags.DEFINE_string("output_dir", _OUTPUT_DIR, "Output directory for models.")
     flags.DEFINE_string("mode", _MODE, "mode of the models.")
     flags.DEFINE_string("dataset_name", _DATASET_NAME, "name of the dataset")
+    flags.DEFINE_float("min_mrr_start", 0.65, "min_mrr_from_which_save_model")
 
-    flags.DEFINE_integer("train_batch_size", 8, "The batch size for training.")
+    flags.DEFINE_integer("train_batch_size", 128, "The batch size for training.")
     # 32
     flags.DEFINE_integer("num_train_steps", 100000, "Number of steps for training.")
 
-    flags.DEFINE_float("learning_rate", 0.01, "Learning rate for optimizer.")
+    flags.DEFINE_float("learning_rate", 0.001, "Learning rate for optimizer.")
     #0.01
     flags.DEFINE_float("dropout_rate", 0.5, "The dropout rate before output layer.")
     # 0.5
@@ -360,7 +364,7 @@ if __name__ == "__main__":
                     "Sizes for hidden layers.")
     # ["256", "128", "64"]
 
-    flags.DEFINE_integer("num_features", 225, "Number of features per document.")
+    flags.DEFINE_integer("num_features", 12, "Number of features per document.")
     flags.DEFINE_integer("list_size", 25, "List size used for training.")
     flags.DEFINE_integer("group_size", 1, "Group size used in score function.")
     #1
