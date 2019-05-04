@@ -1,5 +1,7 @@
 from recommenders.XGBoost import XGBoostWrapper
 from functools import partial
+
+from recommenders.catboost_rank import CatboostRanker
 from utils.writer import writer
 import gc
 import utils.telegram_bot as HERA
@@ -55,6 +57,6 @@ class RandomValidator:
 
 
 if __name__ == "__main__":
-    m = XGBoostWrapper(mode='small')
+    m = CatboostRanker(mode='small')
     v = RandomValidator(m)
     v.validate(100)

@@ -6,7 +6,7 @@ import time
 from abc import abstractmethod
 
 from keras.models import Sequential, load_model
-from keras.layers import Dense, LSTM, GRU, Embedding
+from keras.layers import Dense, LSTM, GRU, Embedding, BatchNormalization, Activation, Dropout
 from keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard
 from keras import metrics
 
@@ -24,7 +24,7 @@ from utils.telegram_bot import TelegramBotKerasCallback
 class RecurrentRecommender(RecommenderBase):
     
     def __init__(self, dataset, cell_type, num_recurrent_layers, num_recurrent_units, num_dense_layers,
-                use_generator=True, validation_split=0.15,
+                use_generator=True, validation_split=0.15, use_batch_normalization=False,
                 loss='mean_squared_error', optimizer='rmsprop', class_weights=[],
                 checkpoints_path=None, tensorboard_path=None):
         """ Create the recurrent model
@@ -67,17 +67,27 @@ class RecurrentRecommender(RecommenderBase):
         # build the model
         CELL = LSTM if self.name == 'LSTM' else GRU
         self.model = Sequential()
-        self.model.add( CELL(num_recurrent_units, input_shape=(input_shape[1], input_shape[2]), dropout=0.1, return_sequences=True) )
+        self.model.add( CELL(num_recurrent_units, input_shape=(input_shape[1], input_shape[2]), dropout=0.2,recurrent_dropout=0.2, return_sequences=True) )
         for i in range(num_recurrent_layers-1):
-            self.model.add( CELL(num_recurrent_units, dropout=0.1, return_sequences=(i < num_recurrent_layers-1) ))
+            self.model.add( CELL(num_recurrent_units, dropout=0.2,recurrent_dropout=0.2, return_sequences=(i < num_recurrent_layers-1) ))
 
-        if num_dense_layers == 1:
-            self.model.add( Dense(output_size, activation='softmax') )
-        else:
+        if num_dense_layers > 1:
             dense_neurons = np.linspace(num_recurrent_units, output_size, num_dense_layers)
-            for i,n in enumerate(dense_neurons):
-                act = 'softmax' if i == len(dense_neurons)-1 else 'sigmoid'
-                self.model.add( Dense(int(n), activation=act) )
+            for n in dense_neurons[:-1]:
+                if use_batch_normalization:
+                    self.model.add( Dense(int(n), activation=None) )
+                    self.model.add( BatchNormalization() )
+                    self.model.add( Activation('relu') )
+                else:
+                    self.model.add( Dense(int(n), activation='relu') )
+        
+        if use_batch_normalization:
+            self.model.add( Dense(output_size, activation=None) )
+            self.model.add( BatchNormalization() )
+            self.model.add( Activation('softmax') )
+        else:
+            self.model.add( Dense(output_size, activation='softmax') )
+        self.model.add( Dropout(rate=0.3) )
         
         self.model.compile(sample_weight_mode='temporal', loss=loss, optimizer=optimizer, metrics=['accuracy', self.mrr])
 
