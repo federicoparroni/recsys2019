@@ -203,9 +203,8 @@ def create_dataset(mode, cluster, features_array, dataset_name):
         X_test = test_df.iloc[:, 4:]
         del test_df
         X_test_norm = scaler.fit_transform(X_test)
-        del X_test
-
         dummy_label = np.zeros(len(X_test),dtype=np.int)
+        del X_test
 
 
         print('SAVING TEST DATA...')
@@ -222,8 +221,16 @@ def create_dataset(mode, cluster, features_array, dataset_name):
 if __name__ == '__main__':
     mode = 'small'
     cluster = 'no_cluster'
-    dataset_name = 'prova2'
+    dataset_name = 'no_pos'
 
+    features_array = {
+        'item_id': [ImpressionLabel, ImpressionPriceInfoSession,
+                    TimingFromLastInteractionImpression, ActionsInvolvingImpressionSession,
+                    TimesUserInteractedWithImpression, ItemPopularitySession],
+        'session': [MeanPriceClickout, MeanPriceClickout_edo, SessionLength, TimePassedBeforeClickout]
+    }
+
+    """
     features_array = {
         'item_id': [ImpressionLabel,ImpressionPriceInfoSession,LastInteractionInvolvingImpression,
                     TimingFromLastInteractionImpression,ActionsInvolvingImpressionSession,ImpressionPositionSession,
@@ -232,4 +239,6 @@ if __name__ == '__main__':
                     SessionActionNumRefDiffFromImpressions, SessionFilterActiveWhenClickout,
                     SessionSortOrderWhenClickout, TimePassedBeforeClickout]
     }
+    """
+
     create_dataset(mode=mode, cluster=cluster, features_array=features_array, dataset_name=dataset_name)
