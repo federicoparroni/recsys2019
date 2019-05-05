@@ -36,12 +36,11 @@ class GlobalPopularity(FeatureBase):
         """ Join this feature to the specified dataframe """
         feature_df = self.read_feature()
         # set the reference column to int
-        reference_col_backup = df.reference.copy()
-        df.loc[(df.reference.str.isnumeric() != True) | (df.action_type == 'clickout item'), 'reference'] = 0
-        df = df.astype({'reference': 'int'})
-        res_df = df.merge(feature_df, how='left')
-        res_df['reference'] = reference_col_backup
-        #res_df[feature_cols] = res_df[feature_cols].astype('int8')
+        res_df = df.copy()
+        res_df.loc[(res_df.reference.str.isnumeric() != True) | (res_df.action_type == 'clickout item'), 'reference'] = 0
+        res_df = res_df.astype({'reference': 'int'}).reset_index()
+        res_df = res_df.merge(feature_df, how='left', left_on='reference', right_on='reference').set_index('index')
+        res_df['reference'] = df['reference']
         return res_df.fillna(0).astype({'glob_popularity': 'int'})
 
 

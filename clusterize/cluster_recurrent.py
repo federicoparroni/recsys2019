@@ -30,11 +30,12 @@ class ClusterRecurrent(ClusterizeBase):
                 clickouts = g[g.action_type == 'clickout item']
                 if clickouts.shape[0] > 0:
                     # and the last clickout reference is in the impressions or is NaN (in test)
-                    last_clickout = clickouts.iloc[[-1]]
-                    imprs = last_clickout.impressions.str.split('|').values[0]
-                    ref = last_clickout.reference
-                    if ref.isnull().values[0] or ref.values[0] in imprs:
-                        return g
+                    #last_clickout = clickouts.iloc[[-1]]
+                    #imprs = last_clickout.impressions.str.split('|').values[0]
+                    #ref = last_clickout.reference
+                    #if ref.isnull().values[0] or ref.values[0] in imprs:
+                    #    return g
+                    return g
             
             df = df.reset_index().groupby(['user_id','session_id']).progress_apply(filter_sessions)
             return df.set_index('index').sort_index()
