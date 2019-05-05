@@ -45,7 +45,7 @@ class RecurrentRecommender(RecommenderBase):
         self.checkpoints_path = checkpoints_path
         self.tensorboard_path = tensorboard_path
 
-        name = 'recurrent_{}_{}layers_{}units'.format(cell_type.upper(), num_recurrent_layers, num_recurrent_units)
+        name = 'rnn_{}_{}layers_{}units_{}dense'.format(cell_type.upper(), num_recurrent_layers, num_recurrent_units, num_dense_layers)
         name += '_w' if self.use_weights else ''
         super().__init__(dataset.mode, dataset.cluster, name=name)
         
