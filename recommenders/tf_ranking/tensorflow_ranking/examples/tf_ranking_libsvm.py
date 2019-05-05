@@ -269,7 +269,7 @@ def train_and_eval():
 
 
   ranking_head = tfr.head.create_ranking_head(
-      loss_fn=tfr.losses.make_loss_fn(FLAGS.loss,lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight()),
+      loss_fn=tfr.losses.make_loss_fn(FLAGS.loss, lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight()),
       eval_metric_fns=get_eval_metric_fns(),
       train_op_fn=_train_op_fn)
   #lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight()
@@ -337,7 +337,9 @@ if __name__ == "__main__":
     _BASE_PATH = f'dataset/preprocessed/tf_ranking/{_CLUSTER}/{_MODE}/{_DATASET_NAME}'
 
     _TRAIN_PATH = f'{_BASE_PATH}/train.txt'
-    _TEST_PATH = f'{_BASE_PATH}/test.txt'
+    #_TEST_PATH = f'{_BASE_PATH}/test.txt'
+    _TEST_PATH = f'dataset/preprocessed/tf_ranking/{_CLUSTER}/full/{_DATASET_NAME}/test.txt'
+
     _VALI_PATH = f'{_BASE_PATH}/vali.txt'
 
     cf.check_folder(f'{_BASE_PATH}/output_dir_{datetime.datetime.now().strftime("%Y-%m-%d_%H:%M")}')
@@ -350,21 +352,22 @@ if __name__ == "__main__":
     flags.DEFINE_string("output_dir", _OUTPUT_DIR, "Output directory for models.")
     flags.DEFINE_string("mode", _MODE, "mode of the models.")
     flags.DEFINE_string("dataset_name", _DATASET_NAME, "name of the dataset")
-    flags.DEFINE_float("min_mrr_start", 0.60, "min_mrr_from_which_save_model")
+    flags.DEFINE_float("min_mrr_start", 0.63, "min_mrr_from_which_save_model")
 
     flags.DEFINE_integer("train_batch_size", 128, "The batch size for training.")
     # 32
-    flags.DEFINE_integer("num_train_steps", 100000, "Number of steps for training.")
+    flags.DEFINE_integer("num_train_steps", None, "Number of steps for training.")
 
-    flags.DEFINE_float("learning_rate", 0.001, "Learning rate for optimizer.")
+    flags.DEFINE_float("learning_rate", 0.1, "Learning rate for optimizer.")
     #0.01
-    flags.DEFINE_float("dropout_rate", 0.5, "The dropout rate before output layer.")
+    flags.DEFINE_float("dropout_rate", 0.1, "The dropout rate before output layer.")
     # 0.5
-    flags.DEFINE_list("hidden_layer_dims", ['256','128','64'],
+    flags.DEFINE_list("hidden_layer_dims", ['256','128'],
                     "Sizes for hidden layers.")
     # ["256", "128", "64"]
+    # best ["256", "128"]
 
-    flags.DEFINE_integer("num_features", 12, "Number of features per document.")
+    flags.DEFINE_integer("num_features", 225, "Number of features per document.")
     flags.DEFINE_integer("list_size", 25, "List size used for training.")
     flags.DEFINE_integer("group_size", 1, "Group size used in score function.")
     #1
