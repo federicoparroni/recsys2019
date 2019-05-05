@@ -133,6 +133,7 @@ def add_reference_classes(df, actiontype_col='clickout item', action_equals=1, c
                     ref_class = last_clickout.impressions.split('|').index(last_clickout.reference)
                 except ValueError:
                     ref_class = 0
+                    #print(clickouts.iloc[[-1]].index)      # reference not in the impressions
                 group['temp_ref_class'] = ref_class
             return group
 
@@ -428,7 +429,7 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_it
         """
 
         ds_type = 'train' if for_train else 'test'
-        #devices_classes = ['mobile', 'desktop', 'tablet']
+        devices_classes = ['mobile', 'desktop', 'tablet']
         actions_classes = ['show_impression', 'clickout item', 'interaction item rating', 'interaction item info',
                 'interaction item image', 'interaction item deals', 'change of sort order', 'filter selection',
                 'search for item', 'search for destination', 'search for poi']
@@ -456,11 +457,11 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_it
         # print('Getting the last clickout of each session...')
         # print('Done!\n')
 
-        # add the one-hot of the device - no, drop it
-        df = df.drop('device', axis=1)
-        # print('Adding one-hot columns of device...', end=' ', flush=True)
-        # df = one_hot_df_column(df, 'device', classes=devices_classes)
-        # print('Done!\n')
+        # add the one-hot of the device
+        # df = df.drop('device', axis=1)
+        print('Adding one-hot columns of device...', end=' ', flush=True)
+        df = one_hot_df_column(df, 'device', classes=devices_classes)
+        print('Done!\n')
 
         # add the one-hot of the action-type
         print('Adding one-hot columns of action_type...', end=' ', flush=True)
