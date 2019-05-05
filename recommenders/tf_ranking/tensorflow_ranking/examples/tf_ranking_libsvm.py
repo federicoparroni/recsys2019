@@ -260,7 +260,7 @@ def train_and_eval():
       sort_reverse=True,
       dataset_name=FLAGS.dataset_name,
       #save_path=f'{FLAGS.save_path}/predictions',
-      save_path=f'dataset/preprocessed/tf_ranking/{_CLUSTER}/{_MODE}/{_DATASET_NAME}/predictions',
+      save_path=f'dataset/preprocessed/tf_ranking/{_CLUSTER}/full/{_DATASET_NAME}/predictions',
       test_x=features_test,
       test_y=labels_test,
       mode = FLAGS.mode,
