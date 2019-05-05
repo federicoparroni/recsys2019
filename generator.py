@@ -65,7 +65,13 @@ class DataGenerator(keras.utils.Sequence):
                 self.dataset_X = self.dataset.load_Xtrain()
                 self.dataset_Y = self.dataset.load_Ytrain()
             else:
-                self.dataset_X = pd.read_csv(self.dataset.X_test_path, index_col=0, skiprows=range(1, self.skip_rows+1), nrows=self.rows_to_read)
+                self.dataset_X, _ = self.dataset.load_Xtest()
+        else:
+            if self.for_train:
+                self.dataset_X = pd.read_csv(self.dataset.X_train_path, index_col=0, skiprows=range(1, self.start_row_index+1), nrows=self.rows_to_read)
+                self.dataset_Y = pd.read_csv(self.dataset.Y_train_path, index_col=0, skiprows=range(1, self.start_row_index+1), nrows=self.rows_to_read)
+            else:
+                self.dataset_X = pd.read_csv(self.dataset.X_test_path, index_col=0, skiprows=range(1, self.start_row_index+1), nrows=self.rows_to_read)
         
         #self.on_epoch_end()
         print(str(self))
@@ -97,7 +103,7 @@ class DataGenerator(keras.utils.Sequence):
         row_end = min( row_start + self.rows_per_batch, self.end_row_index )
 
         if self.for_train:
-            # return X and Y
+            # return X and Y train
             if self.read_chunks:
                 nrows = row_end - row_start
                 Xchunk_df = pd.read_csv(self.dataset.X_train_path, index_col=0,
@@ -117,10 +123,10 @@ class DataGenerator(keras.utils.Sequence):
             else:
                 out = Xchunk_df.values, Ychunk_df.values
         else:
-            #return only X
+            #return only X test
             if self.read_chunks:
                 nrows = row_end - row_start
-                Xchunk_df = pd.read_csv(self.dataset.X_train_path, index_col=0,
+                Xchunk_df = pd.read_csv(self.dataset.X_test_path, index_col=0,
                                         skiprows=range(1, row_start+1), nrows=nrows)
             else:
                 start_session_idx = self.start_session_index + self.samples_per_batch * index

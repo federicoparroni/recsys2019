@@ -64,14 +64,14 @@ SPLIT_USED = 'no_cluster'
 def full_df():
     global _df_full
     if _df_full is None:
-        print('caching df_full...')
+        print('caching df_full...', flush=True)
         _df_full = pd.read_csv(FULL_PATH, index_col=0)
         print('Done!')
     return _df_full
 
 def refresh_full_df():
     global _df_full
-    print('refreshing df_full...')
+    print('refreshing df_full...', flush=True)
     _df_full = pd.read_csv(FULL_PATH, index_col=0)
     print('Done!')
 
@@ -94,7 +94,7 @@ def train_df(mode, cluster='no_cluster'):
     path = 'dataset/preprocessed/{}/{}/train.csv'.format(cluster, mode)
     if path not in _df_train:
         if mode == "full" and cluster == 'no_cluster':
-            print("Loading {} train_df, it will take a while..".format(mode))
+            print("Loading {} train_df, it will take a while..".format(mode), flush=True)
         _df_train[path] = pd.read_csv(path, index_col=0)
 
     return _df_train[path]
@@ -268,11 +268,11 @@ def accomodations_original_df():
 def accomodations_one_hot():
     global _df_accomodations_one_hot
     if not os.path.isfile(ACCOMODATIONS_1HOT_PATH):
-        print('Accomodations one-hot not found! Creating it...')
+        print('Accomodations one-hot not found! Creating it...', flush=True)
         import preprocess_utils.session2vec as sess2vec
         sess2vec.save_accomodations_one_hot(accomodations_original_df(), ACCOMODATIONS_1HOT_PATH)
     if _df_accomodations_one_hot is None:
-        print('Loading accomodations one-hot...')
+        print('Loading accomodations one-hot...', flush=True)
         _df_accomodations_one_hot = pd.read_csv(ACCOMODATIONS_1HOT_PATH, index_col=0).astype('Int8')
     return _df_accomodations_one_hot
 

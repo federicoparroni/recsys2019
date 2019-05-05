@@ -24,7 +24,7 @@ class RNNClassificationRecommender(RecurrentRecommender):
                 optimizer='rmsprop', checkpoints_path=None, tensorboard_path=None):
         
         super().__init__(dataset=dataset, cell_type=cell_type, num_recurrent_layers=num_recurrent_layers,
-                        num_recurrent_units=num_recurrent_units, num_dense_layers=num_dense_layers,
+                        num_recurrent_units=num_recurrent_units, num_dense_layers=num_dense_layers, output_size=25,
                         use_generator=use_generator, validation_split=validation_split,
                         loss='categorical_crossentropy', optimizer=optimizer, class_weights=class_weights,
                         checkpoints_path=checkpoints_path, tensorboard_path=tensorboard_path)
@@ -51,12 +51,12 @@ class RNNClassificationRecommender(RecurrentRecommender):
 
         assert len(predictions) == len(target_indices)
 
-        train_df = data.train_df('full')
+        full_df = data.full_df()
 
         result_predictions = []
         for index in tqdm(target_indices):
             # get the impressions of the clickout to predict
-            impr = list(map(int, train_df.loc[index]['impressions'].split('|')))
+            impr = list(map(int, full_df.loc[index]['impressions'].split('|')))
             # build a list of (impression, score)
             prediction_impressions_distances = [ (impr[j], predictions.at[index,j]) for j in range(len(impr)) ]
             # order the list based on scores (greater is better)
