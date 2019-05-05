@@ -96,7 +96,8 @@ class BestCheckpointCopier(tf.estimator.Exporter):
       return dataset.batch(batch_size)
 
     def create_sub(estimator, checkpoint_path, eval_result, batch_size=64, patience=0.01):
-      if self.mode == 'full':
+      #TODO!!!!!!!!!!!!!!!!!!! SELECT FULL
+      if self.mode == 'small':
         # create a sub only if the MMR is > 0.65
         if eval_result[self.score_metric]>self.min_mrr+patience:
           # set as new threshold the new mrr
