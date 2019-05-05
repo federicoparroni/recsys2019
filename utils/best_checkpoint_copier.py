@@ -108,7 +108,7 @@ class BestCheckpointCopier(tf.estimator.Exporter):
           HERA.send_message(f'EXPORTING A SUB... {eval_result}')
           model = TensorflowRankig(mode='full', cluster='no_cluster', dataset_name=self.dataset_name)
           score = eval_result['metric/mrr']
-          model.name = f'tf_ranking_{self.loss}_{eval_result}_{score}'
+          model.name = f'tf_ranking_{self.loss}_{score}'
           model.run()
 
     self._log('export checkpoint {}'.format(checkpoint_path))
