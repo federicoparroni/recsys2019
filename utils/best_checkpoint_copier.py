@@ -99,9 +99,9 @@ class BestCheckpointCopier(tf.estimator.Exporter):
       #TODO!!!!!!!!!!!!!!!!!!! SELECT FULL
       if self.mode == 'small':
         # create a sub only if the MMR is > 0.65
-        if eval_result[self.score_metric]>self.min_mrr+patience:
+        if eval_result['metric/mrr']>self.min_mrr+patience:
           # set as new threshold the new mrr
-          self.min_mrr = eval_result[self.score_metric]
+          self.min_mrr = eval_result['metric/mrr']
 
           pred = np.array(list(estimator.predict(lambda: batch_inputs(self.test_x, self.test_y, batch_size))))
           np.save(self.save_path, pred)
