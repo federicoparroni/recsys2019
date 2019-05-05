@@ -8,7 +8,9 @@ import utils.datasetconfig as datasetconfig
 from generator import DataGenerator
 import preprocess_utils.session2vec as sess2vec
 from sklearn.preprocessing import MinMaxScaler
+import utils.scaling as scale
 
+from extract_features.global_popularity import GlobalPopularity
 
 ## ======= Datasets - Base class ======= ##
 
@@ -224,6 +226,11 @@ class SequenceDatasetForClassification(Dataset):
         cols_to_drop_in_X = ['user_id','session_id','timestamp','reference','step','platform','city','current_filters']
         
         # scale the dataframe
+        glo_pop_feat = GlobalPopularity(mode=self.mode, cluster=self.cluster)
+        max_pop = glo_pop_feat.read_feature().glob_popularity.max()
+        X_df.glob_popularity = scale.logarithmic(X_df.glob_popularity, max_value=max_pop)
+
+        X_df.frequence /= 120
         # if partial:
         #     X_df.dayofyear /= 365
         #     X_df.impression_price /= 3000
