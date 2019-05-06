@@ -106,7 +106,7 @@ def add_accomodations_features(df, path_to_save, logic='skip', row_indices=[]):
     # return the features columns and the one-hot attributes
     #return df
 
-def add_reference_classes(df, actiontype_col='clickout item', action_equals=1, classes_prefix='ref_',
+def add_reference_labels(df, actiontype_col='clickout item', action_equals=1, classes_prefix='ref_',
                             num_classes=25, only_clickouts=False):
     """ Add the reference index in the impressions list as a new column for each clickout in the dataframe.
     For the clickout interactions, a 1 is placed in the column with name {classes_prefix}{reference index in impressions}.
@@ -277,10 +277,10 @@ def create_dataset_for_regression(mode, cluster, pad_sessions_length=80, add_ite
     add_item_features (bool): whether to add the one-hot accomodations features to the training data
     save_X_Y (bool): whether to save the train data into 2 separate files (X_train, Y_train) or in a unique file (train_vec)
     """
-    train_df = data.train_df(mode, cluster='cluster_recurrent')
-    test_df = data.test_df(mode, cluster='cluster_recurrent')
+    train_df = data.train_df(mode, cluster)
+    test_df = data.test_df(mode, cluster)
 
-    path = f'dataset/preprocessed/cluster_recurrent/{mode}/dataset_regression'
+    path = f'dataset/preprocessed/{cluster}/{mode}/dataset_regression'
     check_folder(path)
 
     devices_classes = ['mobile', 'desktop', 'tablet']
@@ -419,7 +419,7 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_it
     only_test (bool): whether to create only the test dataset (useful to make predictions with a pre-trained model)
     """
     
-    path = f'dataset/preprocessed/cluster_recurrent/{mode}/dataset_classification'
+    path = f'dataset/preprocessed/{cluster}/{mode}/dataset_classification'
     check_folder(path)
 
     def create_ds_class(df, path, for_train, add_dummy_actions=add_dummy_actions, pad_sessions_length=pad_sessions_length, 
@@ -471,7 +471,7 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_it
         # add the reference classes if TRAIN
         if for_train:
             print('Adding references classes...')
-            df, ref_classes = add_reference_classes(df, actiontype_col='clickout item', action_equals=1)
+            df, ref_classes = add_reference_labels(df, actiontype_col='clickout item', action_equals=1)
             print('Done!\n')
         else:
             ref_classes = []
@@ -488,7 +488,7 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_it
             df = df.merge(data.accomodations_one_hot(), how='left', left_on='reference', right_index=True)
             features_cols = data.accomodations_one_hot().columns
             df.loc[:, features_cols] = df.loc[:, features_cols].fillna(0)
-            # remove the item features for the last clickout of each session
+            # remove the item features for the last clickout of each session: TO-DO clickout may be not the last item
             first_row_backup = df.iloc[[0]].copy()
             df.iloc[::pad_sessions_length, features_cols] = 0
             df.iloc[[0]] = first_row_backup
@@ -519,12 +519,12 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_it
     
     if not only_test:
         ## ======== TRAIN ======== ##
-        train_df = data.train_df(mode, cluster='cluster_recurrent')
+        train_df = data.train_df(mode, cluster)
         TRAIN_LEN, final_new_index = create_ds_class(train_df, path, for_train=True, new_row_index=final_new_index)
         del train_df
 
     ## ======== TEST ======== ##
-    test_df = data.test_df(mode, cluster='cluster_recurrent')
+    test_df = data.test_df(mode, cluster)
     TEST_LEN, _ = create_ds_class(test_df, path, for_train=False, new_row_index=final_new_index)
     del test_df
 
@@ -541,14 +541,14 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_it
 
 # def load_training_dataset_for_regression(mode):
 #     """ Load the one-hot dataset and return X_train, Y_train """
-#     path = f'dataset/preprocessed/cluster_recurrent/{mode}'
+#     path = f'dataset/preprocessed/{cluster}/{mode}'
 #     X_path = os.path.join(path, 'X_train.csv')
 #     Y_path = os.path.join(path, 'Y_train.csv')
 
 #     X_train_df = pd.read_csv(X_path, index_col=0) #sparsedf.read(X_path, sparse_cols=X_sparsecols).set_index('orig_index')
 #     Y_train_df = pd.read_csv(Y_path, index_col=0) #sparsedf.read(Y_path, sparse_cols=Y_sparsecols).set_index('orig_index')
 
-#     #X_test_df = pd.read_csv(f'dataset/preprocessed/cluster_recurrent/{mode}/X_test.csv').set_index('orig_index')
+#     #X_test_df = pd.read_csv(f'dataset/preprocessed/{cluster}/{mode}/X_test.csv').set_index('orig_index')
 
 #     # turn the timestamp into the day of year
 #     X_train_df.timestamp = pd.to_datetime(X_train_df.timestamp, unit='s')
@@ -587,10 +587,10 @@ def get_session_groups_indices_df(X_df, Y_df, cols_to_group=['user_id','session_
     return X_df.groupby(cols_to_group).apply(lambda r: pd.Series({indices_col_name: r.index.values})).reset_index()
 
 
-
+"""
 if __name__ == "__main__":
     mode = menu.mode_selection()
-    cluster_name = 'cluster_recurrent'
+    cluster_name = menu.single_choice()
 
     dataset_type = menu.single_choice('Choose which type of dataset you want to create:',
                                 ['For regression', 'For classification'],
@@ -611,8 +611,10 @@ if __name__ == "__main__":
     elif dataset_type == 'classification':
         from extract_features.reference_position_in_next_clickout_impressions import ReferencePositionInNextClickoutImpressions
         
-        ref_pos_next_clk_feat = ReferencePositionInNextClickoutImpressions(mode=mode, cluster=cluster_name)
+        ref_pos_next_clk_feat = ReferencePositionInNextClickoutImpressions()
         features = [ref_pos_next_clk_feat]
         
         create_dataset_for_classification(mode, cluster_name, pad_sessions_length=sess_length,
                                         add_item_features=item_feat_choice, features=features, add_dummy_actions=False)
+
+"""
