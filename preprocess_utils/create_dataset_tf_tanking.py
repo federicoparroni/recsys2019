@@ -46,10 +46,7 @@ def _reinsert_clickout(df):
         df.at[clickout_rows_df.index[0], 'reference']= missing_click
     return df
 
-def create_dataset(mode, cluster, features_array, dataset_name):
-    _SAVE_BASE_PATH = f'dataset/preprocessed/tf_ranking/{cluster}/{mode}/{dataset_name}'
-    cf.check_folder(_SAVE_BASE_PATH)
-
+def merge_features(mode, cluster, features_array):
     """
     RETRIEVE THE FEATURES
     """
@@ -126,10 +123,17 @@ def create_dataset(mode, cluster, features_array, dataset_name):
     print(f'number of tgt index: {len(target_indeces_reordered)}')
     target_indeces_reordered = np.array(target_indeces_reordered)
 
-    """
-    CREATE DATA FOR TRAIN
+    return train_df, test_df, target_indeces_reordered
 
+def create_dataset(mode, cluster, features_array, dataset_name):
+    _SAVE_BASE_PATH = f'dataset/preprocessed/tf_ranking/{cluster}/{mode}/{dataset_name}'
+    cf.check_folder(_SAVE_BASE_PATH)
+    train_df, test_df, target_indeces_reordered = merge_features(mode, cluster, features_array)
+    
     """
+        CREATE DATA FOR TRAIN
+
+        """
     # associate to each session a QID
     qid = []
 
@@ -182,7 +186,7 @@ def create_dataset(mode, cluster, features_array, dataset_name):
     np_qid_test = np.array(qid_test)
     print(np_qid_test)
 
-    if mode!='full':
+    if mode != 'full':
         X_test, Y_test = test_df.iloc[:, 4:], test_df['label']
         del test_df
         X_test_norm = scaler.fit_transform(X_test)
@@ -191,7 +195,8 @@ def create_dataset(mode, cluster, features_array, dataset_name):
         # dummy_label = np.zeros(len(X_test),dtype=np.int)
 
         print('SAVING TEST DATA...')
-        dump_svmlight_file(X_test_norm, Y_test_norm, f'{_SAVE_BASE_PATH}/test.txt', query_id=np_qid_test, zero_based=False)
+        dump_svmlight_file(X_test_norm, Y_test_norm, f'{_SAVE_BASE_PATH}/test.txt', query_id=np_qid_test,
+                           zero_based=False)
         print('DONE')
 
         print('SAVING TARGET_INDICES...')
@@ -203,10 +208,8 @@ def create_dataset(mode, cluster, features_array, dataset_name):
         X_test = test_df.iloc[:, 4:]
         del test_df
         X_test_norm = scaler.fit_transform(X_test)
+        dummy_label = np.zeros(len(X_test), dtype=np.int)
         del X_test
-
-        dummy_label = np.zeros(len(X_test),dtype=np.int)
-
 
         print('SAVING TEST DATA...')
         dump_svmlight_file(X_test_norm, dummy_label, f'{_SAVE_BASE_PATH}/test.txt', query_id=np_qid_test,
@@ -218,12 +221,19 @@ def create_dataset(mode, cluster, features_array, dataset_name):
         print('DONE')
         print('PROCEDURE ENDED CORRECTLY')
 
-
 if __name__ == '__main__':
     mode = 'small'
     cluster = 'no_cluster'
-    dataset_name = 'prova2'
+    dataset_name = 'no_pos'
 
+    features_array = {
+        'item_id': [ImpressionLabel, ImpressionPriceInfoSession,
+                    TimingFromLastInteractionImpression, ActionsInvolvingImpressionSession,
+                    TimesUserInteractedWithImpression, ItemPopularitySession],
+        'session': [MeanPriceClickout, MeanPriceClickout_edo, SessionLength, TimePassedBeforeClickout]
+    }
+
+    """
     features_array = {
         'item_id': [ImpressionLabel,ImpressionPriceInfoSession,LastInteractionInvolvingImpression,
                     TimingFromLastInteractionImpression,ActionsInvolvingImpressionSession,ImpressionPositionSession,
@@ -232,4 +242,6 @@ if __name__ == '__main__':
                     SessionActionNumRefDiffFromImpressions, SessionFilterActiveWhenClickout,
                     SessionSortOrderWhenClickout, TimePassedBeforeClickout]
     }
+    """
+
     create_dataset(mode=mode, cluster=cluster, features_array=features_array, dataset_name=dataset_name)

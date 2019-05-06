@@ -24,7 +24,7 @@ class RNNClassificationRecommender(RecurrentRecommender):
                 optimizer='rmsprop', checkpoints_path=None, tensorboard_path=None):
         
         super().__init__(dataset=dataset, cell_type=cell_type, num_recurrent_layers=num_recurrent_layers,
-                        num_recurrent_units=num_recurrent_units, num_dense_layers=num_dense_layers,
+                        num_recurrent_units=num_recurrent_units, num_dense_layers=num_dense_layers, output_size=25,
                         use_generator=use_generator, validation_split=validation_split,
                         loss='categorical_crossentropy', optimizer=optimizer, class_weights=class_weights,
                         checkpoints_path=checkpoints_path, tensorboard_path=tensorboard_path)
@@ -51,12 +51,12 @@ class RNNClassificationRecommender(RecurrentRecommender):
 
         assert len(predictions) == len(target_indices)
 
-        train_df = data.train_df('full')
+        full_df = data.full_df()
 
         result_predictions = []
         for index in tqdm(target_indices):
             # get the impressions of the clickout to predict
-            impr = list(map(int, train_df.loc[index]['impressions'].split('|')))
+            impr = list(map(int, full_df.loc[index]['impressions'].split('|')))
             # build a list of (impression, score)
             prediction_impressions_distances = [ (impr[j], predictions.at[index,j]) for j in range(len(impr)) ]
             # order the list based on scores (greater is better)
@@ -77,6 +77,14 @@ class RNNClassificationRecommender(RecurrentRecommender):
 if __name__ == "__main__":
     import utils.menu as menu
 
+    # build the weights array
+    weights = np.array([0.37738,0.10207,0.07179,0.05545,0.04711,0.03822,0.03215,0.02825,0.02574,
+                        0.02289,0.02239,0.02041,0.01814,0.01619,0.01451,0.01306,0.01271,0.01156,
+                        0.01174,0.01072,0.01018,0.00979,0.00858,0.00868,0.01029])
+    weights = 1/weights
+    wgt_sum = sum(weights)
+    weights = weights/wgt_sum
+
     mode = menu.mode_selection()
     cell_type = menu.single_choice('Choose a network architecture:', ['LSTM', 'GRU', 'default architecture'], [lambda: 'LSTM', lambda: 'GRU', lambda: 'auto'])
     print()
@@ -92,18 +100,11 @@ if __name__ == "__main__":
         rec_layers = int(input('Insert number of recurrent layers: '))
         units = int(input('Insert number of units per layer: '))
         dense_layers = int(input('Insert number of dense layers: '))
+        weights = menu.yesno_choice('Do you want to use samples weighting?', lambda: weights, lambda: [])
         tb_path = menu.yesno_choice('Do you want to enable Tensorboard?', lambda: 'recommenders/tensorboard', lambda: None)
 
     dataset = SequenceDatasetForClassification(f'dataset/preprocessed/cluster_recurrent/{mode}/dataset_classification')
     
-    # build the weights array
-    weights = np.array([0.37738,0.10207,0.07179,0.05545,0.04711,0.03822,0.03215,0.02825,0.02574,
-                        0.02289,0.02239,0.02041,0.01814,0.01619,0.01451,0.01306,0.01271,0.01156,
-                        0.01174,0.01072,0.01018,0.00979,0.00858,0.00868,0.01029])
-    weights = 1/weights
-    wgt_sum = sum(weights)
-    weights = weights/wgt_sum
-
     model = RNNClassificationRecommender(dataset, use_generator=True, cell_type=cell_type,
                                         num_recurrent_layers=rec_layers, num_recurrent_units=units,
                                         num_dense_layers=dense_layers, class_weights=weights)

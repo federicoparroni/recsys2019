@@ -24,9 +24,10 @@ class RNNRegressionRecommender(RecurrentRecommender):
                 use_generator=True, validation_split=0.15, class_weights=None,
                 optimizer='rmsprop', checkpoints_path=None, tensorboard_path=None):
         
+        out_size = len(data.accomodations_df.columns)
         super().__init__(dataset=dataset, cell_type=cell_type, num_recurrent_layers=num_recurrent_layers,
                         num_recurrent_units=num_recurrent_units, num_dense_layers=num_dense_layers,
-                        use_generator=use_generator, validation_split=validation_split,
+                        output_size=out_size, use_generator=use_generator, validation_split=validation_split,
                         loss='mean_squared_error', optimizer=optimizer, class_weights=class_weights,
                         checkpoints_path=checkpoints_path, tensorboard_path=tensorboard_path)
 
@@ -52,13 +53,13 @@ class RNNRegressionRecommender(RecurrentRecommender):
 
         assert len(predictions) == len(target_indices)
 
-        train_df = data.train_df('full')
+        full_df = data.full_df()
         accomodations1hot_df = data.accomodations_one_hot()
 
         result_predictions = []
         for k,index in tqdm(enumerate(target_indices)):
             # get the impressions of the clickout to predict
-            impr = list(map(int, train_df.loc[index]['impressions'].split('|')))
+            impr = list(map(int, full_df.loc[index]['impressions'].split('|')))
             # get the true labels from the accomodations one-hot
             true_labels = accomodations1hot_df.loc[impr].values
             # build a list of (impression, l2norm distance)

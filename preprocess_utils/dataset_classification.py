@@ -355,6 +355,13 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
             train = dataset[(dataset['user_id'].isin(
                 target_user_id) & dataset['session_id'].isin(target_session_id)) == False]
 
+            # fix momentaneo: ci sono alcune sessioni con stesso user_id - session_id sia in full train che in full test! 
+            if len(test[test.label == 1]) > 0:
+                err = test[test.label == 1]
+                user_idss = err.user_id.values
+                session_idss = err.session_id.values
+                test = test[~(test.user_id.isin(user_idss)) & ~(test.session_id.isin(session_idss))]
+
             if count_chunk == 1:
                 path = 'dataset/preprocessed/{}/{}/{}/classification_train.csv'.format(
                     cluster, mode, algo)

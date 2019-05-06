@@ -38,7 +38,7 @@ class ClusterizeBase(ABC):
         """
         pass
     
-    def save(self, mode='full', add_unused_clickouts_to_test = True):
+    def save(self, mode='full', add_unused_clickouts_to_test=True):
         """
         makes use of fit to create the dataset for a specific cluster. in particular it take cares
         to create a folder at the same level of base_split with the specified name and the

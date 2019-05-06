@@ -69,6 +69,7 @@ import six
 import tensorflow as tf
 import tensorflow_ranking as tfr
 import datetime
+from utils.best_checkpoint_copier import BestCheckpointCopier
 
 
 
@@ -165,7 +166,9 @@ def get_train_inputs(features, labels, batch_size):
     labels_placeholder = tf.placeholder(labels.dtype, labels.shape)
     dataset = tf.data.Dataset.from_tensor_slices((features_placeholder,
                                                   labels_placeholder))
+
     dataset = dataset.shuffle(1000).repeat().batch(batch_size)
+
     #1000
     iterator = dataset.make_initializable_iterator()
     feed_dict = {labels_placeholder: labels}
@@ -174,22 +177,24 @@ def get_train_inputs(features, labels, batch_size):
     iterator_initializer_hook.iterator_initializer_fn = (
         lambda sess: sess.run(iterator.initializer, feed_dict=feed_dict))
     return iterator.get_next()
-
   return _train_input_fn, iterator_initializer_hook
 
-
-def get_eval_inputs(features, labels):
-  """Set up eval inputs in a single batch."""
+def get_batches(features, labels, batch_size):
+  """Set up training input in batches."""
   iterator_initializer_hook = IteratorInitializerHook()
 
-  def _eval_input_fn():
-    """Defines eval input fn."""
+  def _train_input_fn():
+    """Defines training input fn."""
     features_placeholder = {
         k: tf.placeholder(v.dtype, v.shape) for k, v in six.iteritems(features)
     }
     labels_placeholder = tf.placeholder(labels.dtype, labels.shape)
-    dataset = tf.data.Dataset.from_tensors((features_placeholder,
-                                            labels_placeholder))
+    dataset = tf.data.Dataset.from_tensor_slices((features_placeholder,
+                                                  labels_placeholder))
+
+    dataset = dataset.batch(batch_size)
+
+    #1000
     iterator = dataset.make_initializable_iterator()
     feed_dict = {labels_placeholder: labels}
     feed_dict.update(
@@ -197,9 +202,12 @@ def get_eval_inputs(features, labels):
     iterator_initializer_hook.iterator_initializer_fn = (
         lambda sess: sess.run(iterator.initializer, feed_dict=feed_dict))
     return iterator.get_next()
+  return _train_input_fn, iterator_initializer_hook
 
-  return _eval_input_fn, iterator_initializer_hook
 
+def batch_inputs(features, labels, batch_size):
+    dataset = tf.data.Dataset.from_tensor_slices((features, labels))
+    return dataset.batch(batch_size)
 
 def make_score_fn():
   """Returns a groupwise score fn to build `EstimatorSpec`."""
@@ -241,12 +249,6 @@ def get_eval_metric_fns():
           tfr.metrics.RankingMetricKey.MRR,
       ]
   })
-  metric_fns.update({
-      "metric/ndcg@%d" % topn: tfr.metrics.make_ranking_metric_fn(
-          tfr.metrics.RankingMetricKey.NDCG, topn=topn)
-      for topn in [1, 3, 5, 10]
-  })
-
   return metric_fns
 
 
@@ -259,11 +261,14 @@ def train_and_eval():
 
   features_vali, labels_vali = load_libsvm_data(FLAGS.vali_path,
                                                 FLAGS.list_size)
-  vali_input_fn, vali_hook = get_eval_inputs(features_vali, labels_vali)
+  vali_input_fn, vali_hook = get_batches(features_vali, labels_vali,
+                                                FLAGS.train_batch_size)
 
   features_test, labels_test = load_libsvm_data(FLAGS.test_path,
                                                 FLAGS.list_size)
-  test_input_fn, test_hook = get_eval_inputs(features_test, labels_test)
+  test_input_fn, test_hook= get_batches(features_test, labels_test,
+                                                FLAGS.train_batch_size)
+
 
   def _train_op_fn(loss):
     """Defines train op used in ranking head."""
@@ -271,11 +276,30 @@ def train_and_eval():
         loss=loss,
         global_step=tf.train.get_global_step(),
         learning_rate=FLAGS.learning_rate,
-        optimizer="Adam")
+        optimizer="Adagrad")
   #Adagrad
 
+  best_copier = BestCheckpointCopier(
+      name='best',  # directory within model directory to copy checkpoints to
+      checkpoints_to_keep=5,  # number of checkpoints to keep
+      score_metric='metric/mrr',  # metric to use to determine "best"
+      compare_fn=lambda x, y: x.score < y.score,
+      # comparison function used to determine "best" checkpoint (x is the current checkpoint; y is the previously copied checkpoint with the highest/worst score)
+      sort_key_fn=lambda x: x.score,
+      sort_reverse=True,
+      dataset_name=FLAGS.dataset_name,
+      save_path=f'{FLAGS.save_path}/predictions',
+      #save_path=f'dataset/preprocessed/tf_ranking/{_CLUSTER}/full/{_DATASET_NAME}/predictions',
+      test_x=features_test,
+      test_y=labels_test,
+      mode = FLAGS.mode,
+      loss = FLAGS.loss,
+      min_mrr_start=FLAGS.min_mrr_start,
+      )
+
+
   ranking_head = tfr.head.create_ranking_head(
-      loss_fn=tfr.losses.make_loss_fn(FLAGS.loss),
+      loss_fn=tfr.losses.make_loss_fn(FLAGS.loss, lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight()),
       eval_metric_fns=get_eval_metric_fns(),
       train_op_fn=_train_op_fn)
   #lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight()
@@ -286,8 +310,9 @@ def train_and_eval():
           group_size=FLAGS.group_size,
           transform_fn=None,
           ranking_head=ranking_head),
-      config=tf.estimator.RunConfig(
-          FLAGS.output_dir, save_checkpoints_steps=1000))
+    config=tf.estimator.RunConfig(
+      FLAGS.output_dir, save_checkpoints_steps=1000))
+
 
   train_spec = tf.estimator.TrainSpec(
       input_fn=train_input_fn,
@@ -296,47 +321,57 @@ def train_and_eval():
   vali_spec = tf.estimator.EvalSpec(
       input_fn=vali_input_fn,
       hooks=[vali_hook],
-      steps=1,
+      steps=None,
+      exporters=best_copier,
       start_delay_secs=0,
       throttle_secs=30)
-
 
   # Train and validate
   tf.estimator.train_and_evaluate(estimator, train_spec, vali_spec)
 
-  # Evaluate on the test data.
-  print('evaluation on test')
-  estimator.evaluate(input_fn=test_input_fn, hooks=[test_hook])
+  """
+  if FLAGS.mode != 'full':
+      # Evaluate on the test data.
+      print('\n\n\nevaluation on test')
+      estimator.evaluate(input_fn=lambda: batch_inputs(features_test,labels_test,FLAGS.train_batch_size))
+      print('DONE! \n\n\n ')
+  
 
-  predictor = estimator.predict(input_fn=test_input_fn, hooks=[test_hook])
+  print('\n\n\n PREDICT TEST AND SAVE PREDICTIONS')
+
+  predictor = estimator.predict(lambda: batch_inputs(features_test,labels_test,FLAGS.train_batch_size))
   predictions = list(predictor)
   np.save(f'{FLAGS.save_path}/predictions', np.array(predictions))
 
-
+  print('DONE! \n\n\n ')
+  """
 
 def main(_):
   tf.logging.set_verbosity(tf.logging.INFO)
 
   #TODO: save the prediction in numpy arry format
-  predictions = train_and_eval()
+  train_and_eval()
 
 
 if __name__ == "__main__":
 
     print('type mode: small, local or full')
-    mode = input()
-    
+    _MODE = input()
+
     print('type cluster')
     #cluster = input()
-    cluster='no_cluster'
+    _CLUSTER='no_cluster'
     print('type dataset_name')
-    #dataset_name = input()
-    dataset_name = 'prova2'
+    _DATASET_NAME = input()
 
-    _BASE_PATH = f'dataset/preprocessed/tf_ranking/{cluster}/{mode}/{dataset_name}'
+    _BASE_PATH = f'dataset/preprocessed/tf_ranking/{_CLUSTER}/{_MODE}/{_DATASET_NAME}'
+
+
 
     _TRAIN_PATH = f'{_BASE_PATH}/train.txt'
     _TEST_PATH = f'{_BASE_PATH}/test.txt'
+    #_TEST_PATH = f'dataset/preprocessed/tf_ranking/{_CLUSTER}/full/{_DATASET_NAME}/test.txt'
+
     _VALI_PATH = f'{_BASE_PATH}/vali.txt'
 
     cf.check_folder(f'{_BASE_PATH}/output_dir_{datetime.datetime.now().strftime("%Y-%m-%d_%H:%M")}')
@@ -347,25 +382,29 @@ if __name__ == "__main__":
     flags.DEFINE_string("vali_path", _VALI_PATH, "Input file path used for validation.")
     flags.DEFINE_string("test_path", _TEST_PATH, "Input file path used for testing.")
     flags.DEFINE_string("output_dir", _OUTPUT_DIR, "Output directory for models.")
+    flags.DEFINE_string("mode", _MODE, "mode of the models.")
+    flags.DEFINE_string("dataset_name", _DATASET_NAME, "name of the dataset")
+    flags.DEFINE_float("min_mrr_start", 0.63, "min_mrr_from_which_save_model")
 
-    flags.DEFINE_integer("train_batch_size", 32, "The batch size for training.")
+    flags.DEFINE_integer("train_batch_size", 128, "The batch size for training.")
     # 32
-    flags.DEFINE_integer("num_train_steps", 100000, "Number of steps for training.")
+    flags.DEFINE_integer("num_train_steps", None, "Number of steps for training.")
 
-    flags.DEFINE_float("learning_rate", 0.01, "Learning rate for optimizer.")
+    flags.DEFINE_float("learning_rate", 0.1, "Learning rate for optimizer.")
     #0.01
-    flags.DEFINE_float("dropout_rate", 0.2, "The dropout rate before output layer.")
+    flags.DEFINE_float("dropout_rate", 0.1, "The dropout rate before output layer.")
     # 0.5
-    flags.DEFINE_list("hidden_layer_dims", ['256','128','64'],
+    flags.DEFINE_list("hidden_layer_dims", ['256','128'],
                     "Sizes for hidden layers.")
     # ["256", "128", "64"]
+    # best ["256", "128"]
 
-    flags.DEFINE_integer("num_features", 219, "Number of features per document.")
+    flags.DEFINE_integer("num_features", 225, "Number of features per document.")
     flags.DEFINE_integer("list_size", 25, "List size used for training.")
     flags.DEFINE_integer("group_size", 1, "Group size used in score function.")
     #1
 
-    flags.DEFINE_string("loss", "pairwise_logistic_loss",
+    flags.DEFINE_string("loss", "pairwise_hinge_loss",
                       "The RankingLossKey for loss function.")
 
     FLAGS = flags.FLAGS

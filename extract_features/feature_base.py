@@ -55,7 +55,7 @@ class FeatureBase(ABC):
             self.cluster, self.mode, self.name)
         if os.path.exists(path):
             if overwrite_if_exists == None:
-                choice = yesno_choice('feature exists yet. want to recreate?')
+                choice = yesno_choice('The feature \'{}\' already exists. Want to recreate?'.format(self.name))
                 if choice == 'n':
                     return
             elif not overwrite_if_exists:
@@ -78,8 +78,8 @@ class FeatureBase(ABC):
     def read_feature(self, one_hot=False):
         """
         it reads a feature from disk and returns it.
-        if one_hot = True, it returns it as was saved.
-        if one_hot = False, returns the onehot of the categorical columns, by means of self.columns_to_onehot
+        if one_hot = False, it returns it as was saved.
+        if one_hot = True, returns the onehot of the categorical columns, by means of self.columns_to_onehot
         """
         path = 'dataset/preprocessed/{}/{}/feature/{}/features.csv'.format(
             self.cluster, self.mode, self.name)
