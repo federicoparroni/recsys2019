@@ -66,6 +66,7 @@ class ReferencePriceInNextClickout(FeatureBase):
         """ Join this feature to the specified dataframe """
         feature_df = self.read_feature().drop(['user_id','session_id'],axis=1)
         res_df = df.merge(feature_df, how='left', left_index=True, right_index=True)
+        res_df['price'] = res_df.price.fillna(0).astype('int')
         return res_df
 
 
