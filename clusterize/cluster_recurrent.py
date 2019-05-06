@@ -13,7 +13,7 @@ class ClusterRecurrent(ClusterizeBase):
     """
     Cluster used to train and test the recurrent models, the dataset
     is trasformed into vectors.
-    SESSIONS WITH NO CLICKOUTS or WITH A CLICKOUT REFERENCE NOT IN THE IMPRESSIONS ARE DISCARDED!
+    SESSIONS WITH NO CLICKOUTS ARE DISCARDED!
     Train: train sessions with at least one clickout
     Test: train sessions with at least one clickout
     Targets: all target
