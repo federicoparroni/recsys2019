@@ -14,11 +14,11 @@ class GlobalPopularity(FeatureBase):
     popularity is a positive number
     """
 
-    def __init__(self, mode, cluster='no_cluster'):
+    def __init__(self):
         name = 'global_popularity'
         columns_to_onehot = []
 
-        super().__init__(name=name, mode=mode, cluster=cluster, columns_to_onehot=columns_to_onehot)
+        super().__init__(name=name, mode='full', columns_to_onehot=columns_to_onehot)
 
 
     def extract_feature(self):
@@ -45,11 +45,10 @@ class GlobalPopularity(FeatureBase):
 
 
 if __name__ == '__main__':
-    import utils.menu as menu
     
-    mode = menu.mode_selection()
-    cluster = menu.cluster_selection()
-
-    c = GlobalPopularity(mode=mode, cluster=cluster)
+    c = GlobalPopularity()
+    
+    print('Creating {} for {} {}'.format(c.name, c.mode, c.cluster))
     #c.save_feature()
+    
     print(c.read_feature())
