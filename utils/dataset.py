@@ -226,7 +226,7 @@ class SequenceDatasetForClassification(Dataset):
         cols_to_drop_in_X = ['user_id','session_id','timestamp','reference','step','platform','city','current_filters']
         
         # scale the dataframe
-        glo_pop_feat = GlobalPopularity(mode=self.mode, cluster=self.cluster)
+        glo_pop_feat = GlobalPopularity(mode='full', cluster=self.cluster)
         max_pop = glo_pop_feat.read_feature().glob_popularity.max()
         X_df.glob_popularity = scale.logarithmic(X_df.glob_popularity, max_value=max_pop)
 

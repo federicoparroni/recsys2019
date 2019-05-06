@@ -29,10 +29,10 @@ if __name__ == "__main__":
         only_test = menu.yesno_choice('Do you want to create only the test dataset?', lambda: True, lambda: False)
 
     # create the features to join
-    ref_pos_next_clk_feat = ReferencePositionInNextClickoutImpressions(mode=mode, cluster=cluster_name)
+    ref_pos_next_clk_feat = ReferencePositionInNextClickoutImpressions(mode='full', cluster=cluster_name)
     ref_pos_next_clk_feat.save_feature()
     print()
-    ref_glob_popul = GlobalPopularity(mode=mode, cluster=cluster_name)
+    ref_glob_popul = GlobalPopularity(mode='full', cluster=cluster_name)
     ref_glob_popul.save_feature()
     print()
 
