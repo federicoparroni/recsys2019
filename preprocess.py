@@ -91,9 +91,9 @@ def merge_duplicates(df):
         previous_index = index
 
     df = df.drop(duplicates_indices)
-    df.loc[list(count_dict.keys()), "frequency"] = list(count_dict.values())
-    df["frequency"] = df["frequency"].fillna(1)
-    df = df.astype({"frequency": int})
+    df.loc[list(count_dict.keys()), "frequence"] = list(count_dict.values())
+    df["frequence"] = df["frequence"].fillna(1)
+    df = df.astype({"frequence": int})
     return df.reset_index(drop=True)
 
 
@@ -133,7 +133,7 @@ def create_full_df():
     if compressed:
         train_df = merge_duplicates(train_df)
     else:
-        train_df["frequency"] = 1
+        train_df["frequence"] = 1
 
     ##################################################################################
 
@@ -173,7 +173,7 @@ def create_full_df():
         if compressed:
             test_df = merge_duplicates(test_df)
         else:
-            test_df["frequency"] = 1
+            test_df["frequence"] = 1
 
         ####################################################################################
 
