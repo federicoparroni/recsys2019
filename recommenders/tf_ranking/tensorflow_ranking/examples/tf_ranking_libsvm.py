@@ -259,8 +259,8 @@ def train_and_eval():
       sort_key_fn=lambda x: x.score,
       sort_reverse=True,
       dataset_name=FLAGS.dataset_name,
-      #save_path=f'{FLAGS.save_path}/predictions',
-      save_path=f'dataset/preprocessed/tf_ranking/{_CLUSTER}/full/{_DATASET_NAME}/predictions',
+      save_path=f'{FLAGS.save_path}/predictions',
+      #save_path=f'dataset/preprocessed/tf_ranking/{_CLUSTER}/full/{_DATASET_NAME}/predictions',
       test_x=features_test,
       test_y=labels_test,
       mode = FLAGS.mode,
@@ -340,8 +340,8 @@ if __name__ == "__main__":
 
 
     _TRAIN_PATH = f'{_BASE_PATH}/train.txt'
-    #_TEST_PATH = f'{_BASE_PATH}/test.txt'
-    _TEST_PATH = f'dataset/preprocessed/tf_ranking/{_CLUSTER}/full/{_DATASET_NAME}/test.txt'
+    _TEST_PATH = f'{_BASE_PATH}/test.txt'
+    #_TEST_PATH = f'dataset/preprocessed/tf_ranking/{_CLUSTER}/full/{_DATASET_NAME}/test.txt'
 
     _VALI_PATH = f'{_BASE_PATH}/vali.txt'
 
