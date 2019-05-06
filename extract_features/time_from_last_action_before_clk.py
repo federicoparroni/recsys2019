@@ -8,7 +8,7 @@ import os
 #os.chdir("../")
 #print(os.getcwd())
 
-class TimePassedBeforeClickout(FeatureBase):
+class TimeFromLastActionBeforeClk(FeatureBase):
 
     """
     time passed before action before clickout. -1 if session consists of only an action
@@ -16,20 +16,23 @@ class TimePassedBeforeClickout(FeatureBase):
     """
 
     def __init__(self, mode, cluster='no_cluster'):
-        name = 'timing_last_action_before_clk'
-        super(TimePassedBeforeClickout, self).__init__(
+        name = 'time_from_last_action_before_clk'
+        super(TimeFromLastActionBeforeClk, self).__init__(
             name=name, mode=mode, cluster=cluster)
 
     def extract_feature(self):
 
         def func(x):
+            y = x[x['action_type'] == 'clickout item']
+            if len(y) > 0:
+                time_passed=-1
+                clk = y.tail(1)
+                head_index = x.head(1).index
+                x = x.loc[head_index.values[0]:clk.index.values[0]]
+                if len(x)>1:
+                    time_passed = int(x.tail(2).timestamp.values[1]) - int(x.tail(2).timestamp.values[0])
 
-            if len(x) > 1:
-                time_passed = int(x.tail().timestamp.values[1]) - int(x.tail().timestamp.values[0])
-            else:
-                time_passed = -1
-
-            return time_passed
+                return time_passed
 
         train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)
@@ -38,5 +41,5 @@ class TimePassedBeforeClickout(FeatureBase):
         return pd.DataFrame({'user_id': [x[0] for x in s.index.values], 'session_id':[x[1] for x in s.index.values], 'time_passed_before_clk':[x for x in s.values]})
 
 if __name__ == '__main__':
-    c = TimePassedBeforeClickout(mode='full', cluster='no_cluster')
+    c = TimeFromLastActionBeforeClk(mode='small', cluster='no_cluster')
     c.save_feature()
