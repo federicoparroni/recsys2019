@@ -179,6 +179,31 @@ def get_train_inputs(features, labels, batch_size):
     return iterator.get_next()
   return _train_input_fn, iterator_initializer_hook
 
+def get_batches(features, labels, batch_size):
+  """Set up training input in batches."""
+  iterator_initializer_hook = IteratorInitializerHook()
+
+  def _train_input_fn():
+    """Defines training input fn."""
+    features_placeholder = {
+        k: tf.placeholder(v.dtype, v.shape) for k, v in six.iteritems(features)
+    }
+    labels_placeholder = tf.placeholder(labels.dtype, labels.shape)
+    dataset = tf.data.Dataset.from_tensor_slices((features_placeholder,
+                                                  labels_placeholder))
+
+    dataset = dataset.batch(batch_size)
+
+    #1000
+    iterator = dataset.make_initializable_iterator()
+    feed_dict = {labels_placeholder: labels}
+    feed_dict.update(
+        {features_placeholder[k]: features[k] for k in features_placeholder})
+    iterator_initializer_hook.iterator_initializer_fn = (
+        lambda sess: sess.run(iterator.initializer, feed_dict=feed_dict))
+    return iterator.get_next()
+  return _train_input_fn, iterator_initializer_hook
+
 
 def batch_inputs(features, labels, batch_size):
     dataset = tf.data.Dataset.from_tensor_slices((features, labels))
@@ -236,9 +261,13 @@ def train_and_eval():
 
   features_vali, labels_vali = load_libsvm_data(FLAGS.vali_path,
                                                 FLAGS.list_size)
+  vali_input_fn, vali_hook = get_batches(features_vali, labels_vali,
+                                                FLAGS.train_batch_size)
 
   features_test, labels_test = load_libsvm_data(FLAGS.test_path,
                                                 FLAGS.list_size)
+  test_input_fn, test_hook= get_batches(features_test, labels_test,
+                                                FLAGS.train_batch_size)
 
 
   def _train_op_fn(loss):
@@ -290,8 +319,8 @@ def train_and_eval():
       hooks=[train_hook],
       max_steps=FLAGS.num_train_steps)
   vali_spec = tf.estimator.EvalSpec(
-      input_fn=lambda:batch_inputs(features_vali,labels_vali,FLAGS.train_batch_size),
-      #hooks=[vali_hook],
+      input_fn=vali_input_fn,
+      hooks=[vali_hook],
       steps=None,
       exporters=best_copier,
       start_delay_secs=0,
