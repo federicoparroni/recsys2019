@@ -10,7 +10,10 @@ import preprocess_utils.session2vec as sess2vec
 from sklearn.preprocessing import MinMaxScaler
 import utils.scaling as scale
 
-from extract_features.global_popularity import GlobalPopularity
+from extract_features.global_interactions_popularity import GlobalInteractionsPopularity
+from extract_features.global_clickout_popularity import GlobalClickoutPopularity
+from extract_features.average_price_in_next_clickout import AveragePriceInNextClickout
+from extract_features.reference_price_in_next_clickout import ReferencePriceInNextClickout
 
 ## ======= Datasets - Base class ======= ##
 
@@ -224,11 +227,29 @@ class SequenceDatasetForClassification(Dataset):
         #X_df['dayofyear'] = X_df.timestamp.dt.dayofyear
 
         cols_to_drop_in_X = ['user_id','session_id','timestamp','reference','step','platform','city','current_filters']
-        
+        #cols_to_drop_in_X.extend( ['rp{}'.format(i) for i in range(25)] )
+
         # scale the dataframe
-        glo_pop_feat = GlobalPopularity(mode=self.mode, cluster=self.cluster)
-        max_pop = glo_pop_feat.read_feature().glob_popularity.max()
-        X_df.glob_popularity = scale.logarithmic(X_df.glob_popularity, max_value=max_pop)
+        glo_click_pop_feat = GlobalClickoutPopularity()
+        max_pop = glo_click_pop_feat.read_feature()['glob_clickout_popularity'].max()
+        X_df['glob_clickout_popularity'] = scale.logarithmic(X_df['glob_clickout_popularity'], max_value=max_pop)
+        #X_df['glob_clickout_popularity'] /= max_pop
+        
+        glob_int_pop_feat = GlobalInteractionsPopularity()
+        glob_int_pop_max = glob_int_pop_feat.read_feature()['glob_inter_popularity'].max()
+        X_df['glob_inter_popularity'] = scale.logarithmic(X_df['glob_inter_popularity'], max_value=glob_int_pop_max)
+        # X_df['glob_inter_popularity'] /= glob_int_pop_max
+        # X_df = X_df.drop('glob_inter_popularity', axis=1)
+
+        avg_price_feat = AveragePriceInNextClickout()
+        max_avg_price = avg_price_feat.read_feature().avg_price.max()
+        X_df.avg_price /= max_avg_price
+        # X_df = X_df.drop('avg_price', axis=1)
+
+        ref_price_feat = ReferencePriceInNextClickout()
+        max_ref_price = ref_price_feat.read_feature().price.max()
+        X_df.price /= max_ref_price
+        # X_df = X_df.drop('price', axis=1)
 
         X_df.frequence /= 120
         # if partial:

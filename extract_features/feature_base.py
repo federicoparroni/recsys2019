@@ -85,7 +85,7 @@ class FeatureBase(ABC):
         path = 'dataset/preprocessed/{}/{}/feature/{}/features.csv'.format(
             self.cluster, self.mode, self.name)
         if not os.path.exists(path):
-            choice = yesno_choice('feature does not exist. want to create?')
+            choice = yesno_choice('feature \'{}\' does not exist. want to create?'.format(self.name))
             if choice == 'y':
                 self.save_feature()
             else:

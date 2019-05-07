@@ -94,14 +94,14 @@ if __name__ == "__main__":
         rec_layers = 1
         dense_layers = 2
         units = 4
-        tb_path = None
     else:
         epochs = int(input('Insert number of epochs: '))
         rec_layers = int(input('Insert number of recurrent layers: '))
         units = int(input('Insert number of units per layer: '))
         dense_layers = int(input('Insert number of dense layers: '))
         weights = menu.yesno_choice('Do you want to use samples weighting?', lambda: weights, lambda: [])
-        tb_path = menu.yesno_choice('Do you want to enable Tensorboard?', lambda: 'recommenders/tensorboard', lambda: None)
+        #tb_path = menu.yesno_choice('Do you want to enable Tensorboard?', lambda: 'recommenders/tensorboard', lambda: None)
+    tb_path = None
 
     dataset = SequenceDatasetForClassification(f'dataset/preprocessed/cluster_recurrent/{mode}/dataset_classification')
     
