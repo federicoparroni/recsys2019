@@ -9,12 +9,12 @@ class SessionSortOrderWhenClickout(FeatureBase):
 
     """
     device used during a session:
-    | user_id | session_id | sort_order_active_when_clickout
+    | user_id | session_id | session_sort_order_when_clickout
     sort_order_active_when_clickout is string
     """
 
     def __init__(self, mode, cluster='no_cluster'):
-        name = 'sort_order_active_when_clickout'
+        name = 'session_sort_order_when_clickout'
         columns_to_onehot = [('sort_order_active_when_clickout', 'single')]
         super(SessionSortOrderWhenClickout, self).__init__(
             name=name, mode=mode, cluster=cluster, columns_to_onehot=columns_to_onehot)
@@ -33,7 +33,7 @@ class SessionSortOrderWhenClickout(FeatureBase):
                     if len(change_of_sort_order_actions) > 0:
                         change_of_sort_order_actions = change_of_sort_order_actions.tail(1)
                         return change_of_sort_order_actions['reference'].values[0]
-            return 'default sorting'
+            return 'our recommendations'
 
         train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)
