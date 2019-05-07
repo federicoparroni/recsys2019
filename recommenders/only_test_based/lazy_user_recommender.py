@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+import math
 
 import data
 
@@ -32,29 +33,34 @@ class LazyUserRecommender(RecommenderBase):
         target_indices = data.target_indices(self.mode, self.cluster)
 
         df_test_target = df_test[df_test.index.isin(target_indices)]
+        count = 0
+        oneshot = 0
+        resorted = 0
         recs_tuples = []
         print("Fitting...")
-
         for index, row in tqdm(df_test_target.iterrows()):
             impressions = list(map(int, row["impressions"].split("|")))
             if int(row.step) == 1:
                 # This means that the clickout is the first interaction of the session --> we are in a one shot session
+                oneshot += 1
                 recs_tuples.append((index, impressions))
             else:
                 previous_row = df_test.loc[index - 1]
-                t = int(previous_row["timestamp"]) - int(row["timestamp"])
-                if t <= self.time_delay_treshold:
-                    last_interaction_ref = previous_row["reference"]
-                    if last_interaction_ref.isdigit():
-                        last_interaction_ref = int(last_interaction_ref)
-                    if last_interaction_ref and last_interaction_ref in impressions:
-                        i = impressions.index(last_interaction_ref)
-                        sorted_impressions = impressions[i:] + impressions[:i]
-                        recs_tuples.append((index, sorted_impressions))
-                    else:
-                        recs_tuples.append((index, impressions))
+                last_interaction_ref = previous_row["reference"]
+                if type(last_interaction_ref) == str and last_interaction_ref.isdigit():
+                    last_interaction_ref = int(last_interaction_ref)
+                if last_interaction_ref and last_interaction_ref in impressions:
+                    i = impressions.index(last_interaction_ref)
+                    sorted_impressions = impressions[i:] + impressions[:i]
+                    count += 1
+                    recs_tuples.append((index, sorted_impressions))
                 else:
+                    resorted += 1
                     recs_tuples.append((index, impressions))
+
+        print("{} % of resorted session".format(round(resorted / len(df_test_target) * 100, 2)))
+        print("{} % of oneshot session".format(round(oneshot / len(df_test_target) * 100, 2)))
+        print("{} % of lazy session".format(round(count / len(df_test_target) * 100, 2)))
         self.recs = recs_tuples
         print("Fitting completed!")
 
