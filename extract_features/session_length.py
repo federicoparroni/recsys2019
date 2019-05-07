@@ -38,5 +38,7 @@ class SessionLength(FeatureBase):
         return s.reset_index()
 
 if __name__ == '__main__':
-    c = SessionLength(mode='small', cluster='no_cluster')
+    from utils.menu import mode_selection
+    mode = mode_selection()
+    c = SessionLength(mode=mode, cluster='no_cluster')
     c.save_feature()

@@ -54,5 +54,7 @@ class TimesUserInteractedWithImpression(FeatureBase):
         return s
 
 if __name__ == '__main__':
-    c = TimesUserInteractedWithImpression(mode='small', cluster='no_cluster')
+    from utils.menu import mode_selection
+    mode = mode_selection()
+    c = TimesUserInteractedWithImpression(mode=mode, cluster='no_cluster')
     c.save_feature()

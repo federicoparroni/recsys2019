@@ -9,9 +9,6 @@ import pandas as pd
 from preprocess_utils import create_icm, create_urm
 import numpy as np
 
-
-
-
 def _get_sessions_with_duplicated_steps(df):
     df_dup = df[["session_id", "user_id", "step"]]
     df_dup = df_dup[df_dup["step"] == 1]
@@ -81,7 +78,8 @@ def merge_duplicates(df):
             init = True
         else:
             if previous_row["user_id"] == row["user_id"] and previous_row["session_id"] == row["session_id"] \
-             and previous_row["action_type"] == row["action_type"] and previous_row["reference"] == row["reference"]:
+             and previous_row["action_type"] == row["action_type"] and previous_row["reference"] == row["reference"] \
+             and row["action_type"] != "clickout item":
                 count += 1
                 duplicates_indices.append(previous_index)
             else:
@@ -98,6 +96,7 @@ def merge_duplicates(df):
     df = df.astype({"frequence": int})
     return df.reset_index(drop=True)
 
+
 def create_full_df():
     """
     Save the dataframe containing train.csv and test.csv contiguosly with reset indexes. Also save the config file
@@ -105,6 +104,8 @@ def create_full_df():
     indicates train rows (idx < max_train_idx) and test rows (idx >= max_train_idx).
     """
     train_df = data.original_train_df().reset_index(drop=True)
+    compressed = menu.yesno_choice(title='Do you want the compressed version? (no for the original full)',
+                                   callback_yes=lambda: True, callback_no=lambda: False)
 
     ################# TRAIN; FIXING DUPLICATED SESSION_ID <-> STEP PAIRS ##################
     sessions = _get_sessions_with_duplicated_steps(train_df)
@@ -129,7 +130,10 @@ def create_full_df():
 
     ################# TRAIN; MERGING DUPLICATES ########################################
 
-    train_df = merge_duplicates(train_df)
+    if compressed:
+        train_df = merge_duplicates(train_df)
+    else:
+        train_df["frequence"] = 1
 
     ##################################################################################
 
@@ -166,7 +170,10 @@ def create_full_df():
 
         ################# TEST; MERGING DUPLICATES ########################################
 
-        test_df = merge_duplicates(test_df)
+        if compressed:
+            test_df = merge_duplicates(test_df)
+        else:
+            test_df["frequence"] = 1
 
         ####################################################################################
 
@@ -319,7 +326,6 @@ def remove_from_stars_features(row):
     else:
         return row
 
-
 def preprocess():
     """
     Preprocess menu
@@ -412,8 +418,9 @@ def preprocess():
         create_full_df()
         print('Done!')
 
+
     # create CSV files
-    menu.yesno_choice(title='Do you want to merge similar sessions?', callback_yes=_merge_sessions)
+    menu.yesno_choice(title='Do you want to merge similar sessions (adding unified_session_id)?', callback_yes=_merge_sessions)
 
     # create CSV files
     menu.yesno_choice(title='Do you want to create the CSV files?', callback_yes=_create_csvs)

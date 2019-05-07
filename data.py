@@ -121,30 +121,27 @@ def dataset_xgboost_train(mode, cluster='no_cluster'):
     global _dataset_xgboost_train
     bp = 'dataset/preprocessed/{}/{}/xgboost'.format(cluster, mode)
     if not 'a' in _dataset_xgboost_train:
-        _dataset_xgboost_train['a'] = sps.load_npz(
-            os.path.join(bp, 'X_train.npz'))
-        _dataset_xgboost_train['b'] = pd.read_csv(
-            os.path.join(bp, 'y_train.csv'), index_col=0)['label'].to_dense()
-        _dataset_xgboost_train['c'] = np.load(
+        _dataset_xgboost_train[bp+'a'] = pd.read_csv(
+            os.path.join(bp, 'X_train.csv'))
+        _dataset_xgboost_train[bp+'b'] = pd.read_csv(
+            os.path.join(bp, 'y_train.csv'))['label'].to_dense()
+        _dataset_xgboost_train[bp+'c'] = np.load(
             os.path.join(bp, 'group.npy'))
-    return _dataset_xgboost_train['a'], \
-        _dataset_xgboost_train['b'], \
-        _dataset_xgboost_train['c']
+    return _dataset_xgboost_train[bp+'a'], \
+        _dataset_xgboost_train[bp+'b'], \
+        _dataset_xgboost_train[bp+'c']
 
 
 def dataset_xgboost_test(mode, cluster='no_cluster'):
     global _dataset_xgboost_test
     bp = 'dataset/preprocessed/{}/{}/xgboost'.format(cluster, mode)
     if not 'a' in _dataset_xgboost_test:
-        _dataset_xgboost_test['a'] = sps.load_npz(
-            os.path.join(bp, 'X_test.npz'))
-        _dataset_xgboost_test['b'] = pd.read_csv(
-            os.path.join(bp, 'test_scores.csv'), index_col=0)
-        with open(os.path.join(bp, 'dict'), 'rb') as f:
-            _dataset_xgboost_test['c'] = pickle.load(f)
-    return _dataset_xgboost_test['a'], \
-        _dataset_xgboost_test['b'], \
-        _dataset_xgboost_test['c']
+        _dataset_xgboost_test[bp+'a'] = pd.read_csv(
+            os.path.join(bp, 'X_test.csv'))
+        _dataset_xgboost_test[bp+'b'] = np.load(
+            os.path.join(bp, 'target_indices_reordered.npy'))
+    return _dataset_xgboost_test[bp+'a'], \
+        _dataset_xgboost_test[bp+'b']
 
 
 def classification_train_df(mode, sparse=True, cluster='no_cluster', algo='xgboost'):
