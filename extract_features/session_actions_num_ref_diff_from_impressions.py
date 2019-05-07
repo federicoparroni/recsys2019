@@ -60,6 +60,9 @@ class SessionActionNumRefDiffFromImpressions(FeatureBase):
 
 
 if __name__ == '__main__':
+    from utils.menu import mode_selection
+
+    mode = mode_selection()
     c = SessionActionNumRefDiffFromImpressions(
-        mode='small', cluster='no_cluster')
+        mode=mode, cluster='no_cluster')
     c.save_feature()

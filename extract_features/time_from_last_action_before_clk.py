@@ -41,5 +41,8 @@ class TimeFromLastActionBeforeClk(FeatureBase):
         return pd.DataFrame({'user_id': [x[0] for x in s.index.values], 'session_id':[x[1] for x in s.index.values], 'time_passed_before_clk':[x for x in s.values]})
 
 if __name__ == '__main__':
+    from utils.menu import mode_selection
+
+    mode = mode_selection()
     c = TimeFromLastActionBeforeClk(mode='small', cluster='no_cluster')
     c.save_feature()

@@ -125,5 +125,8 @@ class PricePositionInfoInteractedReferences(FeatureBase):
                              'mean_pos': [x[2] for x in s.values], 'pos_last_reference': [x[3] for x in s.values]})
 
 if __name__ == '__main__':
-    c = PricePositionInfoInteractedReferences(mode='small', cluster='no_cluster')
+    from utils.menu import mode_selection
+
+    mode = mode_selection()
+    c = PricePositionInfoInteractedReferences(mode=mode, cluster='no_cluster')
     c.save_feature()

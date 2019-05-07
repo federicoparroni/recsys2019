@@ -49,5 +49,8 @@ class ImpressionPriceInfoSession(FeatureBase):
         return s
 
 if __name__ == '__main__':
-    c = ImpressionPriceInfoSession(mode='small', cluster='no_cluster')
+    from utils.menu import mode_selection
+
+    mode = mode_selection()
+    c = ImpressionPriceInfoSession(mode=mode, cluster='no_cluster')
     c.save_feature()

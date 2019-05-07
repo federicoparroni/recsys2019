@@ -40,5 +40,8 @@ class SessionFilterActiveWhenClickout(FeatureBase):
         return r
 
 if __name__ == '__main__':
-    c = SessionFilterActiveWhenClickout(mode='small', cluster='no_cluster')
+    from utils.menu import mode_selection
+
+    mode = mode_selection()
+    c = SessionFilterActiveWhenClickout(mode=mode, cluster='no_cluster')
     c.save_feature()

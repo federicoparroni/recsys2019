@@ -42,5 +42,8 @@ class SessionSortOrderWhenClickout(FeatureBase):
         return pd.DataFrame({'user_id':[x[0] for x in s.index.values], 'session_id':[x[1] for x in s.index.values], 'sort_order_active_when_clickout': s.values})
 
 if __name__ == '__main__':
+    from utils.menu import mode_selection
+
+    mode = mode_selection()
     c = SessionSortOrderWhenClickout(mode='small', cluster='no_cluster')
     c.save_feature()

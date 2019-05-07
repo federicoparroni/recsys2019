@@ -32,5 +32,8 @@ class SessionDevice(FeatureBase):
         return pd.DataFrame({'user_id':[x[0] for x in s.index.values], 'session_id':[x[1] for x in s.index.values], 'session_device':[x[0] for x in s.values]})
 
 if __name__ == '__main__':
-    c = SessionDevice(mode='small', cluster='no_cluster')
+    from utils.menu import mode_selection
+
+    mode = mode_selection()
+    c = SessionDevice(mode=mode, cluster='no_cluster')
     c.save_feature()
