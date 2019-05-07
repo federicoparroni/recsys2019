@@ -229,7 +229,7 @@ if __name__ == '__main__':
         'item_id': [ImpressionLabel, ImpressionPriceInfoSession,
                     TimingFromLastInteractionImpression, ActionsInvolvingImpressionSession,
                     TimesUserInteractedWithImpression, ItemPopularitySession],
-        'session': [MeanPriceClickout, MeanPriceClickout_edo, SessionLength, TimePassedBeforeClickout]
+        'session': [MeanPriceClickout, SessionLength, TimeFromLastActionBeforeClk]
     }
 
     """
