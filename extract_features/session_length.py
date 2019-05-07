@@ -32,5 +32,7 @@ class SessionLength(FeatureBase):
         return pd.DataFrame({'user_id':[x[0] for x in s.index.values], 'session_id':[x[1] for x in s.index.values], 'length_timestamp':[x[0] for x in s.values], 'length_steps':[x[1] for x in s.values]})
 
 if __name__ == '__main__':
-    c = SessionLength(mode='small', cluster='no_cluster')
+    from utils.menu import mode_selection
+    mode = mode_selection()
+    c = SessionLength(mode=mode, cluster='no_cluster')
     c.save_feature()

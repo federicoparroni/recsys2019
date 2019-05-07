@@ -58,5 +58,7 @@ class ImpressionLabel(FeatureBase):
         return df
 
 if __name__ == '__main__':
-    c = ImpressionLabel(mode='small', cluster='no_cluster')
+    from utils.menu import mode_selection
+    mode = mode_selection()
+    c = ImpressionLabel(mode=mode, cluster='no_cluster')
     c.save_feature()
