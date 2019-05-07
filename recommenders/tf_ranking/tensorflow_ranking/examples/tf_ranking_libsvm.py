@@ -179,6 +179,31 @@ def get_train_inputs(features, labels, batch_size):
     return iterator.get_next()
   return _train_input_fn, iterator_initializer_hook
 
+def get_batches(features, labels, batch_size):
+  """Set up training input in batches."""
+  iterator_initializer_hook = IteratorInitializerHook()
+
+  def _train_input_fn():
+    """Defines training input fn."""
+    features_placeholder = {
+        k: tf.placeholder(v.dtype, v.shape) for k, v in six.iteritems(features)
+    }
+    labels_placeholder = tf.placeholder(labels.dtype, labels.shape)
+    dataset = tf.data.Dataset.from_tensor_slices((features_placeholder,
+                                                  labels_placeholder))
+
+    dataset = dataset.batch(batch_size)
+
+    #1000
+    iterator = dataset.make_initializable_iterator()
+    feed_dict = {labels_placeholder: labels}
+    feed_dict.update(
+        {features_placeholder[k]: features[k] for k in features_placeholder})
+    iterator_initializer_hook.iterator_initializer_fn = (
+        lambda sess: sess.run(iterator.initializer, feed_dict=feed_dict))
+    return iterator.get_next()
+  return _train_input_fn, iterator_initializer_hook
+
 
 def batch_inputs(features, labels, batch_size):
     dataset = tf.data.Dataset.from_tensor_slices((features, labels))
@@ -236,9 +261,13 @@ def train_and_eval():
 
   features_vali, labels_vali = load_libsvm_data(FLAGS.vali_path,
                                                 FLAGS.list_size)
+  vali_input_fn, vali_hook = get_batches(features_vali, labels_vali,
+                                                FLAGS.train_batch_size)
 
   features_test, labels_test = load_libsvm_data(FLAGS.test_path,
                                                 FLAGS.list_size)
+  test_input_fn, test_hook= get_batches(features_test, labels_test,
+                                                FLAGS.train_batch_size)
 
 
   def _train_op_fn(loss):
@@ -260,6 +289,7 @@ def train_and_eval():
       sort_reverse=True,
       dataset_name=FLAGS.dataset_name,
       save_path=f'{FLAGS.save_path}/predictions',
+      #save_path=f'dataset/preprocessed/tf_ranking/{_CLUSTER}/full/{_DATASET_NAME}/predictions',
       test_x=features_test,
       test_y=labels_test,
       mode = FLAGS.mode,
@@ -269,7 +299,7 @@ def train_and_eval():
 
 
   ranking_head = tfr.head.create_ranking_head(
-      loss_fn=tfr.losses.make_loss_fn(FLAGS.loss,lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight()),
+      loss_fn=tfr.losses.make_loss_fn(FLAGS.loss, lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight()),
       eval_metric_fns=get_eval_metric_fns(),
       train_op_fn=_train_op_fn)
   #lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight()
@@ -289,8 +319,8 @@ def train_and_eval():
       hooks=[train_hook],
       max_steps=FLAGS.num_train_steps)
   vali_spec = tf.estimator.EvalSpec(
-      input_fn=lambda:batch_inputs(features_vali,labels_vali,FLAGS.train_batch_size),
-      #hooks=[vali_hook],
+      input_fn=vali_input_fn,
+      hooks=[vali_hook],
       steps=None,
       exporters=best_copier,
       start_delay_secs=0,
@@ -336,8 +366,12 @@ if __name__ == "__main__":
 
     _BASE_PATH = f'dataset/preprocessed/tf_ranking/{_CLUSTER}/{_MODE}/{_DATASET_NAME}'
 
+
+
     _TRAIN_PATH = f'{_BASE_PATH}/train.txt'
     _TEST_PATH = f'{_BASE_PATH}/test.txt'
+    #_TEST_PATH = f'dataset/preprocessed/tf_ranking/{_CLUSTER}/full/{_DATASET_NAME}/test.txt'
+
     _VALI_PATH = f'{_BASE_PATH}/vali.txt'
 
     cf.check_folder(f'{_BASE_PATH}/output_dir_{datetime.datetime.now().strftime("%Y-%m-%d_%H:%M")}')
@@ -350,21 +384,22 @@ if __name__ == "__main__":
     flags.DEFINE_string("output_dir", _OUTPUT_DIR, "Output directory for models.")
     flags.DEFINE_string("mode", _MODE, "mode of the models.")
     flags.DEFINE_string("dataset_name", _DATASET_NAME, "name of the dataset")
-    flags.DEFINE_float("min_mrr_start", 0.60, "min_mrr_from_which_save_model")
+    flags.DEFINE_float("min_mrr_start", 0.63, "min_mrr_from_which_save_model")
 
     flags.DEFINE_integer("train_batch_size", 128, "The batch size for training.")
     # 32
-    flags.DEFINE_integer("num_train_steps", 100000, "Number of steps for training.")
+    flags.DEFINE_integer("num_train_steps", None, "Number of steps for training.")
 
-    flags.DEFINE_float("learning_rate", 0.001, "Learning rate for optimizer.")
+    flags.DEFINE_float("learning_rate", 0.1, "Learning rate for optimizer.")
     #0.01
-    flags.DEFINE_float("dropout_rate", 0.5, "The dropout rate before output layer.")
+    flags.DEFINE_float("dropout_rate", 0.1, "The dropout rate before output layer.")
     # 0.5
-    flags.DEFINE_list("hidden_layer_dims", ['256','128','64'],
+    flags.DEFINE_list("hidden_layer_dims", ['256','128'],
                     "Sizes for hidden layers.")
     # ["256", "128", "64"]
+    # best ["256", "128"]
 
-    flags.DEFINE_integer("num_features", 12, "Number of features per document.")
+    flags.DEFINE_integer("num_features", 225, "Number of features per document.")
     flags.DEFINE_integer("list_size", 25, "List size used for training.")
     flags.DEFINE_integer("group_size", 1, "Group size used in score function.")
     #1

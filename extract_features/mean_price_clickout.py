@@ -2,11 +2,12 @@ from extract_features.feature_base import FeatureBase
 import data
 import pandas as pd
 from tqdm.auto import tqdm
+import numpy as np
 
 tqdm.pandas()
 
 
-class MeanPriceClickout_edo(FeatureBase):
+class MeanPriceClickout(FeatureBase):
     """
     mean price of the item clicked by the user during the session, if there aren't other clickout it is equal -1
     | user_id | session_id | mean_price
@@ -14,7 +15,7 @@ class MeanPriceClickout_edo(FeatureBase):
 
     def __init__(self, mode, cluster='no_cluster'):
         name = 'mean price clickout'
-        super(MeanPriceClickout_edo, self).__init__(
+        super(MeanPriceClickout, self).__init__(
             name=name, mode=mode, cluster=cluster)
 
     def extract_feature(self):
@@ -37,8 +38,8 @@ class MeanPriceClickout_edo(FeatureBase):
                             ref = int(row.reference)
                             if ref in impr:
                                 pos = impr.index(ref)
-                                mean_price += prices[pos]
-                        mean_price /= len(clickouts)
+                                mean_price += prices[pos]*row['frequence']
+                        mean_price /= np.sum(np.array(clickouts['frequence']))
                 if mean_price == 0:
                     mean_price = -1
                 return mean_price
@@ -55,5 +56,8 @@ class MeanPriceClickout_edo(FeatureBase):
 
 
 if __name__ == '__main__':
-    c = MeanPriceClickout_edo(mode='small', cluster='no_cluster')
+    from utils.menu import mode_selection
+
+    mode = mode_selection()
+    c = MeanPriceClickout(mode=mode, cluster='no_cluster')
     c.save_feature()

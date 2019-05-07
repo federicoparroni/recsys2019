@@ -14,7 +14,7 @@ class SessionFilterActiveWhenClickout(FeatureBase):
     """
 
     def __init__(self, mode, cluster='no_cluster'):
-        name = 'filter_active_when_clickout'
+        name = 'session_filter_active_when_clickout'
         columns_to_onehot = [('filter_active_when_clickout', 'multiple')]
         super(SessionFilterActiveWhenClickout, self).__init__(
             name=name, mode=mode, cluster=cluster, columns_to_onehot=columns_to_onehot)
@@ -40,5 +40,8 @@ class SessionFilterActiveWhenClickout(FeatureBase):
         return r
 
 if __name__ == '__main__':
-    c = SessionFilterActiveWhenClickout(mode='small', cluster='no_cluster')
+    from utils.menu import mode_selection
+
+    mode = mode_selection()
+    c = SessionFilterActiveWhenClickout(mode=mode, cluster='no_cluster')
     c.save_feature()

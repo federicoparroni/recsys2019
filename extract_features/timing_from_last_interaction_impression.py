@@ -55,5 +55,7 @@ class TimingFromLastInteractionImpression(FeatureBase):
         return s
     
 if __name__ == '__main__':
-    c = TimingFromLastInteractionImpression(mode='small', cluster='no_cluster')
+    from utils.menu import mode_selection
+    mode = mode_selection()
+    c = TimingFromLastInteractionImpression(mode=mode, cluster='no_cluster')
     c.save_feature()

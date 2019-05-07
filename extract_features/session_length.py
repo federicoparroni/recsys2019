@@ -20,17 +20,25 @@ class SessionLength(FeatureBase):
     def extract_feature(self):
 
         def func(x):
-            h = x.head(1)
-            t = x.tail(1)
-            ts = int(t.timestamp) - int(h.timestamp)
-            return ts, t.step.values[0]
+            y = x[x['action_type'] == 'clickout item']
+            if len(y) > 0:
+                clk = y.tail(1)
+                head_index = x.head(1).index
+                impr = clk.impressions.values[0].split('|')
+                x = x.loc[head_index.values[0]:clk.index.values[0]]
+                h = x.head(1)
+                t = x.tail(1)
+                ts = int(t.timestamp) - int(h.timestamp)
+                return pd.Series({'length_timestamp':ts, 'length_steps':t.step.values[0]})
 
         train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)
         df = pd.concat([train, test])
         s = df.groupby(['user_id', 'session_id']).progress_apply(func)
-        return pd.DataFrame({'user_id':[x[0] for x in s.index.values], 'session_id':[x[1] for x in s.index.values], 'length_timestamp':[x[0] for x in s.values], 'length_steps':[x[1] for x in s.values]})
+        return s.reset_index()
 
 if __name__ == '__main__':
-    c = SessionLength(mode='small', cluster='no_cluster')
+    from utils.menu import mode_selection
+    mode = mode_selection()
+    c = SessionLength(mode=mode, cluster='no_cluster')
     c.save_feature()

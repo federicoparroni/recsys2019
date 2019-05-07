@@ -10,7 +10,6 @@ import utils.check_folder as cf
 
 from extract_features.actions_involving_impression_session import ActionsInvolvingImpressionSession
 #from extract_features.average_impression_pos_interacted import ImpressionPositionInteracted
-from extract_features.average_price_and_position_interaction import MeanPriceClickout
 #from extract_features.frenzy_factor_consecutive_steps import FrenzyFactorSession
 from extract_features.impression_features import ImpressionFeature
 from extract_features.impression_position_session import ImpressionPositionSession
@@ -18,14 +17,14 @@ from extract_features.impression_price_info_session import ImpressionPriceInfoSe
 from extract_features.item_popularity_session import ItemPopularitySession
 from extract_features.label import ImpressionLabel
 from extract_features.last_action_involving_impression import LastInteractionInvolvingImpression
-from extract_features.mean_price_clickout import MeanPriceClickout_edo
+from extract_features.mean_price_clickout import MeanPriceClickout
 #from extract_features.price_position_info_interactions import PricePositionInfoInteractedReferences
 from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
 from extract_features.session_device import SessionDevice
 from extract_features.session_filters_active_when_clickout import SessionFilterActiveWhenClickout
 from extract_features.session_length import SessionLength
 from extract_features.session_sort_order_when_clickout import SessionSortOrderWhenClickout
-from extract_features.time_from_last_action_before_clk import TimePassedBeforeClickout
+from extract_features.time_from_last_action_before_clk import TimeFromLastActionBeforeClk
 from extract_features.times_user_interacted_with_impression import TimesUserInteractedWithImpression
 from extract_features.timing_from_last_interaction_impression import TimingFromLastInteractionImpression
 
@@ -46,10 +45,7 @@ def _reinsert_clickout(df):
         df.at[clickout_rows_df.index[0], 'reference']= missing_click
     return df
 
-def create_dataset(mode, cluster, features_array, dataset_name):
-    _SAVE_BASE_PATH = f'dataset/preprocessed/tf_ranking/{cluster}/{mode}/{dataset_name}'
-    cf.check_folder(_SAVE_BASE_PATH)
-
+def merge_features(mode, cluster, features_array):
     """
     RETRIEVE THE FEATURES
     """
@@ -126,10 +122,17 @@ def create_dataset(mode, cluster, features_array, dataset_name):
     print(f'number of tgt index: {len(target_indeces_reordered)}')
     target_indeces_reordered = np.array(target_indeces_reordered)
 
-    """
-    CREATE DATA FOR TRAIN
+    return train_df, test_df, target_indeces_reordered
 
+def create_dataset(mode, cluster, features_array, dataset_name):
+    _SAVE_BASE_PATH = f'dataset/preprocessed/tf_ranking/{cluster}/{mode}/{dataset_name}'
+    cf.check_folder(_SAVE_BASE_PATH)
+    train_df, test_df, target_indeces_reordered = merge_features(mode, cluster, features_array)
+    
     """
+        CREATE DATA FOR TRAIN
+
+        """
     # associate to each session a QID
     qid = []
 
@@ -171,7 +174,7 @@ def create_dataset(mode, cluster, features_array, dataset_name):
     """
     # do it also fot the test data
     qid_test = []
-    count = 0
+    #count = 0 don't reset it
     actual_sid = 'culo'
     session_ids = test_df['session_id'].values
     for sid in session_ids:
@@ -182,7 +185,7 @@ def create_dataset(mode, cluster, features_array, dataset_name):
     np_qid_test = np.array(qid_test)
     print(np_qid_test)
 
-    if mode!='full':
+    if mode != 'full':
         X_test, Y_test = test_df.iloc[:, 4:], test_df['label']
         del test_df
         X_test_norm = scaler.fit_transform(X_test)
@@ -191,7 +194,8 @@ def create_dataset(mode, cluster, features_array, dataset_name):
         # dummy_label = np.zeros(len(X_test),dtype=np.int)
 
         print('SAVING TEST DATA...')
-        dump_svmlight_file(X_test_norm, Y_test_norm, f'{_SAVE_BASE_PATH}/test.txt', query_id=np_qid_test, zero_based=False)
+        dump_svmlight_file(X_test_norm, Y_test_norm, f'{_SAVE_BASE_PATH}/test.txt', query_id=np_qid_test,
+                           zero_based=False)
         print('DONE')
 
         print('SAVING TARGET_INDICES...')
@@ -203,10 +207,8 @@ def create_dataset(mode, cluster, features_array, dataset_name):
         X_test = test_df.iloc[:, 4:]
         del test_df
         X_test_norm = scaler.fit_transform(X_test)
+        dummy_label = np.zeros(len(X_test), dtype=np.int)
         del X_test
-
-        dummy_label = np.zeros(len(X_test),dtype=np.int)
-
 
         print('SAVING TEST DATA...')
         dump_svmlight_file(X_test_norm, dummy_label, f'{_SAVE_BASE_PATH}/test.txt', query_id=np_qid_test,
@@ -218,12 +220,19 @@ def create_dataset(mode, cluster, features_array, dataset_name):
         print('DONE')
         print('PROCEDURE ENDED CORRECTLY')
 
-
 if __name__ == '__main__':
     mode = 'small'
     cluster = 'no_cluster'
-    dataset_name = 'prova2'
+    dataset_name = 'no_pos'
 
+    features_array = {
+        'item_id': [ImpressionLabel, ImpressionPriceInfoSession,
+                    TimingFromLastInteractionImpression, ActionsInvolvingImpressionSession,
+                    TimesUserInteractedWithImpression, ItemPopularitySession],
+        'session': [MeanPriceClickout, SessionLength, TimeFromLastActionBeforeClk]
+    }
+
+    """
     features_array = {
         'item_id': [ImpressionLabel,ImpressionPriceInfoSession,LastInteractionInvolvingImpression,
                     TimingFromLastInteractionImpression,ActionsInvolvingImpressionSession,ImpressionPositionSession,
@@ -232,4 +241,6 @@ if __name__ == '__main__':
                     SessionActionNumRefDiffFromImpressions, SessionFilterActiveWhenClickout,
                     SessionSortOrderWhenClickout, TimePassedBeforeClickout]
     }
+    """
+
     create_dataset(mode=mode, cluster=cluster, features_array=features_array, dataset_name=dataset_name)

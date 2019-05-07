@@ -69,5 +69,8 @@ class ItemPopularitySession(FeatureBase):
 
 
 if __name__ == '__main__':
-    c = ItemPopularitySession(mode='small', cluster='no_cluster')
+    from utils.menu import mode_selection
+
+    mode = mode_selection()
+    c = ItemPopularitySession(mode=mode, cluster='no_cluster')
     c.save_feature()
