@@ -13,13 +13,10 @@ tqdm.pandas()
 class XGBoostWrapper(RecommenderBase):
 
     def __init__(self, mode, cluster='no_cluster', learning_rate=0.3, min_child_weight=1, n_estimators=100, max_depth=3, subsample=1, colsample_bytree=1, reg_lambda=1, reg_alpha=0):
-        name = 'xgboost'
+        name = 'xgboost_ranker'
         super(XGBoostWrapper, self).__init__(
             name=name, mode=mode, cluster=cluster)
 
-        self.preds = None
-        self.scores_batch = None
-        self.target_indices = data.target_indices(mode=mode, cluster=cluster)
         self.xg = xgb.XGBRanker(
             learning_rate=learning_rate, min_child_weight=min_child_weight, max_depth=math.ceil(
                 max_depth),
@@ -54,43 +51,30 @@ class XGBoostWrapper(RecommenderBase):
         pass
 
     def recommend_batch(self):
-        X_test, test_scores, d = data.dataset_xgboost_test(mode=self.mode, cluster=self.cluster)
-        test_df = data.test_df(mode=self.mode, cluster=self.cluster)
-
+        X_test, target_indices_reordered = data.dataset_xgboost_test(mode=self.mode, cluster=self.cluster)
+        full_impressions = pd.read_csv('dataset/preprocessed/full.csv', usecols=["impressions"])
         print('data for test ready')
 
         scores = list(self.xg.predict(X_test))
-        test_scores['scores'] = Series(scores, index=test_scores.index)
 
-        predictions = []
-        self.scores_batch = []
-        for index in tqdm(self.target_indices):
-
-            # Get only test rows with same session&user of target indices
-            tgt_row = test_df.loc[index]
-            tgt_sess = tgt_row['session_id']
-            tgt_user = tgt_row['user_id']
-
-            tgt_test = test_scores.loc[d[tgt_sess]]
-            tgt_test = tgt_test[tgt_test['user_id'] == tgt_user]
-
-            tgt_test = tgt_test.sort_values('impression_position')
-
-            scores = tgt_test['scores'].values
-
-            impr = list(map(int, tgt_row['impressions'].split('|')))
-            scores_impr = [[scores[i], impr[i]] for i in range(len(impr))]
-            scores_impr.sort(key=lambda x: x[0], reverse=True)
-
-            preds = [x[1] for x in scores_impr]
-            predictions.append((index, preds))
-
-            scores = [x[0] for x in scores_impr]
-            self.scores_batch.append((index, preds, scores))
-
-        return predictions
+        final_predictions = []
+        count = 0
+        for index in tqdm(target_indices_reordered):
+            impressions = list(map(int, full_impressions.loc[index]['impressions'].split('|')))
+            predictions = scores[count:count + len(impressions)]
+            if len(predictions) == 0:
+                print('a')
+            couples = list(zip(predictions, impressions))
+            couples.sort(key=lambda x: x[0], reverse=True)
+            _, sorted_impr = zip(*couples)
+            final_predictions.append((index, list(sorted_impr)))
+            count = count+len(impressions)
+        return final_predictions
 
 
 if __name__ == '__main__':
-    model = XGBoostWrapper(mode='small', cluster='no_cluster')
-    model.evaluate(send_MRR_on_telegram=True)
+    from utils.menu import mode_selection
+    mode = mode_selection()
+    model = XGBoostWrapper(mode=mode, cluster='no_cluster')
+    #model.evaluate(send_MRR_on_telegram=True)
+    model.run()
