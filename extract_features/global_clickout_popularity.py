@@ -6,16 +6,17 @@ from extract_features.feature_base import FeatureBase
 import data
 import pandas as pd
 
-class GlobalPopularity(FeatureBase):
+class GlobalClickoutPopularity(FeatureBase):
 
     """
-    Compute the popularity of a reference, that's it, no tricks. The popularity is calculated in the full df.
+    Compute the popularity of a reference by means of the number of times it has been interacted (in whatever action).
+    The popularity is calculated in the train df.
     | reference | popularity
     popularity is a positive number
     """
 
     def __init__(self):
-        name = 'global_popularity'
+        name = 'global_clickout_popularity'
         columns_to_onehot = []
 
         super().__init__(name=name, mode='full', columns_to_onehot=columns_to_onehot)
@@ -24,12 +25,12 @@ class GlobalPopularity(FeatureBase):
     def extract_feature(self):
         df = data.full_df()
 
-        # count the numeric references
-        res_df = df[(df.reference.str.isnumeric() == True) & (df.action_type != 'clickout item')]
+        # count the numeric references (skipping NaN in the test)
+        res_df = df[(df.action_type != 'clickout item') & (df.reference.str.isnumeric() == True)]
         res_df = res_df.astype({'reference':'int'})
         res_df = res_df[['reference','frequence']].groupby('reference').sum()
 
-        return res_df.rename(columns={'frequence':'glob_popularity'}).reset_index()
+        return res_df.rename(columns={'frequence':'glob_clickout_popularity'}).reset_index()
 
     
     def join_to(self, df):
@@ -41,12 +42,12 @@ class GlobalPopularity(FeatureBase):
         res_df = res_df.astype({'reference': 'int'}).reset_index()
         res_df = res_df.merge(feature_df, how='left', left_on='reference', right_on='reference').set_index('index')
         res_df['reference'] = df['reference']
-        return res_df.fillna(0).astype({'glob_popularity': 'int'})
+        return res_df.fillna(0).astype({'glob_clickout_popularity': 'int'})
 
 
 if __name__ == '__main__':
     
-    c = GlobalPopularity()
+    c = GlobalClickoutPopularity()
     
     print('Creating {} for {} {}'.format(c.name, c.mode, c.cluster))
     #c.save_feature()

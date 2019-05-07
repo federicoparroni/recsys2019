@@ -75,8 +75,6 @@ class ReferencePositionInNextClickoutImpressions(FeatureBase):
         if one_hot:
             # fill the non-joined NaN rows with 0
             res_df[feature_cols] = res_df[feature_cols].fillna(0).astype('int8')
-        else:
-            res_df[feature_cols] = res_df[feature_cols].astype('int8')
         return res_df
 
 
