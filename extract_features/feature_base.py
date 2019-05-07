@@ -5,6 +5,7 @@ import pandas as pd
 from utils.menu import yesno_choice
 import os
 from sklearn.preprocessing import MultiLabelBinarizer
+import numpy as np
 
 """
 extend this class and give an implementation to extract_feature to 
@@ -108,6 +109,7 @@ class FeatureBase(ABC):
                     mlb = MultiLabelBinarizer()
                     oh = mlb.fit_transform(mid)
                     oh = pd.DataFrame(oh, columns=mlb.classes_)
+                    oh = oh.astype(np.uint8)
 
                 df = df.drop([t[0]], axis=1)
                 df = pd.concat([df, oh], axis=1)
