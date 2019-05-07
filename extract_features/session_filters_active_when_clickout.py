@@ -14,7 +14,7 @@ class SessionFilterActiveWhenClickout(FeatureBase):
     """
 
     def __init__(self, mode, cluster='no_cluster'):
-        name = 'filter_active_when_clickout'
+        name = 'session_filter_active_when_clickout'
         columns_to_onehot = [('filter_active_when_clickout', 'multiple')]
         super(SessionFilterActiveWhenClickout, self).__init__(
             name=name, mode=mode, cluster=cluster, columns_to_onehot=columns_to_onehot)

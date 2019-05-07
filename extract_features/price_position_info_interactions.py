@@ -18,7 +18,7 @@ class PricePositionInfoInteractedReferences(FeatureBase):
     """
 
     def __init__(self, mode, cluster='no_cluster'):
-        name = 'price_position_info_interactions'
+        name = 'price_position_info_interacted_references'
         super(PricePositionInfoInteractedReferences, self).__init__(
             name=name, mode=mode, cluster=cluster)
 
