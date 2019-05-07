@@ -9,22 +9,23 @@ from sklearn.model_selection import train_test_split
 import utils.check_folder as cf
 
 from extract_features.actions_involving_impression_session import ActionsInvolvingImpressionSession
-#from extract_features.average_impression_pos_interacted import ImpressionPositionInteracted
-#from extract_features.frenzy_factor_consecutive_steps import FrenzyFactorSession
+from extract_features.frenzy_factor_consecutive_steps import FrenzyFactorSession
+from extract_features.global_clickout_popularity import GlobalClickoutPopularity
+from extract_features.global_interactions_popularity import GlobalInteractionsPopularity
 from extract_features.impression_features import ImpressionFeature
 from extract_features.impression_position_session import ImpressionPositionSession
 from extract_features.impression_price_info_session import ImpressionPriceInfoSession
-from extract_features.item_popularity_session import ItemPopularitySession
 from extract_features.label import ImpressionLabel
 from extract_features.last_action_involving_impression import LastInteractionInvolvingImpression
 from extract_features.mean_price_clickout import MeanPriceClickout
-#from extract_features.price_position_info_interactions import PricePositionInfoInteractedReferences
-from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
+from extract_features.price_position_info_interactions import PricePositionInfoInteractedReferences
+#from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
 from extract_features.session_device import SessionDevice
 from extract_features.session_filters_active_when_clickout import SessionFilterActiveWhenClickout
 from extract_features.session_length import SessionLength
 from extract_features.session_sort_order_when_clickout import SessionSortOrderWhenClickout
 from extract_features.time_from_last_action_before_clk import TimeFromLastActionBeforeClk
+from extract_features.times_impression_appeared_in_clickouts_session import TimesImpressionAppearedInClickoutsSession
 from extract_features.times_user_interacted_with_impression import TimesUserInteractedWithImpression
 from extract_features.timing_from_last_interaction_impression import TimingFromLastInteractionImpression
 
@@ -45,42 +46,29 @@ def _reinsert_clickout(df):
         df.at[clickout_rows_df.index[0], 'reference']= missing_click
     return df
 
-def merge_features(mode, cluster, features_array):
+def merge_features(mode, cluster, features_array, popularity=False):
     """
     RETRIEVE THE FEATURES
     """
 
-    # list of pandas dataframe each element represent a feature
-    pandas_dataframe_features_user_session_list = []
-    for f in features_array['user_id_session_id']:
-        pandas_dataframe_features_user_session_list.append(f(mode=mode, cluster=cluster).read_feature(one_hot=True))
+    # load the first feature df
+    df_merged = features_array[0](mode=mode, cluster=cluster).read_feature(one_hot=True)
+    for f in features_array[1:]:
+        print(df_merged.shape)
+        df_merged = f(mode=mode, cluster=cluster).join_to(df_merged, one_hot=True)
 
-    # merge all the dataframes
-    df_merged_session = reduce(lambda left, right: pd.merge(left, right, on=['user_id', 'session_id'],
-                                                            how='inner'), pandas_dataframe_features_user_session_list)
-    print(f'user session shape: {df_merged_session.shape}')
+    if popularity:
+        f1 = GlobalClickoutPopularity().read_feature()
+        df_merged=pd.merge(df_merged, f1, left_on='item_id', right_on='reference', how='left')
+        df_merged.drop('reference', axis=1, inplace=True)
+        print(df_merged.shape)
 
-    pandas_dataframe_features_user_session_item_list = []
-    for f in features_array['user_id_session_id_item_id']:
-        pandas_dataframe_features_user_session_item_list.append(f(mode=mode, cluster=cluster).read_feature(one_hot=True))
+        f1 = GlobalInteractionsPopularity().read_feature()
+        df_merged = pd.merge(df_merged, f1, left_on='item_id', right_on='reference', how='left')
+        df_merged.drop('reference', axis=1, inplace=True)
+        print(df_merged.shape)
 
-    # merge all the dataframes
-    df_merged_item = reduce(lambda left, right: pd.merge(left, right, on=['user_id', 'session_id', 'item_id'],
-                                                         how='inner'), pandas_dataframe_features_user_session_item_list)
-    print(f'user session item shape: {df_merged_item.shape}')
-
-    df_merged = pd.merge(df_merged_item, df_merged_session, on=['user_id', 'session_id'])
-    print(f'full shape: {df_merged.shape}')
-
-    # now merge just the item ids features
-    pandas_dataframe_features_item_list = []
-    for f in features_array['item_id']:
-        pandas_dataframe_features_item_list.append(f(mode=mode, cluster=cluster).read_feature(one_hot=True))
-
-    for itemid_feature_df in pandas_dataframe_features_item_list:
-        df_merged = pd.merge(df_merged, itemid_feature_df)
-
-    print(f'full shape: {df_merged.shape}')
+        df_merged = df_merged.fillna(0)
     ################################################
 
     # load the target indeces of the mode
@@ -126,10 +114,10 @@ def merge_features(mode, cluster, features_array):
 
     return train_df, test_df, target_indeces_reordered
 
-def create_dataset(mode, cluster, features_array, dataset_name):
+def create_dataset(mode, cluster, features_array, dataset_name, popularity):
     _SAVE_BASE_PATH = f'dataset/preprocessed/tf_ranking/{cluster}/{mode}/{dataset_name}'
     cf.check_folder(_SAVE_BASE_PATH)
-    train_df, test_df, target_indeces_reordered = merge_features(mode, cluster, features_array)
+    train_df, test_df, target_indeces_reordered = merge_features(mode, cluster, features_array, popularity)
     
     """
         CREATE DATA FOR TRAIN
@@ -149,7 +137,8 @@ def create_dataset(mode, cluster, features_array, dataset_name):
     np_qid_train = np.array(qid)
 
     # the 5 column is the label
-    X, Y = train_df.iloc[:, 4:], train_df['label']
+    X, Y = train_df.drop(['session_id','user_id','label','item_id'], axis=1), train_df['label']
+
     del train_df
     scaler = MinMaxScaler()
     # normalize the values
@@ -188,7 +177,7 @@ def create_dataset(mode, cluster, features_array, dataset_name):
     print(np_qid_test)
 
     if mode != 'full':
-        X_test, Y_test = test_df.iloc[:, 4:], test_df['label']
+        X_test, Y_test = test_df.drop(['session_id','user_id','label','item_id'], axis=1), test_df['label']
         del test_df
         X_test_norm = scaler.fit_transform(X_test)
         del X_test
@@ -206,7 +195,7 @@ def create_dataset(mode, cluster, features_array, dataset_name):
         print('PROCEDURE ENDED CORRECTLY')
     else:
         print('I KNOW IM FULL ;)')
-        X_test = test_df.iloc[:, 4:]
+        X_test = test_df.drop(['session_id','user_id','label','item_id'], axis=1)
         del test_df
         X_test_norm = scaler.fit_transform(X_test)
         dummy_label = np.zeros(len(X_test), dtype=np.int)
@@ -227,13 +216,26 @@ if __name__ == '__main__':
     cluster = 'no_cluster'
     dataset_name = 'no_pos'
 
+    features_array = [ActionsInvolvingImpressionSession, ImpressionLabel, ImpressionPriceInfoSession,
+                      TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
+                      ImpressionPositionSession, LastInteractionInvolvingImpression,
+                      TimesImpressionAppearedInClickoutsSession, MeanPriceClickout, SessionLength,
+                      TimeFromLastActionBeforeClk, FrenzyFactorSession, PricePositionInfoInteractedReferences,
+                      SessionDevice, SessionFilterActiveWhenClickout, SessionSortOrderWhenClickout,
+                      ImpressionFeature]
+
+    """
     features_array = {
-        'user_id_session_id_item_id': [ImpressionLabel, ImpressionPriceInfoSession,
-                    TimingFromLastInteractionImpression, ActionsInvolvingImpressionSession,
-                    TimesUserInteractedWithImpression, ItemPopularitySession],
-        'user_id_session_id': [MeanPriceClickout, SessionLength, TimeFromLastActionBeforeClk],
-        'item_id': [ImpressionFeature]
+        'user_id_session_id_item_id': [ActionsInvolvingImpressionSession, ImpressionLabel, ImpressionPriceInfoSession,
+                                       TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
+                                       ImpressionPositionSession, LastInteractionInvolvingImpression,
+                                       TimesImpressionAppearedInClickoutsSession],
+        'user_id_session_id': [MeanPriceClickout, SessionLength, TimeFromLastActionBeforeClk,
+                               FrenzyFactorSession, PricePositionInfoInteractedReferences,
+                               SessionDevice, SessionFilterActiveWhenClickout, SessionSortOrderWhenClickout],
+        'item_id': [ImpressionFeature, GlobalInteractionsPopularity, GlobalClickoutPopularity]
     }
+    """
 
     """
     features_array = {
@@ -246,4 +248,4 @@ if __name__ == '__main__':
     }
     """
 
-    create_dataset(mode=mode, cluster=cluster, features_array=features_array, dataset_name=dataset_name)
+    create_dataset(mode=mode, cluster=cluster, features_array=features_array, dataset_name=dataset_name, popularity=True)
