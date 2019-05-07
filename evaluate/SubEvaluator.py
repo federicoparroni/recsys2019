@@ -69,12 +69,18 @@ class SubEvaluator():
         ]
 
         total_score = self.score_sub(self.sub, self.data_directory.joinpath('ground_truth.csv'))
-        dict_scores = {}
+        dict_scores = {} # per tener traccia degli scores
+        dict_cluster_dim = {} # per tener traccia della dimensione del cluster
+        df_gt = pd.read_csv(self.data_directory.joinpath('ground_truth.csv'))
+        gt_dim = df_gt.shape[0]
         for gt in gt_list:
             sub_name = os.path.basename(self.data_directory.joinpath(gt))  # questo serve per estrarre solo in nome, perché per il full se no aggiugne il nome della dir
             sub_name = os.path.splitext(sub_name)[0]
             mrr = self.score_sub(self.sub, self.data_directory.joinpath('gt_clusters', gt), total_score)
             dict_scores[sub_name] = mrr
+            tmp = pd.read_csv(self.data_directory.joinpath('gt_clusters', gt))
+            cluster_dim = tmp.shape[0]
+            dict_cluster_dim[sub_name] = int((cluster_dim*100)/(gt_dim))
 
         print('\n===========================================')
         print('\033[1;40m RECAP:'+'\033[0;37;40m')
@@ -83,19 +89,21 @@ class SubEvaluator():
         max_score_cluster = max(dict_scores, key=dict_scores.get)
         min_score_cluster = min(dict_scores, key=dict_scores.get)
         x = PrettyTable()
-        x.field_names = ['\033[1;40m Cluster'+'\033[0;37;40m', '\033[1;40m Score'+'\033[0;37;40m']
+        x.field_names = ['\033[1;40m Cluster'+'\033[0;37;40m', '\033[1;40m Score'+'\033[0;37;40m', '\033[1;40m Dimension'+'\033[0;37;40m']
+
         for k in dict_scores:
             if k==max_score_cluster:
-                x.add_row([f'\033[32;40m {k}'+'\033[0;37;40m', f'\033[32;40m {dict_scores[k]}'+'\033[0;37;40m'])
+                x.add_row([f'\033[32;40m {k}'+'\033[0;37;40m', f'\033[32;40m {dict_scores[k]}'+'\033[0;37;40m', f'\033[32;40m {dict_cluster_dim[k]}%'+'\033[0;37;40m'])
             elif k==min_score_cluster:
-                x.add_row([f'\033[31;40m {k}'+'\033[0;37;40m', f'\033[31;40m {dict_scores[k]}'+'\033[0;37;40m'])
+                x.add_row([f'\033[31;40m {k}'+'\033[0;37;40m', f'\033[31;40m {dict_scores[k]}'+'\033[0;37;40m', f'\033[31;40m {dict_cluster_dim[k]}%'+'\033[0;37;40m'])
             else:
-                x.add_row([k, f'{dict_scores[k]}'])
+                x.add_row([k, f'{dict_scores[k]}', f'{dict_cluster_dim[k]}%'])
         print(x)
 
     def generate_clusters(self):
         df_test = pd.read_csv(self.data_directory.joinpath('test.csv'))
         df_gt = pd.read_csv(self.data_directory.joinpath('ground_truth.csv'))
+
         if not os.path.exists(self.data_directory.joinpath('gt_clusters')):
             os.makedirs(self.data_directory.joinpath('gt_clusters'))
 

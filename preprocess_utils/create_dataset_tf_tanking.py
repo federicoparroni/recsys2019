@@ -49,36 +49,38 @@ def merge_features(mode, cluster, features_array):
     """
     RETRIEVE THE FEATURES
     """
-    ################################################
-    # retrieve the impression feture df
-    #impr_feature_df = ImpressionFeature(mode=mode, cluster=cluster).read_feature(one_hot=True)
 
     # list of pandas dataframe each element represent a feature
-    pandas_dataframe_features_session_list = []
-    for f in features_array['session']:
-        pandas_dataframe_features_session_list.append(f(mode=mode, cluster=cluster).read_feature(one_hot=True))
+    pandas_dataframe_features_user_session_list = []
+    for f in features_array['user_id_session_id']:
+        pandas_dataframe_features_user_session_list.append(f(mode=mode, cluster=cluster).read_feature(one_hot=True))
 
     # merge all the dataframes
     df_merged_session = reduce(lambda left, right: pd.merge(left, right, on=['user_id', 'session_id'],
-                                                            how='inner'), pandas_dataframe_features_session_list)
-    print(f'session shape: {df_merged_session.shape}')
+                                                            how='inner'), pandas_dataframe_features_user_session_list)
+    print(f'user session shape: {df_merged_session.shape}')
 
-    pandas_dataframe_features_item_list = []
-    for f in features_array['item_id']:
-        pandas_dataframe_features_item_list.append(f(mode=mode, cluster=cluster).read_feature(one_hot=True))
+    pandas_dataframe_features_user_session_item_list = []
+    for f in features_array['user_id_session_id_item_id']:
+        pandas_dataframe_features_user_session_item_list.append(f(mode=mode, cluster=cluster).read_feature(one_hot=True))
 
     # merge all the dataframes
     df_merged_item = reduce(lambda left, right: pd.merge(left, right, on=['user_id', 'session_id', 'item_id'],
-                                                         how='inner'), pandas_dataframe_features_item_list)
-    print(f'item shape: {df_merged_item.shape}')
+                                                         how='inner'), pandas_dataframe_features_user_session_item_list)
+    print(f'user session item shape: {df_merged_item.shape}')
 
     df_merged = pd.merge(df_merged_item, df_merged_session, on=['user_id', 'session_id'])
     print(f'full shape: {df_merged.shape}')
 
-    # merge also the impression feature
-    #df_merged = pd.merge(df_merged, impr_feature_df)
-    print(f'full shape: {df_merged.shape}')
+    # now merge just the item ids features
+    pandas_dataframe_features_item_list = []
+    for f in features_array['item_id']:
+        pandas_dataframe_features_item_list.append(f(mode=mode, cluster=cluster).read_feature(one_hot=True))
 
+    for itemid_feature_df in pandas_dataframe_features_item_list:
+        df_merged = pd.merge(df_merged, itemid_feature_df)
+
+    print(f'full shape: {df_merged.shape}')
     ################################################
 
     # load the target indeces of the mode
@@ -226,10 +228,11 @@ if __name__ == '__main__':
     dataset_name = 'no_pos'
 
     features_array = {
-        'item_id': [ImpressionLabel, ImpressionPriceInfoSession,
+        'user_id_session_id_item_id': [ImpressionLabel, ImpressionPriceInfoSession,
                     TimingFromLastInteractionImpression, ActionsInvolvingImpressionSession,
                     TimesUserInteractedWithImpression, ItemPopularitySession],
-        'session': [MeanPriceClickout, SessionLength, TimeFromLastActionBeforeClk]
+        'user_id_session_id': [MeanPriceClickout, SessionLength, TimeFromLastActionBeforeClk],
+        'item_id': [ImpressionFeature]
     }
 
     """
