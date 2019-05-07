@@ -36,3 +36,4 @@ catboost_info/
 
 recommenders/recurrent/checkpoints
 *.txt
+*.csv
