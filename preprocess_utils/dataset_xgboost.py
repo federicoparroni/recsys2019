@@ -39,8 +39,7 @@ def create_dataset(mode, cluster):
     features_array = [ActionsInvolvingImpressionSession, ImpressionLabel, ImpressionPriceInfoSession,
                       TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
                       ImpressionPositionSession, LastInteractionInvolvingImpression,
-                      SessionDevice, SessionSortOrderWhenClickout,
-                      ImpressionFeature]
+                      SessionDevice, SessionSortOrderWhenClickout]
 
     train_df, test_df, target_indices_reordered = merge_features(mode, cluster, features_array, False)
 
