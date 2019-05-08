@@ -144,7 +144,7 @@ def create_dataset(mode, cluster, features_array, dataset_name, popularity):
     del train_df
     scaler = MinMaxScaler(copy=False)
     # normalize the values
-    scaler.fit_transform(X)
+    X=scaler.fit_transform(X)
     Y_norm = Y.values
     del Y
 
@@ -180,7 +180,7 @@ def create_dataset(mode, cluster, features_array, dataset_name, popularity):
     if mode != 'full':
         X_test, Y_test = test_df.drop(['session_id','user_id','label','item_id'], axis=1), test_df['label']
         del test_df
-        scaler.fit_transform(X_test)
+        X_test=scaler.fit_transform(X_test)
         Y_test_norm = Y_test.values
         # dummy_label = np.zeros(len(X_test),dtype=np.int)
 
@@ -197,7 +197,7 @@ def create_dataset(mode, cluster, features_array, dataset_name, popularity):
         print('I KNOW IM FULL ;)')
         X_test = test_df.drop(['session_id','user_id','label','item_id'], axis=1)
         del test_df
-        scaler.fit_transform(X_test)
+        X_test=scaler.fit_transform(X_test)
         dummy_label = np.zeros(len(X_test), dtype=np.int)
 
         print('SAVING TEST DATA...')
@@ -213,11 +213,11 @@ def create_dataset(mode, cluster, features_array, dataset_name, popularity):
 if __name__ == '__main__':
     mode = 'small'
     cluster = 'no_cluster'
-    dataset_name = 'all'
+    dataset_name = 'no_pos'
 
     features_array = [ActionsInvolvingImpressionSession, ImpressionLabel, ImpressionPriceInfoSession,
                       TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
-                      ImpressionPositionSession, LastInteractionInvolvingImpression,
+                      LastInteractionInvolvingImpression,
                       TimesImpressionAppearedInClickoutsSession, MeanPriceClickout, SessionLength,
                       TimeFromLastActionBeforeClk, PricePositionInfoInteractedReferences,
                       SessionDevice, SessionFilterActiveWhenClickout, SessionSortOrderWhenClickout,
