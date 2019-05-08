@@ -77,11 +77,11 @@ class RecurrentRecommender(RecommenderBase):
         self.model = Sequential()
 
         # time distributed
-        self.model.add( TimeDistributed(Dense(num_recurrent_units), input_shape=(input_shape[1], input_shape[2])) )
+        self.model.add( TimeDistributed(Dense(num_recurrent_units, activation='relu'), input_shape=(input_shape[1], input_shape[2])) )
 
-        self.model.add( CELL(num_recurrent_units, dropout=0.2,recurrent_dropout=0.2, return_sequences=(num_recurrent_layers > 1) ))
+        self.model.add( CELL(num_recurrent_units, dropout=0.3,recurrent_dropout=0.25, return_sequences=(num_recurrent_layers > 1) ))
         for i in range(num_recurrent_layers-1):
-            self.model.add( CELL(num_recurrent_units, dropout=0.2,recurrent_dropout=0.2, return_sequences=(i < num_recurrent_layers-1) ))
+            self.model.add( CELL(num_recurrent_units, dropout=0.3,recurrent_dropout=0.25, return_sequences=(i < num_recurrent_layers-1) ))
 
         # time distributed
         #self.model.add( TimeDistributed(Dense(num_recurrent_units)) )
@@ -102,7 +102,7 @@ class RecurrentRecommender(RecommenderBase):
             self.model.add( Activation('softmax') )
         else:
             self.model.add( Dense(output_size, activation='softmax') )
-        self.model.add( Dropout(rate=0.3) )
+        self.model.add( Dropout(rate=0.4) )
         
         if self.weight_samples:
             self.model.compile(sample_weight_mode='temporal', loss=loss, optimizer=optimizer, metrics=['accuracy', self.mrr])
