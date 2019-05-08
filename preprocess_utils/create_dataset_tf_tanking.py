@@ -211,13 +211,13 @@ def create_dataset(mode, cluster, features_array, dataset_name, popularity):
         print('PROCEDURE ENDED CORRECTLY')
 
 if __name__ == '__main__':
-    mode = 'small'
+    mode = 'full'
     cluster = 'no_cluster'
-    dataset_name = 'no_pos'
+    dataset_name = 'all'
 
     features_array = [ActionsInvolvingImpressionSession, ImpressionLabel, ImpressionPriceInfoSession,
                       TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
-                      LastInteractionInvolvingImpression,
+                      ImpressionPositionSession,LastInteractionInvolvingImpression,
                       TimesImpressionAppearedInClickoutsSession, MeanPriceClickout, SessionLength,
                       TimeFromLastActionBeforeClk, PricePositionInfoInteractedReferences,
                       SessionDevice, SessionFilterActiveWhenClickout, SessionSortOrderWhenClickout,
