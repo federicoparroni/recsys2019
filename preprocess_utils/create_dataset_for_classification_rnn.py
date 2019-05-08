@@ -12,6 +12,7 @@ from extract_features.global_interactions_popularity import GlobalInteractionsPo
 from extract_features.global_clickout_popularity import GlobalClickoutPopularity
 from extract_features.reference_price_in_next_clickout import ReferencePriceInNextClickout
 from extract_features.average_price_in_next_clickout import AveragePriceInNextClickout
+from extract_features.reference_price_position_in_next_clickout import ReferencePricePositionInNextClickout
 
 import preprocess_utils.session2vec as sess2vec
 
@@ -38,24 +39,22 @@ if __name__ == "__main__":
     
     sess_length = int(input('Insert the desired sessions length, -1 to not to pad/truncate the sessions: '))
 
+    features_to_join = [
+        ReferencePositionInNextClickoutImpressions,
+        GlobalClickoutPopularity,
+        GlobalInteractionsPopularity,
+        AveragePriceInNextClickout,
+        ReferencePriceInNextClickout,
+        ReferencePricePositionInNextClickout,
+    ]
+    features = []
     # create the features to join
-    ref_pos_next_clk_feat = ReferencePositionInNextClickoutImpressions()
-    ref_pos_next_clk_feat.save_feature()
-    print()
-    glo_click_pop = GlobalClickoutPopularity()
-    glo_click_pop.save_feature()
-    print()
-    glob_int_pop = GlobalInteractionsPopularity()
-    glob_int_pop.save_feature()
-    print()
-    ref_price_feat = ReferencePriceInNextClickout()
-    ref_price_feat.save_feature()
-    print()
-    avg_price_feat = AveragePriceInNextClickout()
-    avg_price_feat.save_feature()
-    print()
+    for f in features_to_join:
+        feat = f()
+        feat.save_feature()
+        features.append(feat)
+        print()
 
-    features = [ref_pos_next_clk_feat, glo_click_pop, glob_int_pop, ref_price_feat, avg_price_feat]
     # create the tensors dataset
     print('Creating the dataset ({})...'.format(mode))
     sess2vec.create_dataset_for_classification(mode, c.name, pad_sessions_length=sess_length,
