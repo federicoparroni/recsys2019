@@ -220,7 +220,7 @@ if __name__ == '__main__':
                       TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
                       ImpressionPositionSession, LastInteractionInvolvingImpression,
                       TimesImpressionAppearedInClickoutsSession, MeanPriceClickout, SessionLength,
-                      TimeFromLastActionBeforeClk, FrenzyFactorSession, PricePositionInfoInteractedReferences,
+                      TimeFromLastActionBeforeClk, PricePositionInfoInteractedReferences,
                       SessionDevice, SessionFilterActiveWhenClickout, SessionSortOrderWhenClickout,
                       ImpressionFeature]
 
