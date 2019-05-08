@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from sklearn.datasets import dump_svmlight_file
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MaxAbsScaler
 from tqdm.auto import tqdm
 from sklearn.model_selection import train_test_split
 import utils.check_folder as cf
@@ -142,7 +143,8 @@ def create_dataset(mode, cluster, features_array, dataset_name, popularity):
     X, Y = train_df.drop(['session_id','user_id','label','item_id'], axis=1), train_df['label']
 
     del train_df
-    scaler = MinMaxScaler(copy=False)
+    #scaler = MinMaxScaler(feature_range=(-1, 1), copy=False)
+    scaler = MaxAbsScaler(copy=False)
     # normalize the values
     X=scaler.fit_transform(X)
     Y_norm = Y.values
