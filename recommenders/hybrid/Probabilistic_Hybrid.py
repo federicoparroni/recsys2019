@@ -20,7 +20,7 @@ class Probabilistic_Hybrid(RecommenderBase):
     Questa classe utilizza il file ground_truth.csv per calcolare lo score locale, NON utilizza il metodo evaluate della classe base: la
     chiamata run() con la mode='local' calcola lo score in locale."""
 
-    def __init__(self, mode='local'):
+    def __init__(self, params, mode='local'):
         name = 'probabilistic_hybrid'
         cluster = 'no_cluster'
         super(Probabilistic_Hybrid, self).__init__(mode, cluster, name)
@@ -35,14 +35,30 @@ class Probabilistic_Hybrid(RecommenderBase):
         If no key-value pair is set, then the weight = 1 by default"""
 
         #TODO find the optimal parameters with the Bayesian
+        """
         params = {
             'content_based_old': 0.0032,
             'last_interaction': 0.7,
             'lazyUserRec': 1,
-            'location_subm': 0.9,
+            'location_subm': 1,
             'min_price_based': 1.5,
-            'xgboostlocal': 2
+            'xgboostlocal': 1.8,
+            'RNN_local': 0
         }
+
+
+        params = {
+            'content_based_old': 0,
+            'last_interaction': 1,
+            'lazyUserRec': 1,
+            'location_subm': 0,
+            'min_price_based': 0,
+            'xgboostlocal': 0,
+            'RNN_local': 0.5
+        }
+        """
+        self.params = params
+        common_sessions = self.check_submissions()
 
         num_file = 0
         directory = self.data_directory.joinpath(self.mode)
@@ -55,6 +71,7 @@ class Probabilistic_Hybrid(RecommenderBase):
                     # - the name of the submission
                     # - the coefficient used for the submission weight
                     tmp = pd.read_csv(directory.joinpath(file))
+                    tmp = tmp[tmp['session_id'].isin(common_sessions)]
                     tmp = tmp.sort_values(by=['user_id', 'timestamp'])
                     tmp = tmp.reset_index(drop=True)
                     sub_name = os.path.basename(directory.joinpath(file))  # questo serve per estrarre solo in nome, perché per il full se no aggiugne il nome della dir
@@ -97,6 +114,19 @@ class Probabilistic_Hybrid(RecommenderBase):
                     os.remove(self.data_directory.joinpath(f'scores/item_{d[1]}_{n}.csv'))
         return self.dict_sub_scores
 
+    def check_submissions(self):
+        print('Checking submissions...')
+        gt_csv = self.data_directory.joinpath('ground_truth.csv')
+        df_gt= pd.read_csv(gt_csv)
+        sessions = df_gt['session_id'].unique().tolist()
+        for root, dirs, files in os.walk(self.data_directory.joinpath(self.mode)):
+            for file in files:
+                if file.endswith(".csv"):
+                    tmp = pd.read_csv(self.data_directory.joinpath(self.mode, file))
+                    tmp_sessions = tmp['session_id'].unique().tolist()
+                    common_sessions = set(sessions) & set(tmp_sessions)
+                    sessions = list(common_sessions)
+        return sessions
 
     def recommend_batch(self):
         exp = 0.5  # we'll compute the squared radix
@@ -145,9 +175,10 @@ class Probabilistic_Hybrid(RecommenderBase):
 
         submission = pd.concat([submission, item_rec], axis=1)
 
-        if self.mode == 'local':
-            print('Computing the score...')
-            self.score_sub(submission)
+        # TODO: DECOMMENTA PER PROVARE DA SOLO SENZA OPTIMIZER 
+        #if self.mode == 'local':
+        #    print('Computing the score...')
+        #    mrr =self.score_sub(submission)
 
         print('DONE.')
         return submission
@@ -158,6 +189,7 @@ class Probabilistic_Hybrid(RecommenderBase):
         gt_csv = self.data_directory.joinpath('ground_truth.csv')
         mrr = f.score_submissions(submission, gt_csv, f.get_reciprocal_ranks, subm_csv_is_file=False)
         print(f'Score: {mrr}')
+        return mrr
 
     def generate_column_subs(self, d):
         #takes a list as: dataframe, submission name, coefficient

@@ -392,7 +392,7 @@ if __name__ == "__main__":
 
     flags.DEFINE_float("learning_rate", 0.1, "Learning rate for optimizer.")
     #0.01
-    flags.DEFINE_float("dropout_rate", 0.1, "The dropout rate before output layer.")
+    flags.DEFINE_float("dropout_rate", 0.5, "The dropout rate before output layer.")
     # 0.5
     flags.DEFINE_list("hidden_layer_dims", ['256','128'],
                     "Sizes for hidden layers.")
@@ -404,7 +404,7 @@ if __name__ == "__main__":
     flags.DEFINE_integer("group_size", 1, "Group size used in score function.")
     #1
 
-    flags.DEFINE_string("loss", "pairwise_hinge_loss",
+    flags.DEFINE_string("loss", "pairwise_logistic_loss",
                       "The RankingLossKey for loss function.")
 
     FLAGS = flags.FLAGS
