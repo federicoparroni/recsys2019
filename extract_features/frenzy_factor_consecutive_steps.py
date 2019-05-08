@@ -59,15 +59,18 @@ class FrenzyFactorSession(FeatureBase):
 
                     var = round((var / session_actions_num) ** 0.5, 2)
 
-            return pd.Series({'mean_time_per_step':mean_time_per_step, 'frenzy_factor':var})
+            # return pd.Series({'mean_time_per_step':mean_time_per_step, 'frenzy_factor':var})
+            return [(mean_time_per_step, var)]
 
         train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)
         df = pd.concat([train, test])
-
         s = df.groupby(['user_id', 'session_id']).progress_apply(func)
-
-        return s.reset_index()
+        s = s.apply(pd.Series).reset_index().melt(id_vars=['user_id', 'session_id'], value_name='tuple').sort_values(
+            by=['user_id', 'session_id']).dropna()
+        s[['mean_time_per_step', 'frenzy_factor']] = pd.DataFrame(s['tuple'].tolist(), index=s.index)
+        s = s.drop(['variable', 'tuple'], axis=1)
+        return s.reset_index(drop=True)
 
 if __name__ == '__main__':
     from utils.menu import mode_selection

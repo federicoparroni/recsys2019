@@ -102,7 +102,7 @@ class FeatureBase(ABC):
             for t in self.columns_to_onehot:
                 col = df[t[0]]
                 if t[1] == 'single':
-                    oh = pd.get_dummies(col)
+                    oh = pd.get_dummies(col, prefix=self.name)
                 else:
                     mid = col.apply(lambda x: x.split('|') if isinstance(x, str) else x)
                     mid.fillna(value='', inplace=True)
@@ -110,6 +110,7 @@ class FeatureBase(ABC):
                     oh = mlb.fit_transform(mid)
                     oh = pd.DataFrame(oh, columns=mlb.classes_)
                     oh = oh.astype(np.uint8)
+                    oh = oh.add_prefix(self.name)
 
                 df = df.drop([t[0]], axis=1)
                 df = pd.concat([df, oh], axis=1)

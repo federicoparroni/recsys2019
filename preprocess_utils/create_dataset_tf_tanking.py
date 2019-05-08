@@ -57,6 +57,8 @@ def merge_features(mode, cluster, features_array, popularity=False):
         print(df_merged.shape)
         df_merged = f(mode=mode, cluster=cluster).join_to(df_merged, one_hot=True)
 
+    print(df_merged.shape)
+
     if popularity:
         f1 = GlobalClickoutPopularity().read_feature()
         df_merged=pd.merge(df_merged, f1, left_on='item_id', right_on='reference', how='left')
@@ -140,15 +142,14 @@ def create_dataset(mode, cluster, features_array, dataset_name, popularity):
     X, Y = train_df.drop(['session_id','user_id','label','item_id'], axis=1), train_df['label']
 
     del train_df
-    scaler = MinMaxScaler()
+    scaler = MinMaxScaler(copy=False)
     # normalize the values
-    X_norm = scaler.fit_transform(X)
-    del X
+    scaler.fit_transform(X)
     Y_norm = Y.values
     del Y
 
     X_train, X_val, Y_train, Y_val, qid_train, qid_val = \
-        train_test_split(X_norm, Y_norm, np_qid_train, test_size=0.2, shuffle=False)
+        train_test_split(X, Y_norm, np_qid_train, test_size=0.2, shuffle=False)
 
     print('SAVING TRAIN DATA...')
     dump_svmlight_file(X_train, Y_train, f'{_SAVE_BASE_PATH}/train.txt', query_id=qid_train, zero_based=False)
@@ -179,13 +180,12 @@ def create_dataset(mode, cluster, features_array, dataset_name, popularity):
     if mode != 'full':
         X_test, Y_test = test_df.drop(['session_id','user_id','label','item_id'], axis=1), test_df['label']
         del test_df
-        X_test_norm = scaler.fit_transform(X_test)
-        del X_test
+        scaler.fit_transform(X_test)
         Y_test_norm = Y_test.values
         # dummy_label = np.zeros(len(X_test),dtype=np.int)
 
         print('SAVING TEST DATA...')
-        dump_svmlight_file(X_test_norm, Y_test_norm, f'{_SAVE_BASE_PATH}/test.txt', query_id=np_qid_test,
+        dump_svmlight_file(X_test, Y_test_norm, f'{_SAVE_BASE_PATH}/test.txt', query_id=np_qid_test,
                            zero_based=False)
         print('DONE')
 
@@ -197,12 +197,11 @@ def create_dataset(mode, cluster, features_array, dataset_name, popularity):
         print('I KNOW IM FULL ;)')
         X_test = test_df.drop(['session_id','user_id','label','item_id'], axis=1)
         del test_df
-        X_test_norm = scaler.fit_transform(X_test)
+        scaler.fit_transform(X_test)
         dummy_label = np.zeros(len(X_test), dtype=np.int)
-        del X_test
 
         print('SAVING TEST DATA...')
-        dump_svmlight_file(X_test_norm, dummy_label, f'{_SAVE_BASE_PATH}/test.txt', query_id=np_qid_test,
+        dump_svmlight_file(X_test, dummy_label, f'{_SAVE_BASE_PATH}/test.txt', query_id=np_qid_test,
                            zero_based=False)
         print('DONE')
 
@@ -214,7 +213,7 @@ def create_dataset(mode, cluster, features_array, dataset_name, popularity):
 if __name__ == '__main__':
     mode = 'small'
     cluster = 'no_cluster'
-    dataset_name = 'no_pos'
+    dataset_name = 'all'
 
     features_array = [ActionsInvolvingImpressionSession, ImpressionLabel, ImpressionPriceInfoSession,
                       TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
