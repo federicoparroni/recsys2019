@@ -57,6 +57,8 @@ def merge_features(mode, cluster, features_array, popularity=False):
         print(df_merged.shape)
         df_merged = f(mode=mode, cluster=cluster).join_to(df_merged, one_hot=True)
 
+    print(df_merged.shape)
+
     if popularity:
         f1 = GlobalClickoutPopularity().read_feature()
         df_merged=pd.merge(df_merged, f1, left_on='item_id', right_on='reference', how='left')
