@@ -81,7 +81,7 @@ class RecurrentRecommender(RecommenderBase):
 
         self.model.add( CELL(num_recurrent_units, dropout=0.3,recurrent_dropout=0.25, return_sequences=(num_recurrent_layers > 1) ))
         for i in range(num_recurrent_layers-1):
-            self.model.add( CELL(num_recurrent_units, dropout=0.3,recurrent_dropout=0.25, return_sequences=(i < num_recurrent_layers-1) ))
+            self.model.add( CELL(num_recurrent_units, dropout=0.3,recurrent_dropout=0.25, return_sequences=(i < num_recurrent_layers-2) ))
 
         # time distributed
         #self.model.add( TimeDistributed(Dense(num_recurrent_units)) )
