@@ -76,7 +76,7 @@ def merge_features(mode, cluster, features_array, popularity=False):
     print(f'number of tgt index: {len(target_indeces)}')
 
     # load the full df
-    full_df = data.full_df()
+    full_df = pd.read_csv(data.FULL_PATH, usecols=['user_id', 'session_id'])
 
     # dict that has as keys the couples (user_id, session_id) that are target
     tgt_usersession = {}
@@ -220,7 +220,7 @@ if __name__ == '__main__':
                       TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
                       ImpressionPositionSession, LastInteractionInvolvingImpression,
                       TimesImpressionAppearedInClickoutsSession, MeanPriceClickout, SessionLength,
-                      TimeFromLastActionBeforeClk, FrenzyFactorSession, PricePositionInfoInteractedReferences,
+                      TimeFromLastActionBeforeClk, PricePositionInfoInteractedReferences,
                       SessionDevice, SessionFilterActiveWhenClickout, SessionSortOrderWhenClickout,
                       ImpressionFeature]
 

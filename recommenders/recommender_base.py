@@ -65,7 +65,7 @@ class RecommenderBase(ABC):
         """
         export = False
         print('running {}'.format(self.name))
-        if self.mode == 'full':
+        if (self.mode == 'full') or (self.mode == 'local'):
             export = True
             print("I gonna fit the model, recommend the accomodations, and save the submission")
         else:

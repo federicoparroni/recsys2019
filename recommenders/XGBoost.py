@@ -76,5 +76,5 @@ if __name__ == '__main__':
     from utils.menu import mode_selection
     mode = mode_selection()
     model = XGBoostWrapper(mode=mode, cluster='no_cluster')
-    #model.evaluate(send_MRR_on_telegram=True)
-    model.run()
+    model.evaluate(send_MRR_on_telegram=True)
+    #model.run()
