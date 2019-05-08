@@ -121,8 +121,8 @@ def dataset_xgboost_train(mode, cluster='no_cluster'):
     global _dataset_xgboost_train
     bp = 'dataset/preprocessed/{}/{}/xgboost'.format(cluster, mode)
     if not 'a' in _dataset_xgboost_train:
-        _dataset_xgboost_train[bp+'a'] = pd.read_csv(
-            os.path.join(bp, 'X_train.csv'))
+        _dataset_xgboost_train[bp+'a'] = sps.load_npz(
+            os.path.join(bp, 'X_train.npz'))
         _dataset_xgboost_train[bp+'b'] = pd.read_csv(
             os.path.join(bp, 'y_train.csv'))['label'].to_dense()
         _dataset_xgboost_train[bp+'c'] = np.load(
@@ -136,8 +136,8 @@ def dataset_xgboost_test(mode, cluster='no_cluster'):
     global _dataset_xgboost_test
     bp = 'dataset/preprocessed/{}/{}/xgboost'.format(cluster, mode)
     if not 'a' in _dataset_xgboost_test:
-        _dataset_xgboost_test[bp+'a'] = pd.read_csv(
-            os.path.join(bp, 'X_test.csv'))
+        _dataset_xgboost_test[bp+'a'] = sps.load_npz(
+            os.path.join(bp, 'X_test.npz'))
         _dataset_xgboost_test[bp+'b'] = np.load(
             os.path.join(bp, 'target_indices_reordered.npy'))
     return _dataset_xgboost_test[bp+'a'], \

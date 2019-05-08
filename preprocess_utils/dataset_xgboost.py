@@ -28,55 +28,32 @@ from extract_features.times_user_interacted_with_impression import TimesUserInte
 from extract_features.timing_from_last_interaction_impression import TimingFromLastInteractionImpression
 
 
-def groups(users, sessions):
-    au = users[0]
-    ai = sessions[0]
-    groups = []
-    count = 1
-    for j in range(len(users)):
-        u = users[j]
-        i = sessions[j]
-        if u != au or i != ai:
-            groups.append(count - 1)
-            count = 1
-            au = u
-            ai = i
-        count += 1
-    groups.append(count - 1)
-    return groups
-
-
 def create_groups(df):
-    users = df['user_id'].to_dense().values
-    sessions = df['session_id'].to_dense().values
-    print('data are ready')
-    group = groups(list(users), list(sessions))
+    df = df[['user_id', 'session_id']]
+    group = df.groupby(['user_id', 'session_id'], sort=False).apply(lambda x: len(x)).values
     return group
 
 
 def create_dataset(mode, cluster):
     # training
-    features_array = {
-        'user_id_session_id_item_id': [ActionsInvolvingImpressionSession, ImpressionLabel, ImpressionPriceInfoSession,
-                                       TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
-                                       ImpressionPositionSession, LastInteractionInvolvingImpression,
-                                       TimesImpressionAppearedInClickoutsSession],
-        'user_id_session_id': [MeanPriceClickout, SessionLength, TimeFromLastActionBeforeClk,
-                               FrenzyFactorSession, PricePositionInfoInteractedReferences,
-                               SessionDevice, SessionSortOrderWhenClickout],
-        'item_id': [GlobalInteractionsPopularity, GlobalClickoutPopularity]
-    }
+    features_array = [ActionsInvolvingImpressionSession, ImpressionLabel, ImpressionPriceInfoSession,
+                      TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
+                      ImpressionPositionSession, LastInteractionInvolvingImpression,
+                      TimesImpressionAppearedInClickoutsSession, MeanPriceClickout, SessionLength,
+                      TimeFromLastActionBeforeClk, FrenzyFactorSession, PricePositionInfoInteractedReferences,
+                      SessionDevice, SessionFilterActiveWhenClickout, SessionSortOrderWhenClickout,
+                      ImpressionFeature]
 
-    train_df, test_df, target_indices_reordered = merge_features(mode, cluster, features_array)
+    train_df, test_df, target_indices_reordered = merge_features(mode, cluster, features_array, True)
 
     check_folder('dataset/preprocessed/{}/{}/xgboost/'.format(cluster, mode))
 
     X_train = train_df.drop(['user_id', 'session_id', 'item_id', 'label'], axis=1)
-    X_train.to_csv('dataset/preprocessed/{}/{}/xgboost/X_train.csv'.format(cluster, mode), index=False)
-    # X_train = X_train.astype(np.float64)
-    # X_train = X_train.to_coo().tocsr()
-    # save_npz(
-    #     'dataset/preprocessed/{}/{}/xgboost/X_train'.format(cluster, mode), X_train)
+    # X_train.to_csv('dataset/preprocessed/{}/{}/xgboost/X_train.csv'.format(cluster, mode), index=False)
+    X_train = X_train.to_sparse(fill_value=0)
+    X_train = X_train.astype(np.float64)
+    X_train = X_train.to_coo().tocsr()
+    save_npz('dataset/preprocessed/{}/{}/xgboost/X_train'.format(cluster, mode), X_train)
     print('X_train saved')
 
     y_train = train_df[['label']]
@@ -91,9 +68,12 @@ def create_dataset(mode, cluster):
     print('train data completed')
 
     X_test = test_df.drop(['user_id', 'session_id', 'item_id', 'label'], axis=1)
-    X_test.to_csv('dataset/preprocessed/{}/{}/xgboost/X_test.csv'.format(cluster, mode), index=False)
+    # X_test.to_csv('dataset/preprocessed/{}/{}/xgboost/X_test.csv'.format(cluster, mode), index=False)
+    X_test = X_test.to_sparse(fill_value=0)
+    X_test = X_test.astype(np.float64)
+    X_test = X_test.to_coo().tocsr()
+    save_npz('dataset/preprocessed/{}/{}/xgboost/X_test'.format(cluster, mode), X_test)
     print('X_test saved')
-
 
     np.save('dataset/preprocessed/{}/{}/xgboost/target_indices_reordered'.format(cluster, mode),
             target_indices_reordered)
