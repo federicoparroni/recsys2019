@@ -95,7 +95,7 @@ class BestCheckpointCopier(tf.estimator.Exporter):
       dataset = tf.data.Dataset.from_tensor_slices((features, labels))
       return dataset.batch(batch_size)
 
-    def create_sub(estimator, checkpoint_path, eval_result, batch_size=64, patience=0.01):
+    def create_sub(estimator, checkpoint_path, eval_result, batch_size=64, patience=0.05):
       # now works also for local and small it will create a sub
       # create a sub only if the MMR is > 0.65
       if (self.mode == 'full') or (self.mode == 'local'):
