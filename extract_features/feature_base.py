@@ -33,6 +33,7 @@ class FeatureBase(ABC):
         self.name = name
         self.columns_to_onehot = columns_to_onehot
         self.save_index = save_index
+        self.one_hot_prefix = self.name
 
     @abstractmethod
     def extract_feature(self):
@@ -102,7 +103,7 @@ class FeatureBase(ABC):
             for t in self.columns_to_onehot:
                 col = df[t[0]]
                 if t[1] == 'single':
-                    oh = pd.get_dummies(col, prefix=self.name)
+                    oh = pd.get_dummies(col, prefix=self.one_hot_prefix)
                 else:
                     mid = col.apply(lambda x: x.split('|') if isinstance(x, str) else x)
                     mid.fillna(value='', inplace=True)
@@ -110,7 +111,7 @@ class FeatureBase(ABC):
                     oh = mlb.fit_transform(mid)
                     oh = pd.DataFrame(oh, columns=mlb.classes_)
                     oh = oh.astype(np.uint8)
-                    oh = oh.add_prefix(self.name)
+                    oh = oh.add_prefix(self.one_hot_prefix)
 
                 df = df.drop([t[0]], axis=1)
                 df = pd.concat([df, oh], axis=1)

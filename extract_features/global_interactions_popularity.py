@@ -15,15 +15,15 @@ class GlobalInteractionsPopularity(FeatureBase):
     popularity is a positive number
     """
 
-    def __init__(self):
+    def __init__(self, mode, cluster):
         name = 'global_interactions_popularity'
         columns_to_onehot = []
 
-        super().__init__(name=name, mode='full', columns_to_onehot=columns_to_onehot)
+        super().__init__(name=name, mode=mode, cluster=cluster, columns_to_onehot=columns_to_onehot)
 
 
     def extract_feature(self):
-        df = data.full_df()
+        df = data.train_df(mode=self.mode, cluster=self.cluster)
 
         # count the numeric references
         res_df = df[(df.reference.str.isnumeric() == True)]
