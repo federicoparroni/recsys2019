@@ -95,19 +95,23 @@ class BestCheckpointCopier(tf.estimator.Exporter):
       dataset = tf.data.Dataset.from_tensor_slices((features, labels))
       return dataset.batch(batch_size)
 
-    def create_sub(estimator, checkpoint_path, eval_result, batch_size=64, patience=0.05):
+    def create_sub(estimator, checkpoint_path, eval_result, batch_size=64, patience=0.005):
       # now works also for local and small it will create a sub
       # create a sub only if the MMR is > 0.65
       if (self.mode == 'full') or (self.mode == 'local'):
-        if eval_result>self.min_mrr+patience:
+        eval_result_f = eval_result['metric/mrr']
+        print(self.min_mrr)
+        print(eval_result_f)
+        if eval_result_f>self.min_mrr+patience:
           # set as new threshold the new mrr
-          self.min_mrr = eval_result
+          self.min_mrr = eval_result_f
 
           pred = np.array(list(estimator.predict(lambda: batch_inputs(self.test_x, self.test_y, batch_size))))
-          np.save(self.save_path, pred)
-          HERA.send_message(f'EXPORTING A SUB... {eval_result} mode:{self.mode}')
-          model = TensorflowRankig(mode=self.mode, cluster='no_cluster', dataset_name=self.dataset_name)
-          score = eval_result
+          np.save(f'{self.save_path}/predictions_{eval_result_f}', pred)
+          HERA.send_message(f'EXPORTING A SUB... {eval_result_f} mode:{self.mode}')
+          model = TensorflowRankig(mode=self.mode, cluster='no_cluster', dataset_name=self.dataset_name,
+                                   pred_name=f'predictions_{eval_result_f}')
+          score = eval_result_f
           model.name = f'tf_ranking_{self.mode}_{self.loss}_{score}'
           model.run()
 
