@@ -117,5 +117,7 @@ class PricePositionInfoInteractedReferences(FeatureBase):
 
         return s.reset_index()
 if __name__ == '__main__':
-    c = PricePositionInfoInteractedReferences(mode='small', cluster='no_cluster')
+    from utils.menu import mode_selection
+    mode = mode_selection()
+    c = PricePositionInfoInteractedReferences(mode=mode, cluster='no_cluster')
     c.save_feature()

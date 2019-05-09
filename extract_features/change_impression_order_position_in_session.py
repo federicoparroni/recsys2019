@@ -5,21 +5,15 @@ from tqdm.auto import tqdm
 tqdm.pandas()
 
 
-class ChangeOrderImpression(FeatureBase):
+class ChangeImpressionOrderPositionInSession(FeatureBase):
 
     """
-    Avg position of the item clicked AND interacted by the user with respect to the price position sorted by the cheapest
-    during the session sorted by price ascendent.
-    -1 if no other interaction is present.
-    Position of the impressions interacted usually when info about impression is available. (number from 1 to 25)
-    also position of the last impression interacted/clicked (this hopes to let apply what lazy user recommender does)
-    -1 is not available.
-    | user_id | session_id | mean_price_interacted | mean_cheap_pos_interacted | 'mean_pos' | 'pos_last_reference'
+    | user_id | session_id | search_for_poi_distance_from_last_clickout | search_for_poi_distance_from_first_action | change_sort_order_distance_from_last_clickout | change_sort_order_distance_from_first_action
     """
 
     def __init__(self, mode, cluster='no_cluster'):
-        name = 'change_impression_order_position_in_session.py'
-        super(ChangeOrderImpression, self).__init__(
+        name = 'change_impression_order_position_in_session'
+        super(ChangeImpressionOrderPositionInSession, self).__init__(
             name=name, mode=mode, cluster=cluster)
 
     def extract_feature(self):
@@ -69,5 +63,7 @@ class ChangeOrderImpression(FeatureBase):
 
         return s.reset_index()
 if __name__ == '__main__':
-    c = ChangeOrderImpression(mode='small', cluster='no_cluster')
+    from utils.menu import mode_selection
+    mode = mode_selection()
+    c = ChangeImpressionOrderPositionInSession(mode=mode, cluster='no_cluster')
     c.save_feature()
