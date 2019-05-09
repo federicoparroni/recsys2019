@@ -31,7 +31,8 @@ from extract_features.times_user_interacted_with_impression import TimesUserInte
 from extract_features.timing_from_last_interaction_impression import TimingFromLastInteractionImpression
 
 def is_target(df, tgt_usersession):
-    if tuple(df.head(1)[['user_id', 'session_id']].values[0]) in tgt_usersession:
+    first = df.iloc[0]
+    if (first.user_id, first.session_id) in tgt_usersession:
         return True
     else:
         return False
@@ -86,7 +87,9 @@ def merge_features(mode, cluster, features_array, popularity=False):
     for index in target_indeces:
         tgt_usersession[tuple(full_df.iloc[index][['user_id', 'session_id']].values)] = index
 
-    is_target_ = df_merged.groupby(['user_id', 'session_id']).progress_apply(is_target, tgt_usersession=tgt_usersession)
+    df_merged_only_user_session = df_merged[['user_id', 'session_id']]
+    is_target_ = df_merged_only_user_session.groupby(['user_id', 'session_id'], as_index=False).progress_apply(
+        is_target, tgt_usersession=tgt_usersession)
     df_merged = pd.merge(df_merged, is_target_.reset_index(), on=['user_id', 'session_id'])
 
     test_df = df_merged[df_merged[0] == True]
@@ -114,6 +117,7 @@ def merge_features(mode, cluster, features_array, popularity=False):
 
     print(f'number of tgt index: {len(target_indeces_reordered)}')
     target_indeces_reordered = np.array(target_indeces_reordered)
+
 
     return train_df, test_df, target_indeces_reordered
 
