@@ -57,7 +57,10 @@ class FrenzyFactorSession(FeatureBase):
                     # summing var wrt of clickout
                     var += (mean_time_per_step - (clickout_tm - prev_tm)) ** 2
 
-                    var = round((var / session_actions_num) ** 0.5, 2)
+                    if session_actions_num > 0:
+                        var = round((var / session_actions_num) ** 0.5, 2)
+                    else:
+                        var = 0
 
             # return pd.Series({'mean_time_per_step':mean_time_per_step, 'frenzy_factor':var})
             return [(mean_time_per_step, var)]

@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from sklearn.datasets import dump_svmlight_file
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MaxAbsScaler
 from tqdm.auto import tqdm
 from sklearn.model_selection import train_test_split
 import utils.check_folder as cf
@@ -30,7 +31,8 @@ from extract_features.times_user_interacted_with_impression import TimesUserInte
 from extract_features.timing_from_last_interaction_impression import TimingFromLastInteractionImpression
 
 def is_target(df, tgt_usersession):
-    if tuple(df.head(1)[['user_id', 'session_id']].values[0]) in tgt_usersession:
+    first = df.iloc[0]
+    if (first.user_id, first.session_id) in tgt_usersession:
         return True
     else:
         return False
@@ -85,7 +87,9 @@ def merge_features(mode, cluster, features_array, popularity=False):
     for index in target_indeces:
         tgt_usersession[tuple(full_df.iloc[index][['user_id', 'session_id']].values)] = index
 
-    is_target_ = df_merged.groupby(['user_id', 'session_id']).progress_apply(is_target, tgt_usersession=tgt_usersession)
+    df_merged_only_user_session = df_merged[['user_id', 'session_id']]
+    is_target_ = df_merged_only_user_session.groupby(['user_id', 'session_id'], as_index=False).progress_apply(
+        is_target, tgt_usersession=tgt_usersession)
     df_merged = pd.merge(df_merged, is_target_.reset_index(), on=['user_id', 'session_id'])
 
     test_df = df_merged[df_merged[0] == True]
@@ -113,6 +117,7 @@ def merge_features(mode, cluster, features_array, popularity=False):
 
     print(f'number of tgt index: {len(target_indeces_reordered)}')
     target_indeces_reordered = np.array(target_indeces_reordered)
+
 
     return train_df, test_df, target_indeces_reordered
 
@@ -142,23 +147,26 @@ def create_dataset(mode, cluster, features_array, dataset_name, popularity):
     X, Y = train_df.drop(['session_id','user_id','label','item_id'], axis=1), train_df['label']
 
     del train_df
-    scaler = MinMaxScaler(copy=False)
+    #scaler = MinMaxScaler(feature_range=(-1, 1), copy=False)
+    scaler = MaxAbsScaler(copy=False)
     # normalize the values
-    scaler.fit_transform(X)
+    X=scaler.fit_transform(X)
     Y_norm = Y.values
     del Y
 
     X_train, X_val, Y_train, Y_val, qid_train, qid_val = \
         train_test_split(X, Y_norm, np_qid_train, test_size=0.2, shuffle=False)
+    del X
 
     print('SAVING TRAIN DATA...')
     dump_svmlight_file(X_train, Y_train, f'{_SAVE_BASE_PATH}/train.txt', query_id=qid_train, zero_based=False)
     print('DONE')
+    del X_train, Y_train
 
     print('SAVING VALI DATA...')
     dump_svmlight_file(X_val, Y_val, f'{_SAVE_BASE_PATH}/vali.txt', query_id=qid_val, zero_based=False)
     print('DONE')
-    del X_train, X_val, Y_train, Y_val
+    del X_val, Y_val
 
     """
     CREATE DATA FOR TEST
@@ -180,7 +188,7 @@ def create_dataset(mode, cluster, features_array, dataset_name, popularity):
     if mode != 'full':
         X_test, Y_test = test_df.drop(['session_id','user_id','label','item_id'], axis=1), test_df['label']
         del test_df
-        scaler.fit_transform(X_test)
+        X_test=scaler.fit_transform(X_test)
         Y_test_norm = Y_test.values
         # dummy_label = np.zeros(len(X_test),dtype=np.int)
 
@@ -197,7 +205,7 @@ def create_dataset(mode, cluster, features_array, dataset_name, popularity):
         print('I KNOW IM FULL ;)')
         X_test = test_df.drop(['session_id','user_id','label','item_id'], axis=1)
         del test_df
-        scaler.fit_transform(X_test)
+        X_test=scaler.fit_transform(X_test)
         dummy_label = np.zeros(len(X_test), dtype=np.int)
 
         print('SAVING TEST DATA...')
@@ -213,38 +221,25 @@ def create_dataset(mode, cluster, features_array, dataset_name, popularity):
 if __name__ == '__main__':
     mode = 'small'
     cluster = 'no_cluster'
-    dataset_name = 'all'
+    dataset_name = 'no_dummy'
 
     features_array = [ActionsInvolvingImpressionSession, ImpressionLabel, ImpressionPriceInfoSession,
                       TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
-                      ImpressionPositionSession, LastInteractionInvolvingImpression,
+                      ImpressionPositionSession,LastInteractionInvolvingImpression,
+                      TimesImpressionAppearedInClickoutsSession, MeanPriceClickout, SessionLength,
+                      TimeFromLastActionBeforeClk, PricePositionInfoInteractedReferences,
+                      SessionDevice]
+
+    """
+        features_array = [ActionsInvolvingImpressionSession, ImpressionLabel, ImpressionPriceInfoSession,
+                      TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
+                      ImpressionPositionSession,LastInteractionInvolvingImpression,
                       TimesImpressionAppearedInClickoutsSession, MeanPriceClickout, SessionLength,
                       TimeFromLastActionBeforeClk, PricePositionInfoInteractedReferences,
                       SessionDevice, SessionFilterActiveWhenClickout, SessionSortOrderWhenClickout,
                       ImpressionFeature]
-
-    """
-    features_array = {
-        'user_id_session_id_item_id': [ActionsInvolvingImpressionSession, ImpressionLabel, ImpressionPriceInfoSession,
-                                       TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
-                                       ImpressionPositionSession, LastInteractionInvolvingImpression,
-                                       TimesImpressionAppearedInClickoutsSession],
-        'user_id_session_id': [MeanPriceClickout, SessionLength, TimeFromLastActionBeforeClk,
-                               FrenzyFactorSession, PricePositionInfoInteractedReferences,
-                               SessionDevice, SessionFilterActiveWhenClickout, SessionSortOrderWhenClickout],
-        'item_id': [ImpressionFeature, GlobalInteractionsPopularity, GlobalClickoutPopularity]
-    }
+    
     """
 
-    """
-    features_array = {
-        'item_id': [ImpressionLabel,ImpressionPriceInfoSession,LastInteractionInvolvingImpression,
-                    TimingFromLastInteractionImpression,ActionsInvolvingImpressionSession,ImpressionPositionSession,
-                    TimesUserInteractedWithImpression,ItemPopularitySession],
-        'session': [MeanPriceClickout, MeanPriceClickout_edo, SessionLength, SessionDevice,
-                    SessionActionNumRefDiffFromImpressions, SessionFilterActiveWhenClickout,
-                    SessionSortOrderWhenClickout, TimePassedBeforeClickout]
-    }
-    """
 
     create_dataset(mode=mode, cluster=cluster, features_array=features_array, dataset_name=dataset_name, popularity=True)

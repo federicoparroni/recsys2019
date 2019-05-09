@@ -288,7 +288,7 @@ def train_and_eval():
       sort_key_fn=lambda x: x.score,
       sort_reverse=True,
       dataset_name=FLAGS.dataset_name,
-      save_path=f'{FLAGS.save_path}/predictions',
+      save_path=f'{FLAGS.save_path}',
       #save_path=f'dataset/preprocessed/tf_ranking/{_CLUSTER}/full/{_DATASET_NAME}/predictions',
       test_x=features_test,
       test_y=labels_test,
@@ -384,7 +384,7 @@ if __name__ == "__main__":
     flags.DEFINE_string("output_dir", _OUTPUT_DIR, "Output directory for models.")
     flags.DEFINE_string("mode", _MODE, "mode of the models.")
     flags.DEFINE_string("dataset_name", _DATASET_NAME, "name of the dataset")
-    flags.DEFINE_float("min_mrr_start", 0.63, "min_mrr_from_which_save_model")
+    flags.DEFINE_float("min_mrr_start", 0.3, "min_mrr_from_which_save_model")
 
     flags.DEFINE_integer("train_batch_size", 128, "The batch size for training.")
     # 32
