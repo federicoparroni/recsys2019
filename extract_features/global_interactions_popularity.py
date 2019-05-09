@@ -23,7 +23,11 @@ class GlobalInteractionsPopularity(FeatureBase):
 
 
     def extract_feature(self):
-        df = data.train_df(mode=self.mode, cluster=self.cluster)
+        train = data.train_df(mode=self.mode, cluster=self.cluster)
+        test = data.test_df(mode=self.mode, cluster=self.cluster)
+        df = pd.concat([train, test])
+        del train
+        del test
 
         # count the numeric references
         res_df = df[(df.reference.str.isnumeric() == True)]
@@ -46,8 +50,12 @@ class GlobalInteractionsPopularity(FeatureBase):
 
 
 if __name__ == '__main__':
-    
-    c = GlobalInteractionsPopularity()
+    import utils.menu as menu
+
+    mode = menu.mode_selection()
+    cluster = menu.cluster_selection()
+
+    c = GlobalInteractionsPopularity(mode, cluster)
     
     print('Creating {} for {} {}'.format(c.name, c.mode, c.cluster))
     #c.save_feature()
