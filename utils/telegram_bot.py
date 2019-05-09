@@ -31,7 +31,8 @@ class TelegramBotKerasCallback(keras.callbacks.Callback):
             lines.append('Epoch: {}'.format(epoch))
             lines.append('acc: {} - val_acc: {}'.format( round(logs['acc'],4), round(logs['val_acc'],4) ))
             lines.append('loss: {} - val_loss: {}'.format( round(logs['loss'],4), round(logs['val_loss'],4) ))
-            lines.append('mrr: {} - val_mrr: {}'.format( round(logs['mrr'],4), round(logs['val_mrr'],4) ))
+            if 'mrr' in logs:
+                lines.append('mrr: {} - val_mrr: {}'.format( round(logs['mrr'],4), round(logs['val_mrr'],4) ))
             
             try:
                 send_message( '\n'.join(lines) )

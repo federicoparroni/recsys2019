@@ -5,21 +5,21 @@ from tqdm.auto import tqdm
 tqdm.pandas()
 
 
-class ChangeOrderImpression(FeatureBase):
+class ChangeImpressionOrderPositionInSession(FeatureBase):
 
     """
-    Avg position of the item clicked AND interacted by the user with respect to the price position sorted by the cheapest
-    during the session sorted by price ascendent.
-    -1 if no other interaction is present.
-    Position of the impressions interacted usually when info about impression is available. (number from 1 to 25)
-    also position of the last impression interacted/clicked (this hopes to let apply what lazy user recommender does)
-    -1 is not available.
-    | user_id | session_id | mean_price_interacted | mean_cheap_pos_interacted | 'mean_pos' | 'pos_last_reference'
+    Features about the occurrence of an action 'search for poi' or 'change of sort order' or 'destination change' in the session.
+    We compute 2 features per each occurrence:
+    - first specifying the number of step from the first interaction (search_for_poi_distance_from_first_action and change_sort_order_distance_from_first_action)
+    - one the number of steps from the clickout to predict (search_for_poi_distance_from_last_clickout, change_sort_order_distance_from_first_action)
+    | user_id | session_id | search_for_poi_distance_from_last_clickout | search_for_poi_distance_from_first_action
+    | change_sort_order_distance_from_last_clickout | change_sort_order_distance_from_first_action
+    | destination_change_distance_from_last_clickout | destination_change_distance_from_first_action
     """
 
     def __init__(self, mode, cluster='no_cluster'):
-        name = 'change_impression_order_position_in_session.py'
-        super(ChangeOrderImpression, self).__init__(
+        name = 'change_impression_order_position_in_session'
+        super(ChangeImpressionOrderPositionInSession, self).__init__(
             name=name, mode=mode, cluster=cluster)
 
     def extract_feature(self):
@@ -31,6 +31,8 @@ class ChangeOrderImpression(FeatureBase):
             change_sort_order_distance_from_first_action = -1
             search_for_poi_distance_from_last_clickout = -1
             search_for_poi_distance_from_first_action = -1
+            destination_change_distance_from_last_clickout = -1
+            destination_change_distance_from_first_action = -1
 
             if len(y) > 0:
                 clk = y.tail(1)
@@ -47,20 +49,27 @@ class ChangeOrderImpression(FeatureBase):
                             poi_search_df.tail(1).step.values[0])
                         search_for_poi_distance_from_last_clickout = int(
                             clk.step.values[0]) - last_poi_search_step
-                        search_for_poi_distance_from_first_action = last_poi_search_step - int(
-                            head_df.step.values[0])
+                        search_for_poi_distance_from_first_action = last_poi_search_step - 1
 
                     sort_change_df = x[x.action_type == 'change of sort order']
                     if sort_change_df.shape[0] > 0:
                         sort_change_step = int(sort_change_df.tail(1).step.values[0])
                         change_sort_order_distance_from_last_clickout = int(
                             clk.step.values[0]) - sort_change_step
-                        change_sort_order_distance_from_first_action = sort_change_step - int(
-                            head_df.step.values[0])
+                        change_sort_order_distance_from_first_action = sort_change_step - 1
+
+
+                    destination_change_df = x[x.action_type == 'search for destination']
+                    if destination_change_df.shape[0] > 0:
+                        destination_change_step = int(sort_change_df.tail(1).step.values[0])
+                        destination_change_distance_from_last_clickout = int(
+                            clk.step.values[0]) - destination_change_step
+                        destination_change_distance_from_first_action = destination_change_step - 1
 
 
             return pd.Series({'search_for_poi_distance_from_last_clickout': search_for_poi_distance_from_last_clickout, 'search_for_poi_distance_from_first_action':search_for_poi_distance_from_first_action,
-                             'change_sort_order_distance_from_last_clickout': change_sort_order_distance_from_last_clickout, 'change_sort_order_distance_from_first_action': change_sort_order_distance_from_first_action})
+                             'change_sort_order_distance_from_last_clickout': change_sort_order_distance_from_last_clickout, 'change_sort_order_distance_from_first_action': change_sort_order_distance_from_first_action,
+                              'destination_change_distance_from_last_clickout': destination_change_distance_from_last_clickout, 'destination_change_distance_from_first_action': destination_change_distance_from_first_action})
 
         train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)
@@ -69,5 +78,7 @@ class ChangeOrderImpression(FeatureBase):
 
         return s.reset_index()
 if __name__ == '__main__':
-    c = ChangeOrderImpression(mode='small', cluster='no_cluster')
+    from utils.menu import mode_selection
+    mode = mode_selection()
+    c = ChangeImpressionOrderPositionInSession(mode=mode, cluster='no_cluster')
     c.save_feature()
