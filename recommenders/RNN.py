@@ -21,14 +21,32 @@ from tqdm import tqdm
 from utils.telegram_bot import TelegramBotKerasCallback
 
 
+def mrr(y_true, y_pred):
+    y_true = y_true
+    y_pred = y_pred
+    mrr = 0
+    current_percentage = 0
+    for i in range(1, 26, 1):
+        if i == 1:
+            mrr = metrics.top_k_categorical_accuracy(y_true, y_pred, k=i)
+            current_percentage = metrics.top_k_categorical_accuracy(y_true, y_pred, k=i)
+        else:
+            t = metrics.top_k_categorical_accuracy(y_true, y_pred, k=i)
+            mrr += (t - current_percentage) * (1 / i)
+            current_percentage = t
+    return mrr
+
+
+
 class RecurrentRecommender(RecommenderBase):
     
-    def __init__(self, dataset, cell_type, num_recurrent_layers, num_recurrent_units, num_dense_layers, output_size,
+    def __init__(self, dataset, input_shape, cell_type, num_recurrent_layers, num_recurrent_units, num_dense_layers, output_size,
                 use_generator=True, validation_split=0.15, use_batch_normalization=False,
                 loss='mean_squared_error', optimizer='rmsprop', class_weights=[], weight_samples=False,
-                checkpoints_path=None, tensorboard_path=None):
+                metrics=['accuracy', mrr], checkpoints_path=None, tensorboard_path=None):
         """ Create the recurrent model
         dataset (Dataset):          dataset to use
+        input_shape (int):          shape of the input samples (ex: (6,10) for session with length 6 and 10 features)
         cell_type (str):            recurrent cell type (LSTM, GRU)
         num_recurrent_layers (int): number of recurrent layers (> 0)
         num_recurrent_units (int):  number of recurrent cells (> 0)
@@ -53,6 +71,10 @@ class RecurrentRecommender(RecommenderBase):
         self.weight_samples = weight_samples
         self.use_weights = len(self.class_weights) > 0
 
+        assert len(input_shape) == 2
+        self.input_shape = (input_shape[0], input_shape[1])
+
+        self.metrics = metrics
         self.use_generator = use_generator
         self.checkpoints_path = checkpoints_path
         self.tensorboard_path = tensorboard_path
@@ -64,9 +86,6 @@ class RecurrentRecommender(RecommenderBase):
         if use_generator:
             # generator
             self.test_gen = dataset.get_test_generator()
-            batch_x = self.test_gen.__getitem__(0)
-            
-            input_shape = (None, batch_x.shape[1], batch_x.shape[2])
         else:
             # full dataset
             self.X, self.Y = dataset.load_Xtrain(), dataset.load_Ytrain()
@@ -76,15 +95,14 @@ class RecurrentRecommender(RecommenderBase):
         CELL = LSTM if self.name == 'LSTM' else GRU
         self.model = Sequential()
 
-        # time distributed
-        self.model.add( TimeDistributed(Dense(num_recurrent_units, activation='relu'), input_shape=(input_shape[1], input_shape[2])) )
-
-        self.model.add( CELL(num_recurrent_units, dropout=0.3,recurrent_dropout=0.25, return_sequences=(num_recurrent_layers > 1) ))
+        self.model.add( CELL(num_recurrent_units, input_shape=self.input_shape, dropout=0.2,recurrent_dropout=0.2,
+                                return_sequences=(num_recurrent_layers > 1) ))
         for i in range(num_recurrent_layers-1):
-            self.model.add( CELL(num_recurrent_units, dropout=0.3,recurrent_dropout=0.25, return_sequences=(i < num_recurrent_layers-2) ))
+            self.model.add( CELL(num_recurrent_units, dropout=0.2,recurrent_dropout=0.2,
+                                    return_sequences=(i < num_recurrent_layers-2) ))
 
         # time distributed
-        #self.model.add( TimeDistributed(Dense(num_recurrent_units)) )
+        #self.model.add( TimeDistributed(Dense(num_recurrent_units, activation='relu')) )
 
         if num_dense_layers > 1:
             dense_neurons = np.linspace(num_recurrent_units, output_size, num_dense_layers)
@@ -105,41 +123,29 @@ class RecurrentRecommender(RecommenderBase):
         self.model.add( Dropout(rate=0.4) )
         
         if self.weight_samples:
-            self.model.compile(sample_weight_mode='temporal', loss=loss, optimizer=optimizer, metrics=['accuracy', self.mrr])
+            self.model.compile(sample_weight_mode='temporal', loss=loss, optimizer=optimizer, metrics=['accuracy', mrr])
         else:
-            self.model.compile(loss=loss, optimizer=optimizer, metrics=['accuracy', self.mrr])
+            self.model.compile(loss=loss, optimizer=optimizer, metrics=self.metrics)
 
         print(self.model.summary())
         print()
         if self.use_generator:
-            print('Train with batches of shape X: {}'.format(batch_x.shape))
+            print('Train with batches of shape X: {}'.format(input_shape))
         else:
             print('Train with a dataset of shape X: {} - Y: {}'.format(self.X.shape, self.Y.shape))
+    
 
-    def mrr(self, y_true, y_pred):
-        y_true = y_true[:,-1,:]
-        y_pred = y_pred[:,-1,:]
-        mrr = 0
-        current_percentage = 0
-        for i in range(1, 26, 1):
-            if i == 1:
-                mrr = metrics.top_k_categorical_accuracy(y_true, y_pred, k=i)
-                current_percentage = metrics.top_k_categorical_accuracy(y_true, y_pred, k=i)
-            else:
-                t = metrics.top_k_categorical_accuracy(y_true, y_pred, k=i)
-                mrr += (t - current_percentage) * (1 / i)
-                current_percentage = t
-        return mrr
-
-    def fit(self, epochs, early_stopping_patience=10):
+    def fit(self, epochs, early_stopping_patience=10, early_stopping_on='val_mrr', mode='max'):
         weights = self.class_weights if self.weight_samples else []
         self.train_gen, self.val_gen = self.dataset.get_train_validation_generator(self.validation_split, weights)
+        
+        assert self.train_gen.__getitem__(0)[0].shape[1:] == self.input_shape
 
         callbacks = [ TelegramBotKerasCallback() ]
         # early stopping callback
         if isinstance(early_stopping_patience, int):
             assert early_stopping_patience > 0
-            callbacks.append( EarlyStopping(monitor='val_mrr', patience=early_stopping_patience, mode='max',
+            callbacks.append( EarlyStopping(monitor=early_stopping_on, patience=early_stopping_patience, mode=mode,
                                             verbose=1, restore_best_weights=True) )
         
         # tensorboard callback
@@ -167,7 +173,7 @@ class RecurrentRecommender(RecommenderBase):
     
     def load(self, path):
         """ Load the full state of a model """
-        self.model = load_model(path, custom_objects={"mrr": self.mrr})
+        self.model = load_model(path, custom_objects={"mrr": mrr})
 
     def load_from_checkpoint(self, filename):
         self.model.load_weights(filename)
