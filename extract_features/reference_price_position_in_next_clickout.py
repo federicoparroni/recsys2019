@@ -21,6 +21,7 @@ class ReferencePricePositionInNextClickout(FeatureBase):
         columns_to_onehot = [('price_pos', 'single')]
 
         super().__init__(name=name, mode='full', columns_to_onehot=columns_to_onehot, save_index=True)
+        self.one_hot_prefix = 'pricepos'
 
 
     def extract_feature(self):
@@ -69,9 +70,8 @@ class ReferencePricePositionInNextClickout(FeatureBase):
     def post_loading(self, df):
         # drop the one-hot column -1, representing a non-numeric reference or a reference not present
         # in the clickout impressions
-        if -1 in df.columns:
-            df = df.drop(-1, axis=1)
-        df.rename(lambda col: 'pricepos{}'.format(col) if isinstance(col, int) else col, axis=1, inplace=True)
+        if 'pricepos_-1' in df.columns:
+            df = df.drop('pricepos_-1', axis=1)
         return df
 
     def join_to(self, df, one_hot=True):
