@@ -251,6 +251,8 @@ class SequenceDatasetForClassification(Dataset):
         X_df.price /= max_ref_price
         # X_df = X_df.drop('price', axis=1)
 
+        # X_df = X_df.drop([f'pricepos{i}' for i in range(25)], axis=1)
+
         X_df.frequence /= 120
         # if partial:
         #     X_df.dayofyear /= 365
@@ -305,23 +307,28 @@ class SequenceDatasetForClassification(Dataset):
             print('X_test:', self._xtest.shape)
         return self._xtest, self._xtestindices
 
+    def prefix_xy(self, Xchunk_df, Ychunk_df, index):
+        """ Preprocess a chunk of the sequence dataset """
+        #Xchunk_df = self._preprocess_x_df(Xchunk_df, partial=True)
+        #Ychunk_df = self._preprocess_y_df(Ychunk_df)
+        
+        if len(self.class_weights) > 0:
+            # weight only the last interaction (clickout item) by the class_weight
+            weights = np.zeros(Xchunk_df.shape[:2])
+            weights[:,-1] = Ychunk_df[:,-1,:] @ self.class_weights
+            return Xchunk_df, Ychunk_df[:,0,:], weights
+        else:
+            return Xchunk_df, Ychunk_df[:,0,:]
+
+    def prefit_x(self, Xchunk_df, index):
+        """ Preprocess a chunk of the sequence dataset """
+        return Xchunk_df
+    
     def get_train_validation_generator(self, validation_percentage=0.15, sessions_per_batch=256, class_weights=[]):
         # return the generator for the train and optionally the one for validation (set to 0 to skip validation)
         # if sessions_per_batch == 'auto':
         #     sessions_per_batch = self._get_auto_samples_per_batch()
-        
-        def prefit(Xchunk_df, Ychunk_df, index):
-            """ Preprocess a chunk of the sequence dataset """
-            #Xchunk_df = self._preprocess_x_df(Xchunk_df, partial=True)
-            #Ychunk_df = self._preprocess_y_df(Ychunk_df)
-            
-            if len(class_weights) > 0:
-                # weight only the last interaction (clickout item) by the class_weight
-                weights = np.zeros(Xchunk_df.shape[:2])
-                weights[:,-1] = Ychunk_df[:,-1,:] @ class_weights
-                return Xchunk_df, Ychunk_df, weights
-            else:
-                return Xchunk_df, Ychunk_df
+        self.class_weights = class_weights
 
         tot_sessions = int(self.train_len / self.rows_per_sample)
         #tot_batches = math.ceil(tot_sessions / sessions_per_batch)
@@ -334,10 +341,10 @@ class SequenceDatasetForClassification(Dataset):
         #batches_in_val = tot_batches - batches_in_train
 
         print('Train generator:')
-        train_gen = DataGenerator(self, pre_fit_fn=prefit, rows_to_read=train_rows)
+        train_gen = DataGenerator(self, pre_fit_fn=self.prefix_xy, rows_to_read=train_rows)
         #train_gen.name = 'train_gen'
         print('Validation generator:')
-        val_gen = DataGenerator(self, pre_fit_fn=prefit, skip_rows=train_rows)
+        val_gen = DataGenerator(self, pre_fit_fn=self.prefix_xy, skip_rows=train_rows)
         #val_gen.name = 'val_gen'
 
         return train_gen, val_gen
@@ -345,10 +352,54 @@ class SequenceDatasetForClassification(Dataset):
 
     def get_test_generator(self, sessions_per_batch=256):
         # return the generator for the test
-        
-        def prefit(Xchunk_df, index):
-            """ Preprocess a chunk of the sequence dataset """
-            #Xchunk_df = self._preprocess_x_df(Xchunk_df, partial=True)
-            return Xchunk_df
+        return DataGenerator(self, for_train=False, pre_fit_fn=self.prefit_x)
 
-        return DataGenerator(self, for_train=False, pre_fit_fn=prefit)
+
+
+class SequenceDatasetForBinaryClassification(SequenceDatasetForClassification):
+
+    def _preprocess_x_df(self, X_df, partial, fillNaN=0, return_indices=False):
+        """ Preprocess the loaded data (X)
+        partial (bool): True if X_df is a chunk of the entire file
+        return_indices (bool): True to return the indices of the rows (useful at prediction time)
+        """
+        X_df = X_df.fillna(fillNaN)
+
+        cols_to_drop_in_X = ['user_id','session_id','timestamp','reference','step','platform','city','current_filters']
+
+        # scale the dataframe
+        glo_click_pop_feat = GlobalClickoutPopularity()
+        max_pop = glo_click_pop_feat.read_feature()['glob_clickout_popularity'].max()
+        X_df['glob_clickout_popularity'] = scale.logarithmic(X_df['glob_clickout_popularity'], max_value=max_pop)
+        
+        glob_int_pop_feat = GlobalInteractionsPopularity()
+        glob_int_pop_max = glob_int_pop_feat.read_feature()['glob_inter_popularity'].max()
+        X_df['glob_inter_popularity'] = scale.logarithmic(X_df['glob_inter_popularity'], max_value=glob_int_pop_max)
+
+        avg_price_feat = AveragePriceInNextClickout()
+        max_avg_price = avg_price_feat.read_feature().avg_price.max()
+        X_df.avg_price /= max_avg_price
+
+        ref_price_feat = ReferencePriceInNextClickout()
+        max_ref_price = ref_price_feat.read_feature().price.max()
+        X_df.price /= max_ref_price
+
+        X_df.frequence /= 120
+
+        return sess2vec.sessions2tensor(X_df, drop_cols=cols_to_drop_in_X, return_index=return_indices)
+
+    def _preprocess_y_df(self, Y_df, fillNaN=0):
+        """ Preprocess the loaded data (Y) """
+        Y_df = Y_df.fillna(fillNaN)
+        cols_to_drop_in_Y = ['session_id','user_id','timestamp','step']
+        Y_df['neg_class'] = np.ones_like(Y_df.ref_class) - Y_df['ref_class']
+        return Y_df.drop(cols_to_drop_in_Y, axis=1).values
+    
+    def prefix_xy(self, Xchunk_df, Ychunk_df, index):
+        """ Preprocess a chunk of the sequence dataset """
+        return Xchunk_df, Ychunk_df
+
+    def prefit_x(self, Xchunk_df, index):
+        """ Preprocess a chunk of the sequence dataset """
+        return Xchunk_df
+

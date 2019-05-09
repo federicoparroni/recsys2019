@@ -15,15 +15,19 @@ class GlobalInteractionsPopularity(FeatureBase):
     popularity is a positive number
     """
 
-    def __init__(self):
+    def __init__(self, mode, cluster):
         name = 'global_interactions_popularity'
         columns_to_onehot = []
 
-        super().__init__(name=name, mode='full', columns_to_onehot=columns_to_onehot)
+        super().__init__(name=name, mode=mode, cluster=cluster, columns_to_onehot=columns_to_onehot)
 
 
     def extract_feature(self):
-        df = data.full_df()
+        train = data.train_df(mode=self.mode, cluster=self.cluster)
+        test = data.test_df(mode=self.mode, cluster=self.cluster)
+        df = pd.concat([train, test])
+        del train
+        del test
 
         # count the numeric references
         res_df = df[(df.reference.str.isnumeric() == True)]
@@ -46,8 +50,12 @@ class GlobalInteractionsPopularity(FeatureBase):
 
 
 if __name__ == '__main__':
-    
-    c = GlobalInteractionsPopularity()
+    import utils.menu as menu
+
+    mode = menu.mode_selection()
+    cluster = menu.cluster_selection()
+
+    c = GlobalInteractionsPopularity(mode, cluster)
     
     print('Creating {} for {} {}'.format(c.name, c.mode, c.cluster))
     #c.save_feature()

@@ -5,16 +5,16 @@ sys.path.append(os.getcwd())
 import data
 import pandas as pd
 import utils.sparsedf as sparsedf
-from utils.check_folder import check_folder
-from utils.df import scale_dataframe
-import utils.datasetconfig as datasetconfig
+
 import numpy as np
 import scipy.sparse as sps
-from sklearn.preprocessing import MultiLabelBinarizer, MinMaxScaler
+from sklearn.preprocessing import MultiLabelBinarizer
 from keras.utils import to_categorical
 from tqdm import tqdm
-import utils.menu as menu
-#import pickle
+
+# from utils.df import scale_dataframe
+# from sklearn.preprocessing import MinMaxScaler
+
 
 # ======== PRE-PROCESSING ========= #
 
@@ -113,6 +113,7 @@ def add_reference_labels(df, actiontype_col='clickout item', action_equals=1, cl
     For the non-clickout interactions, 0s are placed in every columns with names {classes_prefix}{0...} if 
     only_clickouts is True, else set the label for all the interactions in the session
     """
+    res_df = df.copy()
     tqdm.pandas()
     if only_clickouts:
         def set_class(row):
@@ -137,20 +138,58 @@ def add_reference_labels(df, actiontype_col='clickout item', action_equals=1, cl
                 group['temp_ref_class'] = ref_class
             return group
 
-    df['temp_ref_class'] = -1
+    res_df['temp_ref_class'] = -1
     if only_clickouts:
-        df['temp_ref_class'] = df.progress_apply(set_class, axis=1)
+        res_df['temp_ref_class'] = res_df.progress_apply(set_class, axis=1)
     else:
-        df = df.groupby('session_id').progress_apply(set_class)
+        res_df = res_df.groupby('session_id').progress_apply(set_class)
     # one-hot encode the classes
     ref_classes = ['{}nan'.format(classes_prefix)] + ['{}{}'.format(classes_prefix, i) for i in range(num_classes)]
-    encoding = to_categorical(df['temp_ref_class']+1, num_classes=len(ref_classes), dtype='int8')
+    encoding = to_categorical(res_df['temp_ref_class']+1, num_classes=len(ref_classes), dtype='int8')
     # add the encoding columns, skipping the first one (ref_nan column)
     ref_classes = ref_classes[1:]
     for i,c in enumerate(ref_classes):
-        df[c] = encoding[:,i+1]
+        res_df[c] = encoding[:,i+1]
 
-    return df.drop('temp_ref_class', axis=1), ref_classes
+    return res_df.drop('temp_ref_class', axis=1), ref_classes
+
+def add_reference_binary_labels(df, actiontype_col='clickout item', action_equals=1, only_clickouts=False):
+    """ Create a new column 'ref_class' containing 1 if the correct reference is the first in the impressions list,
+    0 otherwise. If only_clickouts is True, set the label in each interaction of the sessions, otherwise set the label
+    for all the interactions in the session.
+    """
+    res_df = df.copy()
+    tqdm.pandas()
+    if only_clickouts:
+        def set_class(row):
+            if row[actiontype_col] == action_equals:
+                try:
+                    ref_class = 1 if row.impressions.split('|').index(row.reference) == 0 else 0
+                except ValueError:
+                    ref_class = 0
+                return ref_class
+            else:
+                return 0
+    else:
+        def set_class(group):
+            clickouts = group[group[actiontype_col] == action_equals]
+            if len(clickouts) > 0:
+                last_clickout = clickouts.iloc[-1]
+                try:
+                    ref_class = 1 if last_clickout.impressions.split('|').index(last_clickout.reference) == 0 else 0
+                except ValueError:
+                    ref_class = 0
+                    #print(clickouts.iloc[[-1]].index)      # reference not in the impressions
+                group['ref_class'] = ref_class
+            return group
+
+    res_df['ref_class'] = 0
+    if only_clickouts:
+        res_df['ref_class'] = res_df.progress_apply(set_class, axis=1)
+    else:
+        res_df = res_df.groupby('session_id').progress_apply(set_class)
+    
+    return res_df.astype({'ref_class':'int8'})
 
 def get_last_clickout(df, index_name=None, rename_index=None):
     """ Return a dataframe with the session_id as index and the reference of the last clickout of that session. """
@@ -271,270 +310,6 @@ def sessions2tensor(df, drop_cols=[], return_index=False):
         return np.array(sessions_values_indices_df['tensor'].to_list())
 
 
-def create_dataset_for_regression(mode, cluster, pad_sessions_length=80, add_item_features=True, save_X_Y=True):
-    """
-    pad_sessions_length (int): final length of sessions after padding/truncating
-    add_item_features (bool): whether to add the one-hot accomodations features to the training data
-    save_X_Y (bool): whether to save the train data into 2 separate files (X_train, Y_train) or in a unique file (train_vec)
-    """
-    train_df = data.train_df(mode, cluster)
-    test_df = data.test_df(mode, cluster)
-
-    path = f'dataset/preprocessed/{cluster}/{mode}/dataset_regression'
-    check_folder(path)
-
-    devices_classes = ['mobile', 'desktop', 'tablet']
-    actions_classes = ['show_impression', 'clickout item', 'interaction item rating', 'interaction item info',
-           'interaction item image', 'interaction item deals', 'change of sort order', 'filter selection',
-           'search for item', 'search for destination', 'search for poi']
-    
-    ## ======== TRAIN ======== ##
-    # add the impressions as new interactions
-    print('Adding impressions as new actions...')
-    train_df, final_new_index = add_impressions_as_new_actions(train_df)
-    print('Done!\n')
-
-    # pad the sessions
-    if pad_sessions_length > 0:
-        print('Padding/truncating sessions...')
-        train_df = pad_sessions(train_df, max_session_length=pad_sessions_length)
-        print('Done!\n')
-
-    if save_X_Y:
-        print('Getting the last clickout of each session...')
-        train_clickouts_df = get_last_clickout(train_df, index_name='index', rename_index='orig_index')
-        train_clickouts_indices = train_clickouts_df.orig_index.values
-        train_clickouts_indices.sort()
-        print('Done!\n')
-
-    # add the one-hot of the device
-    print('Adding one-hot columns of device...', end=' ', flush=True)
-    train_df = one_hot_df_column(train_df, 'device', classes=devices_classes)
-    print('Done!\n')
-
-    # add the one-hot of the action-type
-    print('Adding one-hot columns of action_type...', end=' ', flush=True)
-    train_df = one_hot_df_column(train_df, 'action_type', classes=actions_classes)
-    print('Done!\n')
-
-    TRAIN_LEN = train_df.shape[0]
-    TRAIN_NAME = ''
-
-    if save_X_Y:
-        # set the columns to be placed in the labels file
-        Y_COLUMNS = ['user_id','session_id','timestamp','step','reference']
-    
-        # join the accomodations one-hot features
-        X_train_path = os.path.join(path, 'X_train.csv')
-        if add_item_features:
-            print('Joining the accomodations features...')
-            add_accomodations_features(train_df.copy(), X_train_path, logic='skip', row_indices=train_clickouts_indices)
-        else:
-            # set the last clickouts to NaN and save the X dataframe
-            backup_ref_serie = train_df.reference.values.copy()
-            train_df.loc[train_clickouts_indices, 'reference'] = np.nan
-            train_df.to_csv(X_train_path, index_label='orig_index', float_format='%.4f')
-            train_df.reference = backup_ref_serie
-            del backup_ref_serie
-        
-        Y_train_path = os.path.join(path, 'Y_train.csv')
-        train_df = train_df[Y_COLUMNS]
-        if add_item_features:
-            add_accomodations_features(train_df.copy(), Y_train_path, logic='subset', row_indices=train_clickouts_indices)
-        else:
-            # set all clickouts to NaN except for the last clickouts and save the Y dataframe
-            backup_ref_serie = train_df.loc[train_clickouts_indices].reference.copy()
-            train_df.reference = np.nan
-            train_df.loc[train_clickouts_indices, 'reference'] = backup_ref_serie
-            train_df.to_csv(Y_train_path, index_label='orig_index', float_format='%.4f')
-
-        # clean ram
-        del train_clickouts_df
-        del train_clickouts_indices
-    else:
-        TRAIN_NAME = 'train_vec.csv'
-        train_path = os.path.join(path, TRAIN_NAME)
-        train_df.to_csv(train_path, index_label='orig_index', float_format='%.4f')
-
-    del train_df
-
-    ## ======== TEST ======== ##
-    print('Adding impressions as new actions...')
-    test_df, _ = add_impressions_as_new_actions(test_df, final_new_index)
-    print('Done!\n')
-
-    # pad the sessions
-    if pad_sessions_length > 0:
-        print('Padding/truncating sessions...')
-        test_df = pad_sessions(test_df, max_session_length=pad_sessions_length)
-        print('Done!\n')
-
-    print('Getting the last clickout of each session...')
-    test_clickouts_df = get_last_clickout(test_df, index_name='index', rename_index='orig_index')
-    test_clickouts_indices = test_clickouts_df.orig_index.values
-    test_clickouts_indices.sort()
-    print('Done!\n')
-
-    # add the one-hot of the device
-    print('Adding one-hot columns of device...', end=' ', flush=True)
-    test_df = one_hot_df_column(test_df, 'device', classes=devices_classes)
-    print('Done!\n')
-
-    # add the one-hot of the action-type
-    print('Adding one-hot columns of action_type...', end=' ', flush=True)
-    test_df = one_hot_df_column(test_df, 'action_type', classes=actions_classes)
-    print('Done!\n')
-
-    TEST_LEN = test_df.shape[0]
-
-    # join the accomodations one-hot features
-    X_test_path = os.path.join(path, 'X_test.csv')
-    if add_item_features:
-        print('Joining the accomodations features...')
-        add_accomodations_features(test_df.copy(), X_test_path, logic='skip', row_indices=test_clickouts_indices)
-    else:
-        # set the last clickouts to NaN and save the X dataframe
-        backup_ref_serie = test_df.reference.values.copy()
-        test_df.loc[test_clickouts_indices, 'reference'] = np.nan
-        test_df.to_csv(X_test_path, index_label='orig_index', float_format='%.4f')
-        #test_df.reference = backup_ref_serie
-        del backup_ref_serie
-    
-    ## ======== CONFIG ======== ##
-    # save the dataset config file that stores dataset length and the list of sparse columns
-    features_cols = list(data.accomodations_one_hot().columns) if add_item_features else []    
-    x_sparse_cols = devices_classes + actions_classes + features_cols
-    datasetconfig.save_config(path, mode, cluster, TRAIN_LEN, TEST_LEN, train_name=TRAIN_NAME,
-                            rows_per_sample=pad_sessions_length,
-                            X_sparse_cols=x_sparse_cols, Y_sparse_cols=features_cols)
-
-    
-def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_item_features, add_dummy_actions=False,
-                                    features=[], only_test=False):
-    """
-    pad_sessions_length (int): final length of sessions after padding/truncating
-    add_item_features (bool): whether to add the accomodations features as additional columns
-    add_dummy_actions (bool): whether to add dummy interactions representing the impressions before each clickout
-    features (list): list of classes (inheriting from FeatureBase) that will provide additional features to be joined
-    only_test (bool): whether to create only the test dataset (useful to make predictions with a pre-trained model)
-    """
-    
-    path = f'dataset/preprocessed/{cluster}/{mode}/dataset_classification'
-    check_folder(path)
-
-    def create_ds_class(df, path, for_train, add_dummy_actions=add_dummy_actions, pad_sessions_length=pad_sessions_length, 
-                        add_item_features=add_item_features, new_row_index=99000000):
-        """ Create X and Y dataframes if for_train, else only X dataframe.
-            Return the number of rows of the new dataframe and the final index
-        """
-
-        ds_type = 'train' if for_train else 'test'
-        devices_classes = ['mobile', 'desktop', 'tablet']
-        actions_classes = ['show_impression', 'clickout item', 'interaction item rating', 'interaction item info',
-                'interaction item image', 'interaction item deals', 'change of sort order', 'filter selection',
-                'search for item', 'search for destination', 'search for poi']
-        
-        # merge the features
-        print('Merging the features...')
-        for f in features:
-            df = f.join_to(df)
-        print('Done!\n')
-    
-        # add the impressions as new interactions
-        if add_dummy_actions:
-            print('Adding impressions as new actions...')
-            df, new_row_index = add_impressions_as_new_actions(df, drop_cols=['prices'], new_rows_starting_index=new_row_index)
-            print('Done!\n')
-        else:
-            df = df.drop('prices', axis=1)
-
-        # pad the sessions
-        if pad_sessions_length > 0:
-            print('Padding/truncating sessions...')
-            df = pad_sessions(df, max_session_length=pad_sessions_length)
-            print('Done!\n')
-    
-        # print('Getting the last clickout of each session...')
-        # print('Done!\n')
-
-        # add the one-hot of the device
-        # df = df.drop('device', axis=1)
-        print('Adding one-hot columns of device...', end=' ', flush=True)
-        df = one_hot_df_column(df, 'device', classes=devices_classes)
-        print('Done!\n')
-
-        # add the one-hot of the action-type
-        print('Adding one-hot columns of action_type...', end=' ', flush=True)
-        df = one_hot_df_column(df, 'action_type', classes=actions_classes)
-        print('Done!\n')
-
-        # add the reference classes if TRAIN
-        if for_train:
-            print('Adding references classes...')
-            df, ref_classes = add_reference_labels(df, actiontype_col='clickout item', action_equals=1)
-            print('Done!\n')
-        else:
-            ref_classes = []
-
-        # remove the impressions column
-        df = df.drop('impressions', axis=1)
-
-        # join the accomodations one-hot features
-        if add_item_features:
-            print('Adding accomodations features...')
-            # set the non-numeric references to 0 and cast to a number
-            df.loc[df.reference.str.isnumeric() != True, 'reference'] = 0
-            df = df.astype({'reference':'int'})
-            df = df.merge(data.accomodations_one_hot(), how='left', left_on='reference', right_index=True)
-            features_cols = data.accomodations_one_hot().columns
-            df.loc[:, features_cols] = df.loc[:, features_cols].fillna(0)
-            # remove the item features for the last clickout of each session: TO-DO clickout may be not the last item
-            first_row_backup = df.iloc[[0]].copy()
-            df.iloc[::pad_sessions_length, features_cols] = 0
-            df.iloc[[0]] = first_row_backup
-
-        X_LEN = df.shape[0]
-
-        # save the X dataframe without the labels (reference classes)
-        x_path = os.path.join(path, 'X_{}.csv'.format(ds_type))
-        print('Saving X {}...'.format(ds_type), end=' ', flush=True)
-        df.drop(ref_classes, axis=1).to_csv(x_path, index_label='orig_index', float_format='%.4f')
-        print('Done!\n')
-
-        if for_train:
-            # set the columns to be placed in the labels file
-            Y_COLUMNS = ['user_id','session_id','timestamp','step'] + ref_classes
-            df = df[Y_COLUMNS]
-
-            # save the Y dataframe
-            y_path = os.path.join(path, 'Y_train.csv')
-            print('Saving Y_train...', end=' ', flush=True)
-            df.to_csv(y_path, index_label='orig_index', float_format='%.4f')
-            print('Done!\n')
-            
-        return X_LEN, new_row_index
-
-    final_new_index = 99000000
-    TRAIN_LEN = 0
-    
-    if not only_test:
-        ## ======== TRAIN ======== ##
-        train_df = data.train_df(mode, cluster)
-        TRAIN_LEN, final_new_index = create_ds_class(train_df, path, for_train=True, new_row_index=final_new_index)
-        del train_df
-
-    ## ======== TEST ======== ##
-    test_df = data.test_df(mode, cluster)
-    TEST_LEN, _ = create_ds_class(test_df, path, for_train=False, new_row_index=final_new_index)
-    del test_df
-
-    ## ======== CONFIG ======== ##
-    # save the dataset config file that stores dataset length and the list of sparse columns
-    #x_sparse_cols = devices_classes + actions_classes
-    datasetconfig.save_config(path, mode, cluster, TRAIN_LEN, TEST_LEN,
-                                rows_per_sample=pad_sessions_length)
-                            #X_sparse_cols=x_sparse_cols, Y_sparse_cols=ref_classes)
-
 
 
 # ======== POST-PROCESSING ========= #
@@ -579,42 +354,10 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_it
 #     return X_train, Y_train #, X_test
 
 
-def get_session_groups_indices_df(X_df, Y_df, cols_to_group=['user_id','session_id'], indices_col_name='intrctns_indices'):
-    """
-    Return a dataframe with columns 'user_id', 'session_id', 'intrctns_indices'. This is used to retrieve the
-    interaction indices from a particular session id of a user
-    """
-    return X_df.groupby(cols_to_group).apply(lambda r: pd.Series({indices_col_name: r.index.values})).reset_index()
+# def get_session_groups_indices_df(X_df, Y_df, cols_to_group=['user_id','session_id'], indices_col_name='intrctns_indices'):
+#     """
+#     Return a dataframe with columns 'user_id', 'session_id', 'intrctns_indices'. This is used to retrieve the
+#     interaction indices from a particular session id of a user
+#     """
+#     return X_df.groupby(cols_to_group).apply(lambda r: pd.Series({indices_col_name: r.index.values})).reset_index()
 
-
-"""
-if __name__ == "__main__":
-    mode = menu.mode_selection()
-    cluster_name = menu.single_choice()
-
-    dataset_type = menu.single_choice('Choose which type of dataset you want to create:',
-                                ['For regression', 'For classification'],
-                                [lambda: 'regression', lambda: 'classification'])
-
-    print()
-    sess_length = int(input('Insert the desired sessions length, -1 to not to pad/truncate the sessions: '))
-    item_feat_choice = menu.yesno_choice('Do you want to add item features?', lambda: True, lambda: False)
-
-    if dataset_type == 'regression':
-        save_XY = menu.single_choice('Choose the dataset structure:',
-                                    ['X_train, Y_train for training', 'X_test for testing',
-                                        'train_vec for training, X_test for testing'],
-                                    [lambda: True, lambda: False])
-        create_dataset_for_regression(mode, cluster_name, pad_sessions_length=sess_length,
-                                    add_item_features=item_feat_choice, save_X_Y=save_XY)
-    
-    elif dataset_type == 'classification':
-        from extract_features.reference_position_in_next_clickout_impressions import ReferencePositionInNextClickoutImpressions
-        
-        ref_pos_next_clk_feat = ReferencePositionInNextClickoutImpressions()
-        features = [ref_pos_next_clk_feat]
-        
-        create_dataset_for_classification(mode, cluster_name, pad_sessions_length=sess_length,
-                                        add_item_features=item_feat_choice, features=features, add_dummy_actions=False)
-
-"""
