@@ -8,8 +8,8 @@ tqdm.pandas()
 class PricePositionInfoInteractedReferences(FeatureBase):
 
     """
-    Avg position of the item clicked AND interacted by the user with respect to the price position sorted by the cheapest
-    during the session sorted by price ascendent.
+    Avg position of the item clicked and interacted by the user with respect to the price position sorted by the cheapest
+    during the session sorted by price ascend.
     -1 if no other interaction is present.
     Position of the impressions interacted usually when info about impression is available. (number from 1 to 25)
     also position of the last impression interacted/clicked (this hopes to let apply what lazy user recommender does)
@@ -26,7 +26,6 @@ class PricePositionInfoInteractedReferences(FeatureBase):
 
         def func(x):
             y = x[x['action_type'] == 'clickout item']
-
             mean_pos = -1
             pos_last_reference = -1
             mean_cheap_position = -1
@@ -46,12 +45,14 @@ class PricePositionInfoInteractedReferences(FeatureBase):
                     # Then create dict
                     # {13: 45, 43: 34, ... }
 
+                    # [13, 43, 4352, 543, 345, 3523] impressions
+                    # -> [(13,1), (43,2), ...]
+                    # Then create dict impression-position
+                    # {13: 1, 43: 2, ... }
                     tuples_impr_prices = []
                     tuples_impr_price_pos_asc = []
 
-                    # [13, 43, 4352, 543, 345, 3523] impressions
-                    # Then create dict impression-position
-                    # {13: 1, 43: 2, ... }
+
                     tuples_impr_pos = []
 
                     for i in impressions_pos_available.index:
@@ -75,11 +76,9 @@ class PricePositionInfoInteractedReferences(FeatureBase):
                     # dictionary: from impression, get its price position wrt the ascending price order
                     dict_impr_price_pos = dict(list(set(tuples_impr_price_pos_asc)))
 
-                    # IMPORTANT: I decided to consider impressions and clickouts distinctively.
                     # If an impression is also clicked, that price counts double
                     # considering reference, impressions and action type as a row, I can distinguish from clickouts and impressions dropping duplicates
                     df_only_numeric = x[["reference", "impressions", "action_type"]].drop_duplicates()
-
 
                     sum_price = 0
                     sum_pos_price = 0
@@ -102,12 +101,13 @@ class PricePositionInfoInteractedReferences(FeatureBase):
                         mean_pos = round(sum_pos_impr / count_interacted_pos_impr, 2)
 
                         last_reference = df_only_numeric.tail(1).reference.values[0]
-                        # Saving the impressions appearing in the last clickout (they will be used to get the 'pos_last_reference'
+
+                        # Saving the impressions appearing in the last clickout
                         impressions_last_clickout = clk.impressions.values[0].split('|')
                         if last_reference in impressions_last_clickout:
                             pos_last_reference = impressions_last_clickout.index(last_reference) + 1
 
-            return pd.Series({'mean_cheap_position': mean_cheap_position, 'mean_price_interacted':mean_price_interacted,
+            return pd.Series({'mean_cheap_position': mean_cheap_position, 'mean_price_interacted': mean_price_interacted,
                              'mean_pos': mean_pos, 'pos_last_reference': pos_last_reference})
 
         train = data.train_df(mode=self.mode, cluster=self.cluster)
