@@ -50,7 +50,7 @@ space = [
     Categorical(param_list, name='RNN_local')
 ]
 
-res_gp = gp_minimize(objective, space, n_calls=3, n_random_starts=1, random_state=42, verbose=True)
+res_gp = gp_minimize(objective, space, n_calls=150, n_random_starts=1, random_state=3, verbose=True)
 
 print("""Best parameters:
 - last_interaction= %d

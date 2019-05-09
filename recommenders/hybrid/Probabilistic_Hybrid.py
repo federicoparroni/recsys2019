@@ -128,6 +128,11 @@ class Probabilistic_Hybrid(RecommenderBase):
                     sessions = list(common_sessions)
         return sessions
 
+    def run_hybrid(self):
+        self.fit()
+        sub = self.recommend_batch()
+        MRR = self.score_sub(sub)
+
     def recommend_batch(self):
         exp = 0.5  # we'll compute the squared radix
         for d in self.dfs_subname:
@@ -175,7 +180,7 @@ class Probabilistic_Hybrid(RecommenderBase):
 
         submission = pd.concat([submission, item_rec], axis=1)
 
-        # TODO: DECOMMENTA PER PROVARE DA SOLO SENZA OPTIMIZER 
+        # TODO: DECOMMENTA PER PROVARE DA SOLO SENZA OPTIMIZER
         #if self.mode == 'local':
         #    print('Computing the score...')
         #    mrr =self.score_sub(submission)
@@ -216,6 +221,15 @@ class Probabilistic_Hybrid(RecommenderBase):
 
 
 if __name__=='__main__':
-
-    model = Probabilistic_Hybrid(mode='local')
-    model.run()
+    params = {
+        'content_based_old': 0,
+        'last_interaction': 1,
+        'lazyUserRec': 1,
+        'location_subm': 1,
+        'min_price_based': 1,
+        'xgboostlocal': 1,
+        'RNN_local': 0,
+        'tf_loc': 1
+    }
+    model = Probabilistic_Hybrid(params, mode='local')
+    model.run_hybrid()
