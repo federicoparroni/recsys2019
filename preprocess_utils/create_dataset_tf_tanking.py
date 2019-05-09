@@ -152,15 +152,17 @@ def create_dataset(mode, cluster, features_array, dataset_name, popularity):
 
     X_train, X_val, Y_train, Y_val, qid_train, qid_val = \
         train_test_split(X, Y_norm, np_qid_train, test_size=0.2, shuffle=False)
+    del X
 
     print('SAVING TRAIN DATA...')
     dump_svmlight_file(X_train, Y_train, f'{_SAVE_BASE_PATH}/train.txt', query_id=qid_train, zero_based=False)
     print('DONE')
+    del X_train, Y_train
 
     print('SAVING VALI DATA...')
     dump_svmlight_file(X_val, Y_val, f'{_SAVE_BASE_PATH}/vali.txt', query_id=qid_val, zero_based=False)
     print('DONE')
-    del X_train, X_val, Y_train, Y_val
+    del X_val, Y_val
 
     """
     CREATE DATA FOR TEST
@@ -213,40 +215,27 @@ def create_dataset(mode, cluster, features_array, dataset_name, popularity):
         print('PROCEDURE ENDED CORRECTLY')
 
 if __name__ == '__main__':
-    mode = 'full'
+    mode = 'small'
     cluster = 'no_cluster'
-    dataset_name = 'all'
+    dataset_name = 'no_dummy'
 
     features_array = [ActionsInvolvingImpressionSession, ImpressionLabel, ImpressionPriceInfoSession,
                       TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
                       ImpressionPositionSession,LastInteractionInvolvingImpression,
                       TimesImpressionAppearedInClickoutsSession, MeanPriceClickout, SessionLength,
                       TimeFromLastActionBeforeClk, PricePositionInfoInteractedReferences,
+                      SessionDevice]
+
+    """
+        features_array = [ActionsInvolvingImpressionSession, ImpressionLabel, ImpressionPriceInfoSession,
+                      TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
+                      ImpressionPositionSession,LastInteractionInvolvingImpression,
+                      TimesImpressionAppearedInClickoutsSession, MeanPriceClickout, SessionLength,
+                      TimeFromLastActionBeforeClk, PricePositionInfoInteractedReferences,
                       SessionDevice, SessionFilterActiveWhenClickout, SessionSortOrderWhenClickout,
                       ImpressionFeature]
-
-    """
-    features_array = {
-        'user_id_session_id_item_id': [ActionsInvolvingImpressionSession, ImpressionLabel, ImpressionPriceInfoSession,
-                                       TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
-                                       ImpressionPositionSession, LastInteractionInvolvingImpression,
-                                       TimesImpressionAppearedInClickoutsSession],
-        'user_id_session_id': [MeanPriceClickout, SessionLength, TimeFromLastActionBeforeClk,
-                               FrenzyFactorSession, PricePositionInfoInteractedReferences,
-                               SessionDevice, SessionFilterActiveWhenClickout, SessionSortOrderWhenClickout],
-        'item_id': [ImpressionFeature, GlobalInteractionsPopularity, GlobalClickoutPopularity]
-    }
+    
     """
 
-    """
-    features_array = {
-        'item_id': [ImpressionLabel,ImpressionPriceInfoSession,LastInteractionInvolvingImpression,
-                    TimingFromLastInteractionImpression,ActionsInvolvingImpressionSession,ImpressionPositionSession,
-                    TimesUserInteractedWithImpression,ItemPopularitySession],
-        'session': [MeanPriceClickout, MeanPriceClickout_edo, SessionLength, SessionDevice,
-                    SessionActionNumRefDiffFromImpressions, SessionFilterActiveWhenClickout,
-                    SessionSortOrderWhenClickout, TimePassedBeforeClickout]
-    }
-    """
 
     create_dataset(mode=mode, cluster=cluster, features_array=features_array, dataset_name=dataset_name, popularity=True)

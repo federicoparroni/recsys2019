@@ -7,7 +7,7 @@ import data
 
 class TensorflowRankig(RecommenderBase):
 
-    def __init__(self, mode, cluster, dataset_name):
+    def __init__(self, mode, cluster, dataset_name, pred_name):
         """
         the dataset name is used to load the prediction created by the tensorflow ranking class
 
@@ -22,7 +22,7 @@ class TensorflowRankig(RecommenderBase):
         # the path where the PREDICTION are stored
         _BASE_PATH = f'dataset/preprocessed/tf_ranking/{cluster}/{mode}/{self.dataset_name}'
 
-        _PREDICTION_PATH = f'{_BASE_PATH}/predictions.npy'
+        _PREDICTION_PATH = f'{_BASE_PATH}/{pred_name}.npy'
         _TARGET_INDICES_PATH = f'{_BASE_PATH}/target_indices.npy'
 
         # check if the PREDICTION have been made
