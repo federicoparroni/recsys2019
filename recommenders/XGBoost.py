@@ -35,7 +35,7 @@ class XGBoostWrapper(RecommenderBase):
         # create hyperparameters dictionary
         self.hyperparameters_dict = {'learning_rate': (0.01, 0.3),
                                      'max_depth': (2, 6),
-                                     'n_estimators': (50, 500),
+                                     'n_estimators': (300, 1000),
                                      'reg_lambda': (0, 1),
                                      'reg_alpha': (0, 1)
                                      }
