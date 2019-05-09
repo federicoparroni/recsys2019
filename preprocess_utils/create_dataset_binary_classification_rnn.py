@@ -5,12 +5,12 @@ sys.path.append(os.getcwd())
 import data
 import utils.menu as menu
 import numpy as np
+import utils.df as df_utils
 from utils.check_folder import check_folder
 import utils.datasetconfig as datasetconfig
 
 from clusterize.cluster_recurrent import ClusterRecurrent
 from clusterize.cluster_up_to_len6 import ClusterUpToLen6
-from clusterize.cluster_over_len6 import ClusterOverLen6
 
 from extract_features.reference_position_in_next_clickout_impressions import ReferencePositionInNextClickoutImpressions
 #from extract_features.global_interactions_popularity import GlobalInteractionsPopularity
@@ -22,21 +22,22 @@ from extract_features.reference_price_position_in_next_clickout import Reference
 import preprocess_utils.session2vec as sess2vec
 
 
-def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_item_features, add_dummy_actions=False,
-                                    features=[], only_test=False):
+def create_dataset_for_binary_classification(mode, cluster, pad_sessions_length, add_item_features, add_dummy_actions=False,
+                                    features=[], only_test=False, resample=False):
     """
     pad_sessions_length (int): final length of sessions after padding/truncating
     add_item_features (bool): whether to add the accomodations features as additional columns
     add_dummy_actions (bool): whether to add dummy interactions representing the impressions before each clickout
     features (list): list of classes (inheriting from FeatureBase) that will provide additional features to be joined
     only_test (bool): whether to create only the test dataset (useful to make predictions with a pre-trained model)
+    resample (bool): whether to resample to reduce the unbalance between classes
     """
     
-    path = f'dataset/preprocessed/{cluster}/{mode}/dataset_classification'
+    path = f'dataset/preprocessed/{cluster}/{mode}/dataset_binary_classification'
     check_folder(path)
 
     def create_ds_class(df, path, for_train, add_dummy_actions=add_dummy_actions, pad_sessions_length=pad_sessions_length, 
-                        add_item_features=add_item_features, new_row_index=99000000):
+                        add_item_features=add_item_features, resample=resample, new_row_index=99000000):
         """ Create X and Y dataframes if for_train, else only X dataframe.
             Return the number of rows of the new dataframe and the final index
         """
@@ -84,13 +85,18 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_it
         # add the reference classes if TRAIN
         if for_train:
             print('Adding references classes...')
-            df, ref_classes = sess2vec.add_reference_labels(df, actiontype_col='clickout item', action_equals=1)
+            df = sess2vec.add_reference_binary_labels(df, actiontype_col='clickout item', action_equals=1)
+            ref_classes = ['ref_class']
             print('Done!\n')
         else:
             ref_classes = []
 
         # remove the impressions column
         df = df.drop('impressions', axis=1)
+
+        if for_train and resample:
+            # resample the dataset to balance the classes
+            df = df_utils.resample_sessions(df, by=1.3, when=df_utils.ref_class_is_1)
 
         # join the accomodations one-hot features
         if add_item_features:
@@ -116,6 +122,9 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_it
             # set the columns to be placed in the labels file
             Y_COLUMNS = ['user_id','session_id','timestamp','step'] + ref_classes
             df = df[Y_COLUMNS]
+
+            # take only the target rows from y
+            df = df.iloc[np.arange(-1,len(df),pad_sessions_length)[1:]]
 
             # save the Y dataframe
             y_path = os.path.join(path, 'Y_train.csv')
@@ -152,13 +161,14 @@ if __name__ == "__main__":
         
     mode = menu.mode_selection()
     #cluster_name = 'cluster_recurrent'
-    cluster = menu.single_choice('Which cluster?', ['cluster recurrent','cluster len <= 6', 'cluster len > 6'],
-                                    callbacks=[lambda: ClusterRecurrent, lambda: ClusterUpToLen6, lambda: ClusterOverLen6])
+    cluster = menu.single_choice('Which cluster?', ['cluster recurrent','cluster recurrent len <= 6'],
+                                    callbacks=[lambda: ClusterRecurrent, lambda: ClusterUpToLen6])
     c = cluster()
 
     # create the cluster
     cluster_choice = menu.yesno_choice('Do you want to create the cluster?', lambda: True, lambda: False)
     if cluster_choice:
+        print('Creating the cluster...')
         c.save(mode)
         print()
 
@@ -182,11 +192,10 @@ if __name__ == "__main__":
         feat = f()
         feat.save_feature()
         features.append(feat)
-        print()
 
     # create the tensors dataset
     print('Creating the dataset ({})...'.format(mode))
-    create_dataset_for_classification(mode, c.name, pad_sessions_length=sess_length,
-                                        add_item_features=False, features=features, only_test=only_test)
+    create_dataset_for_binary_classification(mode, c.name, pad_sessions_length=sess_length, resample=True,
+                                                add_item_features=False, features=features, only_test=only_test)
 
 
