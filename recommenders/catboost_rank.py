@@ -1,5 +1,6 @@
 import math
-
+import numpy as np
+import matplotlib.pyplot as plt
 import data
 from recommenders.recommender_base import RecommenderBase
 from tqdm import tqdm
@@ -17,7 +18,7 @@ class CatboostRanker(RecommenderBase):
     Custom_metric is @1 for maximizing first result as good
     """
 
-    def __init__(self, mode, cluster='no_cluster', learning_rate=0.15, iterations=200, max_depth=8, reg_lambda=3,
+    def __init__(self, mode, cluster='no_cluster', learning_rate=0.15, iterations=200, max_depth=10, reg_lambda=6,
                  colsample_bylevel=1,
                  custom_metric='AverageGain:top=1', algo='xgboost', verbose=False, include_test=False, file_to_load=None,
                  file_to_store=None, limit_trees=False, features_to_one_hot = None):
@@ -32,6 +33,7 @@ class CatboostRanker(RecommenderBase):
         :param file_to_store: specify the path where the model will be stored
         :param limit_trees: limit trees to use whenever an existing model is being used
         """
+
         name = 'catboost_rank'
         super(CatboostRanker, self).__init__(
             name=name, mode=mode, cluster=cluster)
@@ -54,10 +56,10 @@ class CatboostRanker(RecommenderBase):
         }
 
         # create hyperparameters dictionary
-        self.hyperparameters_dict = {'iterations': (10, 50),
-                                     'max_depth': (3, 8),
-                                     'learning_rate': (0.01, 0.2),
-                                     'reg_lambda': (1, 5),
+        self.hyperparameters_dict = {'iterations': (100, 100),
+                                     'max_depth': (5, 12),
+                                     'learning_rate': (0.1, 0.1),
+                                     'reg_lambda': (3, 8),
                                      }
 
         self.fixed_params_dict = {
@@ -72,7 +74,9 @@ class CatboostRanker(RecommenderBase):
         self.features_to_one_hot = features_to_one_hot
         self.algo = algo
 
+        self.ctb = None
         self.categorical_features = None
+        self.train_features = None
 
     def fit_model(self, additional_params=None, train_pool=None, test_pool=None):
         parameters = deepcopy(self.default_parameters)
@@ -81,11 +85,22 @@ class CatboostRanker(RecommenderBase):
             parameters.update(additional_params)
 
         model = CatBoost(parameters)
-        model.fit(train_pool, eval_set=test_pool, plot=True)
-
+        model.fit(train_pool, eval_set=test_pool, plot=False)
         return model
 
-    def fit(self):
+
+    def get_feature_importance(self, additional_params=None, train_pool=None):
+        parameters = deepcopy(self.default_parameters)
+
+        if additional_params is not None:
+            parameters.update(additional_params)
+
+        model = CatBoost(parameters)
+        features_imp = model.get_feature_importance(train_pool)
+
+        return features_imp
+
+    def fit(self, is_train = True):
 
         if self.file_to_load is not None:
             # --- To load model ---
@@ -97,20 +112,15 @@ class CatboostRanker(RecommenderBase):
         train_df = data.classification_train_df(mode=self.mode, cluster=self.cluster, sparse=False, algo=self.algo)
 
         print('Shape of train is ' + str(train_df.shape[0] ))
+        #
+        # if train_df.shape[0] > 8000000:
+        #     print('keeping first 100000...')
+        #     train_df = train_df[:8000000]
 
-        if train_df.shape[0] > 10000000:
-            print('keeping first 100000...')
-            train_df = train_df[:10000000]
-
-        if 'times_doubleclickout_on_item' in train_df.columns.values:
-            train_df = train_df.drop(['times_doubleclickout_on_item'], axis=1)
 
         if len(self.features_to_drop)>0:
             train_df.drop(self.features_to_drop, axis=1, inplace=True)
 
-        train_df = train_df.drop(['times_doubleclickout_on_item'], axis=1)
-
-        #train_df.drop(['avg_price_interacted_item','average_price_position', 'avg_pos_interacted_items_in_impressions', 'pos_last_interaction_in_impressions'], axis=1, inplace=True)
         print(train_df.shape[1])
 
         if self.features_to_one_hot is not None:
@@ -124,6 +134,8 @@ class CatboostRanker(RecommenderBase):
         train_df = train_df.assign(id=(train_df['user_id'] + '_' + train_df['session_id']).astype('category').cat.codes)
 
         train_features = train_df.drop(['user_id', 'session_id', 'label', 'id'], axis=1)
+
+        self.train_features = train_features.columns.values
 
         X_train = train_features.values
         y_train = train_df['label'].values
@@ -154,6 +166,7 @@ class CatboostRanker(RecommenderBase):
             test_df = data.classification_test_df(
                 mode=self.mode, sparse=False, cluster=self.cluster)
 
+
             test_df = test_df.sort_values(by=['user_id', 'session_id'])
 
             test_df['id'] = test_df.groupby(['user_id', 'session_id']).ngroup()
@@ -171,9 +184,12 @@ class CatboostRanker(RecommenderBase):
             )
 
         print('data for train ready')
-        self.ctb = self.fit_model(self.default_parameters,
-                                  train_pool=train_with_weights,
+
+        if is_train:
+            self.ctb = self.fit_model(train_pool=train_with_weights,
                                   test_pool=test_with_weights)
+        else:
+            self.ctb = self.get_feature_importance(train_pool=train_with_weights)
         print('fit done')
 
         # ----To store model----
@@ -193,9 +209,7 @@ class CatboostRanker(RecommenderBase):
         """
 
         target_idx = x.trg_idx.values[0]
-
         x = x.sort_values(by=['impression_position'])
-
         X_test = x.drop(['label', 'trg_idx'], axis=1).values
 
         # useless
@@ -223,6 +237,7 @@ class CatboostRanker(RecommenderBase):
             print(x.impression_position)
             print(impr)
             print(scores)
+
         if len(scores) > len(impr):
             min_len = len(impr)
 
@@ -240,19 +255,12 @@ class CatboostRanker(RecommenderBase):
     def recommend_batch(self):
 
         test_df = data.classification_test_df(
-            mode=self.mode, sparse=False, cluster=self.cluster, algo=self.algo).copy()
+            mode=self.mode, sparse=False, cluster=self.cluster, algo=self.algo).copy()[2500000:]
 
-        test_df = test_df.sort_values(by=['user_id', 'session_id', 'impression_position'])
-
-        #test_df.drop(['avg_price_interacted_item','average_price_position', 'avg_pos_interacted_items_in_impressions', 'pos_last_interaction_in_impressions'], axis=1, inplace=True)
         if len(self.features_to_drop) > 0:
             test_df.drop(self.features_to_drop, axis=1, inplace=True)
 
-        if 'Unnamed: 0' in test_df.columns.values:
-            test_df = test_df.drop(['Unnamed: 0'], axis=1)
 
-        if 'times_doubleclickout_on_item' in test_df.columns.values:
-            test_df = test_df.drop(['times_doubleclickout_on_item'], axis=1)
         print(test_df.shape[0])
         print(test_df.shape[1])
 
@@ -276,14 +284,6 @@ class CatboostRanker(RecommenderBase):
                 test_df = test_df.drop([f], axis=1)
                 test_df = test_df.join(one_hot)
 
-        # while True:
-        #     timeNum = input("How many iterations?")
-        #     try:
-        #         self.set_limit_trees(int(timeNum))
-        #         break
-        #     except ValueError:
-        #         pass
-
         test_df.groupby('trg_idx', as_index=False).progress_apply(self.func)
 
         return self.predictions
@@ -292,6 +292,29 @@ class CatboostRanker(RecommenderBase):
         if n > 0:
             self.limit_trees = n
 
+    def get_feature_importance_results(self):
+        if self.ctb is None:
+            print('Training ctb first')
+            self.fit(is_train=False)
+
+        feat_imp = list(self.ctb)
+        tuples_features = list(zip(self.train_features, feat_imp))
+        sorted(tuples_features, key = lambda x: x[1])
+
+        features = [el[0] for el in list(zip(*tuples_features))]
+        score = [el[1] for el in list(zip(*tuples_features))]
+
+
+        x_pos = np.arange(len(features))
+
+        plt.bar(x_pos, score, align='center')
+        plt.xticks(x_pos, features)
+        plt.ylabel('Popularity Score')
+        plt.show()
+
+
+
+
 if __name__ == '__main__':
-    model = CatboostRanker(mode='small', cluster='no_cluster', iterations=10, include_test=False, algo='xgboost')
-    model.evaluate(send_MRR_on_telegram=False)
+    model = CatboostRanker(mode='full', cluster='no_cluster', iterations=50, include_test=False, algo='xgboost')
+    model.evaluate(send_MRR_on_telegram=True)
