@@ -30,7 +30,7 @@ class GlobalClickoutPopularity(FeatureBase):
         del test
 
         # count the numeric references (skipping NaN in the test)
-        res_df = df[(df.action_type != 'clickout item') & (df.reference.str.isnumeric() == True)]
+        res_df = df[(df.action_type == 'clickout item') & (df.reference.str.isnumeric() == True)]
         res_df = res_df.astype({'reference':'int'})
         res_df = res_df[['reference','frequence']].groupby('reference').sum()
 
@@ -58,6 +58,6 @@ if __name__ == '__main__':
     c = GlobalClickoutPopularity(mode, cluster)
     
     print('Creating {} for {} {}'.format(c.name, c.mode, c.cluster))
-    #c.save_feature()
+    c.save_feature()
     
     print(c.read_feature())

@@ -16,7 +16,7 @@ class ReferencePriceInNextClickout(FeatureBase):
     price is a positive number
     """
 
-    def __init__(self):
+    def __init__(self, mode, cluster):
         name = 'reference_price_in_next_clickout'
         columns_to_onehot = []
 
@@ -75,6 +75,6 @@ if __name__ == '__main__':
     c = ReferencePriceInNextClickout()
 
     print('Creating {} for {} {}'.format(c.name, c.mode, c.cluster))
-    #c.save_feature()
+    c.save_feature()
 
     print(c.read_feature())
