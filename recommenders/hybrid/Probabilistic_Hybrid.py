@@ -103,8 +103,11 @@ class Probabilistic_Hybrid(RecommenderBase):
 
     def check_submissions(self):
         print('Checking submissions...')
-        df_gt= pd.read_csv(self.gt_csv)
-        sessions = df_gt['session_id'].unique().tolist()
+        if self.mode == 'local':
+            df= pd.read_csv(self.gt_csv)
+        else:
+            df= pd.read_csv(self.data_directory.joinpath(self.mode,'xgb14f0665.csv'))
+        sessions = df['session_id'].unique().tolist()
         for root, dirs, files in os.walk(self.data_directory.joinpath(self.mode)):
             for file in files:
                 if file.endswith(".csv"):
@@ -124,7 +127,6 @@ class Probabilistic_Hybrid(RecommenderBase):
         exp = 0.5  # we'll compute the squared radix
         for d in self.dfs_subname:
             scores = self.dict_sub_scores[d[1]]  #  d[1] è il nome della sub
-            print(scores)
             scores = [float(x) * d[2] for x in scores]  # d[2] è lo score
             #scores = [float((e) ** (exp)) for e in
             #          scores]  # ci faccio la radice quadrata ma magari qualcos'altro funziona meglio
