@@ -41,9 +41,8 @@ class RNNBinaryClassificator(RNNClassificationRecommender):
         # predict the references
         predictions = self.model.predict(X)
         
-        # flatten the predictions and the indices to be 2-dimensional
-        predictions = predictions.reshape((-1, predictions.shape[-1]))
-        indices = indices.flatten()
+        # take only the last index for each session (target row) and flatten
+        indices = indices[:,-1].flatten()
         
         # take only the target predictions
         pred_df = pd.DataFrame(predictions)
