@@ -62,12 +62,12 @@ def merge_features(mode, cluster, features_array, popularity=False):
     print(df_merged.shape)
 
     if popularity:
-        f1 = GlobalClickoutPopularity().read_feature()
+        f1 = GlobalClickoutPopularity(mode, cluster).read_feature()
         df_merged=pd.merge(df_merged, f1, left_on='item_id', right_on='reference', how='left')
         df_merged.drop('reference', axis=1, inplace=True)
         print(df_merged.shape)
 
-        f1 = GlobalInteractionsPopularity().read_feature()
+        f1 = GlobalInteractionsPopularity(mode, cluster).read_feature()
         df_merged = pd.merge(df_merged, f1, left_on='item_id', right_on='reference', how='left')
         df_merged.drop('reference', axis=1, inplace=True)
         print(df_merged.shape)

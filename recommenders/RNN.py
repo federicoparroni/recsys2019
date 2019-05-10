@@ -135,7 +135,7 @@ class RecurrentRecommender(RecommenderBase):
             print('Train with a dataset of shape X: {} - Y: {}'.format(self.X.shape, self.Y.shape))
     
 
-    def fit(self, epochs, early_stopping_patience=10, early_stopping_on='val_mrr', mode='max'):
+    def fit(self, epochs, early_stopping_patience=10, early_stopping_on='val_loss', mode='min'):
         weights = self.class_weights if self.weight_samples else []
         self.train_gen, self.val_gen = self.dataset.get_train_validation_generator(self.validation_split, weights)
         

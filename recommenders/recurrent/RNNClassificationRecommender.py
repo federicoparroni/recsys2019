@@ -38,9 +38,9 @@ class RNNClassificationRecommender(RecurrentRecommender):
         # predict the references
         predictions = self.model.predict(X)
         
-        # flatten the predictions and the indices to be 2-dimensional
-        predictions = predictions.reshape((-1, predictions.shape[-1]))
-        indices = indices.flatten()
+        # take only the last index for each session (target row) and flatten
+        #predictions = predictions.reshape((-1, predictions.shape[-1]))
+        indices = indices[:,-1].flatten()
         
         # take only the target predictions
         pred_df = pd.DataFrame(predictions)
@@ -105,7 +105,7 @@ if __name__ == "__main__":
 
     dataset = SequenceDatasetForClassification(f'dataset/preprocessed/cluster_recurrent/{mode}/dataset_classification')
     
-    model = RNNClassificationRecommender(dataset, use_generator=True, cell_type=cell_type,
+    model = RNNClassificationRecommender(dataset, use_generator=True, cell_type=cell_type, input_shape=(6,69),
                                         num_recurrent_layers=rec_layers, num_recurrent_units=units,
                                         num_dense_layers=dense_layers, class_weights=weights)
     model.fit(epochs=epochs)
