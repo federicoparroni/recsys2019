@@ -1,4 +1,6 @@
 import math
+import time
+
 import numpy as np
 import matplotlib.pyplot as plt
 import data
@@ -18,7 +20,7 @@ class CatboostRanker(RecommenderBase):
     Custom_metric is @1 for maximizing first result as good
     """
 
-    def __init__(self, mode, cluster='no_cluster', learning_rate=0.15, iterations=200, max_depth=10, reg_lambda=6,
+    def __init__(self, mode, cluster='no_cluster', learning_rate=0.15, iterations=200, max_depth=10, reg_lambda=3.5,
                  colsample_bylevel=1,
                  custom_metric='AverageGain:top=1', algo='xgboost', verbose=False, include_test=False, file_to_load=None,
                  file_to_store=None, limit_trees=False, features_to_one_hot = None):
@@ -50,9 +52,9 @@ class CatboostRanker(RecommenderBase):
             'learning_rate': learning_rate,
             'max_depth': math.ceil(max_depth),
             'colsample_bylevel': math.ceil(colsample_bylevel),
-            'reg_lambda': math.ceil(reg_lambda),
+            'reg_lambda': reg_lambda,
             'loss_function': 'QuerySoftMax',
-            'train_dir': 'QuerySoftMax'
+            'train_dir': 'QuerySoftMax',
         }
 
         # create hyperparameters dictionary
@@ -85,7 +87,12 @@ class CatboostRanker(RecommenderBase):
             parameters.update(additional_params)
 
         model = CatBoost(parameters)
+        start = time.time()
         model.fit(train_pool, eval_set=test_pool, plot=False)
+
+        end = time.time()
+        print('With {} iteration, training took {} sec'.format(parameters['iterations'], end - start))
+
         return model
 
 
@@ -110,6 +117,10 @@ class CatboostRanker(RecommenderBase):
 
         print('Start training the model...')
         train_df = data.classification_train_df(mode=self.mode, cluster=self.cluster, sparse=False, algo=self.algo)
+
+        train_df = train_df.reindex(
+            'user_id,session_id,label,times_impression_appeared,time_elapsed_from_last_time_impression_appeared,impression_position,steps_from_last_time_impression_appeared,price,price_position,popularity,impression_position_wrt_last_interaction,impression_position_wrt_second_last_interaction,clickout_item_session_ref_this_impr,interaction_item_deals_session_ref_this_impr,interaction_item_image_session_ref_this_impr,interaction_item_info_session_ref_this_impr,interaction_item_rating_session_ref_this_impr,search_for_item_session_ref_this_impr,clickout_item_session_ref_not_in_impr,interaction_item_deals_session_ref_not_in_impr,interaction_item_image_session_ref_not_in_impr,interaction_item_info_session_ref_not_in_impr,interaction_item_rating_session_ref_not_in_impr,search_for_item_session_ref_not_in_impr,session_length_in_step,session_length_in_time,time_per_step,frenzy_factor,average_price_position,avg_price_interacted_item,avg_pos_interacted_items_in_impressions,pos_last_interaction_in_impressions,search_for_poi_distance_from_last_clickout,search_for_poi_distance_from_first_action,change_sort_order_distance_from_last_clickout,change_sort_order_distance_from_first_action,time_passed_before_clk'.split(
+                ','), axis=1)
 
         print('Shape of train is ' + str(train_df.shape[0] ))
         #
@@ -255,8 +266,11 @@ class CatboostRanker(RecommenderBase):
     def recommend_batch(self):
 
         test_df = data.classification_test_df(
-            mode=self.mode, sparse=False, cluster=self.cluster, algo=self.algo).copy()[2500000:]
+            mode=self.mode, sparse=False, cluster=self.cluster, algo=self.algo).copy()
 
+        test_df = test_df.reindex('user_id,session_id,label,times_impression_appeared,time_elapsed_from_last_time_impression_appeared,impression_position,steps_from_last_time_impression_appeared,price,price_position,popularity,impression_position_wrt_last_interaction,impression_position_wrt_second_last_interaction,clickout_item_session_ref_this_impr,interaction_item_deals_session_ref_this_impr,interaction_item_image_session_ref_this_impr,interaction_item_info_session_ref_this_impr,interaction_item_rating_session_ref_this_impr,search_for_item_session_ref_this_impr,clickout_item_session_ref_not_in_impr,interaction_item_deals_session_ref_not_in_impr,interaction_item_image_session_ref_not_in_impr,interaction_item_info_session_ref_not_in_impr,interaction_item_rating_session_ref_not_in_impr,search_for_item_session_ref_not_in_impr,session_length_in_step,session_length_in_time,time_per_step,frenzy_factor,average_price_position,avg_price_interacted_item,avg_pos_interacted_items_in_impressions,pos_last_interaction_in_impressions,search_for_poi_distance_from_last_clickout,search_for_poi_distance_from_first_action,change_sort_order_distance_from_last_clickout,change_sort_order_distance_from_first_action,time_passed_before_clk'.split(','), axis=1)
+
+        #test_df.drop(['avg_price_interacted_item','average_price_position', 'avg_pos_interacted_items_in_impressions', 'pos_last_interaction_in_impressions'], axis=1, inplace=True)
         if len(self.features_to_drop) > 0:
             test_df.drop(self.features_to_drop, axis=1, inplace=True)
 
@@ -316,5 +330,5 @@ class CatboostRanker(RecommenderBase):
 
 
 if __name__ == '__main__':
-    model = CatboostRanker(mode='full', cluster='no_cluster', iterations=50, include_test=False, algo='xgboost')
+    model = CatboostRanker(mode='small', cluster='no_cluster', iterations=50, include_test=False, algo='xgboost')
     model.evaluate(send_MRR_on_telegram=True)
