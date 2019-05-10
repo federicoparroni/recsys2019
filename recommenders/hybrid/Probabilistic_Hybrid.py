@@ -7,6 +7,17 @@ import pickle
 import os
 import utils.functions as f
 
+
+"""
+best_params = {
+ 'min_price_based':10,
+ 'location_subm':7,
+ 'lazyUserRec': 12,
+  'last_interaction': 10,
+  'xgb14f0665': 35
+} # 0.6678756234596556
+"""
+
 class Probabilistic_Hybrid(RecommenderBase):
     """Merge scores of submissions located in submissions/hybrid/(local or full): putting there submissions you want to merge"""
 
@@ -20,43 +31,20 @@ class Probabilistic_Hybrid(RecommenderBase):
     Questa classe utilizza il file ground_truth.csv per calcolare lo score locale, NON utilizza il metodo evaluate della classe base: la
     chiamata run() con la mode='local' calcola lo score in locale."""
 
-    def __init__(self, params, mode='local'):
+    def __init__(self, params, mode='local', geometric_mean=False):
         name = 'probabilistic_hybrid'
         cluster = 'no_cluster'
         super(Probabilistic_Hybrid, self).__init__(mode, cluster, name)
 
         self.current_directory = Path(__file__).absolute().parent
         self.data_directory = self.current_directory.joinpath('..', '..', 'submissions/hybrid')
-
+        self.gt_csv = self.data_directory.joinpath('ground_truth.csv')
         self.mode = mode
         self.dfs_subname = []
-
+        self.geometric_mean = geometric_mean
         """Set key as the name of the submission file w/o '.csv'; its value corresponds to the weight assigned to that submission.
         If no key-value pair is set, then the weight = 1 by default"""
 
-        #TODO find the optimal parameters with the Bayesian
-        """
-        params = {
-            'content_based_old': 0.0032,
-            'last_interaction': 0.7,
-            'lazyUserRec': 1,
-            'location_subm': 1,
-            'min_price_based': 1.5,
-            'xgboostlocal': 1.8,
-            'RNN_local': 0
-        }
-
-
-        params = {
-            'content_based_old': 0,
-            'last_interaction': 1,
-            'lazyUserRec': 1,
-            'location_subm': 0,
-            'min_price_based': 0,
-            'xgboostlocal': 0,
-            'RNN_local': 0.5
-        }
-        """
         self.params = params
         common_sessions = self.check_submissions()
 
@@ -77,7 +65,7 @@ class Probabilistic_Hybrid(RecommenderBase):
                     sub_name = os.path.basename(directory.joinpath(file))  # questo serve per estrarre solo in nome, perché per il full se no aggiugne il nome della dir
                     sub_name = os.path.splitext(sub_name)[0]  # questo rimuove il .csv dal nome
                     if (num_file <= len(params)):
-                        self.dfs_subname.append([tmp, sub_name, params[sub_name]])
+                        self.dfs_subname.append([tmp, sub_name, self.params[sub_name]])
                     else:
                         self.dfs_subname.append([tmp, sub_name, 1]) # in case the param is not specified in the dictonary for that submission
                     num_file += 1
@@ -85,7 +73,6 @@ class Probabilistic_Hybrid(RecommenderBase):
     def fit(self):
         # Note: the 'ground_truth.csv' file is the test WITH the references that have been removed
         # Ask to @teomore to have it
-        gt_csv = self.data_directory.joinpath('ground_truth.csv')
         data_directory = self.data_directory.joinpath(self.mode)
         self.dict_sub_scores = {}
         # This creates a dictonary that holds for each sub the list of the scores (1 for each impression)
@@ -103,7 +90,7 @@ class Probabilistic_Hybrid(RecommenderBase):
                 self.generate_column_subs(d)
                 for n in tqdm(range(1, 25)):
                     subm_csv = self.data_directory.joinpath(f'scores/item_{d[1]}_{n}.csv')
-                    mrr = f.score_submissions(subm_csv, gt_csv, f.get_reciprocal_ranks)
+                    mrr = f.score_submissions(subm_csv, self.gt_csv, f.get_reciprocal_ranks)
                     scores.append(mrr)
                 self.dict_sub_scores[d[1]] = scores
                 print('Saving list...')
@@ -116,9 +103,11 @@ class Probabilistic_Hybrid(RecommenderBase):
 
     def check_submissions(self):
         print('Checking submissions...')
-        gt_csv = self.data_directory.joinpath('ground_truth.csv')
-        df_gt= pd.read_csv(gt_csv)
-        sessions = df_gt['session_id'].unique().tolist()
+        if self.mode == 'local':
+            df= pd.read_csv(self.gt_csv)
+        else:
+            df= pd.read_csv(self.data_directory.joinpath(self.mode,'xgb14f0665.csv'))
+        sessions = df['session_id'].unique().tolist()
         for root, dirs, files in os.walk(self.data_directory.joinpath(self.mode)):
             for file in files:
                 if file.endswith(".csv"):
@@ -131,15 +120,16 @@ class Probabilistic_Hybrid(RecommenderBase):
     def run_hybrid(self):
         self.fit()
         sub = self.recommend_batch()
-        MRR = self.score_sub(sub)
+        if self.mode == 'local':
+            MRR = self.score_sub(sub)
 
     def recommend_batch(self):
         exp = 0.5  # we'll compute the squared radix
         for d in self.dfs_subname:
             scores = self.dict_sub_scores[d[1]]  #  d[1] è il nome della sub
             scores = [float(x) * d[2] for x in scores]  # d[2] è lo score
-            scores = [float((e) ** (exp)) for e in
-                      scores]  # ci faccio la radice quadrata ma magari qualcos'altro funziona meglio
+            #scores = [float((e) ** (exp)) for e in
+            #          scores]  # ci faccio la radice quadrata ma magari qualcos'altro funziona meglio
             self.dict_sub_scores[d[1]] = scores
 
         submission = self.dfs_subname[0][0][['user_id', 'session_id', 'timestamp',
@@ -164,10 +154,28 @@ class Probabilistic_Hybrid(RecommenderBase):
 
             # each dictonary holds the scores for a specific sub, we will sum all the scores
             # to get the final reordering of the impressions
-            final_dict = Counter({})
-            for j in impressions_scores_dicts:
-                final_dict += Counter(j)
-            final_dict = dict(final_dict)
+
+            if self.geometric_mean:
+                final_dict = {}
+                # get the impressions
+                impression_list = []
+                for j in impressions_scores_dicts: # ciclo per prendere tutte le impressions: NB lo faccio così perché magari non hanno tutte le stesse impressions (per errore o altro motivo)
+                    for k in j:
+                        if k not in impression_list:
+                            impression_list.append(k)
+                for imp in impression_list:
+                    for j in impressions_scores_dicts:
+                        if imp in j:
+                            score = 1
+                            score = score*j[imp] # prendo per ogni impression il prodotto degli scores
+                        else:
+                            score = 0
+                    final_dict[imp]= score
+            else:
+                final_dict = Counter({})
+                for j in impressions_scores_dicts:
+                    final_dict += Counter(j)
+                final_dict = dict(final_dict)
 
             final_dict = sorted(final_dict.items(), key=lambda x: float(x[1]))
             # get the impressions' list in descending order
@@ -179,11 +187,7 @@ class Probabilistic_Hybrid(RecommenderBase):
         item_rec['item_recommendations'] = recommendation_list
 
         submission = pd.concat([submission, item_rec], axis=1)
-
-        # TODO: DECOMMENTA PER PROVARE DA SOLO SENZA OPTIMIZER
-        #if self.mode == 'local':
-        #    print('Computing the score...')
-        #    mrr =self.score_sub(submission)
+        submission.to_csv(self.data_directory.joinpath(f'probabilistic_hybrid_{self.mode}.csv'), encoding='utf-8', index=False)
 
         print('DONE.')
         return submission
@@ -191,8 +195,7 @@ class Probabilistic_Hybrid(RecommenderBase):
 
     def score_sub(self, submission):
         #compute the score of a submission using utils/functions.py
-        gt_csv = self.data_directory.joinpath('ground_truth.csv')
-        mrr = f.score_submissions(submission, gt_csv, f.get_reciprocal_ranks, subm_csv_is_file=False)
+        mrr = f.score_submissions(submission, self.gt_csv, f.get_reciprocal_ranks, subm_csv_is_file=False)
         print(f'Score: {mrr}')
         return mrr
 

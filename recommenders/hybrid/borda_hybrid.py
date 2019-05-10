@@ -12,7 +12,7 @@ borda_scores_at_1 = [25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4
 # borda starting at 0
 borda_scores_at_0 = [24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0]
 # dowdall system (THE BEST UNTIL NOW)
-dowdall_scores = [1.000, 0.500, 0.332, 0.250, 0.200, 0.166,0.142,0.125,0.111,0.100,0.090,0.083,0.076,0.071,
+dowdall_scores = [1.000, 0.500, 0.333, 0.250, 0.200, 0.166,0.142,0.125,0.111,0.100,0.090,0.083,0.076,0.071,
                     0.066,0.062,0.058,0.055,0.052,0.050,0.047,0.045,0.043,0.041,0.040]
 
 class Borda_Hybrid(RecommenderBase):
@@ -28,25 +28,21 @@ class Borda_Hybrid(RecommenderBase):
     Questa classe utilizza il file ground_truth.csv per calcolare lo score locale, NON utilizza il metodo evaluate della classe base: la
     chiamata run() con la mode='local' calcola lo score in locale."""
 
-    def __init__(self, mode='local'):
+    def __init__(self, params, mode='local'):
         name = 'borda_hybrid'
         cluster = 'no_cluster'
         super(Borda_Hybrid, self).__init__(mode, cluster, name)
 
         self.current_directory = Path(__file__).absolute().parent
         self.data_directory = self.current_directory.joinpath('..', '..', 'submissions/hybrid')
-
+        self.gt_csv = self.data_directory.joinpath('ground_truth_small.csv')
         self.mode = mode
         self.dfs_subname = []
-
+        self.params = params
         # TODO find the optimal parameters with the Bayesian
         # for now I'll use for each sub the score on leaderboard
-        params = {
-            'last_interaction': 0.63,
-            'lazyUserRec': 0.642,
-            'xgboostlocal': 0.67,
-            'min_price_based': 0.21
-        }
+
+        common_sessions = self.check_submissions()
 
         num_file = 0
         directory = self.data_directory.joinpath(self.mode)
@@ -59,15 +55,30 @@ class Borda_Hybrid(RecommenderBase):
                     # - the name of the submission
                     # - the coefficient used for the submission weight
                     tmp = pd.read_csv(directory.joinpath(file))
+                    tmp = tmp[tmp['session_id'].isin(common_sessions)]
                     tmp = tmp.sort_values(by=['user_id', 'timestamp'])
                     tmp = tmp.reset_index(drop=True)
                     sub_name = os.path.basename(directory.joinpath(file))  # questo serve per estrarre solo in nome, perché per il full se no aggiugne il nome della dir
                     sub_name = os.path.splitext(sub_name)[0]  # questo rimuove il .csv dal nome
                     if (num_file <= len(params)):
-                        self.dfs_subname.append([tmp, sub_name, params[sub_name]])
+                        self.dfs_subname.append([tmp, sub_name, self.params[sub_name]])
                     else:
                         self.dfs_subname.append([tmp, sub_name, 1]) # in case the param is not specified in the dictonary for that submission
                     num_file += 1
+
+    def check_submissions(self):
+        print('Checking submissions...')
+        df_gt= pd.read_csv(self.gt_csv)
+        sessions = df_gt['session_id'].unique().tolist()
+        for root, dirs, files in os.walk(self.data_directory.joinpath(self.mode)):
+            for file in files:
+                if file.endswith(".csv"):
+                    tmp = pd.read_csv(self.data_directory.joinpath(self.mode, file))
+                    tmp_sessions = tmp['session_id'].unique().tolist()
+                    common_sessions = set(sessions) & set(tmp_sessions)
+                    sessions = list(common_sessions)
+        return sessions
+
 
     def fit(self):
         data_directory = self.data_directory.joinpath(self.mode)
@@ -78,6 +89,11 @@ class Borda_Hybrid(RecommenderBase):
             self.dict_sub_scores[d[1]] = dowdall_scores # TODO change this to try different voting systems
         return self.dict_sub_scores
 
+    def run_hybrid(self):
+        self.fit()
+        sub = self.recommend_batch()
+        if self.mode == 'local':
+            MRR = self.score_sub(sub)
 
     def recommend_batch(self):
         exp = 0.5  # we'll compute the squared radix
@@ -126,10 +142,6 @@ class Borda_Hybrid(RecommenderBase):
 
         submission = pd.concat([submission, item_rec], axis=1)
 
-        if self.mode == 'local':
-            print('Computing the score...')
-            self.score_sub(submission)
-
         if self.mode =='full':
             print('Writing the submission...')
             submission.to_csv(self.data_directory.joinpath('borda_hybrid_sub.csv'), encoding='utf-8', index=False)
@@ -139,9 +151,9 @@ class Borda_Hybrid(RecommenderBase):
 
     def score_sub(self, submission):
         #compute the score of a submission using utils/functions.py
-        gt_csv = self.data_directory.joinpath('ground_truth.csv')
-        mrr = f.score_submissions(submission, gt_csv, f.get_reciprocal_ranks, subm_csv_is_file=False)
+        mrr = f.score_submissions(submission, self.gt_csv, f.get_reciprocal_ranks, subm_csv_is_file=False)
         print(f'Score: {mrr}')
+        return mrr
 
     def generate_column_subs(self, d):
         #takes a list as: dataframe, submission name, coefficient
