@@ -28,7 +28,7 @@ class Borda_Hybrid(RecommenderBase):
     Questa classe utilizza il file ground_truth.csv per calcolare lo score locale, NON utilizza il metodo evaluate della classe base: la
     chiamata run() con la mode='local' calcola lo score in locale."""
 
-    def __init__(self, mode='local'):
+    def __init__(self, params, mode='local'):
         name = 'borda_hybrid'
         cluster = 'no_cluster'
         super(Borda_Hybrid, self).__init__(mode, cluster, name)
@@ -38,20 +38,9 @@ class Borda_Hybrid(RecommenderBase):
         self.gt_csv = self.data_directory.joinpath('ground_truth_small.csv')
         self.mode = mode
         self.dfs_subname = []
-
+        self.params = params
         # TODO find the optimal parameters with the Bayesian
         # for now I'll use for each sub the score on leaderboard
-        params = {
-            'last_interaction': 5,
-            'lazyUserRec': 5,
-            'location_subm': 1,
-            'min_price_based': 1,
-            'xgboostOLD': 0,
-            'RNN': 0,
-            'xgboost0656': 20,
-            'tf': 0.5,
-            'xgboostnopos': 0
-        }
 
         common_sessions = self.check_submissions()
 
@@ -72,7 +61,7 @@ class Borda_Hybrid(RecommenderBase):
                     sub_name = os.path.basename(directory.joinpath(file))  # questo serve per estrarre solo in nome, perché per il full se no aggiugne il nome della dir
                     sub_name = os.path.splitext(sub_name)[0]  # questo rimuove il .csv dal nome
                     if (num_file <= len(params)):
-                        self.dfs_subname.append([tmp, sub_name, params[sub_name]])
+                        self.dfs_subname.append([tmp, sub_name, self.params[sub_name]])
                     else:
                         self.dfs_subname.append([tmp, sub_name, 1]) # in case the param is not specified in the dictonary for that submission
                     num_file += 1
@@ -97,7 +86,7 @@ class Borda_Hybrid(RecommenderBase):
         # This creates a dictonary that holds for each sub the list of the scores (1 for each impression)
         for d in self.dfs_subname:
             print(f'Getting scores for {d[1]}...')
-            self.dict_sub_scores[d[1]] = borda_scores_at_0 # TODO change this to try different voting systems
+            self.dict_sub_scores[d[1]] = dowdall_scores # TODO change this to try different voting systems
         return self.dict_sub_scores
 
     def run_hybrid(self):

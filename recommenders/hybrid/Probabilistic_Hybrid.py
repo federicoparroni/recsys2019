@@ -7,6 +7,17 @@ import pickle
 import os
 import utils.functions as f
 
+
+"""
+best_params = {
+ 'min_price_based':10,
+ 'location_subm':7,
+ 'lazyUserRec': 12,
+  'last_interaction': 10,
+  'xgb14f0665': 35
+} # 0.6678756234596556
+"""
+
 class Probabilistic_Hybrid(RecommenderBase):
     """Merge scores of submissions located in submissions/hybrid/(local or full): putting there submissions you want to merge"""
 
@@ -27,7 +38,7 @@ class Probabilistic_Hybrid(RecommenderBase):
 
         self.current_directory = Path(__file__).absolute().parent
         self.data_directory = self.current_directory.joinpath('..', '..', 'submissions/hybrid')
-        self.gt_csv = self.data_directory.joinpath('ground_truth_small.csv')
+        self.gt_csv = self.data_directory.joinpath('ground_truth.csv')
         self.mode = mode
         self.dfs_subname = []
         self.geometric_mean = geometric_mean
@@ -113,6 +124,7 @@ class Probabilistic_Hybrid(RecommenderBase):
         exp = 0.5  # we'll compute the squared radix
         for d in self.dfs_subname:
             scores = self.dict_sub_scores[d[1]]  #  d[1] è il nome della sub
+            print(scores)
             scores = [float(x) * d[2] for x in scores]  # d[2] è lo score
             #scores = [float((e) ** (exp)) for e in
             #          scores]  # ci faccio la radice quadrata ma magari qualcos'altro funziona meglio
@@ -156,12 +168,12 @@ class Probabilistic_Hybrid(RecommenderBase):
                             score = score*j[imp] # prendo per ogni impression il prodotto degli scores
                         else:
                             score = 0
-                        final_dict[imp]= score
+                    final_dict[imp]= score
             else:
                 final_dict = Counter({})
                 for j in impressions_scores_dicts:
                     final_dict += Counter(j)
-            final_dict = dict(final_dict)
+                final_dict = dict(final_dict)
 
             final_dict = sorted(final_dict.items(), key=lambda x: float(x[1]))
             # get the impressions' list in descending order

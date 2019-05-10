@@ -1,4 +1,5 @@
 from recommenders.hybrid.Probabilistic_Hybrid import Probabilistic_Hybrid
+from recommenders.hybrid.borda_hybrid import Borda_Hybrid
 from skopt import gp_minimize
 from skopt.space import Real, Integer, Categorical
 from skopt.utils import use_named_args
@@ -28,7 +29,7 @@ def objective(min_price_based,location_subm,lazyUserRec, last_interaction, xgb14
         'xgb14f0665': xgb14f0665
     }
 
-    model = Probabilistic_Hybrid(params, mode='local', geometric_mean=True)
+    model = Borda_Hybrid(params, mode='local')
     model.fit()
     sub = model.recommend_batch()
     MRR = model.score_sub(sub)
