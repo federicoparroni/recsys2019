@@ -82,7 +82,6 @@ class BestCheckpointCopier(tf.estimator.Exporter):
     self.checkpoints = self.checkpoints[0:self.checkpoints_to_keep]
 
   def _score(self, eval_result):
-    HERA.send_message(f'mode: {self.mode} TFRANKING mrr is: {eval_result}')
     return float(eval_result)
 
   def _shouldKeep(self, checkpoint):
@@ -117,7 +116,7 @@ class BestCheckpointCopier(tf.estimator.Exporter):
 
     score = eval_result['metric/mrr']
     checkpoint = Checkpoint(path=checkpoint_path, score=score)
-
+    HERA.send_message(f'mode: {self.mode} TFRANKING mrr is: {score}')
     if self._shouldKeep(checkpoint):
       self._keepCheckpoint(checkpoint)
 
