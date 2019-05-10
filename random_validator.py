@@ -1,11 +1,12 @@
 from recommenders.XGBoost import XGBoostWrapper
 from functools import partial
 
-from recommenders.catboost_rank import CatboostRanker
+# from recommenders.catboost_rank import CatboostRanker
 from utils.writer import writer
 import gc
 import utils.telegram_bot as HERA
 from random import randint
+from utils.automatic_sub_exporter import AutomaticSubExporter
 
 
 class RandomValidator:
@@ -16,7 +17,7 @@ class RandomValidator:
     (check out one that has those already specified)
     """
 
-    def __init__(self, reference_object, granularity=100):
+    def __init__(self, reference_object, granularity=100, automatic_export=True):
         self.reference_object = reference_object
         self.granularity = granularity
 
@@ -26,6 +27,10 @@ class RandomValidator:
             '.')[-1].replace('\'>', '')
         self.writer = writer(
             file_base_path=self.file_base_path, file_name=self.file_name)
+
+        self.automatic_export = None
+        if automatic_export:
+            self.automatic_export = AutomaticSubExporter(reference_object)
 
     def sample(self, tuple):
         low_bound = tuple[0]
@@ -46,6 +51,10 @@ class RandomValidator:
             print(params_dict)
             model = self.reference_object.__class__(**params_dict)
             score = model.evaluate()
+
+            if self.automatic_export != None:
+                self.automatic_export.check_if_export(score, params_dict)
+            
             del model
             gc.collect()
             self.writer.write(
@@ -57,6 +66,6 @@ class RandomValidator:
 
 
 if __name__ == "__main__":
-    m = CatboostRanker(mode='small')
+    m = XGBoostWrapper(mode='small')
     v = RandomValidator(m)
     v.validate(100)
