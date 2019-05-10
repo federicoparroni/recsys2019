@@ -12,6 +12,7 @@ from keras import metrics
 
 from recommenders.recommender_base import RecommenderBase
 import preprocess_utils.session2vec as sess2vec
+from sklearn.utils import shuffle
 from numpy.linalg import norm as L2Norm
 
 from utils.check_folder import check_folder
@@ -41,7 +42,7 @@ def mrr(y_true, y_pred):
 class RecurrentRecommender(RecommenderBase):
     
     def __init__(self, dataset, input_shape, cell_type, num_recurrent_layers, num_recurrent_units, num_dense_layers, output_size,
-                use_generator=True, validation_split=0.15, use_batch_normalization=False,
+                use_generator=False, validation_split=0.15, use_batch_normalization=False,
                 loss='mean_squared_error', optimizer='rmsprop', class_weights=[], weight_samples=False,
                 metrics=['accuracy', mrr], checkpoints_path=None, tensorboard_path=None):
         """ Create the recurrent model
@@ -81,7 +82,7 @@ class RecurrentRecommender(RecommenderBase):
 
         name = 'rnn_{}_{}layers_{}units_{}dense'.format(cell_type.upper(), num_recurrent_layers, num_recurrent_units, num_dense_layers)
         name += '_w' if self.use_weights else ''
-        super().__init__(dataset.mode, dataset.cluster, name=name)
+        super(RecurrentRecommender, self).__init__(dataset.mode, dataset.cluster, name=name)
         
         if use_generator:
             # generator
@@ -89,13 +90,16 @@ class RecurrentRecommender(RecommenderBase):
         else:
             # full dataset
             self.X, self.Y = dataset.load_Xtrain(), dataset.load_Ytrain()
+            self.X, self.Y = shuffle(self.X, self.Y)
             input_shape = self.X.shape
         
         # build the model
         CELL = LSTM if self.name == 'LSTM' else GRU
         self.model = Sequential()
 
-        self.model.add( CELL(num_recurrent_units, input_shape=self.input_shape, dropout=0.2,recurrent_dropout=0.2,
+        self.model.add( TimeDistributed(Dense(num_recurrent_units, activation='relu'), input_shape=self.input_shape) )
+
+        self.model.add( CELL(num_recurrent_units, dropout=0.2,recurrent_dropout=0.2,
                                 return_sequences=(num_recurrent_layers > 1) ))
         for i in range(num_recurrent_layers-1):
             self.model.add( CELL(num_recurrent_units, dropout=0.2,recurrent_dropout=0.2,
@@ -113,6 +117,7 @@ class RecurrentRecommender(RecommenderBase):
                     self.model.add( Activation('relu') )
                 else:
                     self.model.add( Dense(int(n), activation='relu') )
+                self.model.add( Dropout(rate=0.1) )
         # add the last dense layer
         if use_batch_normalization:
             self.model.add( Dense(output_size, activation=None) )
@@ -120,10 +125,10 @@ class RecurrentRecommender(RecommenderBase):
             self.model.add( Activation('softmax') )
         else:
             self.model.add( Dense(output_size, activation='softmax') )
-        self.model.add( Dropout(rate=0.4) )
+        self.model.add( Dropout(rate=0.1) )
         
         if self.weight_samples:
-            self.model.compile(sample_weight_mode='temporal', loss=loss, optimizer=optimizer, metrics=['accuracy', mrr])
+            self.model.compile(sample_weight_mode='temporal', loss=loss, optimizer=optimizer, metrics=self.metrics)
         else:
             self.model.compile(loss=loss, optimizer=optimizer, metrics=self.metrics)
 
@@ -137,9 +142,6 @@ class RecurrentRecommender(RecommenderBase):
 
     def fit(self, epochs, early_stopping_patience=10, early_stopping_on='val_loss', mode='min'):
         weights = self.class_weights if self.weight_samples else []
-        self.train_gen, self.val_gen = self.dataset.get_train_validation_generator(self.validation_split, weights)
-        
-        assert self.train_gen.__getitem__(0)[0].shape[1:] == self.input_shape
 
         callbacks = [ TelegramBotKerasCallback() ]
         # early stopping callback
@@ -154,10 +156,14 @@ class RecurrentRecommender(RecommenderBase):
             callbacks.append( TensorBoard(log_dir=self.tensorboard_path, histogram_freq=0, write_graph=False) )
         
         if self.use_generator:
+            self.train_gen, self.val_gen = self.dataset.get_train_validation_generator(self.validation_split, weights)
+            assert self.train_gen.__getitem__(0)[0].shape[1:] == self.input_shape
+        
             self.history = self.model.fit_generator(self.train_gen, epochs=epochs, validation_data=self.val_gen,
                                                     callbacks=callbacks, max_queue_size=3, class_weight=self.class_weights)
         else:
-            self.history = self.model.fit(self.X, self.Y, epochs=epochs, validation_split=self.validation_split, 
+            self.history = self.model.fit(self.X, self.Y, epochs=epochs, batch_size=64,
+                                            validation_split=self.validation_split, 
                                             callbacks=callbacks, class_weight=self.class_weights)
         
     def save(self, folderpath):

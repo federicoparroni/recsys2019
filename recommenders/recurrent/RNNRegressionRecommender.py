@@ -21,7 +21,7 @@ class RNNRegressionRecommender(RecurrentRecommender):
     """
 
     def __init__(self, dataset, cell_type, num_recurrent_layers, num_recurrent_units, num_dense_layers,
-                use_generator=True, validation_split=0.15, class_weights=None,
+                use_generator=False, validation_split=0.15, class_weights=None,
                 optimizer='rmsprop', checkpoints_path=None, tensorboard_path=None):
         
         out_size = len(data.accomodations_df.columns)
@@ -101,7 +101,7 @@ if __name__ == "__main__":
 
     dataset = SequenceDatasetForRegression(f'dataset/preprocessed/cluster_recurrent/{mode}/dataset_regression')
     
-    model = RNNRegressionRecommender(dataset, use_generator=True, cell_type=cell_type,
+    model = RNNRegressionRecommender(dataset, use_generator=False, cell_type=cell_type,
                                     num_recurrent_layers=rec_layers, num_recurrent_units=units,
                                     num_dense_layers=dense_layers)
     model.fit(epochs=epochs)
