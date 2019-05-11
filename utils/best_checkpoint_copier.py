@@ -118,6 +118,7 @@ class BestCheckpointCopier(tf.estimator.Exporter):
           model.run()
           HERA.send_message(f'EXPORTED... {eval_result_f} mode:{self.mode}')
 
+          """
           # predict the vali...
           pred = np.array(list(estimator.predict(lambda: batch_inputs(self.vali_x, self.vali_y, batch_size))))
           np.save(f'{self.save_path_vali}/predictions_{eval_result_f}', pred)
@@ -128,6 +129,7 @@ class BestCheckpointCopier(tf.estimator.Exporter):
           model.name = f'tf_ranking_local_{self.loss}_{score}'
           model.run()
           HERA.send_message(f'EXPORTED... {eval_result_f} mode:local')
+          """
 
     self._log('export checkpoint {}'.format(checkpoint_path))
 
