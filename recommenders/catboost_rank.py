@@ -20,7 +20,7 @@ class CatboostRanker(RecommenderBase):
     Custom_metric is @1 for maximizing first result as good
     """
 
-    def __init__(self, mode, cluster='no_cluster', learning_rate=0.15, iterations=200, max_depth=10, reg_lambda=3.5,
+    def __init__(self, mode, cluster='no_cluster', learning_rate=0.15, iterations=200, max_depth=10, reg_lambda=2,
                  colsample_bylevel=1,
                  custom_metric='AverageGain:top=1', algo='xgboost', verbose=False, include_test=False, file_to_load=None,
                  file_to_store=None, limit_trees=False, features_to_one_hot = None):
@@ -53,15 +53,18 @@ class CatboostRanker(RecommenderBase):
             'max_depth': math.ceil(max_depth),
             'colsample_bylevel': math.ceil(colsample_bylevel),
             'reg_lambda': reg_lambda,
+            'leaf_estimation_iterations': 25,
+            'leaf_estimation_method': 'Newton',
+            'boosting_type': 'Plain',
             'loss_function': 'QuerySoftMax',
             'train_dir': 'QuerySoftMax',
         }
 
         # create hyperparameters dictionary
-        self.hyperparameters_dict = {'iterations': (100, 100),
-                                     'max_depth': (5, 12),
+        self.hyperparameters_dict = {'iterations': (150, 150),
+                                     'max_depth': (9.5, 11.3),
                                      'learning_rate': (0.1, 0.1),
-                                     'reg_lambda': (3, 8),
+                                     'reg_lambda': (6.5, 6.75),
                                      }
 
         self.fixed_params_dict = {
@@ -119,7 +122,7 @@ class CatboostRanker(RecommenderBase):
         train_df = data.classification_train_df(mode=self.mode, cluster=self.cluster, sparse=False, algo=self.algo)
 
         train_df = train_df.reindex(
-            'user_id,session_id,label,times_impression_appeared,time_elapsed_from_last_time_impression_appeared,impression_position,steps_from_last_time_impression_appeared,price,price_position,popularity,impression_position_wrt_last_interaction,impression_position_wrt_second_last_interaction,clickout_item_session_ref_this_impr,interaction_item_deals_session_ref_this_impr,interaction_item_image_session_ref_this_impr,interaction_item_info_session_ref_this_impr,interaction_item_rating_session_ref_this_impr,search_for_item_session_ref_this_impr,clickout_item_session_ref_not_in_impr,interaction_item_deals_session_ref_not_in_impr,interaction_item_image_session_ref_not_in_impr,interaction_item_info_session_ref_not_in_impr,interaction_item_rating_session_ref_not_in_impr,search_for_item_session_ref_not_in_impr,session_length_in_step,session_length_in_time,time_per_step,frenzy_factor,average_price_position,avg_price_interacted_item,avg_pos_interacted_items_in_impressions,pos_last_interaction_in_impressions,search_for_poi_distance_from_last_clickout,search_for_poi_distance_from_first_action,change_sort_order_distance_from_last_clickout,change_sort_order_distance_from_first_action,time_passed_before_clk'.split(
+            'user_id,session_id,label,times_impression_appeared,time_elapsed_from_last_time_impression_appeared,impression_position,steps_from_last_time_impression_appeared,price,price_position,impression_position_wrt_last_interaction,impression_position_wrt_second_last_interaction,clickout_item_session_ref_this_impr,interaction_item_deals_session_ref_this_impr,interaction_item_image_session_ref_this_impr,interaction_item_info_session_ref_this_impr,interaction_item_rating_session_ref_this_impr,search_for_item_session_ref_this_impr,session_length_in_step,session_length_in_time,time_per_step,frenzy_factor,average_price_position,avg_price_interacted_item,avg_pos_interacted_items_in_impressions,pos_last_interaction_in_impressions,search_for_poi_distance_from_last_clickout,search_for_poi_distance_from_first_action,change_sort_order_distance_from_last_clickout,change_sort_order_distance_from_first_action,time_passed_before_clk'.split(
                 ','), axis=1)
 
         print('Shape of train is ' + str(train_df.shape[0] ))
@@ -268,7 +271,7 @@ class CatboostRanker(RecommenderBase):
         test_df = data.classification_test_df(
             mode=self.mode, sparse=False, cluster=self.cluster, algo=self.algo).copy()
 
-        test_df = test_df.reindex('user_id,session_id,label,times_impression_appeared,time_elapsed_from_last_time_impression_appeared,impression_position,steps_from_last_time_impression_appeared,price,price_position,popularity,impression_position_wrt_last_interaction,impression_position_wrt_second_last_interaction,clickout_item_session_ref_this_impr,interaction_item_deals_session_ref_this_impr,interaction_item_image_session_ref_this_impr,interaction_item_info_session_ref_this_impr,interaction_item_rating_session_ref_this_impr,search_for_item_session_ref_this_impr,clickout_item_session_ref_not_in_impr,interaction_item_deals_session_ref_not_in_impr,interaction_item_image_session_ref_not_in_impr,interaction_item_info_session_ref_not_in_impr,interaction_item_rating_session_ref_not_in_impr,search_for_item_session_ref_not_in_impr,session_length_in_step,session_length_in_time,time_per_step,frenzy_factor,average_price_position,avg_price_interacted_item,avg_pos_interacted_items_in_impressions,pos_last_interaction_in_impressions,search_for_poi_distance_from_last_clickout,search_for_poi_distance_from_first_action,change_sort_order_distance_from_last_clickout,change_sort_order_distance_from_first_action,time_passed_before_clk'.split(','), axis=1)
+        test_df = test_df.reindex('user_id,session_id,label,times_impression_appeared,time_elapsed_from_last_time_impression_appeared,impression_position,steps_from_last_time_impression_appeared,price,price_position,impression_position_wrt_last_interaction,impression_position_wrt_second_last_interaction,clickout_item_session_ref_this_impr,interaction_item_deals_session_ref_this_impr,interaction_item_image_session_ref_this_impr,interaction_item_info_session_ref_this_impr,interaction_item_rating_session_ref_this_impr,search_for_item_session_ref_this_impr,session_length_in_step,session_length_in_time,time_per_step,frenzy_factor,average_price_position,avg_price_interacted_item,avg_pos_interacted_items_in_impressions,pos_last_interaction_in_impressions,search_for_poi_distance_from_last_clickout,search_for_poi_distance_from_first_action,change_sort_order_distance_from_last_clickout,change_sort_order_distance_from_first_action,time_passed_before_clk'.split(','), axis=1)
 
         #test_df.drop(['avg_price_interacted_item','average_price_position', 'avg_pos_interacted_items_in_impressions', 'pos_last_interaction_in_impressions'], axis=1, inplace=True)
         if len(self.features_to_drop) > 0:
@@ -297,6 +300,14 @@ class CatboostRanker(RecommenderBase):
                 one_hot = pd.get_dummies(test_df[f])
                 test_df = test_df.drop([f], axis=1)
                 test_df = test_df.join(one_hot)
+
+        while True:
+            timeNum = input("How many iterations?")
+            try:
+                self.set_limit_trees(int(timeNum))
+                break
+            except ValueError:
+                pass
 
         test_df.groupby('trg_idx', as_index=False).progress_apply(self.func)
 
