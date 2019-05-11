@@ -20,7 +20,7 @@ class RNNClassificationRecommender(RecurrentRecommender):
     """
     
     def __init__(self, dataset, input_shape, cell_type, num_recurrent_layers, num_recurrent_units, num_dense_layers,
-                use_generator=True, validation_split=0.15, class_weights=None, output_size=25, metrics=['accuracy', mrr],
+                use_generator=False, validation_split=0.15, class_weights=None, output_size=25, metrics=['accuracy', mrr],
                 optimizer='rmsprop', loss='categorical_crossentropy', checkpoints_path=None, tensorboard_path=None):
         
         super().__init__(dataset=dataset, input_shape=input_shape, cell_type=cell_type, num_recurrent_layers=num_recurrent_layers,
@@ -71,7 +71,21 @@ class RNNClassificationRecommender(RecurrentRecommender):
         return result_predictions
 
     def get_scores_batch(self):
-        return None
+        X, indices = self.dataset.load_Xtest()
+
+        predictions = self.model.predict(X)
+
+        full_df = data.full_df()
+
+        result_predictions = []
+        for i,index in tqdm(enumerate(indices)):
+            # get the impressions of the clickout to predict
+            impr = list(map(int, full_df.loc[index]['impressions'].split('|')))
+            scores = predictions[i]
+            # append the couple (index, reranked impressions)
+            result_predictions.append( (index, impr, scores) )
+
+        return result_predictions
 
 
 if __name__ == "__main__":
@@ -105,7 +119,7 @@ if __name__ == "__main__":
 
     dataset = SequenceDatasetForClassification(f'dataset/preprocessed/cluster_recurrent/{mode}/dataset_classification')
     
-    model = RNNClassificationRecommender(dataset, use_generator=False, cell_type=cell_type, input_shape=(6,69),
+    model = RNNClassificationRecommender(dataset, use_generator=False, cell_type=cell_type, input_shape=(6,68),
                                         num_recurrent_layers=rec_layers, num_recurrent_units=units,
                                         num_dense_layers=dense_layers, class_weights=weights)
     model.fit(epochs=epochs)
