@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
     mode = menu.mode_selection()
     opt = menu.single_choice('Optimizer?', ['Adam','RMSProp'], ['adam','rmsprop'])
-    lr = menu.single_choice('Learning rate?', ['e-3', 'e-4'], [1e-3, 1e-4])
+    lr = menu.single_choice('Learning rate?', ['e-3', 'e-4', 'e-5'], [1e-3, 1e-4, 1e-5])
 
     dataset = SequenceDatasetForBinaryClassification(f'dataset/preprocessed/cluster_recurrent/{mode}/dataset_binary_classification')
 
