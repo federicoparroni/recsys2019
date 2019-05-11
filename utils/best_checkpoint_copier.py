@@ -28,7 +28,7 @@ class BestCheckpointCopier(tf.estimator.Exporter):
   sort_key_fn = None
   sort_reverse = None
 
-  def __init__(self, min_mrr_start, loss, dataset_name, save_path, save_path_vali, test_x, test_y, vali_x, vali_y,
+  def __init__(self, min_mrr_start, loss, dataset_name, save_path, save_path_vali, test_x, test_y, vali_x, vali_y, params,
                mode, name='best_checkpoints', checkpoints_to_keep=1, score_metric='Loss/total_loss',
                compare_fn=lambda x,y: x.score > y.score, sort_key_fn=lambda x: x.score, sort_reverse=False):
     self.checkpoints = []
@@ -49,6 +49,7 @@ class BestCheckpointCopier(tf.estimator.Exporter):
     self.dataset_name = dataset_name
     self.loss = loss
     self.min_mrr = min_mrr_start
+    self.params = params
     super(BestCheckpointCopier, self).__init__()
 
   def _copyCheckpoint(self, checkpoint):
@@ -132,7 +133,9 @@ class BestCheckpointCopier(tf.estimator.Exporter):
 
     score = eval_result['metric/mrr']
     checkpoint = Checkpoint(path=checkpoint_path, score=score)
-    HERA.send_message(f'mode: {self.mode} TFRANKING mrr is: {score}')
+    HERA.send_message(f'mode: {self.mode}\n TFRANKING mrr is: {score}\n dropout:{self.params.dropout_rate}\n'
+                      f'learning_rate:{self.params.learning_rate}\n train_batch_size:{self.params.train_batch_size}\n'
+                      f'hidden_layer_dims:{self.params.hidden_layer_dims}\n loss:{self.params.loss}')
     if self._shouldKeep(checkpoint):
       self._keepCheckpoint(checkpoint)
 

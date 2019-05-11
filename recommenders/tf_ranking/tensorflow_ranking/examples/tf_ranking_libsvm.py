@@ -298,6 +298,7 @@ def train_and_eval():
       mode = FLAGS.mode,
       loss = FLAGS.loss,
       min_mrr_start=FLAGS.min_mrr_start,
+      params=FLAGS
       )
 
 
@@ -370,8 +371,7 @@ if __name__ == "__main__":
     _BASE_PATH = f'dataset/preprocessed/tf_ranking/{_CLUSTER}/{_MODE}/{_DATASET_NAME}'
 
     _SAVE_PATH_VALI = f'dataset/preprocessed/tf_ranking/{_CLUSTER}/local/{_DATASET_NAME}'
-
-
+    cf.check_folder(_SAVE_PATH_VALI)
 
     _TRAIN_PATH = f'{_BASE_PATH}/train.txt'
     _TEST_PATH = f'{_BASE_PATH}/test.txt'
@@ -390,13 +390,13 @@ if __name__ == "__main__":
     flags.DEFINE_string("mode", _MODE, "mode of the models.")
     flags.DEFINE_string("dataset_name", _DATASET_NAME, "name of the dataset")
     flags.DEFINE_string("save_path_vali", _SAVE_PATH_VALI, "name of the dataset")
-    flags.DEFINE_float("min_mrr_start", 0.66, "min_mrr_from_which_save_model")
+    flags.DEFINE_float("min_mrr_start", 0.3, "min_mrr_from_which_save_model")
 
     flags.DEFINE_integer("train_batch_size", 128, "The batch size for training.")
     # 32
     flags.DEFINE_integer("num_train_steps", None, "Number of steps for training.")
 
-    flags.DEFINE_float("learning_rate", 0.1, "Learning rate for optimizer.")
+    flags.DEFINE_float("learning_rate", 0.3, "Learning rate for optimizer.")
     #0.01
     flags.DEFINE_float("dropout_rate", 0.5, "The dropout rate before output layer.")
     # 0.5

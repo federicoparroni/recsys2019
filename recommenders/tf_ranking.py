@@ -56,8 +56,19 @@ class TensorflowRankig(RecommenderBase):
         return final_predictions
 
     def get_scores_batch(self):
-        #TODO: IMPLEMENT GET_SCORES_BATCH
-        pass
+        final_predictions = []
+
+        count = 0
+        for index in tqdm(self.target_indices):
+            impr = list(map(int, data.full_df().loc[index]['impressions'].split('|')))
+            pred = self.predictions[count][0:len(impr)]
+            couples = list(zip(pred, impr))
+            # print(couples)
+            couples.sort(key=lambda x: x[0], reverse=True)
+            scores, sorted_impr = zip(*couples)
+            final_predictions.append((index, list(sorted_impr), list(scores)))
+            count += 1
+        return final_predictions
 
 
 
