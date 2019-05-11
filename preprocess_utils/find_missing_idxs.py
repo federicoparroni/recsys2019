@@ -21,7 +21,8 @@ def load_libsvm_data(path, list_size=25):
       qid, features, label = _parse_line(line)
       if qid not in qid_to_index:
         # Create index and allocate space for a new query.
-        qid_to_index[qid] = len(qid_to_index)
+        qid_to_index[qid] = 1
+        print(qid)
   return qid_to_index
 
 
@@ -30,4 +31,4 @@ correct_tgt_idxs = np.array(data.target_indices('local', 'no_cluster'))
 dictionary=load_libsvm_data('dataset/preprocessed/tf_ranking/no_cluster/full/no_pop/vali.txt')
 wrong_tgt_idxs = np.array(list(dictionary.keys()))
 missing_idxs = np.setdiff1d(correct_tgt_idxs, wrong_tgt_idxs)
-print(missing_idxs)
+print(f'missing:{missing_idxs}\n len_missing:{len(missing_idxs)}')
