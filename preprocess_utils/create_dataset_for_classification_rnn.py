@@ -97,7 +97,8 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_it
 
         if for_train and resample:
             # resample the dataset to balance the classes
-            df = df_utils.resample_sessions(df, by=1.3, when=df_utils.ref_class_is_1)
+            resample_perc = 0.5 / df.ref_class.mean()
+            df = df_utils.resample_sessions(df, by=resample_perc, when=df_utils.ref_class_is_1)
 
         # join the accomodations one-hot features
         if add_item_features:

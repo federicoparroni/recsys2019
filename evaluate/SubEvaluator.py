@@ -65,7 +65,8 @@ class SubEvaluator():
         'gt_only_two_interaction_sessions.csv',
         'gt_less_than_5_interaction_sessions.csv',
         'gt_5_to_10_interaction_sessions.csv',
-        'gt_more_than_10_interaction_sessions.csv'
+        'gt_more_than_10_interaction_sessions.csv',
+        'ground_truth_small.csv'
         ]
 
         total_score = self.score_sub(self.sub, self.data_directory.joinpath('ground_truth.csv'))
@@ -206,6 +207,12 @@ class SubEvaluator():
                     one_interaction_sessions.append(k)
             new_gt = df_gt[df_gt['session_id'].isin(one_interaction_sessions)]
             new_gt.to_csv(self.data_directory.joinpath('gt_clusters/gt_more_than_10_interaction_sessions.csv'), encoding='utf-8', index=False)
+            print('Done.')
+
+        if not os.path.isfile(self.data_directory.joinpath('gt_clusters/ground_truth_small.csv')):
+            print('Creating small ground truth...')
+            new_gt = df_gt.head(int(df_gt.shape[0]/3))
+            new_gt.to_csv(self.data_directory.joinpath('gt_clusters/ground_truth_small.csv'), encoding='utf-8', index=False)
             print('Done.')
 
 if __name__=='__main__':

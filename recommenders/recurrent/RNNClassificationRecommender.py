@@ -40,7 +40,7 @@ class RNNClassificationRecommender(RecurrentRecommender):
         
         # take only the last index for each session (target row) and flatten
         #predictions = predictions.reshape((-1, predictions.shape[-1]))
-        indices = indices[:,-1].flatten()
+        #indices = indices[:,-1].flatten()
         
         # take only the target predictions
         pred_df = pd.DataFrame(predictions)
@@ -99,13 +99,13 @@ if __name__ == "__main__":
         rec_layers = int(input('Insert number of recurrent layers: '))
         units = int(input('Insert number of units per layer: '))
         dense_layers = int(input('Insert number of dense layers: '))
-        weights = menu.yesno_choice('Do you want to use samples weighting?', lambda: weights, lambda: [])
+        weights = menu.yesno_choice('Do you want to use class weights?', lambda: weights, lambda: [])
         #tb_path = menu.yesno_choice('Do you want to enable Tensorboard?', lambda: 'recommenders/tensorboard', lambda: None)
     tb_path = None
 
     dataset = SequenceDatasetForClassification(f'dataset/preprocessed/cluster_recurrent/{mode}/dataset_classification')
     
-    model = RNNClassificationRecommender(dataset, use_generator=True, cell_type=cell_type, input_shape=(6,69),
+    model = RNNClassificationRecommender(dataset, use_generator=False, cell_type=cell_type, input_shape=(6,69),
                                         num_recurrent_layers=rec_layers, num_recurrent_units=units,
                                         num_dense_layers=dense_layers, class_weights=weights)
     model.fit(epochs=epochs)
