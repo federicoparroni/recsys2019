@@ -28,7 +28,8 @@ class BestCheckpointCopier(tf.estimator.Exporter):
   sort_key_fn = None
   sort_reverse = None
 
-  def __init__(self, min_mrr_start, loss, dataset_name, save_path, test_x, test_y, mode, name='best_checkpoints', checkpoints_to_keep=1, score_metric='Loss/total_loss',
+  def __init__(self, min_mrr_start, loss, dataset_name, save_path, save_path_vali, test_x, test_y, vali_x, vali_y,
+               mode, name='best_checkpoints', checkpoints_to_keep=1, score_metric='Loss/total_loss',
                compare_fn=lambda x,y: x.score > y.score, sort_key_fn=lambda x: x.score, sort_reverse=False):
     self.checkpoints = []
     self.checkpoints_to_keep = checkpoints_to_keep
@@ -39,9 +40,12 @@ class BestCheckpointCopier(tf.estimator.Exporter):
     self.sort_reverse = sort_reverse
 
     self.mode = mode
+    self.vali_x = vali_x
+    self.vali_y = vali_y
     self.test_x = test_x
     self.test_y = test_y
     self.save_path = save_path
+    self.save_path_vali = save_path_vali
     self.dataset_name = dataset_name
     self.loss = loss
     self.min_mrr = min_mrr_start
@@ -102,6 +106,7 @@ class BestCheckpointCopier(tf.estimator.Exporter):
           # set as new threshold the new mrr
           self.min_mrr = eval_result_f
 
+          # predict the test...
           pred = np.array(list(estimator.predict(lambda: batch_inputs(self.test_x, self.test_y, batch_size))))
           np.save(f'{self.save_path}/predictions_{eval_result_f}', pred)
           HERA.send_message(f'EXPORTING A SUB... {eval_result_f} mode:{self.mode}')
@@ -111,6 +116,17 @@ class BestCheckpointCopier(tf.estimator.Exporter):
           model.name = f'tf_ranking_{self.mode}_{self.loss}_{score}'
           model.run()
           HERA.send_message(f'EXPORTED... {eval_result_f} mode:{self.mode}')
+
+          # predict the vali...
+          pred = np.array(list(estimator.predict(lambda: batch_inputs(self.vali_x, self.vali_y, batch_size))))
+          np.save(f'{self.save_path_vali}/predictions_{eval_result_f}', pred)
+          HERA.send_message(f'EXPORTING A SUB... {eval_result_f} mode:''local')
+          model = TensorflowRankig(mode='local', cluster='no_cluster', dataset_name=self.dataset_name,
+                                   pred_name=f'predictions_{eval_result_f}')
+          score = eval_result_f
+          model.name = f'tf_ranking_local_{self.loss}_{score}'
+          model.run()
+          HERA.send_message(f'EXPORTED... {eval_result_f} mode:local')
 
     self._log('export checkpoint {}'.format(checkpoint_path))
 

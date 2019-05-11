@@ -23,22 +23,18 @@ class TensorflowRankig(RecommenderBase):
         _BASE_PATH = f'dataset/preprocessed/tf_ranking/{cluster}/{mode}/{self.dataset_name}'
 
         _PREDICTION_PATH = f'{_BASE_PATH}/{pred_name}.npy'
-        _TARGET_INDICES_PATH = f'{_BASE_PATH}/target_indices.npy'
 
         # check if the PREDICTION have been made
         exists_path_predictions = os.path.isfile(_PREDICTION_PATH)
-        exists_path_indices = os.path.isfile(_TARGET_INDICES_PATH)
 
-        if (not exists_path_indices) or (not exists_path_predictions):
-            print(f'the prediction or the target indices for the \ndataset: {self.dataset_name}\n mode:{mode}\n '
+        if not exists_path_predictions:
+            print(f'the prediction for the \ndataset: {self.dataset_name}\n mode:{mode}\n '
                   f'cluster:{cluster}\n have not been made')
             exit(0)
 
         self.predictions = np.load(_PREDICTION_PATH)
         print('predictions loaded')
-
-        self.target_indices = np.load(_TARGET_INDICES_PATH)
-        print('target indices loaded')
+        self.target_indices = data.target_indices(mode, cluster)
 
     def fit(self):
         pass
