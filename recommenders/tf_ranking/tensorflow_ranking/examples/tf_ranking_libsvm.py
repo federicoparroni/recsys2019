@@ -292,9 +292,13 @@ def train_and_eval():
       #save_path=f'dataset/preprocessed/tf_ranking/{_CLUSTER}/full/{_DATASET_NAME}/predictions',
       test_x=features_test,
       test_y=labels_test,
+      vali_x=features_vali,
+      vali_y=labels_vali,
+      save_path_vali = f'{FLAGS.save_path_vali}',
       mode = FLAGS.mode,
       loss = FLAGS.loss,
       min_mrr_start=FLAGS.min_mrr_start,
+      params=FLAGS
       )
 
 
@@ -366,7 +370,8 @@ if __name__ == "__main__":
 
     _BASE_PATH = f'dataset/preprocessed/tf_ranking/{_CLUSTER}/{_MODE}/{_DATASET_NAME}'
 
-
+    _SAVE_PATH_VALI = f'dataset/preprocessed/tf_ranking/{_CLUSTER}/local/{_DATASET_NAME}'
+    cf.check_folder(_SAVE_PATH_VALI)
 
     _TRAIN_PATH = f'{_BASE_PATH}/train.txt'
     _TEST_PATH = f'{_BASE_PATH}/test.txt'
@@ -384,27 +389,67 @@ if __name__ == "__main__":
     flags.DEFINE_string("output_dir", _OUTPUT_DIR, "Output directory for models.")
     flags.DEFINE_string("mode", _MODE, "mode of the models.")
     flags.DEFINE_string("dataset_name", _DATASET_NAME, "name of the dataset")
-    flags.DEFINE_float("min_mrr_start", 0.66, "min_mrr_from_which_save_model")
+    flags.DEFINE_string("save_path_vali", _SAVE_PATH_VALI, "name of the dataset")
 
-    flags.DEFINE_integer("train_batch_size", 128, "The batch size for training.")
+    # let the user choose the params
+    print('insert the min_MRR from which export the sub')
+    min_mrr = input()
+    print('insert train batch size')
+    train_batch_size = input()
+    print('insert learning rate')
+    learning_rate = input()
+    print('insert dropout rate')
+    dropout_rate = input()
+    print('insert hidden layer dims as numbers separeted by spaces')
+    hidden_layer_dims = input().split(' ')
+    print('select loss:\n'
+          '1) PAIRWISE_HINGE_LOSS\n'
+          '2) PAIRWISE_LOGISTIC_LOSS\n'
+          '3) PAIRWISE_SOFT_ZERO_ONE_LOSS\n'
+          '4) SOFTMAX_LOSS\n'
+          '5) SIGMOID_CROSS_ENTROPY_LOSS\n'
+          '6) MEAN_SQUARED_LOSS\n'
+          '7) LIST_MLE_LOSS\n'
+          '8) APPROX_NDCG_LOSS\n')
+
+    selection=input()
+    loss = None
+    if selection == '1':
+        loss = 'pairwise_hinge_loss'
+    elif selection == '2':
+        loss = 'pairwise_logistic_loss'
+    elif selection == '3':
+        loss = 'pairwise_soft_zero_one_loss'
+    elif selection == '4':
+        loss = 'softmax_loss'
+    elif selection == '5':
+        loss = 'sigmoid_cross_entropy_loss'
+    elif selection == '6':
+        loss = 'mean_squared_loss'
+    elif selection == '7':
+        loss = 'list_mle_loss'
+    elif selection == '8':
+        loss = 'approx_ndcg_loss'
+
+    flags.DEFINE_float("min_mrr_start", min_mrr, "min_mrr_from_which_save_model")
+    flags.DEFINE_integer("train_batch_size", train_batch_size, "The batch size for training.")
     # 32
     flags.DEFINE_integer("num_train_steps", None, "Number of steps for training.")
-
-    flags.DEFINE_float("learning_rate", 0.1, "Learning rate for optimizer.")
+    flags.DEFINE_float("learning_rate", learning_rate, "Learning rate for optimizer.")
     #0.01
-    flags.DEFINE_float("dropout_rate", 0.5, "The dropout rate before output layer.")
+    flags.DEFINE_float("dropout_rate", dropout_rate, "The dropout rate before output layer.")
     # 0.5
-    flags.DEFINE_list("hidden_layer_dims", ['256','128'],
+    flags.DEFINE_list("hidden_layer_dims", hidden_layer_dims,
                     "Sizes for hidden layers.")
     # ["256", "128", "64"]
     # best ["256", "128"]
 
-    flags.DEFINE_integer("num_features", 225, "Number of features per document.")
+    flags.DEFINE_integer("num_features", 34, "Number of features per document.")
     flags.DEFINE_integer("list_size", 25, "List size used for training.")
     flags.DEFINE_integer("group_size", 1, "Group size used in score function.")
     #1
 
-    flags.DEFINE_string("loss", "pairwise_logistic_loss",
+    flags.DEFINE_string("loss", loss,
                       "The RankingLossKey for loss function.")
 
     FLAGS = flags.FLAGS

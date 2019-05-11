@@ -104,6 +104,7 @@ def test_df(mode, cluster='no_cluster'):
     global _df_test
     path = 'dataset/preprocessed/{}/{}/test.csv'.format(cluster, mode)
     if path not in _df_test:
+        print("Loading {} test_df, it will take a while..".format(mode), flush=True)
         _df_test[path] = pd.read_csv(path, index_col=0)
     return _df_test[path]
 
