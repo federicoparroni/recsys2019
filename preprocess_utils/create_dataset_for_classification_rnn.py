@@ -34,7 +34,7 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_it
     only_test (bool): whether to create only the test dataset (useful to make predictions with a pre-trained model)
     """
     
-    path = f'dataset/preprocessed/{cluster}/{mode}/dataset_classification'
+    path = f'dataset/preprocessed/{cluster}/{mode}/dataset_classification_p{pad_sessions_length}'
     check_folder(path)
 
     def create_ds_class(df, path, for_train, add_dummy_actions=add_dummy_actions, pad_sessions_length=pad_sessions_length, 

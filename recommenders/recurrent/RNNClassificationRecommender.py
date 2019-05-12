@@ -119,8 +119,8 @@ if __name__ == "__main__":
 
     dataset = SequenceDatasetForClassification(f'dataset/preprocessed/cluster_recurrent/{mode}/dataset_classification')
     
-    model = RNNClassificationRecommender(dataset, use_generator=False, cell_type=cell_type, input_shape=(6,68),
-                                        num_recurrent_layers=rec_layers, num_recurrent_units=units,
+    model = RNNClassificationRecommender(dataset, use_generator=False, cell_type=cell_type, input_shape=(dataset.rows_per_sample, 68),
+                                        num_recurrent_layers=rec_layers, num_recurrent_units=units, optimizer='adam',
                                         num_dense_layers=dense_layers, class_weights=weights)
     model.fit(epochs=epochs)
 
