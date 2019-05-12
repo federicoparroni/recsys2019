@@ -34,7 +34,7 @@ def create_dataset_for_binary_classification(mode, cluster, pad_sessions_length,
     resample (bool): whether to resample to reduce the unbalance between classes
     """
     
-    path = f'dataset/preprocessed/{cluster}/{mode}/dataset_binary_classification'
+    path = f'dataset/preprocessed/{cluster}/{mode}/dataset_binary_classification_p{pad_sessions_length}'
     check_folder(path)
 
     def create_ds_class(df, path, for_train, add_dummy_actions=add_dummy_actions, pad_sessions_length=pad_sessions_length, 
