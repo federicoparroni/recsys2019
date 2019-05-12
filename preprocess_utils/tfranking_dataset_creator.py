@@ -118,7 +118,7 @@ def merge_features(mode, cluster, features_array):
     print(f'train_shape: {train_df.shape}\n vali_shape: {validation_df.shape}\n test_shape: {test_df.shape}')
     for f in features_array:
         feature = f(mode=mode, cluster=cluster).read_feature(one_hot=True)
-
+        print(len(feature))
         train_df = train_df.merge(feature)
         validation_df = validation_df.merge(feature)
         test_df = test_df.merge(feature)
