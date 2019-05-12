@@ -21,12 +21,13 @@ class RNNClassificationRecommender(RecurrentRecommender):
     
     def __init__(self, dataset, input_shape, cell_type, num_recurrent_layers, num_recurrent_units, num_dense_layers,
                 use_generator=False, validation_split=0.15, class_weights=None, output_size=25, metrics=['accuracy', mrr],
-                optimizer='rmsprop', loss='categorical_crossentropy', checkpoints_path=None, tensorboard_path=None):
+                optimizer='rmsprop', loss='categorical_crossentropy', batch_size=64,
+                checkpoints_path=None, tensorboard_path=None):
         
         super().__init__(dataset=dataset, input_shape=input_shape, cell_type=cell_type, num_recurrent_layers=num_recurrent_layers,
                         num_recurrent_units=num_recurrent_units, num_dense_layers=num_dense_layers,
                         use_generator=use_generator, validation_split=validation_split, output_size=output_size,
-                        loss=loss, optimizer=optimizer, class_weights=class_weights, metrics=metrics,
+                        loss=loss, optimizer=optimizer, class_weights=class_weights, metrics=metrics, batch_size=batch_size,
                         checkpoints_path=checkpoints_path, tensorboard_path=tensorboard_path)
         
         self.name += '_class'
@@ -117,7 +118,8 @@ if __name__ == "__main__":
         #tb_path = menu.yesno_choice('Do you want to enable Tensorboard?', lambda: 'recommenders/tensorboard', lambda: None)
     tb_path = None
 
-    dataset = SequenceDatasetForClassification(f'dataset/preprocessed/cluster_recurrent/{mode}/dataset_classification')
+    pad = menu.single_choice('Which dataset?', ['Padded 6','Padded 12'], [lambda: 6, lambda: 12])
+    dataset = SequenceDatasetForClassification(f'dataset/preprocessed/cluster_recurrent/{mode}/dataset_classification_p{pad}')
     
     model = RNNClassificationRecommender(dataset, use_generator=False, cell_type=cell_type, input_shape=(dataset.rows_per_sample, 68),
                                         num_recurrent_layers=rec_layers, num_recurrent_units=units, optimizer='adam',
