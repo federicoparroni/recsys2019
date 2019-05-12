@@ -76,6 +76,12 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
         :param y:
         :return:
         """
+
+        mean_pos = -1
+        pos_last_reference = -1
+        mean_cheap_position = -1
+        mean_price_interacted = -1
+
         impressions_pos_available = y[['impressions', 'prices']].drop_duplicates()
 
         # [13, 43, 4352, 543, 345, 3523] impressions
@@ -84,68 +90,64 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
         # Then create dict
         # {13: 45, 43: 34, ... }
 
+        # [13, 43, 4352, 543, 345, 3523] impressions
+        # -> [(13,1), (43,2), ...]
+        # Then create dict impression-position
+        # {13: 1, 43: 2, ... }
         tuples_impr_prices = []
         tuples_impr_price_pos_asc = []
 
-        # [13, 43, 4352, 543, 345, 3523] impressions
-        # Then create dict impression-position
-        # {13: 1, 43: 2, ... }
         tuples_impr_pos = []
 
         for i in impressions_pos_available.index:
             impr = impressions_pos_available.at[i, 'impressions'].split('|')
-            prices = impressions_pos_available.at[i, 'prices'].split('|')
+            prices = list(map(int, impressions_pos_available.at[i, 'prices'].split('|')))
             tuples_impr_prices += list(zip(impr, prices))
 
             tuples_impr_pos += [(impr[idx], idx + 1) for idx in range(len(impr))]
 
-            sorted(tuples_impr_prices, key=lambda x: x[1])
-            tuples_impr_price_pos_asc += list(zip(impr, list(range(1, len(tuples_impr_prices) + 1))))
+            prices_sorted = prices.copy()
+            prices_sorted.sort()
 
-        tuples_impr_prices = list(set(tuples_impr_prices))
-        dict_impr_price = dict(tuples_impr_prices)
+            tuples_impr_price_pos_asc += [(impr[idx], prices_sorted.index(prices[idx]) + 1) for idx in
+                                          range(len(impr))]
 
+        # dictionary: from impression, get its price
+        dict_impr_price = dict(list(set(tuples_impr_prices)))
+
+        # dictionary: from impression, get its position on impression
         dict_impr_pos = dict(list(set(tuples_impr_pos)))
 
-        sum_pos_impr = 0
-        count_interacted_pos_impr = 0
+        # dictionary: from impression, get its price position wrt the ascending price order
+        dict_impr_price_pos = dict(list(set(tuples_impr_price_pos_asc)))
 
-        # Create dict for getting position wrt clicked impression based on cheapest item
-        tuples_impr_price_pos_asc = list(set(tuples_impr_price_pos_asc))
-        dict_impr_price_pos = dict(tuples_impr_price_pos_asc)
-
-        sum_price = 0
-        sum_pos_price = 0
-        count_interacted = 0
-
+        # If an impression is also clicked, that price counts double
         # considering reference, impressions and action type as a row, I can distinguish from clickouts and impressions dropping duplicates
         df_only_numeric = x[["reference", "impressions", "action_type"]].drop_duplicates()
 
+        sum_price = 0
+        sum_pos_price = 0
+        sum_pos_impr = 0
+        count_interacted_pos_impr = 0
+        count_interacted = 0
         for i in df_only_numeric.index:
             reference = df_only_numeric.at[i, 'reference']
 
             if reference in dict_impr_price.keys():
                 sum_pos_impr += int(dict_impr_pos[reference])
-                count_interacted_pos_impr += 1
-                count_interacted += 1
-
                 sum_price += int(dict_impr_price[reference])
                 sum_pos_price += int(dict_impr_price_pos[reference])
-
-        mean_pos = -1
-        pos_last_reference = -1
-
-        mean_cheap_position = -1
-        mean_price_interacted = -1
+                count_interacted_pos_impr += 1
+                count_interacted += 1
 
         if count_interacted > 0:
             mean_cheap_position = round(sum_pos_price / count_interacted, 2)
             mean_price_interacted = round(sum_price / count_interacted, 2)
-
             mean_pos = round(sum_pos_impr / count_interacted_pos_impr, 2)
+
             last_reference = df_only_numeric.tail(1).reference.values[0]
 
-            # Saving the impressions appearing in the last clickout (they will be used to get the 'pos_last_reference'
+            # Saving the impressions appearing in the last clickout
             impressions_last_clickout = clk.impressions.values[0].split('|')
             if last_reference in impressions_last_clickout:
                 pos_last_reference = impressions_last_clickout.index(last_reference) + 1
@@ -254,6 +256,18 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
             else:
                 features['change_sort_order_distance_from_last_clickout'] = -1
                 features['change_sort_order_distance_from_first_action'] = -1
+
+            sort_change_df = x[x.action_type == 'change of sort order']
+            if sort_change_df.shape[0] > 0:
+                sort_change_step = int(sort_change_df.tail(1).step.values[0])
+                features['change_sort_order_distance_from_last_clickout'] = int(
+                    clk.step.values[0]) - sort_change_step
+                features['change_sort_order_distance_from_first_action'] = sort_change_step - int(
+                    x.head(1).step.values[0])
+            else:
+                features['change_sort_order_distance_from_last_clickout'] = -1
+                features['change_sort_order_distance_from_first_action'] = -1
+
 
             impr = clk['impressions'].values[0].split('|')
             prices = list(map(int, clk['prices'].values[0].split('|')))
@@ -394,22 +408,12 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
         if len(dataset) > 0:
             dataset = dataset.reset_index().drop(['level_2'], axis=1)
 
-            col = dataset['filters_when_clickout']
-            mid = col.apply(lambda x: x.split('|') if isinstance(x, str) else x)
-            mid.fillna(value='', inplace=True)
-            mlb = MultiLabelBinarizer(classes=(list(poss_filters)))
-            oh = mlb.fit_transform(mid)
-            one_hot = pd.DataFrame(oh, columns=mlb.classes_)
-            dataset = dataset.drop(['filters_when_clickout'], axis=1)
-            dataset = pd.concat([dataset, one_hot], axis=1)
 
             # if the algorithm is xgboost, get the onehot of all the features. otherwise leave it categorical
             if algo == 'xgboost':
                 dataset = one_hot_df_column(dataset, 'device', list(poss_devices))
                 dataset = one_hot_df_column(dataset, 'kind_action_reference_appeared_last_time', list(poss_actions))
                 dataset = one_hot_df_column(dataset, 'sort_order_active_when_clickout', list(poss_sort_orders))
-
-            dataset = pd.merge(dataset, one_hot_accomodation, on=['item_id'])
 
             if 'item_id' in dataset.columns.values:
                 dataset = dataset.drop(['item_id'], axis=1)
@@ -466,17 +470,8 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
     del train
     del test
 
-    accomodations_df = data.accomodations_df()
-    one_hot_accomodation = one_hot_of_accomodation(accomodations_df)
-    one_hot_accomodation = one_hot_accomodation.fillna(0)
-
     popularity_df = build_popularity(full)
 
-    poss_filters = []
-    for f in full[~full['current_filters'].isnull()]['current_filters'].values:
-        poss_filters += [x +
-                         ' filter active when clickout' for x in f.split('|')]
-    poss_filters = set(poss_filters + ['no filter when clickout'])
     poss_devices = set(list(full['device'].values))
     poss_sort_orders = set(list(full[full['action_type'] == 'change of sort order'].reference.values))
     poss_sort_orders = [x for x in poss_sort_orders if isinstance(x, str)]
@@ -492,7 +487,7 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
     # build in chunk
     # avoid session truncation, explicitly specify how many session you want in a chunk
     count_chunk = 0
-    session_to_consider_in_chunk = 2000
+    session_to_consider_in_chunk = 20000
     full = full.reset_index(drop=True)
     session_indices = list(
         full[['user_id']].drop_duplicates(keep='last').index.values)
@@ -522,4 +517,4 @@ def build_dataset(mode, cluster='no_cluster', algo='xgboost'):
             p2.start()
 
 if __name__ == "__main__":
-    build_dataset(mode='full', cluster='no_cluster', algo='xgboost')
+    build_dataset(mode='local', cluster='no_cluster', algo='xgboost')

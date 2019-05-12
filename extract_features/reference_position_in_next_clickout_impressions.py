@@ -16,7 +16,7 @@ class ReferencePositionInNextClickoutImpressions(FeatureBase):
     ref_pos is a number between 0-24 or -1
     """
 
-    def __init__(self):
+    def __init__(self, mode, cluster):
         name = 'reference_position_in_next_clickout_impressions'
         columns_to_onehot = [('ref_pos', 'single')]
 
@@ -79,10 +79,14 @@ class ReferencePositionInNextClickoutImpressions(FeatureBase):
 
 
 if __name__ == '__main__':
+    import utils.menu as menu
 
-    c = ReferencePositionInNextClickoutImpressions()
+    mode = menu.mode_selection()
+    cluster = menu.cluster_selection()
+
+    c = ReferencePositionInNextClickoutImpressions(mode, cluster)
 
     print('Creating {} for {} {}'.format(c.name, c.mode, c.cluster))
-    #c.save_feature()
+    c.save_feature()
 
     print(c.read_feature(one_hot=True))

@@ -28,7 +28,8 @@ class BestCheckpointCopier(tf.estimator.Exporter):
   sort_key_fn = None
   sort_reverse = None
 
-  def __init__(self, min_mrr_start, loss, dataset_name, save_path, test_x, test_y, mode, name='best_checkpoints', checkpoints_to_keep=1, score_metric='Loss/total_loss',
+  def __init__(self, min_mrr_start, loss, dataset_name, save_path, test_x, test_y, params,
+               mode, name='best_checkpoints', checkpoints_to_keep=1, score_metric='Loss/total_loss',
                compare_fn=lambda x,y: x.score > y.score, sort_key_fn=lambda x: x.score, sort_reverse=False):
     self.checkpoints = []
     self.checkpoints_to_keep = checkpoints_to_keep
@@ -39,12 +40,16 @@ class BestCheckpointCopier(tf.estimator.Exporter):
     self.sort_reverse = sort_reverse
 
     self.mode = mode
+
+
     self.test_x = test_x
     self.test_y = test_y
     self.save_path = save_path
+
     self.dataset_name = dataset_name
     self.loss = loss
     self.min_mrr = min_mrr_start
+    self.params = params
     super(BestCheckpointCopier, self).__init__()
 
   def _copyCheckpoint(self, checkpoint):
@@ -82,7 +87,6 @@ class BestCheckpointCopier(tf.estimator.Exporter):
     self.checkpoints = self.checkpoints[0:self.checkpoints_to_keep]
 
   def _score(self, eval_result):
-    HERA.send_message(f'mode: {self.mode} TFRANKING mrr is: {eval_result}')
     return float(eval_result)
 
   def _shouldKeep(self, checkpoint):
@@ -103,6 +107,7 @@ class BestCheckpointCopier(tf.estimator.Exporter):
           # set as new threshold the new mrr
           self.min_mrr = eval_result_f
 
+          # predict the test...
           pred = np.array(list(estimator.predict(lambda: batch_inputs(self.test_x, self.test_y, batch_size))))
           np.save(f'{self.save_path}/predictions_{eval_result_f}', pred)
           HERA.send_message(f'EXPORTING A SUB... {eval_result_f} mode:{self.mode}')
@@ -117,7 +122,9 @@ class BestCheckpointCopier(tf.estimator.Exporter):
 
     score = eval_result['metric/mrr']
     checkpoint = Checkpoint(path=checkpoint_path, score=score)
-
+    HERA.send_message(f'mode: {self.mode}\n TFRANKING mrr is: {score}\n dropout:{self.params.dropout_rate}\n'
+                      f'learning_rate:{self.params.learning_rate}\n train_batch_size:{self.params.train_batch_size}\n'
+                      f'hidden_layer_dims:{self.params.hidden_layer_dims}\n loss:{self.params.loss}')
     if self._shouldKeep(checkpoint):
       self._keepCheckpoint(checkpoint)
 

@@ -222,53 +222,43 @@ class SequenceDatasetForClassification(Dataset):
         """
         X_df = X_df.fillna(fillNaN)
 
-        # add day of year column
-        #X_df.timestamp = pd.to_datetime(X_df.timestamp, unit='s')
-        #X_df['dayofyear'] = X_df.timestamp.dt.dayofyear
-
         cols_to_drop_in_X = ['user_id','session_id','timestamp','reference','step','platform','city','current_filters']
-        #cols_to_drop_in_X.extend( ['rp{}'.format(i) for i in range(25)] )
+        #cols_to_drop_in_X = ['timestamp','reference','step','platform','city','current_filters']
 
         # scale the dataframe
-        glo_click_pop_feat = GlobalClickoutPopularity()
-        max_pop = glo_click_pop_feat.read_feature()['glob_clickout_popularity'].max()
-        X_df['glob_clickout_popularity'] = scale.logarithmic(X_df['glob_clickout_popularity'], max_value=max_pop)
-        #X_df['glob_clickout_popularity'] /= max_pop
+        # glo_click_pop_feat = GlobalClickoutPopularity(self.mode, self.cluster)
+        # max_pop = glo_click_pop_feat.read_feature()['glob_clickout_popularity'].max()
+        # X_df['glob_clickout_popularity'] = scale.logarithmic(X_df['glob_clickout_popularity'], max_value=max_pop)
         
-        glob_int_pop_feat = GlobalInteractionsPopularity()
-        glob_int_pop_max = glob_int_pop_feat.read_feature()['glob_inter_popularity'].max()
-        X_df['glob_inter_popularity'] = scale.logarithmic(X_df['glob_inter_popularity'], max_value=glob_int_pop_max)
-        # X_df['glob_inter_popularity'] /= glob_int_pop_max
-        # X_df = X_df.drop('glob_inter_popularity', axis=1)
+        # glob_int_pop_feat = GlobalInteractionsPopularity(self.mode, self.cluster)
+        # glob_int_pop_max = glob_int_pop_feat.read_feature()['glob_inter_popularity'].max()
+        # X_df['glob_inter_popularity'] = scale.logarithmic(X_df['glob_inter_popularity'], max_value=glob_int_pop_max)
 
-        avg_price_feat = AveragePriceInNextClickout()
-        max_avg_price = avg_price_feat.read_feature().avg_price.max()
-        X_df.avg_price /= max_avg_price
-        # X_df = X_df.drop('avg_price', axis=1)
+        # avg_price_feat = AveragePriceInNextClickout(self.mode, self.cluster)
+        # max_avg_price = avg_price_feat.read_feature().avg_price.max()
+        # X_df.avg_price /= max_avg_price
 
-        ref_price_feat = ReferencePriceInNextClickout()
-        max_ref_price = ref_price_feat.read_feature().price.max()
-        X_df.price /= max_ref_price
-        # X_df = X_df.drop('price', axis=1)
+        # ref_price_feat = ReferencePriceInNextClickout(self.mode, self.cluster)
+        # max_ref_price = ref_price_feat.read_feature().price.max()
+        # X_df.price /= max_ref_price
 
-        # X_df = X_df.drop([f'pricepos{i}' for i in range(25)], axis=1)
+        # X_df.frequence /= 120
 
-        X_df.frequence /= 120
-        # if partial:
-        #     X_df.dayofyear /= 365
-        #     X_df.impression_price /= 3000
-        # else:
-        #     scaler = MinMaxScaler()
-        #     X_df.loc[:,~X_df.columns.isin(cols_to_drop_in_X)] = scaler.fit_transform(
-        #         X_df.drop(cols_to_drop_in_X, axis=1).values)
-
-        return sess2vec.sessions2tensor(X_df, drop_cols=cols_to_drop_in_X, return_index=return_indices)
+        X_df = X_df.drop(cols_to_drop_in_X, axis=1)
+        if return_indices:
+            target = np.arange(-1, len(X_df), self.rows_per_sample)[1:]
+            indices = X_df.index.values[target]
+            return X_df.values.reshape((-1, self.rows_per_sample, len(X_df.columns))), indices
+        else:
+            return X_df.values.reshape((-1, self.rows_per_sample, len(X_df.columns)))
+        #return sess2vec.sessions2tensor(X_df, drop_cols=cols_to_drop_in_X, return_index=return_indices)
 
     def _preprocess_y_df(self, Y_df, fillNaN=0):
         """ Preprocess the loaded data (Y) """
         Y_df = Y_df.fillna(fillNaN)
         cols_to_drop_in_Y = ['session_id','user_id','timestamp','step']
-        return sess2vec.sessions2tensor(Y_df, drop_cols=cols_to_drop_in_Y)
+        #return sess2vec.sessions2tensor(Y_df, drop_cols=cols_to_drop_in_Y)
+        return Y_df.drop(cols_to_drop_in_Y, axis=1).values
 
     # def load_train(self):
     #     train_df = pd.read_csv(self.train_path, index_col=0)
@@ -316,9 +306,9 @@ class SequenceDatasetForClassification(Dataset):
             # weight only the last interaction (clickout item) by the class_weight
             weights = np.zeros(Xchunk_df.shape[:2])
             weights[:,-1] = Ychunk_df[:,-1,:] @ self.class_weights
-            return Xchunk_df, Ychunk_df[:,0,:], weights
+            return Xchunk_df, Ychunk_df, weights
         else:
-            return Xchunk_df, Ychunk_df[:,0,:]
+            return Xchunk_df, Ychunk_df
 
     def prefit_x(self, Xchunk_df, index):
         """ Preprocess a chunk of the sequence dataset """
@@ -366,36 +356,38 @@ class SequenceDatasetForBinaryClassification(SequenceDatasetForClassification):
         X_df = X_df.fillna(fillNaN)
 
         cols_to_drop_in_X = ['user_id','session_id','timestamp','reference','step','platform','city','current_filters']
+        #cols_to_drop_in_X = ['timestamp','reference','step','platform','city','current_filters']
 
         # scale the dataframe
-        glo_click_pop_feat = GlobalClickoutPopularity()
-        max_pop = glo_click_pop_feat.read_feature()['glob_clickout_popularity'].max()
-        X_df['glob_clickout_popularity'] = scale.logarithmic(X_df['glob_clickout_popularity'], max_value=max_pop)
+        # glo_click_pop_feat = GlobalClickoutPopularity(self.mode, self.cluster)
+        # max_pop = glo_click_pop_feat.read_feature()['glob_clickout_popularity'].max()
+        # X_df['glob_clickout_popularity'] = scale.logarithmic(X_df['glob_clickout_popularity'], max_value=max_pop)
         
-        glob_int_pop_feat = GlobalInteractionsPopularity()
-        glob_int_pop_max = glob_int_pop_feat.read_feature()['glob_inter_popularity'].max()
-        X_df['glob_inter_popularity'] = scale.logarithmic(X_df['glob_inter_popularity'], max_value=glob_int_pop_max)
+        # glob_int_pop_feat = GlobalInteractionsPopularity(self.mode, self.cluster)
+        # glob_int_pop_max = glob_int_pop_feat.read_feature()['glob_inter_popularity'].max()
+        # X_df['glob_inter_popularity'] = scale.logarithmic(X_df['glob_inter_popularity'], max_value=glob_int_pop_max)
 
-        avg_price_feat = AveragePriceInNextClickout()
-        max_avg_price = avg_price_feat.read_feature().avg_price.max()
-        X_df.avg_price /= max_avg_price
+        # avg_price_feat = AveragePriceInNextClickout(self.mode, self.cluster)
+        # max_avg_price = avg_price_feat.read_feature().avg_price.max()
+        # X_df.avg_price /= max_avg_price
 
-        ref_price_feat = ReferencePriceInNextClickout()
-        max_ref_price = ref_price_feat.read_feature().price.max()
-        X_df.price /= max_ref_price
+        # ref_price_feat = ReferencePriceInNextClickout(self.mode, self.cluster)
+        # max_ref_price = ref_price_feat.read_feature().price.max()
+        # X_df.price /= max_ref_price
 
-        X_df.frequence /= 120
+        # X_df.frequence /= 120
 
-        return sess2vec.sessions2tensor(X_df, drop_cols=cols_to_drop_in_X, return_index=return_indices)
+        X_df = X_df.drop(cols_to_drop_in_X, axis=1)
+        if return_indices:
+            target = np.arange(-1, len(X_df), self.rows_per_sample)[1:]
+            indices = X_df.index.values[target]
+            return X_df.values.reshape((-1, self.rows_per_sample, len(X_df.columns))), indices
+        else:
+            return X_df.values.reshape((-1, self.rows_per_sample, len(X_df.columns)))
+        #return sess2vec.sessions2tensor(X_df, drop_cols=cols_to_drop_in_X, return_index=return_indices)
 
-    def _preprocess_y_df(self, Y_df, fillNaN=0):
-        """ Preprocess the loaded data (Y) """
-        Y_df = Y_df.fillna(fillNaN)
-        cols_to_drop_in_Y = ['session_id','user_id','timestamp','step']
-        Y_df['neg_class'] = np.ones_like(Y_df.ref_class) - Y_df['ref_class']
-        return Y_df.drop(cols_to_drop_in_Y, axis=1).values
     
-    def prefix_xy(self, Xchunk_df, Ychunk_df, index):
+    def prefit_xy(self, Xchunk_df, Ychunk_df, index):
         """ Preprocess a chunk of the sequence dataset """
         return Xchunk_df, Ychunk_df
 

@@ -58,6 +58,6 @@ if __name__ == '__main__':
     c = GlobalInteractionsPopularity(mode, cluster)
     
     print('Creating {} for {} {}'.format(c.name, c.mode, c.cluster))
-    #c.save_feature()
+    c.save_feature()
     
     print(c.read_feature())

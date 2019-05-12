@@ -5,6 +5,8 @@ sys.path.append(os.getcwd())
 import data
 import utils.menu as menu
 import numpy as np
+import utils.df as df_utils
+import preprocess_utils.sessions_to_predict as sess2predict
 from utils.check_folder import check_folder
 import utils.datasetconfig as datasetconfig
 
@@ -23,7 +25,7 @@ import preprocess_utils.session2vec as sess2vec
 
 
 def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_item_features, add_dummy_actions=False,
-                                    features=[], only_test=False):
+                                    features=[], only_test=False, resample=False, one_target_per_session=True):
     """
     pad_sessions_length (int): final length of sessions after padding/truncating
     add_item_features (bool): whether to add the accomodations features as additional columns
@@ -32,11 +34,12 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_it
     only_test (bool): whether to create only the test dataset (useful to make predictions with a pre-trained model)
     """
     
-    path = f'dataset/preprocessed/{cluster}/{mode}/dataset_classification'
+    path = f'dataset/preprocessed/{cluster}/{mode}/dataset_classification_p{pad_sessions_length}'
     check_folder(path)
 
     def create_ds_class(df, path, for_train, add_dummy_actions=add_dummy_actions, pad_sessions_length=pad_sessions_length, 
-                        add_item_features=add_item_features, new_row_index=99000000):
+                        add_item_features=add_item_features, resample=resample, one_target_per_session=one_target_per_session,
+                        new_row_index=99000000):
         """ Create X and Y dataframes if for_train, else only X dataframe.
             Return the number of rows of the new dataframe and the final index
         """
@@ -92,17 +95,15 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_it
         # remove the impressions column
         df = df.drop('impressions', axis=1)
 
+        if for_train and resample:
+            # resample the dataset to balance the classes
+            resample_perc = 0.5 / df.ref_class.mean()
+            df = df_utils.resample_sessions(df, by=resample_perc, when=df_utils.ref_class_is_1)
+
         # join the accomodations one-hot features
         if add_item_features:
             print('Adding accomodations features...')
-            # set the non-numeric references to 0 and cast to a number
-            df.loc[df.reference.str.isnumeric() != True, 'reference'] = 0
-            df = df.astype({'reference':'int'})
-            df = df.merge(data.accomodations_one_hot(), how='left', left_on='reference', right_index=True)
-            features_cols = data.accomodations_one_hot().columns
-            df.loc[:, features_cols] = df.loc[:, features_cols].fillna(0)
-            # remove the item features for the last clickout of each session: TO-DO clickout may be not the last item
-            df.iloc[np.arange(-1,len(df),pad_sessions_length)[1:], features_cols] = 0
+            df = sess2vec.merge_reference_features(df, pad_sessions_length)
 
         X_LEN = df.shape[0]
 
@@ -117,6 +118,10 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_it
             Y_COLUMNS = ['user_id','session_id','timestamp','step'] + ref_classes
             df = df[Y_COLUMNS]
 
+            # take only the target rows from y
+            if one_target_per_session:
+                df = df.iloc[np.arange(-1,len(df),pad_sessions_length)[1:]]
+
             # save the Y dataframe
             y_path = os.path.join(path, 'Y_train.csv')
             print('Saving Y_train...', end=' ', flush=True)
@@ -128,14 +133,19 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_it
     final_new_index = 99000000
     TRAIN_LEN = 0
     
+    # remove the sessions to be not predicted and move into the train
+    print('Removing sessions in test not to be predicted...')
+    test_df = data.test_df(mode, cluster)
+    test_df, sessions_not_to_predict = sess2predict.find(test_df)
+
     if not only_test:
         ## ======== TRAIN ======== ##
         train_df = data.train_df(mode, cluster)
+        train_df = train_df.append(sessions_not_to_predict)
         TRAIN_LEN, final_new_index = create_ds_class(train_df, path, for_train=True, new_row_index=final_new_index)
         del train_df
 
     ## ======== TEST ======== ##
-    test_df = data.test_df(mode, cluster)
     TEST_LEN, _ = create_ds_class(test_df, path, for_train=False, new_row_index=final_new_index)
     del test_df
 
@@ -179,14 +189,13 @@ if __name__ == "__main__":
     features = []
     # create the features to join
     for f in features_to_join:
-        feat = f()
+        feat = f(mode, c.name)
         feat.save_feature()
         features.append(feat)
-        print()
 
     # create the tensors dataset
     print('Creating the dataset ({})...'.format(mode))
-    create_dataset_for_classification(mode, c.name, pad_sessions_length=sess_length,
+    create_dataset_for_classification(mode, c.name, pad_sessions_length=sess_length, resample=False,
                                         add_item_features=False, features=features, only_test=only_test)
 
 

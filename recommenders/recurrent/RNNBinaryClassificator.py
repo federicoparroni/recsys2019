@@ -20,13 +20,13 @@ class RNNBinaryClassificator(RNNClassificationRecommender):
     """
     
     def __init__(self, dataset, input_shape, cell_type, num_recurrent_layers, num_recurrent_units, num_dense_layers,
-                use_generator=True, validation_split=0.15, class_weights=None, metrics=['accuracy'],
-                optimizer='adam', checkpoints_path=None, tensorboard_path=None):
+                use_generator=False, validation_split=0.15, class_weights=None, metrics=['accuracy'],
+                optimizer='adam', batch_size=64, checkpoints_path=None, tensorboard_path=None):
         
         super().__init__(dataset=dataset, input_shape=input_shape, cell_type=cell_type, num_recurrent_layers=num_recurrent_layers,
-                        num_recurrent_units=num_recurrent_units, num_dense_layers=num_dense_layers, output_size=2,
+                        num_recurrent_units=num_recurrent_units, num_dense_layers=num_dense_layers, output_size=1,
                         use_generator=use_generator, validation_split=validation_split, metrics=metrics,
-                        loss='categorical_crossentropy', optimizer=optimizer, class_weights=class_weights,
+                        loss='binary_crossentropy', optimizer=optimizer, class_weights=class_weights, batch_size=batch_size,
                         checkpoints_path=checkpoints_path, tensorboard_path=tensorboard_path)
         
         self.name += '_bin'
@@ -41,9 +41,8 @@ class RNNBinaryClassificator(RNNClassificationRecommender):
         # predict the references
         predictions = self.model.predict(X)
         
-        # flatten the predictions and the indices to be 2-dimensional
-        predictions = predictions.reshape((-1, predictions.shape[-1]))
-        indices = indices.flatten()
+        # take only the last index for each session (target row) and flatten
+        indices = indices[:,-1].flatten()
         
         # take only the target predictions
         pred_df = pd.DataFrame(predictions)

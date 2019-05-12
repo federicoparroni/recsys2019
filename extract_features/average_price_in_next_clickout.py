@@ -17,7 +17,7 @@ class AveragePriceInNextClickout(FeatureBase):
     avg_price is a positive number
     """
 
-    def __init__(self):
+    def __init__(self, mode, cluster):
         name = 'average_price_in_next_clickout'
         columns_to_onehot = []
 
@@ -68,10 +68,14 @@ class AveragePriceInNextClickout(FeatureBase):
 
 
 if __name__ == '__main__':
+    import utils.menu as menu
 
-    c = AveragePriceInNextClickout()
+    mode = menu.mode_selection()
+    cluster = menu.cluster_selection()
+
+    c = AveragePriceInNextClickout(mode, cluster)
 
     print('Creating {} for {} {}'.format(c.name, c.mode, c.cluster))
-    #c.save_feature()
+    c.save_feature()
 
     print(c.read_feature())
