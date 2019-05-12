@@ -106,6 +106,22 @@ def add_accomodations_features(df, path_to_save, logic='skip', row_indices=[]):
     # return the features columns and the one-hot attributes
     #return df
 
+def merge_reference_features(df, pad_sessions_length):
+    res_df = df.copy()
+    # set the non-numeric references to 0 and cast to int
+    res_df.loc[res_df.reference.str.isnumeric() != True, 'reference'] = 0
+    res_df = res_df.astype({'reference':'int'})
+    # join
+    res_df = res_df.merge(data.accomodations_one_hot(), how='left', left_on='reference', right_index=True)
+    # set to 0 the features of the non-joined rows
+    features_cols = data.accomodations_one_hot().columns
+    col_start = list(res_df.columns).index(features_cols[0])
+    col_end = list(res_df.columns).index(features_cols[-1])
+    res_df.loc[:, features_cols] = res_df.loc[:, features_cols].fillna(0)
+    # remove the item features for the last clickout of each session: TO-DO clickout may be not the last item
+    res_df.iloc[np.arange(-1,len(res_df),pad_sessions_length)[1:], col_start:col_end] = 0
+    return res_df
+
 def add_reference_labels(df, actiontype_col='clickout item', action_equals=1, classes_prefix='ref_',
                             num_classes=25, only_clickouts=False):
     """ Add the reference index in the impressions list as a new column for each clickout in the dataframe.

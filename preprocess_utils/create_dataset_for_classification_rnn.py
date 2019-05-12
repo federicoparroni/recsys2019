@@ -103,14 +103,7 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_it
         # join the accomodations one-hot features
         if add_item_features:
             print('Adding accomodations features...')
-            # set the non-numeric references to 0 and cast to a number
-            df.loc[df.reference.str.isnumeric() != True, 'reference'] = 0
-            df = df.astype({'reference':'int'})
-            df = df.merge(data.accomodations_one_hot(), how='left', left_on='reference', right_index=True)
-            features_cols = data.accomodations_one_hot().columns
-            df.loc[:, features_cols] = df.loc[:, features_cols].fillna(0)
-            # remove the item features for the last clickout of each session: TO-DO clickout may be not the last item
-            df.iloc[np.arange(-1,len(df),pad_sessions_length)[1:], features_cols] = 0
+            df = sess2vec.merge_reference_features(df, pad_sessions_length)
 
         X_LEN = df.shape[0]
 
