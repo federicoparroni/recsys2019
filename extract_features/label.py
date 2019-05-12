@@ -49,10 +49,10 @@ class ImpressionLabel(FeatureBase):
             indices = []
             cur_ses = ''
             cur_user = ''
-            for idx, row in tqdm(
-                    df[df.action_type == 'clickout item'][['user_id', 'session_id', 'action_type']][::-1].iterrows()):
-                ruid = row.user_id
-                rsid = row.session_id
+            temp_df = df[df.action_type == 'clickout item'][['user_id', 'session_id', 'action_type']]
+            for idx in tqdm(temp_df.index.values[::-1]):
+                ruid = temp_df.at[idx, 'user_id']
+                rsid = temp_df.at[idx, 'session_id']
                 if (ruid != cur_user or rsid != cur_ses):
                     indices.append(idx)
                     cur_user = ruid
