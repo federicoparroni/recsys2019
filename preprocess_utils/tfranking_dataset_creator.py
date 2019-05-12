@@ -89,6 +89,10 @@ def merge_features(mode, cluster, features_array):
     # construct the validation train and test df_base
     print('construct test and vali df')
     validation_df = click_df.loc[validation_idxs]
+
+    print('validation_df after filter with target_indeces')
+    print(len(validation_df))
+
     test_df = click_df.loc[test_idxs]
 
     all_idxs = click_df.index.values
@@ -103,6 +107,10 @@ def merge_features(mode, cluster, features_array):
     print('expand the impression')
     train_df = expand_impressions(train_df)
     validation_df = expand_impressions(validation_df)
+
+    print('after expand')
+    print(len(validation_df['index'].unique()))
+
     test_df = expand_impressions(test_df)
 
     # do the join
@@ -121,9 +129,13 @@ def merge_features(mode, cluster, features_array):
     train_df.sort_values(['index', 'step'], inplace=True)
     test_df.sort_values(['index', 'step'], inplace=True)
     validation_df.sort_values(['index', 'step'], inplace=True)
+
+    print('after join')
+    print(len(validation_df['index'].unique()))
     return train_df, validation_df, test_df
 
 def dump_svmlight(df, save_path):
+    print(len(df['index'].unique()))
     qid = df['index'].values
     X, Y = df.drop(['session_id', 'user_id', 'label', 'item_id', 'index', 'step'], axis=1), df['label']
     del df
@@ -143,20 +155,24 @@ def create_dataset(mode, cluster, features_array, dataset_name):
     cf.check_folder(_SAVE_BASE_PATH)
     train_df, vali_df, test_df = merge_features(mode, cluster, features_array)
 
-    dump_svmlight(train_df, f'{_SAVE_BASE_PATH}/train.txt')
+    #dump_svmlight(train_df, f'{_SAVE_BASE_PATH}/train.txt')
     dump_svmlight(vali_df, f'{_SAVE_BASE_PATH}/vali.txt')
-    dump_svmlight(test_df, f'{_SAVE_BASE_PATH}/test.txt')
+    #dump_svmlight(test_df, f'{_SAVE_BASE_PATH}/test.txt')
 
     print('PROCEDURE ENDED CORRECTLY')
 
 
 if __name__ == '__main__':
+    features_array=[ImpressionLabel, ImpressionPriceInfoSession]
+
+    """
     features_array = [ActionsInvolvingImpressionSession, ImpressionLabel, ImpressionPriceInfoSession,
                       TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
                       ImpressionPositionSession,LastInteractionInvolvingImpression,
                       TimesImpressionAppearedInClickoutsSession, MeanPriceClickout, SessionLength,
                       TimeFromLastActionBeforeClk, PricePositionInfoInteractedReferences,
                       SessionDevice]
+    """
     print('inser mode:')
     mode = input()
     cluster = 'no_cluster'
