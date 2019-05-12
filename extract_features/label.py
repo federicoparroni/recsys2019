@@ -2,6 +2,7 @@ from extract_features.feature_base import FeatureBase
 import data
 import pandas as pd
 from tqdm.auto import tqdm
+import numpy as np
 tqdm.pandas()
 
 def _reinsert_clickout(df):
@@ -43,17 +44,49 @@ class ImpressionLabel(FeatureBase):
                     else:
                         r.append((i,0))
             return r
+
+        def find_last_clickout_indices(df):
+            indices = []
+            cur_ses = ''
+            cur_user = ''
+            temp_df = df[df.action_type == 'clickout item'][['user_id', 'session_id', 'action_type']]
+            for idx in tqdm(temp_df.index.values[::-1]):
+                ruid = temp_df.at[idx, 'user_id']
+                rsid = temp_df.at[idx, 'session_id']
+                if (ruid != cur_user or rsid != cur_ses):
+                    indices.append(idx)
+                    cur_user = ruid
+                    cur_ses = rsid
+            return indices[::-1]
+
+        def expand_impressions(df):
+            res_df = df.copy()
+            res_df.impressions = res_df.impressions.str.split('|')
+            res_df = res_df.reset_index()
+
+            res_df = pd.DataFrame({
+                col: np.repeat(res_df[col].values, res_df.impressions.str.len())
+                for col in res_df.columns.drop('impressions')}
+            ).assign(**{'impressions': np.concatenate(res_df.impressions.values)})[res_df.columns]
+
+            res_df = res_df.rename(columns={'impressions': 'item_id'})
+            res_df = res_df.astype({'item_id': 'int'})
+
+            return res_df
+
+
         train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)
         if self.mode in ['small', 'local']:
             print('reinserting clickout')
             test = test.groupby(['session_id', 'user_id']).progress_apply(_reinsert_clickout)
         df = pd.concat([train, test])
-        s = df.groupby(['user_id', 'session_id']).progress_apply(func)
-        s = s.apply(pd.Series).reset_index().melt(id_vars = ['user_id', 'session_id'], value_name = 'tuple').sort_values(by=['user_id', 'session_id']).dropna()
-        #create dataframe with : user_id, session_id, item_id, label (1 if it's the cliked impression, 0 otherwise)
-        df=s[['user_id', 'session_id']]
-        df[['item_id', 'label']] = pd.DataFrame(s['tuple'].tolist(), index=s.index)
+        idxs_click = find_last_clickout_indices(df)
+        df = df.loc[idxs_click][['user_id', 'session_id', 'reference', 'impressions']]
+        df = expand_impressions(df)
+        df['label'] = (df['item_id'] == df['reference'].astype('float'))*1
+        df.drop(['index', 'reference'], axis=1, inplace=True)
+
         print(df)
         return df
 
