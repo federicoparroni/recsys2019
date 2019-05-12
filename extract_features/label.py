@@ -45,6 +45,7 @@ class ImpressionLabel(FeatureBase):
                         r.append((i,0))
             return r
 
+
         def find_last_clickout_indices(df):
             indices = []
             cur_ses = ''
@@ -86,6 +87,10 @@ class ImpressionLabel(FeatureBase):
         df = expand_impressions(df)
         df['label'] = (df['item_id'] == df['reference'].astype('float'))*1
         df.drop(['index', 'reference'], axis=1, inplace=True)
+        print('len of df')
+        print(len(df))
+        print('len of groups')
+        print(len(df.groupby(['user_id', 'session_id', 'item_id'])))
 
         print(df)
         return df

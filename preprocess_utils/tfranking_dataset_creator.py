@@ -75,12 +75,8 @@ def merge_features(mode, cluster, features_array):
     click_df = full_df.loc[last_click_idxs].copy()
 
     print('retrieve vali_idxs')
-    if mode == 'full':
-        # We will use as validation for the full the test of the local
-        validation_idxs = data.target_indices('local', cluster=cluster)
-    else:
-        len_idxs = int(len(click_df.index.values)*0.75)
-        validation_idxs = click_df.index.values[len_idxs:]
+    len_idxs = int(len(click_df.index.values)*0.7)
+    validation_idxs = click_df.index.values[len_idxs:]
 
     # retrieve the test idxs
     print('retrieve test_idxs')
@@ -118,7 +114,7 @@ def merge_features(mode, cluster, features_array):
     print(f'train_shape: {train_df.shape}\n vali_shape: {validation_df.shape}\n test_shape: {test_df.shape}')
     for f in features_array:
         feature = f(mode=mode, cluster=cluster).read_feature(one_hot=True)
-
+        print(f'len of feature:{len(feature)}')
         train_df = train_df.merge(feature)
         validation_df = validation_df.merge(feature)
         test_df = test_df.merge(feature)
@@ -155,24 +151,21 @@ def create_dataset(mode, cluster, features_array, dataset_name):
     cf.check_folder(_SAVE_BASE_PATH)
     train_df, vali_df, test_df = merge_features(mode, cluster, features_array)
 
-    #dump_svmlight(train_df, f'{_SAVE_BASE_PATH}/train.txt')
+    dump_svmlight(train_df, f'{_SAVE_BASE_PATH}/train.txt')
     dump_svmlight(vali_df, f'{_SAVE_BASE_PATH}/vali.txt')
-    #dump_svmlight(test_df, f'{_SAVE_BASE_PATH}/test.txt')
+    dump_svmlight(test_df, f'{_SAVE_BASE_PATH}/test.txt')
 
     print('PROCEDURE ENDED CORRECTLY')
 
 
 if __name__ == '__main__':
-    features_array=[ImpressionLabel, ImpressionPriceInfoSession]
-
-    """
     features_array = [ActionsInvolvingImpressionSession, ImpressionLabel, ImpressionPriceInfoSession,
                       TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
                       ImpressionPositionSession,LastInteractionInvolvingImpression,
                       TimesImpressionAppearedInClickoutsSession, MeanPriceClickout, SessionLength,
                       TimeFromLastActionBeforeClk, PricePositionInfoInteractedReferences,
                       SessionDevice]
-    """
+
     print('inser mode:')
     mode = input()
     cluster = 'no_cluster'

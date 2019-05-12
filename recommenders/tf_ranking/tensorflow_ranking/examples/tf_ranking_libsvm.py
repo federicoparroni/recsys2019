@@ -292,9 +292,6 @@ def train_and_eval():
       #save_path=f'dataset/preprocessed/tf_ranking/{_CLUSTER}/full/{_DATASET_NAME}/predictions',
       test_x=features_test,
       test_y=labels_test,
-      vali_x=features_vali,
-      vali_y=labels_vali,
-      save_path_vali = f'{FLAGS.save_path_vali}',
       mode = FLAGS.mode,
       loss = FLAGS.loss,
       min_mrr_start=FLAGS.min_mrr_start,
@@ -303,7 +300,7 @@ def train_and_eval():
 
 
   ranking_head = tfr.head.create_ranking_head(
-      loss_fn=tfr.losses.make_loss_fn(FLAGS.loss, lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight()),
+      loss_fn=tfr.losses.make_loss_fn(FLAGS.loss, lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight(smooth_fraction=0.5)),
       eval_metric_fns=get_eval_metric_fns(),
       train_op_fn=_train_op_fn)
   #lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight()
@@ -370,9 +367,6 @@ if __name__ == "__main__":
 
     _BASE_PATH = f'dataset/preprocessed/tf_ranking/{_CLUSTER}/{_MODE}/{_DATASET_NAME}'
 
-    _SAVE_PATH_VALI = f'dataset/preprocessed/tf_ranking/{_CLUSTER}/local/{_DATASET_NAME}'
-    cf.check_folder(_SAVE_PATH_VALI)
-
     _TRAIN_PATH = f'{_BASE_PATH}/train.txt'
     _TEST_PATH = f'{_BASE_PATH}/test.txt'
     #_TEST_PATH = f'dataset/preprocessed/tf_ranking/{_CLUSTER}/full/{_DATASET_NAME}/test.txt'
@@ -389,7 +383,7 @@ if __name__ == "__main__":
     flags.DEFINE_string("output_dir", _OUTPUT_DIR, "Output directory for models.")
     flags.DEFINE_string("mode", _MODE, "mode of the models.")
     flags.DEFINE_string("dataset_name", _DATASET_NAME, "name of the dataset")
-    flags.DEFINE_string("save_path_vali", _SAVE_PATH_VALI, "name of the dataset")
+
 
     # let the user choose the params
     print('insert the min_MRR from which export the sub')
