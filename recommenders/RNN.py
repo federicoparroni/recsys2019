@@ -88,11 +88,6 @@ class RecurrentRecommender(RecommenderBase):
         if use_generator:
             # generator
             self.test_gen = dataset.get_test_generator()
-        else:
-            # full dataset
-            self.X, self.Y = dataset.load_Xtrain(), dataset.load_Ytrain()
-            self.X, self.Y = shuffle(self.X, self.Y)
-            input_shape = self.X.shape
         
         # build the model
         self.build_model(input_shape=input_shape, cell_type=cell_type, num_recurrent_layers=num_recurrent_layers,
@@ -106,10 +101,6 @@ class RecurrentRecommender(RecommenderBase):
 
         print(self.model.summary())
         print()
-        if self.use_generator:
-            print('Train with batches of shape X: {}'.format(input_shape))
-        else:
-            print('Train with a dataset of shape X: {} - Y: {}'.format(self.X.shape, self.Y.shape))
     
 
     def build_model(self, input_shape, cell_type, num_recurrent_layers, num_recurrent_units, num_dense_layers,
@@ -167,10 +158,13 @@ class RecurrentRecommender(RecommenderBase):
         if self.use_generator:
             self.train_gen, self.val_gen = self.dataset.get_train_validation_generator(self.validation_split) #, weights)
             assert self.train_gen.__getitem__(0)[0].shape[1:] == self.input_shape
-        
+
             self.history = self.model.fit_generator(self.train_gen, epochs=epochs, validation_data=self.val_gen,
                                                     callbacks=callbacks, max_queue_size=3, class_weight=self.class_weights)
         else:
+            self.X, self.Y = self.dataset.load_Xtrain(), self.dataset.load_Ytrain()
+            self.X, self.Y = shuffle(self.X, self.Y)
+            
             self.history = self.model.fit(self.X, self.Y, epochs=epochs, batch_size=self.batch_size,
                                             validation_split=self.validation_split,
                                             callbacks=callbacks, class_weight=self.class_weights)
