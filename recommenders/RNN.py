@@ -44,7 +44,7 @@ class RecurrentRecommender(RecommenderBase):
     def __init__(self, dataset, input_shape, cell_type, num_recurrent_layers, num_recurrent_units, num_dense_layers, output_size,
                 use_generator=False, validation_split=0.15, use_batch_normalization=False,
                 loss='mean_squared_error', optimizer='rmsprop', class_weights=None, #, weight_samples=False,
-                metrics=['accuracy', mrr], checkpoints_path=None, tensorboard_path=None):
+                metrics=['accuracy', mrr], batch_size=64, checkpoints_path=None, tensorboard_path=None):
         """ Create the recurrent model
         dataset (Dataset):          dataset to use
         input_shape (int):          shape of the input samples (ex: (6,10) for session with length 6 and 10 features)
@@ -73,10 +73,11 @@ class RecurrentRecommender(RecommenderBase):
         self.use_weights = self.class_weights is not None
 
         assert len(input_shape) == 2
-        self.input_shape = (input_shape[0], input_shape[1])
+        self.input_shape = input_shape
 
         self.metrics = metrics
         self.use_generator = use_generator
+        self.batch_size = batch_size
         self.checkpoints_path = checkpoints_path
         self.tensorboard_path = tensorboard_path
 
@@ -94,6 +95,25 @@ class RecurrentRecommender(RecommenderBase):
             input_shape = self.X.shape
         
         # build the model
+        self.build_model(input_shape=input_shape, cell_type=cell_type, num_recurrent_layers=num_recurrent_layers,
+                            num_recurrent_units=num_recurrent_units, num_dense_layers=num_dense_layers,
+                            output_size=output_size, use_batch_normalization=use_batch_normalization)
+        
+        #if self.weight_samples:
+        #    self.model.compile(sample_weight_mode='temporal', loss=loss, optimizer=optimizer, metrics=self.metrics)
+        #else:
+        self.model.compile(loss=loss, optimizer=optimizer, metrics=self.metrics)
+
+        print(self.model.summary())
+        print()
+        if self.use_generator:
+            print('Train with batches of shape X: {}'.format(input_shape))
+        else:
+            print('Train with a dataset of shape X: {} - Y: {}'.format(self.X.shape, self.Y.shape))
+    
+
+    def build_model(self, input_shape, cell_type, num_recurrent_layers, num_recurrent_units, num_dense_layers,
+                    output_size, use_batch_normalization):
         CELL = LSTM if self.name == 'LSTM' else GRU
         self.model = Sequential()
 
@@ -118,6 +138,7 @@ class RecurrentRecommender(RecommenderBase):
                 else:
                     self.model.add( Dense(int(n), activation='relu') )
                 self.model.add( Dropout(rate=0.1) )
+        
         # add the last dense layer
         if use_batch_normalization:
             self.model.add( Dense(output_size, activation=None) )
@@ -127,18 +148,6 @@ class RecurrentRecommender(RecommenderBase):
             self.model.add( Dense(output_size, activation='softmax') )
         self.model.add( Dropout(rate=0.1) )
         
-        #if self.weight_samples:
-        #    self.model.compile(sample_weight_mode='temporal', loss=loss, optimizer=optimizer, metrics=self.metrics)
-        #else:
-        self.model.compile(loss=loss, optimizer=optimizer, metrics=self.metrics)
-
-        print(self.model.summary())
-        print()
-        if self.use_generator:
-            print('Train with batches of shape X: {}'.format(input_shape))
-        else:
-            print('Train with a dataset of shape X: {} - Y: {}'.format(self.X.shape, self.Y.shape))
-    
 
     def fit(self, epochs, early_stopping_patience=10, early_stopping_on='val_loss', mode='min'):
         #weights = self.class_weights if self.weight_samples else []
@@ -162,7 +171,7 @@ class RecurrentRecommender(RecommenderBase):
             self.history = self.model.fit_generator(self.train_gen, epochs=epochs, validation_data=self.val_gen,
                                                     callbacks=callbacks, max_queue_size=3, class_weight=self.class_weights)
         else:
-            self.history = self.model.fit(self.X, self.Y, epochs=epochs, batch_size=32,
+            self.history = self.model.fit(self.X, self.Y, epochs=epochs, batch_size=self.batch_size,
                                             validation_split=self.validation_split,
                                             callbacks=callbacks, class_weight=self.class_weights)
         
