@@ -55,15 +55,12 @@ class RandomValidator:
             if self.automatic_export != None:
                 self.automatic_export.check_if_export(score, params_dict)
             
-            del model
-            gc.collect()
             self.writer.write(
                 'params: {}\n MRR is: {}\n\n'.format(params_dict, score))
 
             # sending a message on the telegram channel
             HERA.send_message(
-                'params: {}\n MRR is: {}\n\n'.format(params_dict, score))
-
+                'name: {} params: {}\n MRR is: {}\n\n'.format(model.name, params_dict, score))
 
 if __name__ == "__main__":
     m = XGBoostWrapper(mode='small')
