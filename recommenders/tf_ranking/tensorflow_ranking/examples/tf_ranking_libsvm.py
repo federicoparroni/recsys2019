@@ -300,7 +300,7 @@ def train_and_eval():
 
 
   ranking_head = tfr.head.create_ranking_head(
-      loss_fn=tfr.losses.make_loss_fn(FLAGS.loss, lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight()),
+      loss_fn=tfr.losses.make_loss_fn(FLAGS.loss, lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight(smooth_fraction=0.5)),
       eval_metric_fns=get_eval_metric_fns(),
       train_op_fn=_train_op_fn)
   #lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight()
