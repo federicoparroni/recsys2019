@@ -100,6 +100,8 @@ if __name__ == "__main__":
     wgt_sum = sum(weights)
     weights = weights/wgt_sum
 
+    weights = dict([(i,w) for i,w in enumerate(weights)])
+
     mode = menu.mode_selection()
     cell_type = menu.single_choice('Choose a network architecture:', ['LSTM', 'GRU', 'default architecture'], [lambda: 'LSTM', lambda: 'GRU', lambda: 'auto'])
     print()
