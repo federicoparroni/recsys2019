@@ -64,6 +64,8 @@ You can use TensorBoard to display the training results stored in $OUTPUT_DIR.
 from absl import flags
 
 import utils.check_folder as cf
+import utils.telegram_bot as HERA
+from recommenders.tf_ranking import TensorflowRankig
 import numpy as np
 import six
 import tensorflow as tf
@@ -264,12 +266,6 @@ def train_and_eval():
   vali_input_fn, vali_hook = get_batches(features_vali, labels_vali,
                                                 FLAGS.train_batch_size)
 
-  features_test, labels_test = load_libsvm_data(FLAGS.test_path,
-                                                FLAGS.list_size)
-  test_input_fn, test_hook= get_batches(features_test, labels_test,
-                                                FLAGS.train_batch_size)
-
-
   def _train_op_fn(loss):
     """Defines train op used in ranking head."""
     return tf.contrib.layers.optimize_loss(
@@ -290,10 +286,10 @@ def train_and_eval():
       dataset_name=FLAGS.dataset_name,
       save_path=f'{FLAGS.save_path}',
       #save_path=f'dataset/preprocessed/tf_ranking/{_CLUSTER}/full/{_DATASET_NAME}/predictions',
-      test_x=features_test,
-      test_y=labels_test,
-      mode = FLAGS.mode,
-      loss = FLAGS.loss,
+      test_x=features_vali,
+      test_y=labels_vali,
+      mode=FLAGS.mode,
+      loss=FLAGS.loss,
       min_mrr_start=FLAGS.min_mrr_start,
       params=FLAGS
       )
@@ -330,47 +326,71 @@ def train_and_eval():
   # Train and validate
   tf.estimator.train_and_evaluate(estimator, train_spec, vali_spec)
 
-  """
-  if FLAGS.mode != 'full':
-      # Evaluate on the test data.
-      print('\n\n\nevaluation on test')
-      estimator.evaluate(input_fn=lambda: batch_inputs(features_test,labels_test,FLAGS.train_batch_size))
-      print('DONE! \n\n\n ')
-  
+def train_and_test():
+    features, labels = load_libsvm_data(FLAGS.train_path, FLAGS.list_size)
+    train_input_fn, train_hook = get_train_inputs(features, labels,
+                                                  FLAGS.train_batch_size)
+    features_test, labels_test = load_libsvm_data(FLAGS.test_path,
+                                                  FLAGS.list_size)
 
-  print('\n\n\n PREDICT TEST AND SAVE PREDICTIONS')
+    def _train_op_fn(loss):
+        """Defines train op used in ranking head."""
+        return tf.contrib.layers.optimize_loss(
+            loss=loss,
+            global_step=tf.train.get_global_step(),
+            learning_rate=FLAGS.learning_rate,
+            optimizer="Adagrad")
 
-  predictor = estimator.predict(lambda: batch_inputs(features_test,labels_test,FLAGS.train_batch_size))
-  predictions = list(predictor)
-  np.save(f'{FLAGS.save_path}/predictions', np.array(predictions))
+    ranking_head = tfr.head.create_ranking_head(
+        loss_fn=tfr.losses.make_loss_fn(FLAGS.loss, lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight(
+            smooth_fraction=0.5)),
+        eval_metric_fns=get_eval_metric_fns(),
+        train_op_fn=_train_op_fn)
+    # lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight()
 
-  print('DONE! \n\n\n ')
-  """
+    estimator = tf.estimator.Estimator(
+        model_fn=tfr.model.make_groupwise_ranking_fn(
+            group_score_fn=make_score_fn(),
+            group_size=FLAGS.group_size,
+            transform_fn=None,
+            ranking_head=ranking_head))
+
+    estimator.train(train_input_fn, hooks=[train_hook], steps=FLAGS.num_train_steps)
+
+    pred = np.array(list(estimator.predict(lambda: batch_inputs(features_test, labels_test, 128))))
+
+    pred_name=f'predictions_{FLAGS.loss}_learning_rate_{FLAGS.learning_rate}_train_batch_size_{FLAGS.train_batch_size}_' \
+        f'hidden_layers_dim_{FLAGS.hidden_layer_dims}_num_train_steps_{FLAGS.num_train_steps}_dropout_{FLAGS.dropout}'
+    np.save(f'{FLAGS.save_path}/{pred_name}', pred)
+
+    HERA.send_message(f'EXPORTING A SUB... mode:{FLAGS.mode}')
+    model = TensorflowRankig(mode=FLAGS.mode, cluster='no_cluster', dataset_name=FLAGS.dataset_name,
+                             pred_name=pred_name)
+    model.name = f'tf_ranking_{pred_name}'
+    model.run()
+    HERA.send_message(f'EXPORTED... mode:{FLAGS.mode}')
+
 
 def main(_):
   tf.logging.set_verbosity(tf.logging.INFO)
 
-  #TODO: save the prediction in numpy arry format
-  train_and_eval()
+  if FLAGS.mode == 'full':
+    train_and_test()
+  else:
+    train_and_eval()
 
 
 if __name__ == "__main__":
 
     print('type mode: small, local or full')
     _MODE = input()
-
     print('type cluster')
-    #cluster = input()
     _CLUSTER='no_cluster'
     print('type dataset_name')
     _DATASET_NAME = input()
-
     _BASE_PATH = f'dataset/preprocessed/tf_ranking/{_CLUSTER}/{_MODE}/{_DATASET_NAME}'
-
     _TRAIN_PATH = f'{_BASE_PATH}/train.txt'
     _TEST_PATH = f'{_BASE_PATH}/test.txt'
-    #_TEST_PATH = f'dataset/preprocessed/tf_ranking/{_CLUSTER}/full/{_DATASET_NAME}/test.txt'
-
     _VALI_PATH = f'{_BASE_PATH}/vali.txt'
 
     cf.check_folder(f'{_BASE_PATH}/output_dir_{datetime.datetime.now().strftime("%Y-%m-%d_%H:%M")}')
@@ -425,10 +445,16 @@ if __name__ == "__main__":
     elif selection == '8':
         loss = 'approx_ndcg_loss'
 
+    if _MODE == 'full':
+        print('insert_num_train_step')
+        num_train_steps = input()
+    else:
+        num_train_steps = None
+
     flags.DEFINE_float("min_mrr_start", min_mrr, "min_mrr_from_which_save_model")
     flags.DEFINE_integer("train_batch_size", train_batch_size, "The batch size for training.")
     # 32
-    flags.DEFINE_integer("num_train_steps", None, "Number of steps for training.")
+    flags.DEFINE_integer("num_train_steps", num_train_steps, "Number of steps for training.")
     flags.DEFINE_float("learning_rate", learning_rate, "Learning rate for optimizer.")
     #0.01
     flags.DEFINE_float("dropout_rate", dropout_rate, "The dropout rate before output layer.")

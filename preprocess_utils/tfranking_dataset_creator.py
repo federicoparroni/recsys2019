@@ -75,24 +75,17 @@ def merge_features(mode, cluster, features_array):
     click_df = full_df.loc[last_click_idxs].copy()
 
     print('retrieve vali_idxs')
-    len_idxs = int(len(click_df.index.values)*0.7)
-    validation_idxs = click_df.index.values[len_idxs:]
+    # if the mode is full we don't have the validation if the mode is small or local the validation is performed
+    # on the target indices
 
-    # retrieve the test idxs
-    print('retrieve test_idxs')
-    test_idxs = data.target_indices(mode, cluster)
+    vali_test_idxs = data.target_indices(mode, cluster)
+
 
     # construct the validation train and test df_base
     print('construct test and vali df')
-    validation_df = click_df.loc[validation_idxs]
-
-    print('validation_df after filter with target_indeces')
-    print(len(validation_df))
-
-    test_df = click_df.loc[test_idxs]
+    validation_test_df = click_df.loc[vali_test_idxs]
 
     all_idxs = click_df.index.values
-    vali_test_idxs = np.append(validation_idxs, test_idxs)
 
     # find the differences
     print('construct train df')
@@ -102,33 +95,25 @@ def merge_features(mode, cluster, features_array):
     # expand the impression as rows
     print('expand the impression')
     train_df = expand_impressions(train_df)
-    validation_df = expand_impressions(validation_df)
-
-    print('after expand')
-    print(len(validation_df['index'].unique()))
-
-    test_df = expand_impressions(test_df)
+    validation_test_df = expand_impressions(validation_test_df)
 
     # do the join
     print('join with the features')
-    print(f'train_shape: {train_df.shape}\n vali_shape: {validation_df.shape}\n test_shape: {test_df.shape}')
+    print(f'train_shape: {train_df.shape}\n vali_test_shape: {validation_test_df.shape}')
     for f in features_array:
         feature = f(mode=mode, cluster=cluster).read_feature(one_hot=True)
         print(f'len of feature:{len(feature)}')
         train_df = train_df.merge(feature)
-        validation_df = validation_df.merge(feature)
-        test_df = test_df.merge(feature)
-        print(f'train_shape: {train_df.shape}\n vali_shape: {validation_df.shape}\n test_shape: {test_df.shape}')
+        validation_test_df = validation_test_df.merge(feature)
+        print(f'train_shape: {train_df.shape}\n vali_shape: {validation_test_df.shape}')
 
     print('sorting by index and step...')
     # sort the dataframes
     train_df.sort_values(['index', 'step'], inplace=True)
-    test_df.sort_values(['index', 'step'], inplace=True)
-    validation_df.sort_values(['index', 'step'], inplace=True)
+    validation_test_df.sort_values(['index', 'step'], inplace=True)
 
     print('after join')
-    print(len(validation_df['index'].unique()))
-    return train_df, validation_df, test_df
+    return train_df, validation_test_df
 
 def dump_svmlight(df, save_path):
     print(len(df['index'].unique()))
@@ -149,12 +134,13 @@ def dump_svmlight(df, save_path):
 def create_dataset(mode, cluster, features_array, dataset_name):
     _SAVE_BASE_PATH = f'dataset/preprocessed/tf_ranking/{cluster}/{mode}/{dataset_name}'
     cf.check_folder(_SAVE_BASE_PATH)
-    train_df, vali_df, test_df = merge_features(mode, cluster, features_array)
+    train_df, vali_test_df= merge_features(mode, cluster, features_array)
 
     dump_svmlight(train_df, f'{_SAVE_BASE_PATH}/train.txt')
-    dump_svmlight(vali_df, f'{_SAVE_BASE_PATH}/vali.txt')
-    dump_svmlight(test_df, f'{_SAVE_BASE_PATH}/test.txt')
-
+    if mode == 'full':
+        dump_svmlight(vali_test_df, f'{_SAVE_BASE_PATH}/test.txt')
+    else:
+        dump_svmlight(vali_test_df, f'{_SAVE_BASE_PATH}/vali.txt')
     print('PROCEDURE ENDED CORRECTLY')
 
 
