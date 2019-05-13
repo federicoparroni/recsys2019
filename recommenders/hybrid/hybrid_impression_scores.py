@@ -76,6 +76,7 @@ class HybridImpressionScores(Hybrid):
 
             self.matrices_array = self.impression_scores_matrices[i].copy()
 
+            print('LEN OF MATRIX IS {}'.format(len(self.matrices_array)))
             self._normalization(self.normalization_mode)
 
             for k in tqdm(range(len(self.impression_scores_matrices[i]))):
@@ -125,6 +126,8 @@ class HybridImpressionScores(Hybrid):
         shape = len(self.impression_scores_matrices[0])
         for m in self.impression_scores_matrices:
             if len(m) != shape:
+                for e in self.impression_scores_matrices:
+                    print(len(e))
                 print("the matrices passed have not the same shape... go get some coffe...")
                 exit(0)
 
@@ -199,8 +202,9 @@ class HybridImpressionScores(Hybrid):
 
         min_val = np.amin(np.amin(normalized_matrices_array))
 
-        if min_val < 0:
+        if True:# min_val < 0:
             print('Negative detected: translating scores matrices...')
-            normalized_matrices_array = normalized_matrices_array + min_val
+            for i in range(len(normalized_matrices_array)):
+                normalized_matrices_array[i] = normalized_matrices_array[i] + min_val
 
         return normalized_matrices_array
