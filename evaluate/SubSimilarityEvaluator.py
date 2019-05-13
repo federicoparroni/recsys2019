@@ -66,6 +66,7 @@ class SubSimilarityEvaluator():
             recommendations_1 = [int(x) for x in recommendations_1]
             recommendations_2 = str(self.sub2.loc[i,'item_recommendations']).split()
             recommendations_2 = [int(x) for x in recommendations_2]
+
             if len(recommendations_1)==len(recommendations_2):
                 if len(recommendations_1)==1:
                     if recommendations_1[0] == recommendations_2[0]:
@@ -80,7 +81,9 @@ class SubSimilarityEvaluator():
 
     def compute_distance(self, recommendation_list_1, recommendation_list_2):
         if self.distance == 'kendalltau':
-            distance, p_value = stats.kendalltau(recommendation_list_1, recommendation_list_2, initial_lexsort=True)
+            distance, p_value = stats.kendalltau(recommendation_list_1, recommendation_list_2)
+        if self.distance == 'weighted_kendalltau':
+            distance, p_value = stats.weightedtau(recommendation_list_1, recommendation_list_2)
         return distance
 
 if __name__=='__main__':
