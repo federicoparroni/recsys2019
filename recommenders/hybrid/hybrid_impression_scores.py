@@ -29,9 +29,11 @@ class HybridImpressionScores(Hybrid):
         
         normalization_mode: str
             Normalization modes of normalization of scores. can be
-            - max_matrix: divide from max of every scores
-            - max_row: divide from max of every row score (max score of impressions for each session) 
-            - no_normalization: without normalization of scores
+            - MAX_MATRIX: divide from max of every scores
+            - MAX_ROW: divide from max of every row score (max score of impressions for each session) 
+            - L2: normalization l2 (euclidean)
+            - L1: normalization l1 
+            - NONE: without normalization of scores
             - ...
             
         threshold: float, optional
@@ -75,8 +77,6 @@ class HybridImpressionScores(Hybrid):
             print("Getting scores from recommender number {} ...".format(i))
 
             self.matrices_array = self.impression_scores_matrices[i].copy()
-
-            print('LEN OF MATRIX IS {}'.format(len(self.matrices_array)))
             self._normalization(self.normalization_mode)
 
             for k in tqdm(range(len(self.impression_scores_matrices[i]))):
@@ -153,23 +153,28 @@ class HybridImpressionScores(Hybrid):
 
         normalized_matrices_array = np.asarray(self.matrices_array)
 
-        max_val = np.amax(normalized_matrices_array)
+        max_val = np.asarray(max([max(sublist) for sublist in normalized_matrices_array]))
 
         if max_val != 0:
-            normalized_matrices_array = normalized_matrices_array / max_val
+            for i in range(len(normalized_matrices_array)):
+                normalized_matrices_array[i] = normalized_matrices_array[i] / max_val
+
 
         return normalized_matrices_array
 
-    def _normalize_l2(self):
+    def _normalize_l(self, n):
         normalized_matrices_array = np.asarray(self.matrices_array)
 
         for i in range(len(normalized_matrices_array)):
             array = normalized_matrices_array[i]
             if len(array) > 0:
-                max_val = np.sqrt((array * array).sum(axis=1))
+                if n == 2:
+                    norm = np.sqrt((array * array).sum(axis=1))
+                elif n == 1:
+                    norm = np.array(array).sum(axis=1)
 
-                if max_val != 0:
-                    normalized_matrices_array = normalized_matrices_array / max_val
+                if norm != 0:
+                    normalized_matrices_array = normalized_matrices_array / norm
 
         return normalized_matrices_array
 
@@ -190,7 +195,9 @@ class HybridImpressionScores(Hybrid):
         elif normalization_mode == 'MAX_MATRIX':
             self.normalized_matrices_array = self._normalize_max_matrix()
         elif normalization_mode == 'L2':
-            self.normalized_matrices_array = self._normalize_l2()
+            self.normalized_matrices_array = self._normalize_l(2)
+        elif normalization_mode == 'L1':
+            self.normalized_matrices_array = self._normalize_l(1)
         elif normalization_mode == 'NONE':
             self.normalized_matrices_array = self.matrices_array
         else:
@@ -198,9 +205,9 @@ class HybridImpressionScores(Hybrid):
             return
 
     def _translate_negatives(self):
-        normalized_matrices_array = np.asarray(self.matrices_array)
+        normalized_matrices_array = self.matrices_array
 
-        min_val = np.amin(np.amin(normalized_matrices_array))
+        min_val = min([min(sublist) for sublist in normalized_matrices_array])
 
         if min_val < 0:
             print('Negative detected: translating scores matrices...')
