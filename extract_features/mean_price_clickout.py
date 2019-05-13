@@ -10,7 +10,7 @@ tqdm.pandas()
 class MeanPriceClickout(FeatureBase):
     """
     mean price of the item clicked by the user during the session, if there aren't other clickout it is equal -1
-    | user_id | session_id | mean_price
+    | user_id | session_id | mean_price_clickout
     """
 
     def __init__(self, mode, cluster='no_cluster'):
@@ -48,7 +48,7 @@ class MeanPriceClickout(FeatureBase):
         test = data.test_df(mode=self.mode, cluster=self.cluster)
         df = pd.concat([train, test])
         s = df.groupby(['user_id', 'session_id']).progress_apply(func)
-        s = s.apply(pd.Series).reset_index().melt(id_vars=['user_id', 'session_id'], value_name='mean price') \
+        s = s.apply(pd.Series).reset_index().melt(id_vars=['user_id', 'session_id'], value_name='mean_price_clickout') \
             .sort_values(by=['user_id', 'session_id']).dropna()
         s = s.drop('variable', axis=1)
         # create dataframe with : user_id, session_id, item_id, label (1 if it's the cliked impression, 0 otherwise)

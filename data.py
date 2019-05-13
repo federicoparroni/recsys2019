@@ -139,10 +139,7 @@ def dataset_xgboost_test(mode, cluster='no_cluster'):
     if not 'a' in _dataset_xgboost_test:
         _dataset_xgboost_test[bp+'a'] = sps.load_npz(
             os.path.join(bp, 'X_test.npz'))
-        _dataset_xgboost_test[bp+'b'] = np.load(
-            os.path.join(bp, 'target_indices_reordered.npy'))
-    return _dataset_xgboost_test[bp+'a'], \
-        _dataset_xgboost_test[bp+'b']
+    return _dataset_xgboost_test[bp+'a']
 
 
 def classification_train_df(mode, sparse=True, cluster='no_cluster', algo='xgboost'):
