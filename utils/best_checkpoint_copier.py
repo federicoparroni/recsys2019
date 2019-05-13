@@ -112,7 +112,7 @@ class BestCheckpointCopier(tf.estimator.Exporter):
           pred = np.array(list(estimator.predict(lambda: batch_inputs(self.test_x, self.test_y, batch_size))))
           pred_name = f'predictions_{self.params.loss}_learning_rate_{self.params.learning_rate}_train_batch_size_{self.params.train_batch_size}_' \
             f'hidden_layers_dim_{self.params.hidden_layer_dims}_num_train_steps_{self.params.num_train_steps}' \
-            f'_dropout_{self.params.dropout}_global_steps_{global_step}_mrr_{eval_result_f}'
+            f'_dropout_{self.params.dropout_rate}_global_steps_{global_step}_mrr_{eval_result_f}'
           np.save(f'{self.save_path}/{pred_name}', pred)
           HERA.send_message(f'EXPORTING A SUB... {eval_result_f} mode:{self.mode}')
           model = TensorflowRankig(mode=self.mode, cluster='no_cluster', dataset_name=self.dataset_name,
