@@ -32,15 +32,18 @@ if __name__ == "__main__":
     lr = menu.single_choice('Learning rate?', ['e-3', 'e-4', 'e-5'], [1e-3, 1e-4, 1e-5])
 
     pad = menu.single_choice('Which dataset?', ['Padded 6','Padded 12'], [lambda: 6, lambda: 12])
-    dataset = SequenceDatasetForBinaryClassification(f'dataset/preprocessed/cluster_recurrent/{mode}/dataset_binary_classification_{pad}')
+    dataset = SequenceDatasetForBinaryClassification(f'dataset/preprocessed/cluster_recurrent/{mode}/dataset_binary_classification_p{pad}')
 
     print('Loading data...')
     x, y = dataset.load_Xtrain(), dataset.load_Ytrain()
     x, y = shuffle(x, y)
+    print()
 
     perc = np.sum(y) / len(y)
     print('Class-1 perc: {}'.format(perc))
 
+    weights = dataset.get_class_weights()
+    
     # model
     m = Sequential()
     #m.add( TimeDistributed(Dense(64), input_shape=(6,68)) )
@@ -60,7 +63,8 @@ if __name__ == "__main__":
     m.summary()
 
     # train
-    m.fit(x=x, y=y, epochs=1000, validation_split=0.15, batch_size=64, callbacks=[EarlyStopping(patience=10, restore_best_weights=True)])
+    m.fit(x=x, y=y, epochs=1000, validation_split=0.15, batch_size=64, class_weight=weights,
+            callbacks=[EarlyStopping(patience=10, restore_best_weights=True)])
 
     timenow = datetime.datetime.now()
     m.save('gru_binary_{}.h5'.format(timenow))

@@ -51,7 +51,8 @@ class XGBoostWrapper(RecommenderBase):
         pass
 
     def recommend_batch(self):
-        X_test, target_indices_reordered = data.dataset_xgboost_test(mode=self.mode, cluster=self.cluster)
+        X_test = data.dataset_xgboost_test(mode=self.mode, cluster=self.cluster)
+        target_indices = data.target_indices(self.mode, self.cluster)
         full_impressions = pd.read_csv('dataset/preprocessed/full.csv', usecols=["impressions"])
         print('data for test ready')
 
@@ -59,11 +60,9 @@ class XGBoostWrapper(RecommenderBase):
 
         final_predictions = []
         count = 0
-        for index in tqdm(target_indices_reordered):
+        for index in tqdm(target_indices):
             impressions = list(map(int, full_impressions.loc[index]['impressions'].split('|')))
             predictions = scores[count:count + len(impressions)]
-            if len(predictions) == 0:
-                print('a')
             couples = list(zip(predictions, impressions))
             couples.sort(key=lambda x: x[0], reverse=True)
             _, sorted_impr = zip(*couples)

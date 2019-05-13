@@ -6,7 +6,7 @@ import time
 from abc import abstractmethod
 
 from keras.models import Sequential, load_model
-from keras.layers import Dense, LSTM, GRU, TimeDistributed, BatchNormalization, Activation, Dropout
+from keras.layers import Dense, LSTM, GRU, TimeDistributed, BatchNormalization, Activation, Dropout, Bidirectional
 from keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard
 from keras import metrics
 
@@ -42,7 +42,7 @@ def mrr(y_true, y_pred):
 class RecurrentRecommender(RecommenderBase):
     
     def __init__(self, dataset, input_shape, cell_type, num_recurrent_layers, num_recurrent_units, num_dense_layers, output_size,
-                use_generator=False, validation_split=0.15, use_batch_normalization=False,
+                use_generator=False, validation_split=0.15, use_batch_normalization=False, bidirectional=False,
                 loss='mean_squared_error', optimizer='rmsprop', class_weights=None, #, weight_samples=False,
                 metrics=['accuracy', mrr], batch_size=64, checkpoints_path=None, tensorboard_path=None):
         """ Create the recurrent model
@@ -88,15 +88,10 @@ class RecurrentRecommender(RecommenderBase):
         if use_generator:
             # generator
             self.test_gen = dataset.get_test_generator()
-        else:
-            # full dataset
-            self.X, self.Y = dataset.load_Xtrain(), dataset.load_Ytrain()
-            self.X, self.Y = shuffle(self.X, self.Y)
-            input_shape = self.X.shape
         
         # build the model
         self.build_model(input_shape=input_shape, cell_type=cell_type, num_recurrent_layers=num_recurrent_layers,
-                            num_recurrent_units=num_recurrent_units, num_dense_layers=num_dense_layers,
+                            num_recurrent_units=num_recurrent_units, num_dense_layers=num_dense_layers, bidirectional=bidirectional,
                             output_size=output_size, use_batch_normalization=use_batch_normalization)
         
         #if self.weight_samples:
@@ -106,24 +101,28 @@ class RecurrentRecommender(RecommenderBase):
 
         print(self.model.summary())
         print()
-        if self.use_generator:
-            print('Train with batches of shape X: {}'.format(input_shape))
-        else:
-            print('Train with a dataset of shape X: {} - Y: {}'.format(self.X.shape, self.Y.shape))
     
 
     def build_model(self, input_shape, cell_type, num_recurrent_layers, num_recurrent_units, num_dense_layers,
-                    output_size, use_batch_normalization):
+                    bidirectional, output_size, use_batch_normalization):
         CELL = LSTM if self.name == 'LSTM' else GRU
         self.model = Sequential()
 
         #self.model.add( TimeDistributed(Dense(num_recurrent_units, activation='relu'), input_shape=self.input_shape) )
 
-        self.model.add( CELL(num_recurrent_units, input_shape=self.input_shape, dropout=0.2,recurrent_dropout=0.2,
-                                return_sequences=(num_recurrent_layers > 1) ))
+        if bidirectional:
+            self.model.add( Bidirectional(CELL(num_recurrent_units, dropout=0.2, recurrent_dropout=0.2,
+                                    return_sequences=(num_recurrent_layers > 1) ), input_shape=self.input_shape))
+        else:
+            self.model.add( CELL(num_recurrent_units, dropout=0.2, recurrent_dropout=0.2,
+                                    return_sequences=(num_recurrent_layers > 1), input_shape=self.input_shape))
         for i in range(num_recurrent_layers-1):
-            self.model.add( CELL(num_recurrent_units, dropout=0.2,recurrent_dropout=0.2,
-                                    return_sequences=(i < num_recurrent_layers-2) ))
+            if bidirectional:
+                self.model.add( Bidirectional(CELL(num_recurrent_units, dropout=0.2, recurrent_dropout=0.2,
+                                                    return_sequences=(i < num_recurrent_layers-2) )))
+            else:
+                self.model.add( CELL(num_recurrent_units, dropout=0.2, recurrent_dropout=0.2,
+                                        return_sequences=(i < num_recurrent_layers-2) ))
 
         # time distributed
         #self.model.add( TimeDistributed(Dense(num_recurrent_units, activation='relu')) )
@@ -167,10 +166,13 @@ class RecurrentRecommender(RecommenderBase):
         if self.use_generator:
             self.train_gen, self.val_gen = self.dataset.get_train_validation_generator(self.validation_split) #, weights)
             assert self.train_gen.__getitem__(0)[0].shape[1:] == self.input_shape
-        
+
             self.history = self.model.fit_generator(self.train_gen, epochs=epochs, validation_data=self.val_gen,
                                                     callbacks=callbacks, max_queue_size=3, class_weight=self.class_weights)
         else:
+            self.X, self.Y = self.dataset.load_Xtrain(), self.dataset.load_Ytrain()
+            self.X, self.Y = shuffle(self.X, self.Y)
+            
             self.history = self.model.fit(self.X, self.Y, epochs=epochs, batch_size=self.batch_size,
                                             validation_split=self.validation_split,
                                             callbacks=callbacks, class_weight=self.class_weights)

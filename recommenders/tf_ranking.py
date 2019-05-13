@@ -3,6 +3,7 @@ import os
 import numpy as np
 from tqdm import tqdm
 import data
+import utils.check_folder as cf
 
 
 class TensorflowRankig(RecommenderBase):
@@ -42,6 +43,7 @@ class TensorflowRankig(RecommenderBase):
     def recommend_batch(self):
 
         final_predictions = []
+        scores_batch=[]
 
         count = 0
         for index in tqdm(self.target_indices):
@@ -50,9 +52,13 @@ class TensorflowRankig(RecommenderBase):
             couples = list(zip(pred, impr))
             #print(couples)
             couples.sort(key=lambda x: x[0], reverse=True)
-            _, sorted_impr = zip(*couples)
+            scores, sorted_impr = zip(*couples)
             final_predictions.append((index, list(sorted_impr)))
+            scores_batch.append((index, list(sorted_impr), list(scores)))
             count += 1
+        if self.mode != 'small':
+            cf.check_folder('scores')
+            np.save(f'scores/{self.name}', np.array(scores_batch))
         return final_predictions
 
     def get_scores_batch(self):

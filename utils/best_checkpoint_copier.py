@@ -28,7 +28,7 @@ class BestCheckpointCopier(tf.estimator.Exporter):
   sort_key_fn = None
   sort_reverse = None
 
-  def __init__(self, min_mrr_start, loss, dataset_name, save_path, save_path_vali, test_x, test_y, vali_x, vali_y, params,
+  def __init__(self, min_mrr_start, loss, dataset_name, save_path, test_x, test_y, params,
                mode, name='best_checkpoints', checkpoints_to_keep=1, score_metric='Loss/total_loss',
                compare_fn=lambda x,y: x.score > y.score, sort_key_fn=lambda x: x.score, sort_reverse=False):
     self.checkpoints = []
@@ -40,12 +40,12 @@ class BestCheckpointCopier(tf.estimator.Exporter):
     self.sort_reverse = sort_reverse
 
     self.mode = mode
-    self.vali_x = vali_x
-    self.vali_y = vali_y
+
+
     self.test_x = test_x
     self.test_y = test_y
     self.save_path = save_path
-    self.save_path_vali = save_path_vali
+
     self.dataset_name = dataset_name
     self.loss = loss
     self.min_mrr = min_mrr_start
@@ -101,35 +101,25 @@ class BestCheckpointCopier(tf.estimator.Exporter):
     def create_sub(estimator, checkpoint_path, eval_result, batch_size=128, patience=0.001):
       # now works also for local and small it will create a sub
       # create a sub only if the MMR is > 0.65
-      if (self.mode == 'full') or (self.mode == 'local'):
+      if self.mode == 'small':
         eval_result_f = eval_result['metric/mrr']
+        global_step = eval_result['global_step']
         if eval_result_f>self.min_mrr+patience:
           # set as new threshold the new mrr
           self.min_mrr = eval_result_f
 
           # predict the test...
           pred = np.array(list(estimator.predict(lambda: batch_inputs(self.test_x, self.test_y, batch_size))))
-          np.save(f'{self.save_path}/predictions_{eval_result_f}', pred)
+          pred_name = f'predictions_{self.params.loss}_learning_rate_{self.params.learning_rate}_train_batch_size_{self.params.train_batch_size}_' \
+            f'hidden_layers_dim_{self.params.hidden_layer_dims}_num_train_steps_{self.params.num_train_steps}' \
+            f'_dropout_{self.params.dropout_rate}_global_steps_{global_step}_mrr_{eval_result_f}'
+          np.save(f'{self.save_path}/{pred_name}', pred)
           HERA.send_message(f'EXPORTING A SUB... {eval_result_f} mode:{self.mode}')
           model = TensorflowRankig(mode=self.mode, cluster='no_cluster', dataset_name=self.dataset_name,
-                                   pred_name=f'predictions_{eval_result_f}')
-          score = eval_result_f
-          model.name = f'tf_ranking_{self.mode}_{self.loss}_{score}'
+                                   pred_name=pred_name)
+          model.name = f'tf_ranking_{pred_name}'
           model.run()
           HERA.send_message(f'EXPORTED... {eval_result_f} mode:{self.mode}')
-
-          """
-          # predict the vali...
-          pred = np.array(list(estimator.predict(lambda: batch_inputs(self.vali_x, self.vali_y, batch_size))))
-          np.save(f'{self.save_path_vali}/predictions_{eval_result_f}', pred)
-          HERA.send_message(f'EXPORTING A SUB... {eval_result_f} mode:''local')
-          model = TensorflowRankig(mode='local', cluster='no_cluster', dataset_name=self.dataset_name,
-                                   pred_name=f'predictions_{eval_result_f}')
-          score = eval_result_f
-          model.name = f'tf_ranking_local_{self.loss}_{score}'
-          model.run()
-          HERA.send_message(f'EXPORTED... {eval_result_f} mode:local')
-          """
 
     self._log('export checkpoint {}'.format(checkpoint_path))
 

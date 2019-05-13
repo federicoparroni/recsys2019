@@ -5,7 +5,6 @@ from tqdm import tqdm
 import pandas as pd
 import pickle
 from utils.check_folder import check_folder
-from preprocess_utils.create_dataset_tf_tanking import merge_features
 from extract_features.actions_involving_impression_session import ActionsInvolvingImpressionSession
 from extract_features.frenzy_factor_consecutive_steps import FrenzyFactorSession
 from extract_features.global_clickout_popularity import GlobalClickoutPopularity
@@ -26,6 +25,7 @@ from extract_features.time_from_last_action_before_clk import TimeFromLastAction
 from extract_features.times_impression_appeared_in_clickouts_session import TimesImpressionAppearedInClickoutsSession
 from extract_features.times_user_interacted_with_impression import TimesUserInteractedWithImpression
 from extract_features.timing_from_last_interaction_impression import TimingFromLastInteractionImpression
+from preprocess_utils.merge_features import merge_features
 
 
 def create_groups(df):
@@ -41,14 +41,14 @@ def create_dataset(mode, cluster):
                       ImpressionPositionSession, LastInteractionInvolvingImpression,
                       SessionDevice, SessionSortOrderWhenClickout, MeanPriceClickout,
                       PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
-                      TimesImpressionAppearedInClickoutsSession]
+                      TimesImpressionAppearedInClickoutsSession]#, GlobalInteractionsPopularity,
+                      #GlobalClickoutPopularity]
 
-    train_df, test_df, target_indices_reordered = merge_features(mode, cluster, features_array, False)
+    train_df, test_df = merge_features(mode, cluster, features_array)
 
     check_folder('dataset/preprocessed/{}/{}/xgboost/'.format(cluster, mode))
 
-    X_train = train_df.drop(['user_id', 'session_id', 'item_id', 'label'], axis=1)
-    # X_train.to_csv('dataset/preprocessed/{}/{}/xgboost/X_train.csv'.format(cluster, mode), index=False)
+    X_train = train_df.drop(['index', 'step', 'user_id', 'session_id', 'item_id', 'label'], axis=1)
     X_train = X_train.to_sparse(fill_value=0)
     X_train = X_train.astype(np.float64)
     X_train = X_train.to_coo().tocsr()
@@ -66,17 +66,13 @@ def create_dataset(mode, cluster):
 
     print('train data completed')
 
-    X_test = test_df.drop(['user_id', 'session_id', 'item_id', 'label'], axis=1)
+    X_test = test_df.drop(['index', 'step', 'user_id', 'session_id', 'item_id', 'label'], axis=1)
     # X_test.to_csv('dataset/preprocessed/{}/{}/xgboost/X_test.csv'.format(cluster, mode), index=False)
     X_test = X_test.to_sparse(fill_value=0)
     X_test = X_test.astype(np.float64)
     X_test = X_test.to_coo().tocsr()
     save_npz('dataset/preprocessed/{}/{}/xgboost/X_test'.format(cluster, mode), X_test)
     print('X_test saved')
-
-    np.save('dataset/preprocessed/{}/{}/xgboost/target_indices_reordered'.format(cluster, mode),
-            target_indices_reordered)
-    print('target indices reordered saved')
 
     print('test data completed')
 
