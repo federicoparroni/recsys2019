@@ -6,7 +6,7 @@ import time
 from abc import abstractmethod
 
 from keras.models import Sequential, load_model
-from keras.layers import Dense, LSTM, GRU, TimeDistributed, BatchNormalization, Activation, Dropout
+from keras.layers import Dense, LSTM, GRU, TimeDistributed, BatchNormalization, Activation, Dropout, Bidirectional
 from keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard
 from keras import metrics
 
@@ -42,7 +42,7 @@ def mrr(y_true, y_pred):
 class RecurrentRecommender(RecommenderBase):
     
     def __init__(self, dataset, input_shape, cell_type, num_recurrent_layers, num_recurrent_units, num_dense_layers, output_size,
-                use_generator=False, validation_split=0.15, use_batch_normalization=False,
+                use_generator=False, validation_split=0.15, use_batch_normalization=False, bidirectional=False,
                 loss='mean_squared_error', optimizer='rmsprop', class_weights=None, #, weight_samples=False,
                 metrics=['accuracy', mrr], batch_size=64, checkpoints_path=None, tensorboard_path=None):
         """ Create the recurrent model
@@ -91,7 +91,7 @@ class RecurrentRecommender(RecommenderBase):
         
         # build the model
         self.build_model(input_shape=input_shape, cell_type=cell_type, num_recurrent_layers=num_recurrent_layers,
-                            num_recurrent_units=num_recurrent_units, num_dense_layers=num_dense_layers,
+                            num_recurrent_units=num_recurrent_units, num_dense_layers=num_dense_layers, bidirectional=bidirectional,
                             output_size=output_size, use_batch_normalization=use_batch_normalization)
         
         #if self.weight_samples:
@@ -104,17 +104,25 @@ class RecurrentRecommender(RecommenderBase):
     
 
     def build_model(self, input_shape, cell_type, num_recurrent_layers, num_recurrent_units, num_dense_layers,
-                    output_size, use_batch_normalization):
+                    bidirectional, output_size, use_batch_normalization):
         CELL = LSTM if self.name == 'LSTM' else GRU
         self.model = Sequential()
 
         #self.model.add( TimeDistributed(Dense(num_recurrent_units, activation='relu'), input_shape=self.input_shape) )
 
-        self.model.add( CELL(num_recurrent_units, input_shape=self.input_shape, dropout=0.2,recurrent_dropout=0.2,
-                                return_sequences=(num_recurrent_layers > 1) ))
+        if bidirectional:
+            self.model.add( Bidirectional(CELL(num_recurrent_units, dropout=0.2, recurrent_dropout=0.2,
+                                    return_sequences=(num_recurrent_layers > 1) ), input_shape=self.input_shape))
+        else:
+            self.model.add( CELL(num_recurrent_units, dropout=0.2, recurrent_dropout=0.2,
+                                    return_sequences=(num_recurrent_layers > 1), input_shape=self.input_shape))
         for i in range(num_recurrent_layers-1):
-            self.model.add( CELL(num_recurrent_units, dropout=0.2,recurrent_dropout=0.2,
-                                    return_sequences=(i < num_recurrent_layers-2) ))
+            if bidirectional:
+                self.model.add( Bidirectional(CELL(num_recurrent_units, dropout=0.2, recurrent_dropout=0.2,
+                                                    return_sequences=(i < num_recurrent_layers-2) )))
+            else:
+                self.model.add( CELL(num_recurrent_units, dropout=0.2, recurrent_dropout=0.2,
+                                        return_sequences=(i < num_recurrent_layers-2) ))
 
         # time distributed
         #self.model.add( TimeDistributed(Dense(num_recurrent_units, activation='relu')) )
