@@ -38,7 +38,7 @@ class Probabilistic_Hybrid(RecommenderBase):
 
         self.current_directory = Path(__file__).absolute().parent
         self.data_directory = self.current_directory.joinpath('..', '..', 'submissions/hybrid')
-        self.gt_csv = self.data_directory.joinpath('ground_truth.csv')
+        self.gt_csv = self.data_directory.joinpath('ground_truth_small.csv')
         self.mode = mode
         self.dfs_subname = []
         self.geometric_mean = geometric_mean
@@ -225,12 +225,12 @@ class Probabilistic_Hybrid(RecommenderBase):
 
 if __name__=='__main__':
     params = {
-        'content_based_old': 0,
+        'catboost_066693_local': 1,
         'last_interaction': 1,
         'lazyUserRec': 1,
         'location_subm': 1,
         'min_price_based': 1,
-        'xgboostlocal': 1,
+        'xgb14f0665local': 1,
         'RNN_local': 0,
         'tf_loc': 1
     }

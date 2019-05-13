@@ -14,48 +14,47 @@ Optimizer intended for the Probabilistic_Hybrid class.
 """
 
 @use_named_args([
-    Categorical(param_list, name='min_price_based'),
-    Categorical(param_list, name='location_subm'),
-    Categorical(param_list, name='lazyUserRec'),
     Categorical(param_list, name='last_interaction'),
-    Categorical(param_list, name='xgb14f0665')
+    Categorical(param_list, name='catboost_066693_local'),
+    Categorical(param_list, name='location_subm'),
+    Categorical(param_list, name='min_price_based'),
+    Categorical(param_list, name='xgb14f0665local')
 ])
-def objective(min_price_based,location_subm,lazyUserRec, last_interaction, xgb14f0665):
+def objective(last_interaction, catboost_066693_local, location_subm, min_price_based, xgb14f0665local):
     params = {
-        'min_price_based': min_price_based,
-        'location_subm':location_subm,
-        'lazyUserRec': lazyUserRec,
         'last_interaction': last_interaction,
-        'xgb14f0665': xgb14f0665
+        'catboost_066693_local': catboost_066693_local,
+        'location_subm': location_subm,
+        'min_price_based': min_price_based,
+        'xgb14f0665local': xgb14f0665local
     }
 
-    model = Borda_Hybrid(params, mode='local')
+    model = Probabilistic_Hybrid(params, mode='local')
     model.fit()
     sub = model.recommend_batch()
     MRR = model.score_sub(sub)
 
     print(f'Iteration parameters: '
-          f" - min_price_based= {min_price_based} - location_subm= {location_subm} - lazyUserRec= {lazyUserRec} - last_interaction= {last_interaction} - xgb14f0665= {xgb14f0665}")
+          f" - last_interaction= {last_interaction} - catboost_066693_local= {catboost_066693_local} - location_subm= {location_subm} - min_price_based= {min_price_based} - xgb14f0665local= {xgb14f0665local}")
 
     return -MRR
 
 
 space = [
-    Categorical(param_list, name='min_price_based'),
-    Categorical(param_list, name='location_subm'),
-    Categorical(param_list, name='lazyUserRec'),
     Categorical(param_list, name='last_interaction'),
-    Categorical(param_list, name='xgb14f0665')
+    Categorical(param_list, name='catboost_066693_local'),
+    Categorical(param_list, name='location_subm'),
+    Categorical(param_list, name='min_price_based'),
+    Categorical(param_list, name='xgb14f0665local')
 ]
 
 res_gp = gp_minimize(objective, space, n_calls=250, n_random_starts=10, random_state=17, verbose=True)
 
 print("""Best parameters:
-- min_price_based= %d
-- location_subm= %d
-- lazyUserRec= %d
 - last_interaction= %d
-- xgb14f0665= %d
-"""% (res_gp.x[0], res_gp.x[1],
-                res_gp.x[2], res_gp.x[3], res_gp.x[4]
+- catboost_066693_local= %d
+- location_subm= %d
+- min_price_based= %d
+- xgb14f0665local= %d
+"""% (res_gp.x[0], res_gp.x[1], res_gp.x[2], res_gp.x[3], res_gp.x[4]
       ))
