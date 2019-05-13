@@ -63,8 +63,6 @@ class XGBoostWrapper(RecommenderBase):
         for index in tqdm(target_indices):
             impressions = list(map(int, full_impressions.loc[index]['impressions'].split('|')))
             predictions = scores[count:count + len(impressions)]
-            if len(predictions) == 0:
-                print('a')
             couples = list(zip(predictions, impressions))
             couples.sort(key=lambda x: x[0], reverse=True)
             _, sorted_impr = zip(*couples)

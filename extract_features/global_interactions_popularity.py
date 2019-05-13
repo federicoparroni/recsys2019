@@ -11,7 +11,7 @@ class GlobalInteractionsPopularity(FeatureBase):
     """
     Compute the popularity of a reference by means of the number of times it has been interacted (in whatever action).
     The popularity is calculated in the train df.
-    | reference | popularity
+    | item_id | popularity
     popularity is a positive number
     """
 
@@ -34,7 +34,8 @@ class GlobalInteractionsPopularity(FeatureBase):
         res_df = res_df.astype({'reference':'int'})
         res_df = res_df[['reference','frequence']].groupby('reference').sum()
 
-        return res_df.rename(columns={'frequence':'glob_inter_popularity'}).reset_index()
+        res_df = res_df.reset_index()
+        return res_df.rename(columns={'reference': 'item_id', 'frequence': 'glob_inter_popularity'})
 
     
     def join_to(self, df):
@@ -44,8 +45,8 @@ class GlobalInteractionsPopularity(FeatureBase):
         res_df = df.copy()
         res_df.loc[(res_df.reference.str.isnumeric() != True) | (res_df.action_type == 'clickout item'), 'reference'] = 0
         res_df = res_df.astype({'reference': 'int'}).reset_index()
-        res_df = res_df.merge(feature_df, how='left', left_on='reference', right_on='reference').set_index('index')
-        res_df['reference'] = df['reference']
+        res_df = res_df.merge(feature_df, how='left', left_on='item_id', right_on='reference').set_index('index')
+        res_df['item_id'] = df['reference']
         return res_df.fillna(0).astype({'glob_inter_popularity': 'int'})
 
 

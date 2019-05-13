@@ -41,13 +41,14 @@ def create_dataset(mode, cluster):
                       ImpressionPositionSession, LastInteractionInvolvingImpression,
                       SessionDevice, SessionSortOrderWhenClickout, MeanPriceClickout,
                       PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
-                      TimesImpressionAppearedInClickoutsSession]
+                      TimesImpressionAppearedInClickoutsSession]#, GlobalInteractionsPopularity,
+                      #GlobalClickoutPopularity]
 
     train_df, test_df = merge_features(mode, cluster, features_array)
 
     check_folder('dataset/preprocessed/{}/{}/xgboost/'.format(cluster, mode))
 
-    X_train = train_df.drop(['user_id', 'session_id', 'item_id', 'label'], axis=1)
+    X_train = train_df.drop(['index', 'step', 'user_id', 'session_id', 'item_id', 'label'], axis=1)
     X_train = X_train.to_sparse(fill_value=0)
     X_train = X_train.astype(np.float64)
     X_train = X_train.to_coo().tocsr()
@@ -65,7 +66,7 @@ def create_dataset(mode, cluster):
 
     print('train data completed')
 
-    X_test = test_df.drop(['user_id', 'session_id', 'item_id', 'label'], axis=1)
+    X_test = test_df.drop(['index', 'step', 'user_id', 'session_id', 'item_id', 'label'], axis=1)
     # X_test.to_csv('dataset/preprocessed/{}/{}/xgboost/X_test.csv'.format(cluster, mode), index=False)
     X_test = X_test.to_sparse(fill_value=0)
     X_test = X_test.astype(np.float64)
