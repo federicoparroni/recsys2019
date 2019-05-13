@@ -93,14 +93,14 @@ if __name__ == "__main__":
     import utils.menu as menu
 
     # build the weights array
-    weights = np.array([0.37738,0.10207,0.07179,0.05545,0.04711,0.03822,0.03215,0.02825,0.02574,
-                        0.02289,0.02239,0.02041,0.01814,0.01619,0.01451,0.01306,0.01271,0.01156,
-                        0.01174,0.01072,0.01018,0.00979,0.00858,0.00868,0.01029])
-    weights = 1/weights
-    wgt_sum = sum(weights)
-    weights = weights/wgt_sum
-
-    weights = dict([(i,w) for i,w in enumerate(weights)])
+    # weights = np.array([0.37738,0.10207,0.07179,0.05545,0.04711,0.03822,0.03215,0.02825,0.02574,
+    #                     0.02289,0.02239,0.02041,0.01814,0.01619,0.01451,0.01306,0.01271,0.01156,
+    #                     0.01174,0.01072,0.01018,0.00979,0.00858,0.00868,0.01029])
+    # weights = 1/weights
+    # wgt_sum = sum(weights)
+    # weights = weights/wgt_sum
+    # weights = dict([(i,w) for i,w in enumerate(weights)])
+    # print(weights)
 
     mode = menu.mode_selection()
     cell_type = menu.single_choice('Choose a network architecture:', ['LSTM', 'GRU', 'default architecture'], [lambda: 'LSTM', lambda: 'GRU', lambda: 'auto'])
@@ -111,17 +111,21 @@ if __name__ == "__main__":
         rec_layers = 1
         dense_layers = 2
         units = 4
+        weights = True
     else:
         epochs = int(input('Insert number of epochs: '))
         rec_layers = int(input('Insert number of recurrent layers: '))
         units = int(input('Insert number of units per layer: '))
         dense_layers = int(input('Insert number of dense layers: '))
-        weights = menu.yesno_choice('Do you want to use class weights?', lambda: weights, lambda: [])
+        weights = menu.yesno_choice('Do you want to use class weights?', lambda: True, lambda: None)
         #tb_path = menu.yesno_choice('Do you want to enable Tensorboard?', lambda: 'recommenders/tensorboard', lambda: None)
     tb_path = None
 
     pad = menu.single_choice('Which dataset?', ['Padded 6','Padded 12'], [lambda: 6, lambda: 12])
     dataset = SequenceDatasetForClassification(f'dataset/preprocessed/cluster_recurrent/{mode}/dataset_classification_p{pad}')
+    
+    if weights is not None:
+        weights = dataset.get_class_weights()
     
     model = RNNClassificationRecommender(dataset, use_generator=False, cell_type=cell_type, input_shape=(dataset.rows_per_sample, 68),
                                         num_recurrent_layers=rec_layers, num_recurrent_units=units, optimizer='adam',

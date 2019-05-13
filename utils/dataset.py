@@ -8,6 +8,7 @@ import utils.datasetconfig as datasetconfig
 from generator import DataGenerator
 import preprocess_utils.session2vec as sess2vec
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.utils.class_weight import compute_class_weight
 import utils.scaling as scale
 
 from extract_features.global_interactions_popularity import GlobalInteractionsPopularity
@@ -89,6 +90,20 @@ class Dataset(object):
         validation_percentage (float): percentage of samples to use for validation
         """
         pass
+    
+    def get_class_weights(self, num_classes):
+        y = self.load_Ytrain()
+        if y.shape[1] == 1:
+            # binary class
+            weights = compute_class_weight('balanced', np.arange(num_classes), y[:,0])
+        else:
+            # multiple classes one-hot encoded
+            y = [np.where(r==1)[0][0] for r in y]
+            weights = compute_class_weight('balanced', np.arange(num_classes), y)
+
+        weights = dict([ (i,w) for i,w in enumerate(weights) ])
+        print(weights)
+        return weights
 
 
 
@@ -260,19 +275,6 @@ class SequenceDatasetForClassification(Dataset):
         #return sess2vec.sessions2tensor(Y_df, drop_cols=cols_to_drop_in_Y)
         return Y_df.drop(cols_to_drop_in_Y, axis=1).values
 
-    # def load_train(self):
-    #     train_df = pd.read_csv(self.train_path, index_col=0)
-    #     train_df = train_df.fillna(0)
-        # add day of year column
-        # train_df.datetime = pd.to_datetime(train_df.timestamp, unit='s')
-        # train_df['dayofyear'] = train_df.timestamp.dt.dayofyear
-        # scale
-        # scaler = MinMaxScaler()
-        # train_df.impression_price = scaler.fit_transform(train_df.impression_price.values.reshape(-1,1))
-
-        # print('train_vec:', train_df.shape)
-        # return train_df
-
     def load_Xtrain(self):
         """ Load the entire X_train dataframe """
         if self._xtrain is None:
@@ -344,6 +346,9 @@ class SequenceDatasetForClassification(Dataset):
         # return the generator for the test
         return DataGenerator(self, for_train=False, pre_fit_fn=self.prefit_x)
 
+    def get_class_weights(self, num_classes=25):
+        return super().get_class_weights(num_classes)
+
 
 
 class SequenceDatasetForBinaryClassification(SequenceDatasetForClassification):
@@ -395,3 +400,5 @@ class SequenceDatasetForBinaryClassification(SequenceDatasetForClassification):
         """ Preprocess a chunk of the sequence dataset """
         return Xchunk_df
 
+    def get_class_weights(self, num_classes=2):
+        return super().get_class_weights(num_classes)
