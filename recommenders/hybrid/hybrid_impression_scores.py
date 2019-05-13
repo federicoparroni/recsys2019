@@ -202,7 +202,7 @@ class HybridImpressionScores(Hybrid):
 
         min_val = np.amin(np.amin(normalized_matrices_array))
 
-        if True:# min_val < 0:
+        if min_val < 0:
             print('Negative detected: translating scores matrices...')
             for i in range(len(normalized_matrices_array)):
                 normalized_matrices_array[i] = normalized_matrices_array[i] + min_val
