@@ -101,7 +101,7 @@ class BestCheckpointCopier(tf.estimator.Exporter):
     def create_sub(estimator, checkpoint_path, eval_result, batch_size=128, patience=0.001):
       # now works also for local and small it will create a sub
       # create a sub only if the MMR is > 0.65
-      if self.mode == 'small':
+      if self.mode == 'local':
         eval_result_f = eval_result['metric/mrr']
         global_step = eval_result['global_step']
         if eval_result_f>self.min_mrr+patience:
@@ -112,7 +112,7 @@ class BestCheckpointCopier(tf.estimator.Exporter):
           pred = np.array(list(estimator.predict(lambda: batch_inputs(self.test_x, self.test_y, batch_size))))
           pred_name = f'predictions_{self.params.loss}_learning_rate_{self.params.learning_rate}_train_batch_size_{self.params.train_batch_size}_' \
             f'hidden_layers_dim_{self.params.hidden_layer_dims}_num_train_steps_{self.params.num_train_steps}' \
-            f'_dropout_{self.params.dropout}_global_steps_{global_step}_mrr_{eval_result_f}'
+            f'_dropout_{self.params.dropout_rate}_global_steps_{global_step}_mrr_{eval_result_f}'
           np.save(f'{self.save_path}/{pred_name}', pred)
           HERA.send_message(f'EXPORTING A SUB... {eval_result_f} mode:{self.mode}')
           model = TensorflowRankig(mode=self.mode, cluster='no_cluster', dataset_name=self.dataset_name,
@@ -122,10 +122,10 @@ class BestCheckpointCopier(tf.estimator.Exporter):
           HERA.send_message(f'EXPORTED... {eval_result_f} mode:{self.mode}')
 
     self._log('export checkpoint {}'.format(checkpoint_path))
-
+    step = eval_result['global_step']
     score = eval_result['metric/mrr']
     checkpoint = Checkpoint(path=checkpoint_path, score=score)
-    HERA.send_message(f'mode: {self.mode}\n TFRANKING mrr is: {score}\n dropout:{self.params.dropout_rate}\n'
+    HERA.send_message(f'mode: {self.mode}\n step:{eval_result[step]}\nTFRANKING mrr is: {score}\n dropout:{self.params.dropout_rate}\n'
                       f'learning_rate:{self.params.learning_rate}\n train_batch_size:{self.params.train_batch_size}\n'
                       f'hidden_layer_dims:{self.params.hidden_layer_dims}\n loss:{self.params.loss}')
     if self._shouldKeep(checkpoint):

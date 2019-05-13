@@ -360,7 +360,7 @@ def train_and_test():
     pred = np.array(list(estimator.predict(lambda: batch_inputs(features_test, labels_test, 128))))
 
     pred_name=f'predictions_{FLAGS.loss}_learning_rate_{FLAGS.learning_rate}_train_batch_size_{FLAGS.train_batch_size}_' \
-        f'hidden_layers_dim_{FLAGS.hidden_layer_dims}_num_train_steps_{FLAGS.num_train_steps}_dropout_{FLAGS.dropout}'
+        f'hidden_layers_dim_{FLAGS.hidden_layer_dims}_num_train_steps_{FLAGS.num_train_steps}_dropout_{FLAGS.dropout_rate}'
     np.save(f'{FLAGS.save_path}/{pred_name}', pred)
 
     HERA.send_message(f'EXPORTING A SUB... mode:{FLAGS.mode}')
