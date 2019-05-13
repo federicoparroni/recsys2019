@@ -5,6 +5,8 @@ import numpy as np
 from tqdm import tqdm
 import out
 import utils.telegram_bot as HERA
+from utils.check_folder import check_folder
+import time
 
 
 class RecommenderBase(ABC):
@@ -57,24 +59,37 @@ class RecommenderBase(ABC):
             print("The list has lenght > 25. It will be cut")
         self.weight_per_position = list_weight[:25]
 
-    def run(self):
+    def run(self, export_scores=False):
         """
         Handle all the operations needed to run this model a single time.
         In particular, performs the fit and get the recommendations.
-        Then, it can either export the recommendations or not
+        Then, it can either export the submission or not based on the mode.
+        Moreover, it can export the scores of the algorithm based on the
         """
-        export = False
+        export_sub = False
         print('running {}'.format(self.name))
         if (self.mode == 'full') or (self.mode == 'local'):
-            export = True
-            print("I gonna fit the model, recommend the accomodations, and save the submission")
+            export_sub = True
+            if export_scores:
+                print("I gonna fit the model, recommend the accomodations, save the scores and export the submission")
+            else:
+                print("I gonna fit the model, recommend the accomodations and export the submission")
         else:
-            print("I gonna fit the model and recommend the accomodations")
+            if export_scores:
+                print("I gonna fit the model, recommend the accomodations and save the scores")
+            else:
+                print("I gonna fit the model and recommend the accomodations")
 
         self.fit()
         recommendations = self.recommend_batch()
-        if export:
+        if export_sub:
             out.create_sub(recommendations, submission_name=self.name)
+        if export_scores:
+            check_folder('scores')
+            scores_batch = self.get_scores_batch()
+            path = 'scores/{}_{}'.format(self.name, time.strftime('%H-%M-%S'))
+            np.save(path, scores_batch)
+            print('scores exported in {}'.format(path))
 
     def evaluate(self, send_MRR_on_telegram = False):
         """
