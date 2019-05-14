@@ -52,10 +52,10 @@ class XGBoostWrapper(RecommenderBase):
                 self.xg.load_model('models/{}.model'.format(self.name))
                 return
 
-        X_train, y_train, group = data.dataset_xgboost_train(
+        X_train, y_train, group, weights = data.dataset_xgboost_train(
             mode=self.mode, cluster=self.cluster)
         print('data for train ready')
-        self.xg.fit(X_train, y_train, group)#, sample_weight=weights)
+        self.xg.fit(X_train, y_train, group, sample_weight=weights)
         print('fit done')
         self.xg.save_model('models/{}.model'.format(self.name))
         print('model saved')
@@ -106,7 +106,13 @@ class XGBoostWrapper(RecommenderBase):
 
 if __name__ == '__main__':
     from utils.menu import mode_selection
+    import out
     mode = mode_selection()
     model = XGBoostWrapper(mode=mode, cluster='no_cluster')
-    #model.evaluate(send_MRR_on_telegram=True)
-    model.run(True)
+    model.fit()
+    recs = model.recommend_batch()
+    MRR = model.compute_MRR(recs)
+    out.create_sub(recs, submission_name=model.name)
+    # model.evaluate(send_MRR_on_telegram=True)
+    # model.run(False)
+    
