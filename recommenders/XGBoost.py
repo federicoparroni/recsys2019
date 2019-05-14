@@ -47,17 +47,12 @@ class XGBoostWrapper(RecommenderBase):
         self.xg.fit(X_train, y_train, group)
         print('fit done')
 
-    def get_scores_batch(self):
-        pass
-
     def recommend_batch(self):
         X_test = data.dataset_xgboost_test(mode=self.mode, cluster=self.cluster)
         target_indices = data.target_indices(self.mode, self.cluster)
         full_impressions = pd.read_csv('dataset/preprocessed/full.csv', usecols=["impressions"])
         print('data for test ready')
-
         scores = list(self.xg.predict(X_test))
-
         final_predictions = []
         count = 0
         for index in tqdm(target_indices):
@@ -70,10 +65,27 @@ class XGBoostWrapper(RecommenderBase):
             count = count+len(impressions)
         return final_predictions
 
+    def get_scores_batch(self):
+        X_test = data.dataset_xgboost_test(mode=self.mode, cluster=self.cluster)
+        target_indices = data.target_indices(self.mode, self.cluster)
+        full_impressions = pd.read_csv('dataset/preprocessed/full.csv', usecols=["impressions"])
+        print('data for test ready')
+        scores = list(self.xg.predict(X_test))
+        final_predictions_with_scores = []
+        count = 0
+        for index in tqdm(target_indices):
+            impressions = list(map(int, full_impressions.loc[index]['impressions'].split('|')))
+            predictions = scores[count:count + len(impressions)]
+            couples = list(zip(predictions, impressions))
+            couples.sort(key=lambda x: x[0], reverse=True)
+            sorted_scores, sorted_impr = zip(*couples)
+            final_predictions_with_scores.append((index, list(sorted_impr), list(sorted_scores)))
+            count = count + len(impressions)
+        return final_predictions_with_scores
 
 if __name__ == '__main__':
     from utils.menu import mode_selection
     mode = mode_selection()
     model = XGBoostWrapper(mode=mode, cluster='no_cluster')
-    model.evaluate(send_MRR_on_telegram=True)
-    #model.run()
+    #model.evaluate(send_MRR_on_telegram=True)
+    model.run(True)

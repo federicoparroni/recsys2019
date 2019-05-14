@@ -25,6 +25,7 @@ class LazyUserRecommender(RecommenderBase):
         self.time_delay_treshold = time_delay_treshold
         self.weight_per_position = [53.59, 9.714, 4.38, 2.17, 1.64,  0.58, 0.22, 0.16,
                        0.105, 0.09, 0.07, 0.6, 0.5, 0.3, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+        self.recs = None
 
     def fit(self):
         df_test = data.test_df(self.mode, cluster=self.cluster)
@@ -65,9 +66,13 @@ class LazyUserRecommender(RecommenderBase):
         print("Fitting completed!")
 
     def recommend_batch(self):
+        if self.recs is None:
+            self.fit()
         return self.recs
 
     def get_scores_batch(self):
+        if self.recs is None:
+            self.fit()
         recs_batch = self.recs
 
         recs_scores_batch = []

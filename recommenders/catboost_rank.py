@@ -23,9 +23,9 @@ class CatboostRanker(RecommenderBase):
     Custom_metric is @1 for maximizing first result as good
     """
 
-    def __init__(self, mode, cluster='no_cluster', learning_rate=0.15, iterations=200, max_depth=10, reg_lambda=2,
-                 colsample_bylevel=1,
-                 custom_metric='AverageGain:top=1', algo='xgboost', verbose=False, include_test=False,
+    def __init__(self, mode, cluster='no_cluster', learning_rate=0.15, iterations=10, max_depth=10, reg_lambda=2.0,
+                 colsample_bylevel=1, bootstrap_type='Bernoulli', subsample = 0.66,
+                 custom_metric='AverageGain:top=1', include_test=False,
                  file_to_load=None,
                  file_to_store=None, limit_trees=False, features_to_one_hot=None):
         """
@@ -51,8 +51,6 @@ class CatboostRanker(RecommenderBase):
         self.default_parameters = {
             'iterations': math.ceil(iterations),
             'custom_metric': custom_metric,
-            'verbose': verbose,
-            'random_seed': 0,
             'learning_rate': learning_rate,
             'max_depth': math.ceil(max_depth),
             'colsample_bylevel': math.ceil(colsample_bylevel),
@@ -62,7 +60,9 @@ class CatboostRanker(RecommenderBase):
             'boosting_type': 'Plain',
             'loss_function': 'QuerySoftMax',
             'train_dir': 'QuerySoftMax',
-            'logging_level': 'Verbose'
+            'bootstrap_type': bootstrap_type,
+            'logging_level': 'Verbose',
+            'subsample': subsample
         }
 
         # create hyperparameters dictionary
@@ -87,6 +87,7 @@ class CatboostRanker(RecommenderBase):
         self.ctb = None
         self.categorical_features = None
         self.train_features = None
+        self.scores_batch = None
 
     def fit_model(self, additional_params=None, train_pool=None, test_pool=None):
         parameters = deepcopy(self.default_parameters)
@@ -189,8 +190,9 @@ class CatboostRanker(RecommenderBase):
 
     def get_scores_batch(self):
         if self.scores_batch is None:
+            self.fit()
             self.recommend_batch()
-        return self.scores_batch
+        return self.scores_batch[1:]
 
     def func(self, x):
         """
@@ -254,7 +256,7 @@ class CatboostRanker(RecommenderBase):
 
         test_df.groupby('trg_idx', as_index=False).progress_apply(self.func)
 
-        return self.predictions
+        return self.predictions[1:]
 
     def set_limit_trees(self, n):
         if n > 0:
@@ -297,30 +299,30 @@ class CatboostRanker(RecommenderBase):
                 self.scores_batch = []
                 test_df.groupby('trg_idx', as_index=False).progress_apply(self.func)
 
-                MRR = self.compute_MRR(self.predictions)
+                MRR = self.compute_MRR(self.predictions[1:])
                 HERA.send_message(
                     'evaluating recommender {} on {}. Iterations used {}\n MRR is: {}\n\n'.format(self.name,
                                                                                                   self.cluster, trees,
                                                                                                   MRR))
-        while True:
-
-            # Getting user input
+        else:
             while True:
-                trees = input("How many iterations?")
-                try:
-                    self.set_limit_trees(int(trees))
-                    break
-                except ValueError:
-                    pass
+                # Getting user input
+                while True:
+                    trees = input("How many iterations?")
+                    try:
+                        self.set_limit_trees(int(trees))
+                        break
+                    except ValueError:
+                        pass
 
-            self.predictions = []
-            self.scores_batch = []
-            test_df.groupby('trg_idx', as_index=False).progress_apply(self.func)
+                self.predictions = []
+                self.scores_batch = []
+                test_df.groupby('trg_idx', as_index=False).progress_apply(self.func)
 
-            MRR = self.compute_MRR(self.predictions)
-            HERA.send_message(
-                'evaluating recommender {} on {}. Iterations used {}\n MRR is: {}\n\n'.format(self.name, self.cluster,
-                                                                                              trees, MRR))
+                MRR = self.compute_MRR(self.predictions[1:])
+                HERA.send_message(
+                    'evaluating recommender {} on {}. Iterations used {}\n MRR is: {}\n\n'.format(self.name, self.cluster,
+                                                                                                  trees, MRR))
 
     def get_preprocessed_dataset(self, mode):
         """
@@ -340,7 +342,7 @@ class CatboostRanker(RecommenderBase):
                 mode=self.mode, sparse=False, cluster=self.cluster, algo=self.algo).copy()
 
         classification_df = classification_df.reindex(
-            'user_id,session_id,label,times_impression_appeared,time_elapsed_from_last_time_impression_appeared,impression_position,steps_from_last_time_impression_appeared,price,price_position,popularity,impression_position_wrt_last_interaction,impression_position_wrt_second_last_interaction,clickout_item_session_ref_this_impr,interaction_item_deals_session_ref_this_impr,interaction_item_image_session_ref_this_impr,interaction_item_info_session_ref_this_impr,interaction_item_rating_session_ref_this_impr,search_for_item_session_ref_this_impr,clickout_item_session_ref_not_in_impr,interaction_item_deals_session_ref_not_in_impr,interaction_item_image_session_ref_not_in_impr,interaction_item_info_session_ref_not_in_impr,interaction_item_rating_session_ref_not_in_impr,search_for_item_session_ref_not_in_impr,session_length_in_step,session_length_in_time,time_per_step,frenzy_factor,average_price_position,avg_price_interacted_item,avg_pos_interacted_items_in_impressions,pos_last_interaction_in_impressions,search_for_poi_distance_from_last_clickout,search_for_poi_distance_from_first_action,change_sort_order_distance_from_last_clickout,change_sort_order_distance_from_first_action,time_passed_before_clk'.split(','), axis=1)
+            'user_id,session_id,label,times_impression_appeared,time_elapsed_from_last_time_impression_appeared,impression_position,steps_from_last_time_impression_appeared,price,price_position,impression_position_wrt_last_interaction,impression_position_wrt_second_last_interaction,clickout_item_session_ref_this_impr,interaction_item_deals_session_ref_this_impr,interaction_item_image_session_ref_this_impr,interaction_item_info_session_ref_this_impr,interaction_item_rating_session_ref_this_impr,search_for_item_session_ref_this_impr,clickout_item_session_ref_not_in_impr,interaction_item_deals_session_ref_not_in_impr,interaction_item_image_session_ref_not_in_impr,interaction_item_info_session_ref_not_in_impr,interaction_item_rating_session_ref_not_in_impr,search_for_item_session_ref_not_in_impr,session_length_in_step,session_length_in_time,time_per_step,frenzy_factor,average_price_position,avg_price_interacted_item,avg_pos_interacted_items_in_impressions,pos_last_interaction_in_impressions,search_for_poi_distance_from_last_clickout,search_for_poi_distance_from_first_action,change_sort_order_distance_from_last_clickout,change_sort_order_distance_from_first_action,time_passed_before_clk'.split(','), axis=1)
 
         if len(self.features_to_drop) > 0:
             classification_df.drop(self.features_to_drop, axis=1, inplace=True)
@@ -374,6 +376,9 @@ class CatboostRanker(RecommenderBase):
 
 
 if __name__ == '__main__':
-    model = CatboostRanker(mode='full', cluster='no_cluster', iterations=100, include_test=False,
-                        algo='xgboost')
-    model.run()
+    model = CatboostRanker(mode='local', cluster='no_cluster', file_to_load='cat_1200')
+    array = model.get_scores_batch()
+    np.save('localscores_catboost.npy', array)
+    model = CatboostRanker(mode='full', cluster='no_cluster', file_to_load='cat_1200')
+    array = model.get_scores_batch()
+    np.save('fullscores_catboost.npy', array)

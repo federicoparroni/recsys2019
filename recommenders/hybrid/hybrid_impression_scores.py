@@ -8,7 +8,7 @@ from utils import log
 
 class HybridImpressionScores(Hybrid):
 
-    def __init__(self, mode, cluster, impression_scores_matrices, weights_array, normalization_mode, threshold):
+    def __init__(self, mode, cluster, impression_scores_matrices, weights_array, normalization_mode=None):
         name = 'HybridImpressionScores'
         """
         Initialize the model
@@ -29,9 +29,11 @@ class HybridImpressionScores(Hybrid):
         
         normalization_mode: str
             Normalization modes of normalization of scores. can be
-            - max_matrix: divide from max of every scores
-            - max_row: divide from max of every row score (max score of impressions for each session) 
-            - no_normalization: without normalization of scores
+            - MAX_MATRIX: divide from max of every scores
+            - MAX_ROW: divide from max of every row score (max score of impressions for each session) 
+            - L2: normalization l2 (euclidean)
+            - L1: normalization l1 
+            - NONE: without normalization of scores
             - ...
             
         threshold: float, optional
@@ -40,7 +42,7 @@ class HybridImpressionScores(Hybrid):
 
         super(Hybrid, self).__init__(name=name, cluster=cluster, mode=mode)
 
-        if len(weights_array)!= len(impression_scores_matrices):
+        if len(weights_array) != len(impression_scores_matrices):
             print("the matrices passed have not the same len of their weights... go get some coffee...")
 
         self.impression_scores_matrices = impression_scores_matrices
@@ -51,9 +53,7 @@ class HybridImpressionScores(Hybrid):
 
         self.normalization_mode = normalization_mode
 
-        self.threshold = threshold
-
-        #TODO: check if all recommended hotels are ints and not strings
+        # TODO: check if all recommended hotels are ints and not strings
 
     def fit(self):
         """
@@ -69,7 +69,7 @@ class HybridImpressionScores(Hybrid):
 
         target_indices = data.target_indices(self.mode, self.cluster)
 
-        #Initialize list for dict containing scores of imoressions
+        # Initialize list for dict containing scores of imoressions
         for s_target in target_indices:
             self.dict_scores[s_target] = {}
 
@@ -77,7 +77,6 @@ class HybridImpressionScores(Hybrid):
             print("Getting scores from recommender number {} ...".format(i))
 
             self.matrices_array = self.impression_scores_matrices[i].copy()
-
             self._normalization(self.normalization_mode)
 
             for k in tqdm(range(len(self.impression_scores_matrices[i]))):
@@ -86,9 +85,11 @@ class HybridImpressionScores(Hybrid):
                 # updating scores multiplied by corresponding weight
                 for j in range(len(triple[2])):
                     if triple[1][j] in self.dict_scores[triple[0]]:
-                        self.dict_scores[triple[0]][triple[1][j]] += self.normalized_matrices_array[k][j]*self.weights_array[i]
+                        self.dict_scores[triple[0]][triple[1][j]] += self.normalized_matrices_array[k][j] * \
+                                                                     self.weights_array[i]
                     else:
-                        self.dict_scores[triple[0]][triple[1][j]] = self.normalized_matrices_array[k][j]*self.weights_array[i]
+                        self.dict_scores[triple[0]][triple[1][j]] = self.normalized_matrices_array[k][j] * \
+                                                                    self.weights_array[i]
 
     def recommend_batch(self):
         """
@@ -102,32 +103,31 @@ class HybridImpressionScores(Hybrid):
 
         new_recs = []
         new_recs_scores = []
-        #Iterating on nonempty elements of dictionary
+        # Iterating on nonempty elements of dictionary
         print("{}: Recommending ....".format(self.name))
         for key, value in tqdm(self.dict_scores.items()):
-
             recs = sorted(value, key=value.get, reverse=True)
             scores = sorted(value.values(), reverse=True)
 
             new_recs.append((key, recs))
-            new_recs_scores.append( (key, recs, scores) )
-
+            new_recs_scores.append((key, recs, scores))
 
         self.recs_scores_batch = new_recs_scores
         self.recs_batch = new_recs
 
         return new_recs
 
-
     def get_scores_batch(self):
         return self.recs_scores_batch
 
-
     "Check if recommended score matrix have same len of target sessions"
+
     def _check_matrices_array_shapes(self):
         shape = len(self.impression_scores_matrices[0])
         for m in self.impression_scores_matrices:
             if len(m) != shape:
+                for e in self.impression_scores_matrices:
+                    print(len(e))
                 print("the matrices passed have not the same shape... go get some coffe...")
                 exit(0)
 
@@ -153,23 +153,28 @@ class HybridImpressionScores(Hybrid):
 
         normalized_matrices_array = np.asarray(self.matrices_array)
 
-        max_val = np.amax(normalized_matrices_array)
+        max_val = np.asarray(max([max(sublist) for sublist in normalized_matrices_array]))
 
         if max_val != 0:
-            normalized_matrices_array = normalized_matrices_array / max_val
+            for i in range(len(normalized_matrices_array)):
+                normalized_matrices_array[i] = normalized_matrices_array[i] / max_val
+
 
         return normalized_matrices_array
 
-    def _normalize_l2(self):
+    def _normalize_l(self, n):
         normalized_matrices_array = np.asarray(self.matrices_array)
 
         for i in range(len(normalized_matrices_array)):
             array = normalized_matrices_array[i]
             if len(array) > 0:
-                max_val = np.sqrt((array * array).sum(axis=1))
+                if n == 2:
+                    norm = np.sqrt((array * array).sum(axis=1))
+                elif n == 1:
+                    norm = np.array(array).sum(axis=1)
 
-                if max_val != 0:
-                    normalized_matrices_array = normalized_matrices_array / max_val
+                if norm != 0:
+                    normalized_matrices_array = normalized_matrices_array / norm
 
         return normalized_matrices_array
 
@@ -183,14 +188,30 @@ class HybridImpressionScores(Hybrid):
         """
         self.matrices_array = [x[2] for x in self.matrices_array]
 
+        self.matrices_array = self._translate_negatives()
+
         if normalization_mode == 'MAX_ROW':
             self.normalized_matrices_array = self._normalize_max_row()
         elif normalization_mode == 'MAX_MATRIX':
             self.normalized_matrices_array = self._normalize_max_matrix()
         elif normalization_mode == 'L2':
-            self.normalized_matrices_array = self._normalize_l2()
+            self.normalized_matrices_array = self._normalize_l(2)
+        elif normalization_mode == 'L1':
+            self.normalized_matrices_array = self._normalize_l(1)
         elif normalization_mode == 'NONE':
             self.normalized_matrices_array = self.matrices_array
         else:
             log.error('invalid string for normalization')
             return
+
+    def _translate_negatives(self):
+        normalized_matrices_array = self.matrices_array
+
+        min_val = min([min(sublist) for sublist in normalized_matrices_array])
+
+        if min_val < 0:
+            print('Negative detected: translating scores matrices...')
+            for i in range(len(normalized_matrices_array)):
+                normalized_matrices_array[i] = normalized_matrices_array[i] + min_val
+
+        return normalized_matrices_array
