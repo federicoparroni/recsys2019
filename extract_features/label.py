@@ -1,5 +1,6 @@
 from extract_features.feature_base import FeatureBase
 import data
+from preprocess_utils.last_clickout_indices import find as find_last_clickout_indices
 import pandas as pd
 from tqdm.auto import tqdm
 import numpy as np
@@ -45,20 +46,6 @@ class ImpressionLabel(FeatureBase):
                         r.append((i,0))
             return r
 
-
-        def find_last_clickout_indices(df):
-            indices = []
-            cur_ses = ''
-            cur_user = ''
-            temp_df = df[df.action_type == 'clickout item'][['user_id', 'session_id', 'action_type']]
-            for idx in tqdm(temp_df.index.values[::-1]):
-                ruid = temp_df.at[idx, 'user_id']
-                rsid = temp_df.at[idx, 'session_id']
-                if (ruid != cur_user or rsid != cur_ses):
-                    indices.append(idx)
-                    cur_user = ruid
-                    cur_ses = rsid
-            return indices[::-1]
 
         def expand_impressions(df):
             res_df = df.copy()

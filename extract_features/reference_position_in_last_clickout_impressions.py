@@ -3,24 +3,27 @@ import os
 sys.path.append(os.getcwd())
 
 from extract_features.feature_base import FeatureBase
+
 import data
 import pandas as pd
+from preprocess_utils.last_clickout_indices import find as find_last_clickout_indices
 from tqdm.auto import tqdm
 
-class ReferencePriceInNextClickout(FeatureBase):
+class ReferencePositionInLastClickoutImpressions(FeatureBase):
 
     """
-    Extracts the position of the row reference inside the next clickout impressions.
-    If the reference is not present in the next clickout impressions, its price will be 0.
-    | index | user_id | session_id | price
-    price is a positive number
+    Extracts the position of the row reference inside the last clickout impressions.
+    If the reference is not present in the last clickout impressions, the position will be -1
+    | index | user_id | session_id | ref_pos
+    ref_pos is a number between 0-24 or -1
     """
 
     def __init__(self, mode='full', cluster='no_cluster'):
-        name = 'reference_price_in_next_clickout'
-        columns_to_onehot = []
+        name = 'reference_position_in_last_clickout_impressions'
+        columns_to_onehot = [('ref_pos', 'single')]
 
         super().__init__(name=name, mode='full', columns_to_onehot=columns_to_onehot, save_index=True)
+        self.one_hot_prefix = 'rp'
 
 
     def extract_feature(self):
@@ -30,14 +33,16 @@ class ReferencePriceInNextClickout(FeatureBase):
 
         df = df.sort_index()
         # find the clickout rows
-        clickout_rows = df[['user_id','session_id','action_type','impressions','prices']][df.action_type == 'clickout item']
+        last_clickout_idxs = find_last_clickout_indices(df)
+        clickout_rows = df.loc[last_clickout_idxs, ['user_id','session_id','action_type','impressions']]
         clickout_rows['impression_list'] = clickout_rows.impressions.str.split('|')
-        clickout_rows['price_list'] = clickout_rows.prices.str.split('|')
+        clickout_rows = clickout_rows.drop('impressions', axis=1)
+
         # find the interaction with numeric reference
         reference_rows = df[['user_id','session_id','reference','action_type']]
         reference_rows = reference_rows[df.reference.str.isnumeric() & (df.action_type != 'clickout item')]
-        reference_rows = reference_rows.drop('action_type',axis=1)
-        reference_rows['price'] = 0
+        reference_rows = reference_rows.drop('action_type', axis=1)
+        reference_rows['ref_pos'] = -1
 
         # iterate over the sorted reference_rows and clickout_rows
         j = 0
@@ -54,27 +59,35 @@ class ReferencePriceInNextClickout(FeatureBase):
             # check if row and next_clickout are in the same session
             if row.user_id == next_clickout.user_id and row.session_id == next_clickout.session_id:
                 try:
-                    ref_idx = next_clickout.impression_list.index(row.reference)
-                    reference_rows.at[idx, 'price'] = next_clickout.price_list[ref_idx]
+                    reference_rows.at[idx,'ref_pos'] = next_clickout.impression_list.index(row.reference)
                 except:
                     pass
         
         return reference_rows.drop('reference', axis=1)
 
+    def post_loading(self, df):
+        # drop the one-hot column -1, representing a non-numeric reference or a reference not present
+        # in the clickout impressions
+        if 'rp_-1' in df.columns:
+            df = df.drop('rp_-1', axis=1)
+        return df
 
     def join_to(self, df, one_hot=True):
         """ Join this feature to the specified dataframe """
-        feature_df = self.read_feature().drop(['user_id','session_id'],axis=1)
+        feature_df = self.read_feature(one_hot=one_hot).drop(['user_id','session_id'],axis=1)
+        feature_cols = feature_df.columns
         res_df = df.merge(feature_df, how='left', left_index=True, right_index=True)
-        res_df['price'] = res_df.price.fillna(0).astype('int')
+        if one_hot:
+            # fill the non-joined NaN rows with 0
+            res_df[feature_cols] = res_df[feature_cols].fillna(0).astype('int8')
         return res_df
 
 
 if __name__ == '__main__':
 
-    c = ReferencePriceInNextClickout()
+    c = ReferencePositionInLastClickoutImpressions()
 
     print('Creating {} for {} {}'.format(c.name, c.mode, c.cluster))
     c.save_feature()
 
-    print(c.read_feature())
+    print(c.read_feature(one_hot=True))
