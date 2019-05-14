@@ -128,6 +128,8 @@ def dataset_xgboost_train(mode, cluster='no_cluster'):
             os.path.join(bp, 'y_train.csv'))['label'].to_dense()
         _dataset_xgboost_train[bp+'c'] = np.load(
             os.path.join(bp, 'group.npy'))
+        # _dataset_xgboost_train[bp+'d'] = np.load(
+        #     os.path.join(bp, 'class_weights.npy'))
     return _dataset_xgboost_train[bp+'a'], \
         _dataset_xgboost_train[bp+'b'], \
         _dataset_xgboost_train[bp+'c']

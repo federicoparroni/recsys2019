@@ -29,7 +29,9 @@ from extract_features.time_from_last_action_before_clk import TimeFromLastAction
 from extract_features.times_impression_appeared_in_clickouts_session import TimesImpressionAppearedInClickoutsSession
 from extract_features.times_user_interacted_with_impression import TimesUserInteractedWithImpression
 from extract_features.timing_from_last_interaction_impression import TimingFromLastInteractionImpression
+from extract_features.weights_class import WeightsClass
 from preprocess_utils.merge_features import merge_features
+
 
 
 def dump_svmlight(df, save_path):
@@ -52,6 +54,13 @@ def create_dataset(mode, cluster, features_array, dataset_name):
     _SAVE_BASE_PATH = f'dataset/preprocessed/tf_ranking/{cluster}/{mode}/{dataset_name}'
     cf.check_folder(_SAVE_BASE_PATH)
     train_df, vali_test_df= merge_features(mode, cluster, features_array)
+
+    weights=WeightsClass(mode,cluster).read_feature(one_hot=True)
+    train_df = pd.merge(train_df, weights, on=['user_id','session_id', 'item_id'])
+    print('columns of weights is:{}'.format(list(train_df.columns).index('weights')+1))
+    print()
+    print('weights added')
+    print(train_df.shape)
 
     dump_svmlight(train_df, f'{_SAVE_BASE_PATH}/train.txt')
     if mode == 'full':

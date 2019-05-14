@@ -33,6 +33,26 @@ def create_groups(df):
     group = df.groupby(['user_id', 'session_id'], sort=False).apply(lambda x: len(x)).values
     return group
 
+def create_weights(df):
+    df_slice = df[['user_id', 'session_id', 'impression_position', 'label']]
+    weights = []
+    au = df_slice.head().user_id.values[0]
+    ai = df_slice.head().session_id.values[0]
+    found = False
+    for idx, row in df_slice.iterrows():
+        if au != row.user_id or ai != row.session_id:
+            if not found and len(weights) > 0:
+                weights.append(1)
+            au = row.user_id
+            ai = row.session_id
+            found = False
+        if row.label == 1:
+            if row.impression_position == 1:
+                weights.append(0.5)
+            else:
+                weights.append(2)
+            found = True
+    return weights
 
 def create_dataset(mode, cluster):
     # training
@@ -48,6 +68,11 @@ def create_dataset(mode, cluster):
 
     check_folder('dataset/preprocessed/{}/{}/xgboost/'.format(cluster, mode))
 
+    # weights = create_weights(train_df)
+    # print(len(weights))
+    # np.save('dataset/preprocessed/{}/{}/xgboost/class_weights'.format(cluster, mode), weights)
+    # print('class weights saved')
+
     X_train = train_df.drop(['index', 'step', 'user_id', 'session_id', 'item_id', 'label'], axis=1)
     X_train = X_train.to_sparse(fill_value=0)
     X_train = X_train.astype(np.float64)
@@ -61,6 +86,7 @@ def create_dataset(mode, cluster):
     print('y_train saved')
 
     group = create_groups(train_df)
+    print(len(group))
     np.save('dataset/preprocessed/{}/{}/xgboost/group'.format(cluster, mode), group)
     print('groups saved')
 
