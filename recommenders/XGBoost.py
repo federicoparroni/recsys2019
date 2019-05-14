@@ -13,7 +13,9 @@ tqdm.pandas()
 class XGBoostWrapper(RecommenderBase):
 
     def __init__(self, mode, cluster='no_cluster', learning_rate=0.3, min_child_weight=1, n_estimators=100, max_depth=3, subsample=1, colsample_bytree=1, reg_lambda=1, reg_alpha=0):
-        name = 'xgboost_ranker'
+        name = 'xgboost_ranker_mode={}_cluster={}_learning_rate={}_min_child_weight={}_n_estimators={}_max_depth={}_subsample={}_colsample_bytree={}_reg_lambda={}_reg_alpha={}'.format(
+            mode, cluster, learning_rate, min_child_weight, n_estimators, max_depth, subsample, colsample_bytree, reg_lambda, reg_alpha
+        )
         super(XGBoostWrapper, self).__init__(
             name=name, mode=mode, cluster=cluster)
 
@@ -41,22 +43,26 @@ class XGBoostWrapper(RecommenderBase):
                                      }
 
     def fit(self):
-        X_train, y_train, group = data.dataset_xgboost_train(mode=self.mode, cluster=self.cluster)
+        X_train, y_train, group, weights = data.dataset_xgboost_train(
+            mode=self.mode, cluster=self.cluster)
         print('data for train ready')
 
-        self.xg.fit(X_train, y_train, group)
+        self.xg.fit(X_train, y_train, group)#, sample_weight=weights)
         print('fit done')
 
     def recommend_batch(self):
-        X_test = data.dataset_xgboost_test(mode=self.mode, cluster=self.cluster)
+        X_test = data.dataset_xgboost_test(
+            mode=self.mode, cluster=self.cluster)
         target_indices = data.target_indices(self.mode, self.cluster)
-        full_impressions = pd.read_csv('dataset/preprocessed/full.csv', usecols=["impressions"])
+        full_impressions = pd.read_csv(
+            'dataset/preprocessed/full.csv', usecols=["impressions"])
         print('data for test ready')
         scores = list(self.xg.predict(X_test))
         final_predictions = []
         count = 0
         for index in tqdm(target_indices):
-            impressions = list(map(int, full_impressions.loc[index]['impressions'].split('|')))
+            impressions = list(
+                map(int, full_impressions.loc[index]['impressions'].split('|')))
             predictions = scores[count:count + len(impressions)]
             couples = list(zip(predictions, impressions))
             couples.sort(key=lambda x: x[0], reverse=True)
@@ -66,23 +72,28 @@ class XGBoostWrapper(RecommenderBase):
         return final_predictions
 
     def get_scores_batch(self):
-        X_test = data.dataset_xgboost_test(mode=self.mode, cluster=self.cluster)
+        X_test = data.dataset_xgboost_test(
+            mode=self.mode, cluster=self.cluster)
         target_indices = data.target_indices(self.mode, self.cluster)
-        full_impressions = pd.read_csv('dataset/preprocessed/full.csv', usecols=["impressions"])
+        full_impressions = pd.read_csv(
+            'dataset/preprocessed/full.csv', usecols=["impressions"])
         print('data for test ready')
         scores = list(self.xg.predict(X_test))
         final_predictions_with_scores = []
         count = 0
         for index in tqdm(target_indices):
-            impressions = list(map(int, full_impressions.loc[index]['impressions'].split('|')))
+            impressions = list(
+                map(int, full_impressions.loc[index]['impressions'].split('|')))
             predictions = scores[count:count + len(impressions)]
             couples = list(zip(predictions, impressions))
             couples.sort(key=lambda x: x[0], reverse=True)
             sorted_scores, sorted_impr = zip(*couples)
-            final_predictions_with_scores.append((index, list(sorted_impr), list(sorted_scores)))
+            final_predictions_with_scores.append(
+                (index, list(sorted_impr), list(sorted_scores)))
             count = count + len(impressions)
         return final_predictions_with_scores
 
+z
 if __name__ == '__main__':
     from utils.menu import mode_selection
     mode = mode_selection()

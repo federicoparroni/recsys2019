@@ -14,7 +14,8 @@ from clusterize.cluster_recurrent import ClusterRecurrent
 from clusterize.cluster_up_to_len6 import ClusterUpToLen6
 from clusterize.cluster_over_len6 import ClusterOverLen6
 
-from extract_features.reference_position_in_next_clickout_impressions import ReferencePositionInNextClickoutImpressions
+#from extract_features.reference_position_in_next_clickout_impressions import ReferencePositionInNextClickoutImpressions
+from extract_features.reference_position_in_last_clickout_impressions import ReferencePositionInLastClickoutImpressions
 #from extract_features.global_interactions_popularity import GlobalInteractionsPopularity
 from extract_features.global_clickout_popularity import GlobalClickoutPopularity
 from extract_features.reference_price_in_next_clickout import ReferencePriceInNextClickout
@@ -179,7 +180,8 @@ if __name__ == "__main__":
     sess_length = int(input('Insert the desired sessions length, -1 to not to pad/truncate the sessions: '))
 
     features_to_join = [
-        ReferencePositionInNextClickoutImpressions,
+        #ReferencePositionInNextClickoutImpressions,
+        ReferencePositionInLastClickoutImpressions,
         GlobalClickoutPopularity,
         #GlobalInteractionsPopularity,
         AveragePriceInNextClickout,
