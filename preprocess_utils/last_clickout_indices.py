@@ -5,6 +5,7 @@ def find(df):
     cur_ses = ''
     cur_user = ''
     temp_df = df[df.action_type == 'clickout item'][['user_id', 'session_id', 'action_type']]
+    temp_df = temp_df.sort_index()
     for idx in tqdm(temp_df.index.values[::-1]):
         ruid = temp_df.at[idx, 'user_id']
         rsid = temp_df.at[idx, 'session_id']
