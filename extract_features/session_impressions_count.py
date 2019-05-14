@@ -19,7 +19,7 @@ class SessionsImpressionsCount(FeatureBase):
     """
 
     def __init__(self, mode='full', cluster='no_cluster'):
-        name = 'sessions_impressions_count'
+        name = 'session_impressions_count'
         columns_to_onehot = []
 
         super().__init__(name=name, mode='full', columns_to_onehot=columns_to_onehot, save_index=False)
