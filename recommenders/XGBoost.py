@@ -8,6 +8,9 @@ from pandas import Series
 from tqdm import tqdm
 import scipy.sparse as sps
 tqdm.pandas()
+import os
+from utils.check_folder import check_folder
+from utils.menu import yesno_choice
 
 
 class XGBoostWrapper(RecommenderBase):
@@ -43,12 +46,19 @@ class XGBoostWrapper(RecommenderBase):
                                      }
 
     def fit(self):
-        X_train, y_train, group, weights = data.dataset_xgboost_train(
+        check_folder('models')
+        if os.path.isfile('models/{}.model'.format(self.name)):
+            if yesno_choice('the exact same model was yet created. want to load?') == 'y':
+                self.xg.load_model('models/{}.model'.format(self.name))
+                return
+
+        X_train, y_train, group = data.dataset_xgboost_train(
             mode=self.mode, cluster=self.cluster)
         print('data for train ready')
-
         self.xg.fit(X_train, y_train, group)#, sample_weight=weights)
         print('fit done')
+        self.xg.save_model('models/{}.model'.format(self.name))
+        print('model saved')
 
     def recommend_batch(self):
         X_test = data.dataset_xgboost_test(
@@ -93,7 +103,7 @@ class XGBoostWrapper(RecommenderBase):
             count = count + len(impressions)
         return final_predictions_with_scores
 
-z
+
 if __name__ == '__main__':
     from utils.menu import mode_selection
     mode = mode_selection()
