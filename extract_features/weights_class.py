@@ -61,8 +61,11 @@ class WeightsClass(FeatureBase):
 
 
         train_df = data.train_df(mode=self.mode, cluster=self.cluster)
-        idxs_click = find_last_clickout_indices(train_df)
-        df = train_df.loc[idxs_click][['user_id', 'session_id', 'reference', 'impressions']]
+        test_df = data.test_df(mode=self.mode, cluster=self.cluster)
+        test_df=test_df.fillna(0)
+        df_merged = pd.concat([train_df,test_df])
+        idxs_click = find_last_clickout_indices(df_merged)
+        df = df_merged.loc[idxs_click][['user_id', 'session_id', 'reference', 'impressions']]
 
         # weights used to balance the classes
         weights = np.array([0.37738, 0.10207, 0.07179, 0.05545, 0.04711, 0.03822, 0.03215, 0.02825, 0.02574,

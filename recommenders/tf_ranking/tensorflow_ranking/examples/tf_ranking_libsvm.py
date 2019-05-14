@@ -343,7 +343,7 @@ def train_and_test():
 
     ranking_head = tfr.head.create_ranking_head(
         loss_fn=tfr.losses.make_loss_fn(FLAGS.loss, lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight(
-            smooth_fraction=0.5)),
+            smooth_fraction=0.5), weights_feature_name='39'),
         eval_metric_fns=get_eval_metric_fns(),
         train_op_fn=_train_op_fn)
     # lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight()
@@ -466,7 +466,7 @@ if __name__ == "__main__":
 
     flags.DEFINE_integer("num_features", 34, "Number of features per document.")
     flags.DEFINE_integer("list_size", 25, "List size used for training.")
-    flags.DEFINE_integer("group_size", 1, "Group size used in score function.")
+    flags.DEFINE_integer("group_size", 25, "Group size used in score function.")
     #1
 
     flags.DEFINE_string("loss", loss,
