@@ -16,11 +16,19 @@ from clusterize.cluster_over_len6 import ClusterOverLen6
 
 #from extract_features.reference_position_in_next_clickout_impressions import ReferencePositionInNextClickoutImpressions
 from extract_features.reference_position_in_last_clickout_impressions import ReferencePositionInLastClickoutImpressions
+
 #from extract_features.global_interactions_popularity import GlobalInteractionsPopularity
 from extract_features.global_clickout_popularity import GlobalClickoutPopularity
-from extract_features.reference_price_in_next_clickout import ReferencePriceInNextClickout
+
+#from extract_features.reference_price_in_next_clickout import ReferencePriceInNextClickout
+from extract_features.reference_price_in_last_clickout import ReferencePriceInLastClickout
+
 from extract_features.average_price_in_next_clickout import AveragePriceInNextClickout
-from extract_features.reference_price_position_in_next_clickout import ReferencePricePositionInNextClickout
+
+#from extract_features.reference_price_position_in_next_clickout import ReferencePricePositionInNextClickout
+from extract_features.reference_price_position_in_last_clickout import ReferencePricePositionInLastClickout
+
+from extract_features.session_impressions_count import SessionsImpressionsCount
 
 import preprocess_utils.session2vec as sess2vec
 
@@ -185,8 +193,14 @@ if __name__ == "__main__":
         GlobalClickoutPopularity,
         #GlobalInteractionsPopularity,
         AveragePriceInNextClickout,
-        ReferencePriceInNextClickout,
-        ReferencePricePositionInNextClickout,
+        
+        #ReferencePriceInNextClickout,
+        ReferencePriceInLastClickout,
+
+        #ReferencePricePositionInNextClickout,
+        ReferencePricePositionInLastClickout,
+
+        SessionsImpressionsCount,
     ]
     features = []
     # create the features to join

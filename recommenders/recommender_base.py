@@ -91,7 +91,7 @@ class RecommenderBase(ABC):
         
         # infos on the perc of target indices in which I'm evaluating the model
         perc = len(data.target_indices(self.mode, self.cluster))/len(data.target_indices(self.mode, data.SPLIT_USED))
-        print('\nevaluating with mode {} on {} percent of the targets\n'.format(self.mode, perc))
+        print('\nevaluating with mode {} on {} percent of the targets\n'.format(self.mode, perc*100))
 
         self.fit()
         recommendations = self.recommend_batch()

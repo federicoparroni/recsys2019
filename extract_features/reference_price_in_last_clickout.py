@@ -3,27 +3,25 @@ import os
 sys.path.append(os.getcwd())
 
 from extract_features.feature_base import FeatureBase
-
 import data
 import pandas as pd
 from preprocess_utils.last_clickout_indices import find as find_last_clickout_indices
 from tqdm.auto import tqdm
 
-class ReferencePositionInLastClickoutImpressions(FeatureBase):
+class ReferencePriceInLastClickout(FeatureBase):
 
     """
     Extracts the position of the row reference inside the last clickout impressions.
-    If the reference is not present in the last clickout impressions, the position will be -1
-    | index | ref_pos
-    ref_pos is a number between 0-24 or -1
+    If the reference is not present in the last clickout impressions, its price will be 0.
+    | index | price
+    price is a positive number
     """
 
     def __init__(self, mode='full', cluster='no_cluster'):
-        name = 'reference_position_in_last_clickout_impressions'
-        columns_to_onehot = [('ref_pos', 'single')]
+        name = 'reference_price_in_last_clickout'
+        columns_to_onehot = []
 
         super().__init__(name=name, mode='full', columns_to_onehot=columns_to_onehot, save_index=True)
-        self.one_hot_prefix = 'rp'
 
 
     def extract_feature(self):
@@ -33,15 +31,14 @@ class ReferencePositionInLastClickoutImpressions(FeatureBase):
 
         # find the last clickout rows
         last_clickout_idxs = find_last_clickout_indices(df)
-        clickout_rows = df.loc[last_clickout_idxs, ['user_id','session_id','action_type','impressions']]
+        clickout_rows = df.loc[last_clickout_idxs, ['user_id','session_id','action_type','impressions','prices']]
         clickout_rows['impression_list'] = clickout_rows.impressions.str.split('|')
-        clickout_rows = clickout_rows.drop('impressions', axis=1)
-
+        clickout_rows['price_list'] = clickout_rows.prices.str.split('|')
         # find the interactions with numeric reference
         reference_rows = df[['user_id','session_id','reference','action_type']]
         reference_rows = reference_rows[df.reference.str.isnumeric() & (df.action_type != 'clickout item')]
-        reference_rows = reference_rows.drop('action_type', axis=1)
-        reference_rows['ref_pos'] = -1
+        reference_rows = reference_rows.drop('action_type',axis=1)
+        reference_rows['price'] = 0
         reference_rows = reference_rows.sort_index()
 
         # iterate over the sorted reference_rows and clickout_rows
@@ -59,35 +56,27 @@ class ReferencePositionInLastClickoutImpressions(FeatureBase):
             # check if row and next_clickout are in the same session
             if row.user_id == next_clickout.user_id and row.session_id == next_clickout.session_id:
                 try:
-                    reference_rows.at[idx,'ref_pos'] = next_clickout.impression_list.index(row.reference)
+                    ref_idx = next_clickout.impression_list.index(row.reference)
+                    reference_rows.at[idx, 'price'] = next_clickout.price_list[ref_idx]
                 except:
                     pass
         
         return reference_rows.drop(['user_id','session_id','reference'], axis=1)
 
-    def post_loading(self, df):
-        # drop the one-hot column -1, representing a non-numeric reference or a reference not present
-        # in the clickout impressions
-        if 'rp_-1' in df.columns:
-            df = df.drop('rp_-1', axis=1)
-        return df
 
-    def join_to(self, df, one_hot=True):
+    def join_to(self, df, one_hot=False):
         """ Join this feature to the specified dataframe """
-        feature_df = self.read_feature(one_hot=one_hot)
-        feature_cols = feature_df.columns
+        feature_df = self.read_feature()
         res_df = df.merge(feature_df, how='left', left_index=True, right_index=True)
-        if one_hot:
-            # fill the non-joined NaN rows with 0
-            res_df[feature_cols] = res_df[feature_cols].fillna(0).astype('int8')
+        res_df['price'] = res_df.price.fillna(0).astype('int')
         return res_df
 
 
 if __name__ == '__main__':
 
-    c = ReferencePositionInLastClickoutImpressions()
+    c = ReferencePriceInLastClickout()
 
     print('Creating {} for {} {}'.format(c.name, c.mode, c.cluster))
     c.save_feature()
 
-    print(c.read_feature(one_hot=True))
+    print(c.read_feature())

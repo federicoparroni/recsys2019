@@ -16,7 +16,7 @@ class ReferencePricePositionInNextClickout(FeatureBase):
     price_pos is a number between 0-24 or -1
     """
 
-    def __init__(self, mode, cluster):
+    def __init__(self, mode='full', cluster='no_cluster'):
         name = 'reference_price_position_in_next_clickout'
         columns_to_onehot = [('price_pos', 'single')]
 
@@ -43,6 +43,7 @@ class ReferencePricePositionInNextClickout(FeatureBase):
         reference_rows = reference_rows[df.reference.str.isnumeric() & (df.action_type != 'clickout item')]
         reference_rows = reference_rows.drop('action_type',axis=1)
         reference_rows['price_pos'] = -1
+        reference_rows = reference_rows.sort_index()
 
         # iterate over the sorted reference_rows and clickout_rows
         j = 0
@@ -88,10 +89,7 @@ class ReferencePricePositionInNextClickout(FeatureBase):
 if __name__ == '__main__':
     import utils.menu as menu
 
-    mode = menu.mode_selection()
-    cluster = menu.cluster_selection()
-
-    c = ReferencePricePositionInNextClickout(mode, cluster)
+    c = ReferencePricePositionInNextClickout()
 
     print('Creating {} for {} {}'.format(c.name, c.mode, c.cluster))
     c.save_feature()
