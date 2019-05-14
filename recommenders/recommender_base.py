@@ -64,7 +64,7 @@ class RecommenderBase(ABC):
         Handle all the operations needed to run this model a single time.
         In particular, performs the fit and get the recommendations.
         Then, it can either export the submission or not based on the mode.
-        Moreover, it can export the scores of the algorithm based on the
+        Moreover, it can export the scores of the algorithm based on the flag export_scores
         """
         print('running {}'.format(self.name))
         if export_scores:

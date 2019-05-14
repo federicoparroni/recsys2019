@@ -68,10 +68,10 @@ def create_dataset(mode, cluster):
 
     check_folder('dataset/preprocessed/{}/{}/xgboost/'.format(cluster, mode))
 
-    weights = create_weights(train_df)
-    print(len(weights))
-    np.save('dataset/preprocessed/{}/{}/xgboost/class_weights'.format(cluster, mode), weights)
-    print('class weights saved')
+    # weights = create_weights(train_df)
+    # print(len(weights))
+    # np.save('dataset/preprocessed/{}/{}/xgboost/class_weights'.format(cluster, mode), weights)
+    # print('class weights saved')
 
     X_train = train_df.drop(['index', 'step', 'user_id', 'session_id', 'item_id', 'label'], axis=1)
     X_train = X_train.to_sparse(fill_value=0)
