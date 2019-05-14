@@ -35,7 +35,7 @@ class Borda_Hybrid(RecommenderBase):
 
         self.current_directory = Path(__file__).absolute().parent
         self.data_directory = self.current_directory.joinpath('..', '..', 'submissions/hybrid')
-        self.gt_csv = self.data_directory.joinpath('ground_truth_small.csv')
+        self.gt_csv = self.data_directory.joinpath('ground_truth.csv')
         self.mode = mode
         self.dfs_subname = []
         self.params = params
@@ -86,7 +86,7 @@ class Borda_Hybrid(RecommenderBase):
         # This creates a dictonary that holds for each sub the list of the scores (1 for each impression)
         for d in self.dfs_subname:
             print(f'Getting scores for {d[1]}...')
-            self.dict_sub_scores[d[1]] = dowdall_scores # TODO change this to try different voting systems
+            self.dict_sub_scores[d[1]] = borda_scores_at_0 # TODO change this to try different voting systems
         return self.dict_sub_scores
 
     def run_hybrid(self):

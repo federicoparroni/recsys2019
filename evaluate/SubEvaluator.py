@@ -65,8 +65,9 @@ class SubEvaluator():
         'gt_only_two_interaction_sessions.csv',
         'gt_less_than_5_interaction_sessions.csv',
         'gt_5_to_10_interaction_sessions.csv',
-        'gt_more_than_10_interaction_sessions.csv'
+        'gt_more_than_10_interaction_sessions.csv',
         #TODO ADD OTHER CLUSTERS
+        'gt_no_num_reference_sessions.csv'
         ]
 
         total_score = self.score_sub(self.sub, self.data_directory.joinpath('ground_truth.csv'))
