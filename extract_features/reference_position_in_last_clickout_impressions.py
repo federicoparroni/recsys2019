@@ -31,7 +31,6 @@ class ReferencePositionInLastClickoutImpressions(FeatureBase):
 
         df = data.full_df()
 
-        df = df.sort_index()
         # find the last clickout rows
         last_clickout_idxs = find_last_clickout_indices(df)
         clickout_rows = df.loc[last_clickout_idxs, ['user_id','session_id','action_type','impressions']]
@@ -43,6 +42,7 @@ class ReferencePositionInLastClickoutImpressions(FeatureBase):
         reference_rows = reference_rows[df.reference.str.isnumeric() & (df.action_type != 'clickout item')]
         reference_rows = reference_rows.drop('action_type', axis=1)
         reference_rows['ref_pos'] = -1
+        reference_rows = reference_rows.sort_index()
 
         # iterate over the sorted reference_rows and clickout_rows
         j = 0

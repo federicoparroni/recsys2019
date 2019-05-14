@@ -38,6 +38,7 @@ class ReferencePriceInNextClickout(FeatureBase):
         reference_rows = reference_rows[df.reference.str.isnumeric() & (df.action_type != 'clickout item')]
         reference_rows = reference_rows.drop('action_type',axis=1)
         reference_rows['price'] = 0
+        reference_rows = reference_rows.sort_index()
 
         # iterate over the sorted reference_rows and clickout_rows
         j = 0
