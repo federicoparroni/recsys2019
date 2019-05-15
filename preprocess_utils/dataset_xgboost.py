@@ -55,26 +55,30 @@ def create_weights(df):
             found = True
     return weights
 
-def create_dataset(mode, cluster):
+def create_dataset(mode, cluster, class_weights=False):
     # training
     features_array = [ActionsInvolvingImpressionSession, ImpressionLabel, ImpressionPriceInfoSession,
                       TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
                       ImpressionPositionSession, LastInteractionInvolvingImpression,
                       SessionDevice, SessionSortOrderWhenClickout, MeanPriceClickout,
                       PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
-                      TimesImpressionAppearedInClickoutsSession, WeightsClass]#, GlobalInteractionsPopularity,
+                      TimesImpressionAppearedInClickoutsSession]#, WeightsClass]#, GlobalInteractionsPopularity,
                       #GlobalClickoutPopularity]
 
     train_df, test_df = merge_features(mode, cluster, features_array)
 
     check_folder('dataset/preprocessed/{}/{}/xgboost/'.format(cluster, mode))
 
-    weights = train_df[['user_id', 'session_id', 'weights']].drop_duplicates().weights.values
-    print(len(weights))
-    np.save('dataset/preprocessed/{}/{}/xgboost/class_weights'.format(cluster, mode), weights)
-    print('class weights saved')
+    if class_weights:
+        weights = train_df[['user_id', 'session_id', 'weights']].drop_duplicates().weights.values
+        print(len(weights))
+        np.save('dataset/preprocessed/{}/{}/xgboost/class_weights'.format(cluster, mode), weights)
+        print('class weights saved')
 
-    X_train = train_df.drop(['index', 'step', 'user_id', 'session_id', 'item_id', 'label', 'weights'], axis=1)
+    if class_weights:
+        X_train = train_df.drop(['index', 'step', 'user_id', 'session_id', 'item_id', 'label', 'weights'], axis=1)
+    else:
+        X_train = train_df.drop(['index', 'step', 'user_id', 'session_id', 'item_id', 'label'], axis=1)
     X_train = X_train.to_sparse(fill_value=0)
     X_train = X_train.astype(np.float64)
     X_train = X_train.to_coo().tocsr()
@@ -93,8 +97,10 @@ def create_dataset(mode, cluster):
 
     print('train data completed')
 
-    X_test = test_df.drop(['index', 'step', 'user_id', 'session_id', 'item_id', 'label', 'weights'], axis=1)
-    # X_test.to_csv('dataset/preprocessed/{}/{}/xgboost/X_test.csv'.format(cluster, mode), index=False)
+    if class_weights:
+        X_test = test_df.drop(['index', 'step', 'user_id', 'session_id', 'item_id', 'label', 'weights'], axis=1)
+    else:
+        X_test = test_df.drop(['index', 'step', 'user_id', 'session_id', 'item_id', 'label'], axis=1)
     X_test = X_test.to_sparse(fill_value=0)
     X_test = X_test.astype(np.float64)
     X_test = X_test.to_coo().tocsr()
