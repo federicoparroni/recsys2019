@@ -27,3 +27,5 @@ class AutomaticSubExporter:
                 p = Process(target=self.export, args=(self.reference_object.__class__, params_dict, 'local', mrr))
                 p.start()
                 self.actual_score = mrr
+                HERA.send_message(
+                    'name: {} params: {}\n MRR is: {}\n\n'.format('sub exported!'))

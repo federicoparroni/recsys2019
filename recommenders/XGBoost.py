@@ -40,10 +40,10 @@ class XGBoostWrapper(RecommenderBase):
 
         # create hyperparameters dictionary
         self.hyperparameters_dict = {'learning_rate': (0.01, 0.3),
-                                     'max_depth': (2, 6),
-                                     'n_estimators': (300, 1000),
-                                     'reg_lambda': (0, 1),
-                                     'reg_alpha': (0, 1)
+                                     'max_depth': (3, 7),
+                                     'n_estimators': (700, 1500),
+                                     'reg_lambda': (0, 0.5),
+                                     'reg_alpha': (0, 0.5)
                                      }
 
     def fit(self):
@@ -130,7 +130,7 @@ class XGBoostWrapper(RecommenderBase):
         RR = 0
         print("Calculating MRR (hoping for a 0.99)")
         for i in tqdm(range(len_rec)):
-            if impression[i].split('|').index(correct_clickouts[i]) != 0 or not self.class_weights:
+            if impression[i].split('|').index(correct_clickouts[i]) != 0:
                 correct_clickout = int(correct_clickouts[i])
                 if correct_clickout in predictions[i][1]:
                     rank_pos = recs[i].index(correct_clickout) + 1
@@ -141,7 +141,6 @@ class XGBoostWrapper(RecommenderBase):
                 print('skipping because:')
                 print(impression[i])
                 print(correct_clickouts[i])
-                print('class weights: {}'.format(self.class_weights))
 
         MRR = RR / count
         print(f'MRR: {MRR}')
