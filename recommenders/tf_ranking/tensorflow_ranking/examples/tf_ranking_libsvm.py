@@ -153,8 +153,6 @@ def load_libsvm_data(path, list_size):
   # Convert everything to np.array.
   for k in feature_map:
     feature_map[k] = np.array(feature_map[k])
-  #reshape of the weights
-  feature_map[FLAGS.weights_feature_number]=feature_map[FLAGS.weights_feature_number][:,0,:]
   return feature_map, np.array(label_list)
 
 
@@ -222,7 +220,6 @@ def make_score_fn():
 
     with tf.name_scope("input_layer"):
       names = sorted(example_feature_columns())
-      names.remove(FLAGS.weights_feature_number)
       group_input = [
           tf.layers.flatten(group_features[name])
           for name in names
@@ -302,8 +299,7 @@ def train_and_eval():
 
 
   ranking_head = tfr.head.create_ranking_head(
-      loss_fn=tfr.losses.make_loss_fn(FLAGS.loss, lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight(smooth_fraction=0.5),
-                                      weights_feature_name=FLAGS.weights_feature_number),
+      loss_fn=tfr.losses.make_loss_fn(FLAGS.loss, lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight(smooth_fraction=0.5)),
       eval_metric_fns=get_eval_metric_fns(),
       train_op_fn=_train_op_fn)
 
@@ -395,7 +391,7 @@ if __name__ == "__main__":
     print('type mode: small, local or full')
     _MODE = input()
     print('type cluster')
-    _CLUSTER='no_cluster'
+    _CLUSTER=input()
     print('type dataset_name')
     _DATASET_NAME = input()
     _BASE_PATH = f'dataset/preprocessed/tf_ranking/{_CLUSTER}/{_MODE}/{_DATASET_NAME}'
@@ -477,7 +473,6 @@ if __name__ == "__main__":
     flags.DEFINE_integer("num_features", 33, "Number of features per document.")
     flags.DEFINE_integer("list_size", 25, "List size used for training.")
     flags.DEFINE_integer("group_size", 1, "Group size used in score function.")
-    flags.DEFINE_string('weights_feature_number','33',"the feature number representing the weights")
     #1
 
     flags.DEFINE_string("loss", loss,

@@ -39,6 +39,7 @@ def expand_impressions(df):
     in that mode and cluster, in the order in which the target indices are
 """
 def merge_features(mode, cluster, features_array):
+
     # load the full_df
     train_df = data.train_df(mode, cluster)
     test_df = data.test_df(mode, cluster)
@@ -80,7 +81,7 @@ def merge_features(mode, cluster, features_array):
     print('join with the features')
     print(f'train_shape: {train_df.shape}\n vali_test_shape: {validation_test_df.shape}')
     for f in features_array:
-        feature = f(mode=mode, cluster=cluster).read_feature(one_hot=True)
+        feature = f(mode=mode, cluster='no_cluster').read_feature(one_hot=True)
         print(f'len of feature:{len(feature)}')
         train_df = train_df.merge(feature)
         validation_test_df = validation_test_df.merge(feature)

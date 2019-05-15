@@ -55,13 +55,6 @@ def create_dataset(mode, cluster, features_array, dataset_name):
     cf.check_folder(_SAVE_BASE_PATH)
     train_df, vali_test_df= merge_features(mode, cluster, features_array)
 
-    weights=WeightsClass(mode,cluster).read_feature(one_hot=True)
-    train_df = pd.merge(train_df, weights, on=['user_id','session_id', 'item_id'])
-    print('columns of weights is:{}'.format(list(train_df.columns).index('weights')+1))
-    print()
-    print('weights added')
-    print(train_df.shape)
-
     dump_svmlight(train_df, f'{_SAVE_BASE_PATH}/train.txt')
     if mode == 'full':
         dump_svmlight(vali_test_df, f'{_SAVE_BASE_PATH}/test.txt')
@@ -71,17 +64,24 @@ def create_dataset(mode, cluster, features_array, dataset_name):
 
 
 if __name__ == '__main__':
+    features_array = [ImpressionLabel, ImpressionPriceInfoSession, ImpressionPositionSession,
+                      SessionLength, TimeFromLastActionBeforeClk,SessionDevice]
+
+
+    """
     features_array = [ActionsInvolvingImpressionSession, ImpressionLabel, ImpressionPriceInfoSession,
                       TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
                       ImpressionPositionSession,LastInteractionInvolvingImpression,
                       TimesImpressionAppearedInClickoutsSession, MeanPriceClickout, SessionLength,
                       TimeFromLastActionBeforeClk, PricePositionInfoInteractedReferences,
                       SessionDevice]
+    """
 
-    print('inser mode:')
+    print('insert mode:')
     mode = input()
-    cluster = 'no_cluster'
-    print('inser dataset_name:')
+    print('insert cluster name:')
+    cluster = input()
+    print('insert dataset_name:')
     dataset_name = input()
 
     create_dataset(mode, cluster, features_array, dataset_name)
