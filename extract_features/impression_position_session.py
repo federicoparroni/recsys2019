@@ -24,7 +24,6 @@ class ImpressionPositionSession(FeatureBase):
             y = x[x['action_type'] == 'clickout item']
             if len(y) > 0:
                 clk = y.tail(1)
-                head_index = x.head(1).index
                 impr = clk.impressions.values[0].split('|')
                 count = 1
                 for i in impr:
