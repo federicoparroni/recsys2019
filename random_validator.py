@@ -63,6 +63,6 @@ class RandomValidator:
                 'name: {} params: {}\n MRR is: {}\n\n'.format(model.name, params_dict, score))
 
 if __name__ == "__main__":
-    m = XGBoostWrapper(mode='small')
+    m = XGBoostWrapper(mode='local')
     v = RandomValidator(m)
     v.validate(100)

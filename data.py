@@ -118,7 +118,7 @@ def target_indices(mode, cluster='no_cluster'):
     return _target_indices[path]
 
 
-def dataset_xgboost_train(mode, cluster='no_cluster'):
+def dataset_xgboost_train(mode, cluster='no_cluster', class_weights=False):
     global _dataset_xgboost_train
     bp = 'dataset/preprocessed/{}/{}/xgboost'.format(cluster, mode)
     if not 'a' in _dataset_xgboost_train:
@@ -128,11 +128,18 @@ def dataset_xgboost_train(mode, cluster='no_cluster'):
             os.path.join(bp, 'y_train.csv'))['label'].to_dense()
         _dataset_xgboost_train[bp+'c'] = np.load(
             os.path.join(bp, 'group.npy'))
-        # _dataset_xgboost_train[bp+'d'] = np.load(
-        #     os.path.join(bp, 'class_weights.npy'))
-    return _dataset_xgboost_train[bp+'a'], \
-        _dataset_xgboost_train[bp+'b'], \
-        _dataset_xgboost_train[bp+'c']
+        if class_weights:
+            _dataset_xgboost_train[bp+'d'] = np.load(
+            os.path.join(bp, 'class_weights.npy'))
+    if class_weights:
+        return _dataset_xgboost_train[bp+'a'], \
+            _dataset_xgboost_train[bp+'b'], \
+            _dataset_xgboost_train[bp+'c'], \
+            _dataset_xgboost_train[bp + 'd']
+    else:
+        return _dataset_xgboost_train[bp + 'a'], \
+               _dataset_xgboost_train[bp + 'b'], \
+               _dataset_xgboost_train[bp + 'c']
 
 
 def dataset_xgboost_test(mode, cluster='no_cluster'):

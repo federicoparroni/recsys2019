@@ -217,14 +217,17 @@ def make_score_fn():
   def _score_fn(unused_context_features, group_features, mode, unused_params,
                 unused_config):
     """Defines the network to score a group of documents."""
+
     with tf.name_scope("input_layer"):
+      names = sorted(example_feature_columns())
       group_input = [
           tf.layers.flatten(group_features[name])
-          for name in sorted(example_feature_columns())
+          for name in names
       ]
       input_layer = tf.concat(group_input, 1)
       tf.summary.scalar("input_sparsity", tf.nn.zero_fraction(input_layer))
       tf.summary.scalar("input_max", tf.reduce_max(input_layer))
+
       tf.summary.scalar("input_min", tf.reduce_min(input_layer))
 
     is_training = (mode == tf.estimator.ModeKeys.TRAIN)
@@ -299,13 +302,16 @@ def train_and_eval():
       loss_fn=tfr.losses.make_loss_fn(FLAGS.loss, lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight(smooth_fraction=0.5)),
       eval_metric_fns=get_eval_metric_fns(),
       train_op_fn=_train_op_fn)
-  #lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight()
+
+  #weights_feature_name=FLAGS.weights_feature_number
+  #lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight(smooth_fraction=0.5)
 
   estimator = tf.estimator.Estimator(
       model_fn=tfr.model.make_groupwise_ranking_fn(
           group_score_fn=make_score_fn(),
           group_size=FLAGS.group_size,
           transform_fn=None,
+          #tfr.feature.make_identity_transform_fn(['5'])
           ranking_head=ranking_head),
     config=tf.estimator.RunConfig(
       FLAGS.output_dir, save_checkpoints_steps=1000))
@@ -343,7 +349,7 @@ def train_and_test():
 
     ranking_head = tfr.head.create_ranking_head(
         loss_fn=tfr.losses.make_loss_fn(FLAGS.loss, lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight(
-            smooth_fraction=0.5), weights_feature_name='39'),
+            smooth_fraction=0.5)),
         eval_metric_fns=get_eval_metric_fns(),
         train_op_fn=_train_op_fn)
     # lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight()
@@ -385,7 +391,7 @@ if __name__ == "__main__":
     print('type mode: small, local or full')
     _MODE = input()
     print('type cluster')
-    _CLUSTER='no_cluster'
+    _CLUSTER=input()
     print('type dataset_name')
     _DATASET_NAME = input()
     _BASE_PATH = f'dataset/preprocessed/tf_ranking/{_CLUSTER}/{_MODE}/{_DATASET_NAME}'
@@ -464,9 +470,9 @@ if __name__ == "__main__":
     # ["256", "128", "64"]
     # best ["256", "128"]
 
-    flags.DEFINE_integer("num_features", 34, "Number of features per document.")
+    flags.DEFINE_integer("num_features", 33, "Number of features per document.")
     flags.DEFINE_integer("list_size", 25, "List size used for training.")
-    flags.DEFINE_integer("group_size", 25, "Group size used in score function.")
+    flags.DEFINE_integer("group_size", 1, "Group size used in score function.")
     #1
 
     flags.DEFINE_string("loss", loss,

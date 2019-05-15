@@ -74,6 +74,7 @@ class WeightsClass(FeatureBase):
         weights = 1 / weights
         wgt_sum = sum(weights)
         weights_array = (weights / wgt_sum)*100
+        # weights_array = np.array([0.5, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2])
 
         weights_column_list = []
         for idx, row in tqdm(df.iterrows()):
