@@ -17,9 +17,13 @@ class SessionSortingFilters(FeatureBase):
     the current sort order (if exists) on clk_out and the number of times a different change of sort order has been
     clicked before current.
 
+    returns:
     user_id | session_id | current_sort_order | sorting by_distance and recommended | ... | sorting by_rating only
 
-
+    current_sort_order corresponds to the sort order at time of a clk_out
+    All (user_id, session_id) groups are present on the first two columns of the returned dataframe.
+    If a current_sort_order is not present is set to 0
+    If a sort order before current is not present in session is set to zero.
 
     The types of sorting orders reference and their unique correspondence to filters reference is the following:
 
