@@ -137,6 +137,8 @@ def create_full_df():
         # TEST; DELETING UNNFORMATIVE INTERACTIONS        
         mask = (test_df["action_type"] != "clickout item") & (test_df["reference"].isnull())
         test_df = test_df.drop(test_df[mask].index)
+        # delete the session in test with a clickout after the clickout to predict
+        test_df = test_df.drop([16727761, 16727762])
 
         test_df.to_csv(f, header=False)
 
