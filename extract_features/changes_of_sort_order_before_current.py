@@ -4,7 +4,6 @@ import time
 tqdm.pandas()
 import sys
 import os
-#os.chdir("/Users/Albo/Documents/GitHub/keyblade95/recsys2019")
 from extract_features.feature_base import FeatureBase
 import data
 
@@ -39,7 +38,7 @@ class ChangeOfSortOrderBeforeCurrent(FeatureBase):
 
     def __init__(self, mode, cluster='no_cluster'):
         name = 'changes_of_sort_order_before_current'
-        super(SessionSortingFilters, self).__init__(
+        super(ChangeOfSortOrderBeforeCurrent, self).__init__(
             name=name, mode=mode, cluster=cluster)
 
     def extract_feature(self):
@@ -116,6 +115,6 @@ class ChangeOfSortOrderBeforeCurrent(FeatureBase):
 if __name__ == '__main__':
     from utils.menu import mode_selection
     mode = mode_selection()
-    c = SessionSortingFilters(mode=mode, cluster='no_cluster')
+    c = ChangeOfSortOrderBeforeCurrent(mode=mode, cluster='no_cluster')
     c.save_feature()
     #print(c.read_feature())
