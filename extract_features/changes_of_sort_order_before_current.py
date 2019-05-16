@@ -39,7 +39,7 @@ class ChangeOfSortOrderBeforeCurrent(FeatureBase):
 
     def __init__(self, mode, cluster='no_cluster'):
         name = 'changes_of_sort_order_before_current'
-        super(SessionSortingFilters, self).__init__(
+        super(ChangeOfSortOrderBeforeCurrent, self).__init__(
             name=name, mode=mode, cluster=cluster)
 
     def extract_feature(self):
@@ -109,13 +109,13 @@ class ChangeOfSortOrderBeforeCurrent(FeatureBase):
         test = data.test_df(mode=self.mode, cluster=self.cluster)
         df = pd.concat([train, test])
         s = func(df)
-        s = s.drop(['current_sort_order'], axis=1)
+        # s = s.drop(['current_sort_order'], axis=1)
         return s
 
 
 if __name__ == '__main__':
     from utils.menu import mode_selection
     mode = mode_selection()
-    c = SessionSortingFilters(mode=mode, cluster='no_cluster')
+    c = ChangeOfSortOrderBeforeCurrent(mode=mode, cluster='no_cluster')
     c.save_feature()
     #print(c.read_feature())
