@@ -73,8 +73,9 @@ class XGBoostWrapper(RecommenderBase):
         X_test = data.dataset_xgboost_test(
             mode=self.mode, cluster=self.cluster)
         target_indices = data.target_indices(self.mode, self.cluster)
-        full_impressions = pd.read_csv(
-            'dataset/preprocessed/full.csv', usecols=["impressions"])
+        # full_impressions = pd.read_csv(
+        #     'dataset/preprocessed/full.csv', usecols=["impressions"])
+        full_impressions = data.full_df()
         print('data for test ready')
         scores = list(self.xg.predict(X_test))
         final_predictions = []
@@ -94,8 +95,9 @@ class XGBoostWrapper(RecommenderBase):
         X_test = data.dataset_xgboost_test(
             mode=self.mode, cluster=self.cluster)
         target_indices = data.target_indices(self.mode, self.cluster)
-        full_impressions = pd.read_csv(
-            'dataset/preprocessed/full.csv', usecols=["impressions"])
+        # full_impressions = pd.read_csv(
+        #     'dataset/preprocessed/full.csv', usecols=["impressions"])
+        full_impressions = data.full_df()
         print('data for test ready')
         scores = list(self.xg.predict(X_test))
         final_predictions_with_scores = []
