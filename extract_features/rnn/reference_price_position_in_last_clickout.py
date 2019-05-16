@@ -29,8 +29,8 @@ class ReferencePricePositionInLastClickout(FeatureBase):
         tqdm.pandas()
 
         df = data.full_df()
-
         df = df.sort_values(['user_id','session_id','timestamp','step'])
+        
         # find the clickout rows
         last_clickout_idxs = find_last_clickout_indices(df)
         clickout_rows = df.loc[last_clickout_idxs, ['user_id','session_id','action_type','impressions','prices']]

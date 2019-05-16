@@ -96,7 +96,7 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_it
         # add the reference classes if TRAIN
         if for_train:
             print('Adding references classes...')
-            df, ref_classes = sess2vec.add_reference_labels(df, actiontype_col='clickout item', action_equals=1)
+            df, ref_classes = sess2vec.add_reference_labels(df, pad_sessions_length=pad_sessions_length, only_clickouts=True)
             print('Done!\n')
         else:
             ref_classes = []
@@ -143,14 +143,14 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_it
     TRAIN_LEN = 0
     
     # remove the sessions to be not predicted and move into the train
-    print('Removing sessions in test not to be predicted...')
     test_df = data.test_df(mode, cluster)
+    print('Moving sessions not to be predicted from test to train...')
     test_df, sessions_not_to_predict = sess2predict.find(test_df)
 
     if not only_test:
         ## ======== TRAIN ======== ##
         train_df = data.train_df(mode, cluster)
-        train_df = train_df.append(sessions_not_to_predict)
+        train_df = train_df.append(sessions_not_to_predict.sort_values(['user_id','session_id','timestamp','step']))
         TRAIN_LEN, final_new_index = create_ds_class(train_df, path, for_train=True, new_row_index=final_new_index)
         del train_df
 
@@ -195,7 +195,7 @@ if __name__ == "__main__":
         AveragePriceInNextClickout,
         
         #ReferencePriceInNextClickout,
-        ReferencePriceInLastClickout,
+        #ReferencePriceInLastClickout,
 
         #ReferencePricePositionInNextClickout,
         ReferencePricePositionInLastClickout,
