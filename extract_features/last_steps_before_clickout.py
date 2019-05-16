@@ -26,24 +26,17 @@ class StepsBeforeLastClickout(FeatureBase):
 
             def last_important_steps(x):
 
-                y = x[x.action_type == 'filter selection']
-                z = x[x.action_type == 'clickout item']
-
-                if len(z) > 0:
-                    if (len(y) == 0) & (len(z) == 1):
-                        from_ = x.head(1)
-                    elif (len(y) == 0) & (len(z) > 1):
-                        from_ = z.iloc[-2]
-                    elif (len(y) > 0) & (len(z) == 1):
-                        from_ = y.iloc[-1]
-                    elif (len(y) > 0) & (len(z) > 1):
-                        if int(y.iloc[-1].step) > int(z.iloc[-2].step):
-                            from_ = y.iloc[-1]
-                        else:
-                            from_ = z.iloc[-2]
-                    return int(x.tail(1).step) - int(from_.step)
-                else:
-                    return -1
+                y = x[x.action_type == 'filter selection'].tail(1)
+                i = x[x.action_type == 'search for item'].tail(1)
+                d = x[x.action_type == 'search for destination'].tail(1)
+                p = x[x.action_type == 'search for poi'].tail(1)
+                steps = [y.step, i.step, d.step, p.step]
+                _from = 1
+                for i in steps:
+                    if i.empty != True:
+                        if i.values[0] > _from:
+                            _from = i.values[0]
+                return int(x.tail(1).step) - int(_from)
 
             _important_steps = x.groupby('session_id').progress_apply(last_important_steps)
             session_last_steps = _important_steps[_important_steps != -1] + 1
