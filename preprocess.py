@@ -134,7 +134,7 @@ def create_full_df():
         else:
             test_df["frequence"] = 1
 
-        # TEST; DELETING UNNFORMATIVE INTERACTIONS        
+        # TEST; DELETING UNNFORMATIVE INTERACTIONS
         mask = (test_df["action_type"] != "clickout item") & (test_df["reference"].isnull())
         test_df = test_df.drop(test_df[mask].index)
         # delete the session in test with a clickout after the clickout to predict
