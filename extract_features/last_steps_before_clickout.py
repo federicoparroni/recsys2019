@@ -2,7 +2,6 @@ import pandas as pd
 from tqdm.auto import tqdm
 import time
 tqdm.pandas()
-import os
 from extract_features.feature_base import FeatureBase
 import data
 

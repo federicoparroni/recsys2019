@@ -108,7 +108,7 @@ class ChangeOfSortOrderBeforeCurrent(FeatureBase):
         test = data.test_df(mode=self.mode, cluster=self.cluster)
         df = pd.concat([train, test])
         s = func(df)
-        s = s.drop(['current_sort_order'], axis=1)
+        # s = s.drop(['current_sort_order'], axis=1)
         return s
 
 

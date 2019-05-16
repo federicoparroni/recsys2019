@@ -123,13 +123,9 @@ def merge_reference_features(df, pad_sessions_length):
     res_df.iloc[np.arange(-1,len(res_df),pad_sessions_length)[1:], col_start:col_end] = 0
     return res_df
 
-def add_reference_labels(df, actiontype_col='clickout item', action_equals=1, classes_prefix='ref_',
+"""
+def add_reference_labels_old(df, actiontype_col='clickout item', action_equals=1, classes_prefix='ref_',
                             num_classes=25, only_clickouts=False):
-    """ Add the reference index in the impressions list as a new column for each clickout in the dataframe.
-    For the clickout interactions, a 1 is placed in the column with name {classes_prefix}{reference index in impressions}.
-    For the non-clickout interactions, 0s are placed in every columns with names {classes_prefix}{0...} if 
-    only_clickouts is True, else set the label for all the interactions in the session
-    """
     res_df = df.copy()
     tqdm.pandas()
     if only_clickouts:
@@ -169,6 +165,49 @@ def add_reference_labels(df, actiontype_col='clickout item', action_equals=1, cl
         res_df[c] = encoding[:,i+1]
 
     return res_df.drop('temp_ref_class', axis=1), ref_classes
+"""
+
+def add_reference_labels(df, pad_sessions_length, classes_prefix='ref_', num_classes=25, only_clickouts=True):
+    """ Add the reference index in the impressions list as a new column for each clickout in the dataframe.
+    For the clickout interactions, a 1 is placed in the column with name {classes_prefix}{reference index in impressions}.
+    For the non-clickout interactions, 0s are placed in every columns with names {classes_prefix}{0...} if 
+    only_clickouts is True, else set the label for all the interactions in the session.
+    NOTE: this assumes that df contains groups of padded sessions of length pad_sessions_length!
+    """
+    num_rows = len(df)
+    tgt_indices = df.index.values[np.arange(-1, num_rows, pad_sessions_length)[1:]]
+    
+    res_df = df.copy()
+    matrix = np.zeros((num_rows, num_classes), dtype=np.int8)
+    
+    if only_clickouts:
+        for j,idx in tqdm(enumerate(tgt_indices)):
+            impress = list(map(int, res_df.at[idx, 'impressions'].split('|')))
+            ref = int(res_df.at[idx, 'reference'])
+            if ref in impress:
+                ref_idx = impress.index(ref)
+                matrix[(j+1)*pad_sessions_length-1, ref_idx] = 1
+            else:
+                matrix[(j+1)*pad_sessions_length-1, 0] = 1
+    else:
+        for j,idx in tqdm(enumerate(tgt_indices)):
+            impress = list(map(int, res_df.at[idx, 'impressions'].split('|')))
+            ref = int(res_df.at[idx, 'reference'])
+            start_idx = (j+1)*pad_sessions_length-1
+            if ref in impress:
+                ref_idx = impress.index(ref)
+                matrix[start_idx:start_idx + pad_sessions_length, ref_idx] = 1
+            else:
+                matrix[start_idx:start_idx + pad_sessions_length, 0] = 1
+    
+    # add the new columns
+    ref_classes = []
+    for c in range(num_classes):
+        refclass = '{}{}'.format(classes_prefix, c)
+        ref_classes.append(refclass)
+        res_df[refclass] = matrix[:,c]
+        
+    return res_df, ref_classes
 
 def add_reference_binary_labels(df, actiontype_col='clickout item', action_equals=1, only_clickouts=False):
     """ Create a new column 'ref_class' containing 1 if the correct reference is the first in the impressions list,
