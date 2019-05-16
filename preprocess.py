@@ -9,6 +9,14 @@ import pandas as pd
 from preprocess_utils import create_icm, create_urm
 import numpy as np
 
+def remove_clickout_after_missing_clickout_test():
+    test = data.test_df('full')
+    test = test.drop([16727761, 16727762])
+    test.to_csv('dataset/preprocessed/no_cluster/full/test.csv')
+    full = data.full_df()
+    full = full.drop([16727761, 16727762])
+    full.to_csv(data.FULL_PATH)
+
 def reset_step_for_duplicated_sessions(df):
     """ Reset the step for some bugged session in which the step restart from 1 in some random interaction """
     res_df = df.copy()
