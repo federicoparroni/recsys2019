@@ -74,7 +74,9 @@ class TopPopPerImpression(FeatureBase):
         impressions = final_df['reference'].unique().tolist()
         df_item_clicks = df_item_clicks[df_item_clicks['reference'].isin(impressions)]
         final_df['popularity'] = final_df.reference.map(df_item_clicks.set_index('reference')['n_clicks'])
-        final_df = final_df.fillna(0)
+        final_df = final_df.drop(['index', 'action_type'], axis=1)
+        final_df.rename(columns={'reference':'item_id'}, inplace=True)
+        final_df['popularity'] = final_df['popularity'].fillna(0).astype(int)
 
         return final_df
 
