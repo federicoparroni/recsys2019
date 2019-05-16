@@ -471,7 +471,7 @@ if __name__ == "__main__":
     # ["256", "128", "64"]
     # best ["256", "128"]
 
-    flags.DEFINE_integer("num_features", 44, "Number of features per document.")
+    flags.DEFINE_integer("num_features", 50, "Number of features per document.")
     flags.DEFINE_integer("list_size", 25, "List size used for training.")
     flags.DEFINE_integer("group_size", 1, "Group size used in score function.")
     #1
