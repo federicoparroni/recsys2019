@@ -4,16 +4,21 @@ import pandas as pd
 from tqdm.auto import tqdm
 
 class CityPlatformSession(FeatureBase):
-
     """
     say for each session the platform nationality and the city of the platform
     | user_id | session_id | platform_nationality | city
+
+    WARNING:
+    Do not use one-hotted: there are too many values.
+    Works with LightGBM & Catboost
     """
 
     def __init__(self, mode, cluster='no_cluster'):
         name = 'city_platform_session'
+        columns_to_onehot = [('platform_nationality', 'single'), ('city', 'single')]
         super(CityPlatformSession, self).__init__(
-            name=name, mode=mode, cluster=cluster)
+            name=name, mode=mode, cluster=cluster, columns_to_onehot=columns_to_onehot)
+
 
     def extract_feature(self):
         def find_last_clickout_indices(df):

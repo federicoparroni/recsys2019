@@ -4,8 +4,8 @@ import pandas as pd
 from tqdm.auto import tqdm
 tqdm.pandas()
 
-class FrenzyFactorSession(FeatureBase):
 
+class FrenzyFactorSession(FeatureBase):
     """
     mean of time passed during consecutive steps and squared variance between every 2 consecutive steps in ms (frenzy factor of a user)
     | user_id | session_id | mean_time_per_step | frenzy_factor
@@ -31,7 +31,7 @@ class FrenzyFactorSession(FeatureBase):
             if len(y) > 0:
                 clk = y.tail(1)
                 head_index = x.head(1).index
-                x = x.loc[head_index.values[0]:clk.index.values[0]-1]
+                x = x.loc[head_index.values[0]:clk.index.values[0] - 1]
 
                 if len(x) > 1:
                     session_actions_num = int(clk.step.values[0])
@@ -74,6 +74,7 @@ class FrenzyFactorSession(FeatureBase):
         s[['mean_time_per_step', 'frenzy_factor']] = pd.DataFrame(s['tuple'].tolist(), index=s.index)
         s = s.drop(['variable', 'tuple'], axis=1)
         return s.reset_index(drop=True)
+
 
 if __name__ == '__main__':
     from utils.menu import mode_selection
