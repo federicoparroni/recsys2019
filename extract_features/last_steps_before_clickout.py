@@ -10,8 +10,13 @@ import data
 
 class StepsBeforeLastClickout(FeatureBase):
     """
-    for every session the last steps considering some heuristic. Analysis of data and explanation on jupyter notebook
-    tomorrow
+
+    for every session the last steps considering following heuristic:
+    when a user clicks on some filter (whatever it is) or a new search is started, the page refreshes and the user
+    is supposed to be scrolling and interacting with items from the beginning of the new refreshed list.
+    If no filter or search is done, 'steps' corresponds to the length of session, otherwise it corresponds
+    to the n of steps between the latest search or filter and the last clickout.
+
     session_id | steps
 
     """
@@ -55,4 +60,4 @@ if __name__ == '__main__':
     mode = mode_selection()
     c = StepsBeforeLastClickout(mode=mode, cluster='no_cluster')
     c.save_feature()
-    #print(c.read_feature())
+    print(c.read_feature())
