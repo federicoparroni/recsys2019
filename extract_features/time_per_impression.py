@@ -59,7 +59,8 @@ class TimeImpressionLabel(FeatureBase):
         train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)
         df = pd.concat([train, test])
-        df = df.sort_index()
+        df = df.sort_values(['user_id','session_id','timestamp','step'])
+        
         df['time_per_impression'] = df['timestamp'].shift(-1)-df['timestamp']
         df = df.drop('timestamp', axis=1)
 
