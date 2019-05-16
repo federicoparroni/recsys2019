@@ -27,7 +27,8 @@ class SessionsImpressionsCountNumeric(FeatureBase):
         train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)
         df = pd.concat([train, test])
-
+        df = df.sort_values(['user_id','session_id','timestamp','step'])
+        
         # find the last clickout rows
         last_clickout_idxs = find_last_clickout_indices(df)
         clickout_rows = df.loc[last_clickout_idxs, [

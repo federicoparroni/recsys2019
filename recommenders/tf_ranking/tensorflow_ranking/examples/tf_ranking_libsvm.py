@@ -222,6 +222,7 @@ def make_score_fn():
       names = sorted(example_feature_columns())
       group_input = [
           tf.layers.flatten(group_features[name])
+
           for name in names
       ]
       input_layer = tf.concat(group_input, 1)
@@ -238,8 +239,8 @@ def make_score_fn():
       cur_layer = tf.nn.relu(cur_layer)
       tf.summary.scalar("fully_connected_{}_sparsity".format(i),
                         tf.nn.zero_fraction(cur_layer))
-    cur_layer = tf.layers.dropout(
-        cur_layer, rate=FLAGS.dropout_rate, training=is_training)
+      cur_layer = tf.layers.dropout(
+      cur_layer, rate=FLAGS.dropout_rate, training=is_training)
     logits = tf.layers.dense(cur_layer, units=FLAGS.group_size)
     return logits
 
@@ -470,7 +471,7 @@ if __name__ == "__main__":
     # ["256", "128", "64"]
     # best ["256", "128"]
 
-    flags.DEFINE_integer("num_features", 33, "Number of features per document.")
+    flags.DEFINE_integer("num_features", 44, "Number of features per document.")
     flags.DEFINE_integer("list_size", 25, "List size used for training.")
     flags.DEFINE_integer("group_size", 1, "Group size used in score function.")
     #1
