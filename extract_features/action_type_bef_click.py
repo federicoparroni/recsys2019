@@ -59,7 +59,7 @@ class ActionTypeBefClick(FeatureBase):
                         act_bef_click = df.at[idx - 1, 'action_type']
 
                     # append on a list the tuple [('user_id','session_id','action_type')]
-                    actions_bef_click.append((prev_user, prev_sess, act_bef_click))
+                    actions_bef_click.append((cur_user, cur_ses, act_bef_click))
 
             # create a dataframe from the list of tuples to return
             return pd.DataFrame(actions_bef_click, columns=['user_id', 'session_id', 'last_action_type_before_click'])

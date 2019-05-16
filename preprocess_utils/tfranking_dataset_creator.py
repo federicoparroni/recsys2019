@@ -12,8 +12,6 @@ import utils.check_folder as cf
 from extract_features.action_type_bef_click import ActionTypeBefClick
 from extract_features.actions_involving_impression_session import ActionsInvolvingImpressionSession
 from extract_features.frenzy_factor_consecutive_steps import FrenzyFactorSession
-from extract_features.global_clickout_popularity import GlobalClickoutPopularity
-from extract_features.global_interactions_popularity import GlobalInteractionsPopularity
 from extract_features.impression_features import ImpressionFeature
 from extract_features.impression_position_session import ImpressionPositionSession
 from extract_features.impression_price_info_session import ImpressionPriceInfoSession
@@ -32,6 +30,10 @@ from extract_features.times_user_interacted_with_impression import TimesUserInte
 from extract_features.timing_from_last_interaction_impression import TimingFromLastInteractionImpression
 from extract_features.weights_class import WeightsClass
 from preprocess_utils.merge_features import merge_features
+from extract_features.impression_rating import ImpressionRating
+from extract_features.change_impression_order_position_in_session import ChangeImpressionOrderPositionInSession
+from extract_features.session_impression_count_numeric import SessionsImpressionsCountNumeric
+
 
 
 
@@ -66,17 +68,13 @@ def create_dataset(mode, cluster, features_array, dataset_name):
 
 if __name__ == '__main__':
 
-    features_array = [ImpressionLabel, ImpressionPositionSession]
-
-
-    """
     features_array = [ActionsInvolvingImpressionSession, ImpressionLabel, ImpressionPriceInfoSession,
                       TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
                       ImpressionPositionSession, LastInteractionInvolvingImpression,
                       TimesImpressionAppearedInClickoutsSession, MeanPriceClickout, SessionLength,
                       TimeFromLastActionBeforeClk, PricePositionInfoInteractedReferences,
-                      SessionDevice, ActionTypeBefClick]
-    """
+                      SessionDevice, ActionTypeBefClick, ImpressionRating, SessionsImpressionsCountNumeric]
+#ActionTypeBefClick
 
     print('insert mode:')
     mode = input()
