@@ -2,8 +2,6 @@ import pandas as pd
 from tqdm.auto import tqdm
 import time
 tqdm.pandas()
-import os
-os.chdir("/Users/Albo/Documents/GitHub/keyblade95/recsys2019")
 from extract_features.feature_base import FeatureBase
 import data
 
