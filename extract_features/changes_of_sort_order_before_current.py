@@ -4,7 +4,7 @@ import time
 tqdm.pandas()
 import sys
 import os
-os.chdir("/Users/Albo/Documents/GitHub/keyblade95/recsys2019")
+#os.chdir("/Users/Albo/Documents/GitHub/keyblade95/recsys2019")
 from extract_features.feature_base import FeatureBase
 import data
 
@@ -109,6 +109,7 @@ class SessionSortingFilters(FeatureBase):
         test = data.test_df(mode=self.mode, cluster=self.cluster)
         df = pd.concat([train, test])
         s = func(df)
+        s = s.drop(['current_sort_order'], axis=1)
         return s
 
 

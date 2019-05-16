@@ -26,6 +26,8 @@ from extract_features.timing_from_last_interaction_impression import TimingFromL
 from extract_features.weights_class import WeightsClass
 from extract_features.impression_rating import ImpressionRating
 from extract_features.time_per_impression import TimeImpressionLabel
+from extract_features.session_impression_count_numeric import SessionsImpressionsCountNumeric
+from extract_features.action_type_bef_click import ActionTypeBefClick
 from preprocess_utils.merge_features import merge_features
 
 
@@ -62,7 +64,8 @@ def create_dataset(mode, cluster, class_weights=False):
                       ImpressionPositionSession, LastInteractionInvolvingImpression,
                       SessionDevice, SessionSortOrderWhenClickout, MeanPriceClickout,
                       PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
-                      TimesImpressionAppearedInClickoutsSession]#, WeightsClass]#, GlobalInteractionsPopularity,
+                      TimesImpressionAppearedInClickoutsSession,
+                      ActionTypeBefClick, SessionsImpressionsCountNumeric, ImpressionRating]#, WeightsClass]#, GlobalInteractionsPopularity,
                       #GlobalClickoutPopularity]
 
     train_df, test_df = merge_features(mode, cluster, features_array)
@@ -76,9 +79,9 @@ def create_dataset(mode, cluster, class_weights=False):
         print('class weights saved')
 
     if class_weights:
-        X_train = train_df.drop(['index', 'step', 'user_id', 'session_id', 'item_id', 'label', 'weights'], axis=1)
+        X_train = train_df.drop(['index', 'user_id', 'session_id', 'item_id', 'label', 'weights'], axis=1)
     else:
-        X_train = train_df.drop(['index', 'step', 'user_id', 'session_id', 'item_id', 'label'], axis=1)
+        X_train = train_df.drop(['index', 'user_id', 'session_id', 'item_id', 'label'], axis=1)
     X_train = X_train.to_sparse(fill_value=0)
     X_train = X_train.astype(np.float64)
     X_train = X_train.to_coo().tocsr()
@@ -98,9 +101,9 @@ def create_dataset(mode, cluster, class_weights=False):
     print('train data completed')
 
     if class_weights:
-        X_test = test_df.drop(['index', 'step', 'user_id', 'session_id', 'item_id', 'label', 'weights'], axis=1)
+        X_test = test_df.drop(['index', 'user_id', 'session_id', 'item_id', 'label', 'weights'], axis=1)
     else:
-        X_test = test_df.drop(['index', 'step', 'user_id', 'session_id', 'item_id', 'label'], axis=1)
+        X_test = test_df.drop(['index', 'user_id', 'session_id', 'item_id', 'label'], axis=1)
     X_test = X_test.to_sparse(fill_value=0)
     X_test = X_test.astype(np.float64)
     X_test = X_test.to_coo().tocsr()
