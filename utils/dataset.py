@@ -11,10 +11,10 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.utils.class_weight import compute_class_weight
 import utils.scaling as scale
 
-from extract_features.global_interactions_popularity import GlobalInteractionsPopularity
-from extract_features.global_clickout_popularity import GlobalClickoutPopularity
-from extract_features.average_price_in_next_clickout import AveragePriceInNextClickout
-from extract_features.reference_price_in_next_clickout import ReferencePriceInNextClickout
+# from extract_features.rnn.global_interactions_popularity import GlobalInteractionsPopularity
+# from extract_features.rnn.global_clickout_popularity import GlobalClickoutPopularity
+# from extract_features.rnn.average_price_in_next_clickout import AveragePriceInNextClickout
+# from extract_features.rnn.reference_price_in_next_clickout import ReferencePriceInNextClickout
 
 ## ======= Datasets - Base class ======= ##
 
