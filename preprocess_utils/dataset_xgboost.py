@@ -30,6 +30,7 @@ from extract_features.session_impression_count_numeric import SessionsImpression
 from extract_features.action_type_bef_click import ActionTypeBefClick
 from extract_features.change_impression_order_position_in_session import ChangeImpressionOrderPositionInSession
 from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
+from extract_features.top_pop_per_impression import TopPopPerImpression
 
 from preprocess_utils.merge_features import merge_features
 
@@ -69,7 +70,7 @@ def create_dataset(mode, cluster, class_weights=False):
                       ImpressionPositionSession, LastInteractionInvolvingImpression,
                       SessionDevice, SessionSortOrderWhenClickout, MeanPriceClickout,
                       PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
-                      TimesImpressionAppearedInClickoutsSession]
+                      TimesImpressionAppearedInClickoutsSession, TopPopPerImpression]
 
     train_df, test_df = merge_features(mode, cluster, features_array)
     # train_df = train_df.replace(-1, np.nan)
