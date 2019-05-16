@@ -9,6 +9,7 @@ from tqdm.auto import tqdm
 from sklearn.model_selection import train_test_split
 import utils.check_folder as cf
 
+from extract_features.action_type_bef_click import ActionTypeBefClick
 from extract_features.actions_involving_impression_session import ActionsInvolvingImpressionSession
 from extract_features.frenzy_factor_consecutive_steps import FrenzyFactorSession
 from extract_features.global_clickout_popularity import GlobalClickoutPopularity
@@ -37,7 +38,7 @@ from preprocess_utils.merge_features import merge_features
 def dump_svmlight(df, save_path):
     print(len(df['index'].unique()))
     qid = df['index'].values
-    X, Y = df.drop(['session_id', 'user_id', 'label', 'item_id', 'index', 'step'], axis=1), df['label']
+    X, Y = df.drop(['session_id', 'user_id', 'label', 'item_id', 'index'], axis=1), df['label']
     del df
     # scaler = MinMaxScaler(feature_range=(-1, 1), copy=False)
     scaler = MaxAbsScaler(copy=False)
@@ -53,7 +54,7 @@ def dump_svmlight(df, save_path):
 def create_dataset(mode, cluster, features_array, dataset_name):
     _SAVE_BASE_PATH = f'dataset/preprocessed/tf_ranking/{cluster}/{mode}/{dataset_name}'
     cf.check_folder(_SAVE_BASE_PATH)
-    train_df, vali_test_df= merge_features(mode, cluster, features_array)
+    train_df, vali_test_df=merge_features(mode, cluster, features_array)
 
     dump_svmlight(train_df, f'{_SAVE_BASE_PATH}/train.txt')
     if mode == 'full':
@@ -64,17 +65,17 @@ def create_dataset(mode, cluster, features_array, dataset_name):
 
 
 if __name__ == '__main__':
-    features_array = [ImpressionLabel, ImpressionPriceInfoSession, ImpressionPositionSession,
-                      SessionLength, TimeFromLastActionBeforeClk,SessionDevice]
+
+    features_array = [ImpressionLabel, ImpressionPositionSession]
 
 
     """
     features_array = [ActionsInvolvingImpressionSession, ImpressionLabel, ImpressionPriceInfoSession,
                       TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
-                      ImpressionPositionSession,LastInteractionInvolvingImpression,
+                      ImpressionPositionSession, LastInteractionInvolvingImpression,
                       TimesImpressionAppearedInClickoutsSession, MeanPriceClickout, SessionLength,
                       TimeFromLastActionBeforeClk, PricePositionInfoInteractedReferences,
-                      SessionDevice]
+                      SessionDevice, ActionTypeBefClick]
     """
 
     print('insert mode:')
