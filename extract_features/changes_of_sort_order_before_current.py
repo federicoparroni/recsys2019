@@ -9,7 +9,7 @@ from extract_features.feature_base import FeatureBase
 import data
 
 
-class SessionSortingFilters(FeatureBase):
+class ChangeOfSortOrderBeforeCurrent(FeatureBase):
 
     """
 
