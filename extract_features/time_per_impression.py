@@ -5,6 +5,7 @@ import pandas as pd
 from tqdm.auto import tqdm
 from preprocess_utils.last_clickout_indices import expand_impressions
 import numpy as np
+tqdm.pandas()
 
 
 class TimeImpressionLabel(FeatureBase):
@@ -15,7 +16,7 @@ class TimeImpressionLabel(FeatureBase):
     """
 
     def __init__(self, mode, cluster='no_cluster'):
-        name = 'time_impression_label'
+        name = 'time_per_impression'
         super(TimeImpressionLabel, self).__init__(
             name=name, mode=mode, cluster=cluster)
 
@@ -30,8 +31,11 @@ class TimeImpressionLabel(FeatureBase):
             df = df.drop(['impression_list', 'index'], axis=1)
             return df
 
-        df = data.full_df()
-        df = df.sort_index()
+        train = data.train_df(mode=self.mode, cluster=self.cluster)
+        test = data.test_df(mode=self.mode, cluster=self.cluster)
+        df = pd.concat([train, test])
+        df = df.sort_values(['user_id','session_id','timestamp','step'])
+        
         df['time_per_impression'] = df['timestamp'].shift(-1)-df['timestamp']
         df = df.drop('timestamp', axis=1)
 

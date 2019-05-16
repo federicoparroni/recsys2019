@@ -4,97 +4,88 @@ from utils.check_folder import check_folder
 import utils.menu as menu
 import os
 import pickle
-from tqdm import tqdm
+from tqdm.auto import tqdm
 import pandas as pd
 from preprocess_utils import create_icm, create_urm
 import numpy as np
 
-def _get_sessions_with_duplicated_steps(df):
+def remove_clickout_after_missing_clickout_test():
+    test = data.test_df('full')
+    test = test.drop([16727761, 16727762])
+    test.to_csv('dataset/preprocessed/no_cluster/full/test.csv')
+    full = data.full_df()
+    full = full.drop([16727761, 16727762])
+    full.to_csv(data.FULL_PATH)
+
+def reset_step_for_duplicated_sessions(df):
+    """ Reset the step for some bugged session in which the step restart from 1 in some random interaction """
+    res_df = df.copy()
+    # find the sessions in which the step restarts at some point
     df_dup = df[["session_id", "user_id", "step"]]
     df_dup = df_dup[df_dup["step"] == 1]
-    df_dup = df_dup.groupby(['session_id', "step"]).size() \
+    df_dup = df_dup.groupby(['user_id','session_id','step']).size() \
         .sort_values(ascending=False) \
         .reset_index(name='count')
-
     df_dup = df_dup[df_dup["count"] > 1]
-    return list(df_dup["session_id"])
+    df_dup = df_dup[['user_id','session_id']]
+    
+    # reset the steps for the duplicated-steps sessions
+    for _,row in tqdm(df_dup.iterrows()):
+        mask = (df.user_id == row.user_id) & (df.session_id == row.session_id)
+        sess_length = sum(mask *1)
+        res_df.loc[mask, 'step'] = np.arange(1, sess_length+1, dtype='int')
+    
+    return res_df
 
 def merge_duplicates(df):
     """
-        merge_duplicates : It deletes from df consecutive actions of same type within same session performed on the same
-                             reference. It keeps the first occurrence of those consecutive actions and for those it saves
-                             how many consecutive actions are occurred in column 'frequence'. For the remaining non-consecutive
-                             actions frequence is set to 1.
+    Deletes from df consecutive actions of same type performed on the same reference within the same session.
+    It keeps the first occurrence of those consecutive actions and for those it saves
+    how many consecutive actions are occurred in column 'frequence'.
+    For the non-consecutive actions, frequence is set to 1.
 
+    :param df: DataFrame to preprocess
+    :return: df: preprocessed DataFrame df with 'frequence' column
+    """
+    tqdm.pandas()
 
-        :parameter
+    duplicates_indices = []
+    # points to the next valid row
+    indices = df.index.values
+    totlen = len(df)
+    i = 0
+    j = 0
+    next_index = indices[j]
 
-                   user_id   session_id   timestamp   step   action_type  reference ...
-                    user1	    sess1	    ts1	       0	  act_t1          x     ...
-                    user1	    sess1	    ts1	       1	  act_t1          x     ...
-                    user1	    sess1	    ts1	       2	  act_t1          x     ...
-                    user1	    sess1	    ts2	       3	  act_t2          y     ...
-
-                    ...         ...         ...       ...      ...           ...    ...
-
-                    user9	    sess2	    ts3	       4	  act_t2          z     ...
-                    user9	    sess2	    ts4	       5	  act_t3          w     ...
-                    user9	    sess2	    ts5	       6	  act_t3          w     ...
-
-                    ...         ...         ...       ...      ...           ...    ...
-
-                    user4	    sess3	    ts6	       11	  act_t4          k     ...
-                    user4	    sess3	    ts6	       12	  act_t5          k     ...
-                    user4	    sess3	    ts6	       13	  act_t4          k     ...
-                    user4	    sess3	    ts6	       14	  act_t6          k     ...
-
-        :returns   user_id   session_id   timestamp   step   action_type  reference  ...   frequence
-                    user1	    sess1	    ts1	       0	  act_t1          x      ...    3
-                    user1	    sess1	    ts2	       3	  act_t2          y      ...    1
-
-                    ...         ...         ...       ...      ...           ...     ...    ...
-
-                    user9	    sess2	    ts3	       4	  act_t2          z      ...    2
-                    user9	    sess2	    ts4	       5	  act_t3          w      ...    1
-
-                    ...         ...         ...       ...      ...           ...     ...    ...
-
-                    user4	    sess3	    ts6	       11	  act_t4          k      ...    1
-                    user4	    sess3	    ts6	       12	  act_t5          k      ...    1
-                    user4	    sess3	    ts6	       13	  act_t4          k      ...    1
-                    user4	    sess3	    ts6	       14	  act_t6          k      ...    1
-
-        :param df: DataFrame to preprocess
-        :return: df: preprocessed DataFrame df with 'frequence' column
-        """
-
-    init = False
-    count = 0
-    duplicates_indices = list()
-    count_dict = dict()
-
-    for index, row in tqdm(df.iterrows()):
-        if not init:
-            init = True
-        else:
-            if previous_row["user_id"] == row["user_id"] and previous_row["session_id"] == row["session_id"] \
-             and previous_row["action_type"] == row["action_type"] and previous_row["reference"] == row["reference"] \
-             and row["action_type"] != "clickout item":
-                count += 1
-                duplicates_indices.append(previous_index)
-            else:
-                if count != 0:
-                    count_dict[previous_index] = count + 1
-                    count = 0
-
-        previous_row = row
-        previous_index = index
-
-    df = df.drop(duplicates_indices)
-    df.loc[list(count_dict.keys()), "frequence"] = list(count_dict.values())
-    df["frequence"] = df["frequence"].fillna(1)
-    df = df.astype({"frequence": int})
-    return df.reset_index(drop=True)
+    for index in tqdm(indices):
+        if i >= j:
+            curr_actiontype = df.at[index,'action_type']
+            count = 1
+            j += 1
+            # check next interactions
+            while j < totlen:
+                next_index = indices[j]
+                
+                # iterate while the interactions are duplicated
+                if curr_actiontype != 'clickout item' and \
+                    df.at[index, 'user_id'] == df.at[next_index, 'user_id'] and \
+                    df.at[index, 'session_id'] == df.at[next_index, 'session_id'] and \
+                    df.at[index, 'reference'] == df.at[next_index, 'reference'] and \
+                    curr_actiontype == df.at[next_index, 'action_type']:
+                    
+                    # current interaction can be merged
+                    j += 1
+                    duplicates_indices.append(next_index)
+                    count += 1
+                else:
+                    break
+            
+            # different interaction reached
+            df.at[index, 'frequence'] = count
+        i += 1
+    
+    # drop the duplicated indices
+    return df.drop(duplicates_indices)
 
 
 def create_full_df():
@@ -103,39 +94,21 @@ def create_full_df():
     containing the number of rows in the original train.csv (max_train_idx). This is used to know which indices
     indicates train rows (idx < max_train_idx) and test rows (idx >= max_train_idx).
     """
+    # TEST
     train_df = data.original_train_df().reset_index(drop=True)
+    len_original_train = train_df.shape[0]
     compressed = menu.yesno_choice(title='Do you want the compressed version? (no for the original full)',
                                    callback_yes=lambda: True, callback_no=lambda: False)
 
-    ################# TRAIN; FIXING DUPLICATED SESSION_ID <-> STEP PAIRS ##################
-    sessions = _get_sessions_with_duplicated_steps(train_df)
-    print("Cleaning step duplication in train.csv")
-    for session in tqdm(sessions):
-        mask = (train_df["session_id"] == session) & (train_df["step"] == 1)
-        indices = train_df.index[mask].tolist()
-        indices.sort()
-        indices = indices[1:]
-        # this doesn't take into account the last duplication inside the session
-        # It must be tackled separatly
-        for i in range(len(indices) - 1):
-            mask = (train_df["session_id"] == session) & (train_df.index >= indices[i]) & (
-                        train_df.index < indices[i + 1])
-            train_df.loc[train_df.index[mask], "session_id"] = session + "_" + str(i)
+    # TRAIN; FIXING DUPLICATED SESSION_ID <-> STEP PAIRS
+    print('Fixing wrong duplicated steps in train...')
+    train_df = reset_step_for_duplicated_sessions(train_df)
 
-        # handling last duplication inside the same session
-        mask = (train_df["session_id"] == session) & (train_df.index >= indices[len(indices) - 1])
-        train_df.loc[train_df.index[mask], "session_id"] = session + "_" + str(len(indices) - 1)
-
-    ##################################################################################
-
-    ################# TRAIN; MERGING DUPLICATES ########################################
-
+    # TRAIN; MERGING DUPLICATES
     if compressed:
         train_df = merge_duplicates(train_df)
     else:
         train_df["frequence"] = 1
-
-    ##################################################################################
 
     len_train = train_df.shape[0]
     train_df.to_csv(data.FULL_PATH)
@@ -144,47 +117,29 @@ def create_full_df():
     # save config file
     data.save_config(data.TRAIN_LEN_KEY, len_train)
 
+    # TEST
     with open(data.FULL_PATH, 'a', encoding='utf-8') as f:
         test_df = data.original_test_df().reset_index(drop=True)
 
-        ################# TEST; FIXING DUPLICATED SESSION_ID <-> STEP PAIRS ##################
-        sessions = _get_sessions_with_duplicated_steps(test_df)
-        print("Cleaning step duplication in test.csv")
-        for session in tqdm(sessions):
-            mask = (test_df["session_id"] == session) & (test_df["step"] == 1)
-            indices = test_df.index[mask].tolist()
-            indices.sort()
-            clickout_mask = (test_df.session_id == session) & (test_df.action_type == "clickout item") \
-                            & (test_df.reference.isnull())
-            index_prediction = test_df.index[clickout_mask].tolist()[0]
-            if (index_prediction > indices[1]):
-                start_index = indices[0]
-                end_index = indices[1]
-                mask = (test_df["session_id"] == session) & (test_df.index >= start_index) & (test_df.index < end_index)
-                test_df.loc[test_df.index[mask], "session_id"] = session + "_" + str(0)
-            else:
-                start_index = indices[1]
-                mask = (test_df["session_id"] == session) & (test_df.index >= start_index)
-                test_df.loc[test_df.index[mask], "session_id"] = session + "_" + str(0)
-        ##################################################################################
+        # restore index summing the len of the original train (to be the same as without merging)
+        test_df.index += len_original_train
 
-        ################# TEST; MERGING DUPLICATES ########################################
+        # TEST; FIXING DUPLICATED SESSION_ID <-> STEP PAIRS
+        print('Fixing wrong duplicated steps in test...')
+        test_df = reset_step_for_duplicated_sessions(test_df)
 
+        # TEST; MERGING DUPLICATES
         if compressed:
             test_df = merge_duplicates(test_df)
         else:
             test_df["frequence"] = 1
 
-        ####################################################################################
-
-        ################# TEST; DELETING UNNFORMATIVE INTERACTIONS ##########################
-        
+        # TEST; DELETING UNNFORMATIVE INTERACTIONS
         mask = (test_df["action_type"] != "clickout item") & (test_df["reference"].isnull())
         test_df = test_df.drop(test_df[mask].index)
-        test_df = test_df.reset_index(drop=True)
+        # delete the session in test with a clickout after the clickout to predict
+        test_df = test_df.drop([16727761, 16727762])
 
-        ####################################################################################
-        test_df.index += len_train
         test_df.to_csv(f, header=False)
 
 def get_small_dataset(df, maximum_rows=1000000):
@@ -341,8 +296,8 @@ def preprocess():
         full = data.full_df()
         train_len = data.read_config()[data.TRAIN_LEN_KEY]
 
-        train = full.loc[0:train_len]
-        test = full.loc[train_len+1:len(full)]
+        train = full.iloc[0:train_len]
+        test = full.iloc[train_len:len(full)]
         target_indices = get_target_indices(test)
 
         check_folder('dataset/preprocessed/no_cluster/full')

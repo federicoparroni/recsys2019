@@ -130,7 +130,7 @@ class XGBoostWrapper(RecommenderBase):
         RR = 0
         print("Calculating MRR (hoping for a 0.99)")
         for i in tqdm(range(len_rec)):
-            if impression[i].split('|').index(correct_clickouts[i]) != 0:
+            if impression[i].split('|').index(correct_clickouts[i]) != 0 or not self.class_weights:
                 correct_clickout = int(correct_clickouts[i])
                 if correct_clickout in predictions[i][1]:
                     rank_pos = recs[i].index(correct_clickout) + 1
