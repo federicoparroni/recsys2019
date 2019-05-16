@@ -5,6 +5,7 @@ import pandas as pd
 from tqdm.auto import tqdm
 import numpy as np
 tqdm.pandas()
+from preprocess_utils.last_clickout_indices import expand_impressions
 
 def _reinsert_clickout(df):
     # take the row of the missing clickout
@@ -45,23 +46,6 @@ class ImpressionLabel(FeatureBase):
                     else:
                         r.append((i,0))
             return r
-
-
-        def expand_impressions(df):
-            res_df = df.copy()
-            res_df.impressions = res_df.impressions.str.split('|')
-            res_df = res_df.reset_index()
-
-            res_df = pd.DataFrame({
-                col: np.repeat(res_df[col].values, res_df.impressions.str.len())
-                for col in res_df.columns.drop('impressions')}
-            ).assign(**{'impressions': np.concatenate(res_df.impressions.values)})[res_df.columns]
-
-            res_df = res_df.rename(columns={'impressions': 'item_id'})
-            res_df = res_df.astype({'item_id': 'int'})
-
-            return res_df
-
 
         train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)

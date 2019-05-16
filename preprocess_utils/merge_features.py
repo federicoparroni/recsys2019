@@ -2,36 +2,8 @@ import data
 from tqdm import tqdm
 import pandas as pd
 import numpy as np
-
-def find_last_clickout_indices(df):
-    indices = []
-    cur_ses = ''
-    cur_user = ''
-    temp_df = df[df.action_type == 'clickout item'][['user_id', 'session_id', 'action_type']]
-    for idx in tqdm(temp_df.index.values[::-1]):
-        ruid = temp_df.at[idx, 'user_id']
-        rsid = temp_df.at[idx, 'session_id']
-        if (ruid != cur_user or rsid != cur_ses):
-            indices.append(idx)
-            cur_user = ruid
-            cur_ses = rsid
-    return indices[::-1]
-
-
-def expand_impressions(df):
-    res_df = df.copy()
-    res_df.impressions = res_df.impressions.str.split('|')
-    res_df = res_df.reset_index()
-
-    res_df = pd.DataFrame({
-        col: np.repeat(res_df[col].values, res_df.impressions.str.len())
-        for col in res_df.columns.drop('impressions')}
-    ).assign(**{'impressions': np.concatenate(res_df.impressions.values)})[res_df.columns]
-
-    res_df = res_df.rename(columns={'impressions': 'item_id'})
-    res_df = res_df.astype({'item_id':'int'})
-    return res_df[['index', 'step','user_id', 'session_id', 'item_id']]
-
+from preprocess_utils.last_clickout_indices import find as find_last_clickout_indices
+from preprocess_utils.last_clickout_indices import expand_impressions
 
 """
     given an array of features for ranking, it merges those in a single dataframe and returns
@@ -74,8 +46,10 @@ def merge_features(mode, cluster, features_array):
 
     # expand the impression as rows
     print('expand the impression')
-    train_df = expand_impressions(train_df)
-    validation_test_df = expand_impressions(validation_test_df)
+    train_df = expand_impressions(train_df)[['user_id', 'session_id', 'item_id', 'index']]
+    train_df['dummy_step']=np.arange(len(train_df))
+    validation_test_df = expand_impressions(validation_test_df)[['user_id', 'session_id', 'item_id', 'index']]
+    validation_test_df['dummy_step'] = np.arange(len(validation_test_df))
 
     # do the join
     print('join with the features')
@@ -89,8 +63,11 @@ def merge_features(mode, cluster, features_array):
 
     print('sorting by index and step...')
     # sort the dataframes
-    train_df.sort_values(['index', 'step'], inplace=True)
-    validation_test_df.sort_values(['index', 'step'], inplace=True)
+    train_df.sort_values(['index', 'dummy_step'], inplace=True)
+    train_df.drop('dummy_step', axis=1, inplace=True
+                  )
+    validation_test_df.sort_values(['index', 'dummy_step'], inplace=True)
+    validation_test_df.drop('dummy_step', axis=1, inplace=True)
 
     print('after join')
     return train_df, validation_test_df
