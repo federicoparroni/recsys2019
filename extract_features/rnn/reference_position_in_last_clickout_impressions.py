@@ -39,9 +39,10 @@ class ReferencePositionInLastClickoutImpressions(FeatureBase):
         clickout_rows['impression_list'] = clickout_rows.impressions.str.split('|')
         clickout_rows = clickout_rows.drop('impressions', axis=1)
 
-        # find the interactions with numeric reference
+        # find the interactions with numeric reference and not last clickouts
         reference_rows = df[['user_id','session_id','reference','action_type','index']]
-        reference_rows = reference_rows[df.reference.str.isnumeric() == True] #& (df.action_type != 'clickout item')]
+        reference_rows = reference_rows[df.reference.str.isnumeric() == True]
+        # skip last clickouts
         reference_rows = reference_rows.loc[~reference_rows.index.isin(last_clickout_idxs)]
         reference_rows = reference_rows.drop('action_type', axis=1)
         reference_rows['ref_pos'] = -1
