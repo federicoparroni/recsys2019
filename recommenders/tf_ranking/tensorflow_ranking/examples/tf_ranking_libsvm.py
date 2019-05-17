@@ -240,7 +240,7 @@ def make_score_fn():
       tf.summary.scalar("fully_connected_{}_sparsity".format(i),
                         tf.nn.zero_fraction(cur_layer))
       cur_layer = tf.layers.dropout(
-      cur_layer, rate=FLAGS.dropout_rate, training=is_training)
+    cur_layer, rate=FLAGS.dropout_rate, training=is_training)
     logits = tf.layers.dense(cur_layer, units=FLAGS.group_size)
     return logits
 
@@ -300,7 +300,7 @@ def train_and_eval():
 
 
   ranking_head = tfr.head.create_ranking_head(
-      loss_fn=tfr.losses.make_loss_fn(FLAGS.loss, lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight(smooth_fraction=0.5)),
+      loss_fn=tfr.losses.make_loss_fn(FLAGS.loss, lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight(smooth_fraction=0.5, topn=25)),
       eval_metric_fns=get_eval_metric_fns(),
       train_op_fn=_train_op_fn)
 
@@ -349,10 +349,10 @@ def train_and_test():
             optimizer="Adagrad")
 
     ranking_head = tfr.head.create_ranking_head(
-        loss_fn=tfr.losses.make_loss_fn(FLAGS.loss, lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight(
-            smooth_fraction=0.5)),
+        loss_fn=tfr.losses.make_loss_fn(FLAGS.loss, lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight(topn=25)),
         eval_metric_fns=get_eval_metric_fns(),
         train_op_fn=_train_op_fn)
+    # tfr.losses.create_p_list_mle_lambda_weight(25)
     # lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight()
 
     estimator = tf.estimator.Estimator(
@@ -471,9 +471,9 @@ if __name__ == "__main__":
     # ["256", "128", "64"]
     # best ["256", "128"]
 
-    flags.DEFINE_integer("num_features", 60, "Number of features per document.")
+    flags.DEFINE_integer("num_features", 58, "Number of features per document.")
     flags.DEFINE_integer("list_size", 25, "List size used for training.")
-    flags.DEFINE_integer("group_size", 25, "Group size used in score function.")
+    flags.DEFINE_integer("group_size", 1, "Group size used in score function.")
     #1
 
     flags.DEFINE_string("loss", loss,
