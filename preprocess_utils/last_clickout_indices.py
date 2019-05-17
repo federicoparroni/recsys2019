@@ -9,7 +9,7 @@ def find(df):
     the flag sort to True
     """
     temp_df = df.reset_index().sort_values(['user_id','session_id','timestamp','step'])
-    temp_df = temp_df[temp_df.action_type == 'clickout item'][['user_id', 'session_id', 'action_type']]
+    temp_df = temp_df[temp_df.action_type == 'clickout item'][['index', 'user_id', 'session_id', 'action_type']]
 
     indices = []
     cur_ses = ''
