@@ -1,6 +1,5 @@
 import pandas as pd
 from tqdm.auto import tqdm
-import time
 tqdm.pandas()
 from extract_features.feature_base import FeatureBase
 import data
@@ -15,9 +14,10 @@ class StepsBeforeLastClickout(FeatureBase):
     If no filter or search is done, 'steps' corresponds to the length of session, otherwise it corresponds
     to the n of steps between the latest search or filter and the last clickout.
 
-    session_id | steps
+    user_id | session_id | session_length_timestamp | session_length_step
 
     """
+
     def __init__(self, mode, cluster='no_cluster'):
         name = 'last_steps_before_clickout'
         super(StepsBeforeLastClickout, self).__init__(
@@ -33,18 +33,20 @@ class StepsBeforeLastClickout(FeatureBase):
                 i = x[x.action_type == 'search for item'].tail(1)
                 d = x[x.action_type == 'search for destination'].tail(1)
                 p = x[x.action_type == 'search for poi'].tail(1)
-                steps = [y.step, i.step, d.step, p.step]
+                steps = [y, i, d, p]
                 _from = 1
+                _from_serie = x.head(1)
                 for i in steps:
-                    if i.empty != True:
-                        if i.values[0] > _from:
-                            _from = i.values[0]
-                return int(x.tail(1).step) - int(_from)
+                    if i.step.empty != True:
+                        if i.step.values[0] > _from:
+                            _from = i.step.values[0]
+                            _from_serie = i
+                return pd.Series({'session_length_timestamp': int(x.tail(1)['timestamp'].values[0]) -
+                                                              int(_from_serie['timestamp'].values[0]),
+                                  'session_length_step': int(x.tail(1).step) - int(_from) + 1})
 
-            _important_steps = x.groupby('session_id').progress_apply(last_important_steps)
-            session_last_steps = _important_steps[_important_steps != -1] + 1
-            return pd.DataFrame(session_last_steps).reset_index().rename(columns={0: 'steps'})
-
+            _important_steps = x.groupby(['user_id', 'session_id']).progress_apply(last_important_steps)
+            return pd.DataFrame(_important_steps).reset_index()
 
         train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)
@@ -55,7 +57,8 @@ class StepsBeforeLastClickout(FeatureBase):
 
 if __name__ == '__main__':
     from utils.menu import mode_selection
+
     mode = mode_selection()
     c = StepsBeforeLastClickout(mode=mode, cluster='no_cluster')
     c.save_feature()
-    print(c.read_feature())
+    #print(c.read_feature())

@@ -1,9 +1,7 @@
 from extract_features.feature_base import FeatureBase
-from preprocess_utils.last_clickout_indices import find as find_last_clickout_indices
 import data
 import pandas as pd
 from tqdm.auto import tqdm
-from preprocess_utils.last_clickout_indices import expand_impressions
 import numpy as np
 tqdm.pandas()
 
@@ -21,9 +19,36 @@ class TimeImpressionLabel(FeatureBase):
             name=name, mode=mode, cluster=cluster)
 
     def extract_feature(self):
+        def find_last_clickout_indices(df):
+            indices = []
+            cur_ses = ''
+            cur_user = ''
+            temp_df = df[df.action_type == 'clickout item'][['user_id', 'session_id', 'action_type']]
+            for idx in tqdm(temp_df.index.values[::-1]):
+                ruid = temp_df.at[idx, 'user_id']
+                rsid = temp_df.at[idx, 'session_id']
+                if (ruid != cur_user or rsid != cur_ses):
+                    indices.append(idx)
+                    cur_user = ruid
+                    cur_ses = rsid
+            return indices[::-1]
+
+        def expand_impressions_custom(df): # non importare da utils perché è diverso
+            res_df = df.copy()
+            res_df = res_df.reset_index()
+            res_df = pd.DataFrame({
+                col: np.repeat(res_df[col].values, res_df.impression_list.str.len())
+                for col in res_df.columns.drop('impression_list')
+            }
+            ).assign(**{'impression_list': np.concatenate(res_df.impression_list.values)})[res_df.columns]
+
+            res_df = res_df.rename(columns={'impression_list': 'item_id'})
+            res_df = res_df.astype({'item_id': 'int'})
+
+            return res_df
 
         def convert_and_add_pos(df):
-            df_t = expand_impressions(df)
+            df_t = expand_impressions_custom(df)
             df['index'] = df.index
             df = pd.merge(df_t, df, how='left', on=['index', 'user_id', 'session_id','action_type'], suffixes=('', '_y'))
             df = df.drop('time_per_impression_y', axis=1)
@@ -34,8 +59,7 @@ class TimeImpressionLabel(FeatureBase):
         train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)
         df = pd.concat([train, test])
-        df = df.sort_values(['user_id','session_id','timestamp','step'])
-        
+        df = df.sort_values(['user_id','session_id','timestamp','step']).reset_index()
         df['time_per_impression'] = df['timestamp'].shift(-1)-df['timestamp']
         df = df.drop('timestamp', axis=1)
 
@@ -46,8 +70,8 @@ class TimeImpressionLabel(FeatureBase):
         clickout_rows = clickout_rows.drop('impressions', axis=1)
         clickout_rows['time_per_impression'] = [[0]*25 for x in range(len(clickout_rows.index))]
 
-        reference_rows = df[['user_id','session_id','reference','action_type','time_per_impression']]
-        reference_rows = reference_rows[df.reference.str.isnumeric() & (df.action_type != 'clickout item')]
+        last_clk_removed_df = df.drop(last_clickout_indices)
+        reference_rows = last_clk_removed_df[last_clk_removed_df.reference.astype(str).str.isnumeric()]
         reference_rows = reference_rows.drop('action_type',axis=1)
         reference_rows = reference_rows.sort_index()
 
@@ -73,9 +97,11 @@ class TimeImpressionLabel(FeatureBase):
                     feature_list[ref_idx] += row['time_per_impression']
                 except:
                     pass
+
         final_df = convert_and_add_pos(clickout_rows)
         final_df['impression_time'] = final_df.apply(lambda x: list(x['time_per_impression'])[int(x['item_pos']) - 1], axis=1)
         final_df = final_df.drop(['time_per_impression','item_pos','action_type'], axis=1)
+        final_df['impression_time'] = final_df['impression_time'].astype(int)
         return final_df
 
 if __name__ == '__main__':

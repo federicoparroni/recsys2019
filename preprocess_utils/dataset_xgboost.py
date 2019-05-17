@@ -63,14 +63,16 @@ def create_weights(df):
 
 def create_dataset(mode, cluster, class_weights=False):
     # training
-    features_array = [ActionTypeBefClick, ActionsInvolvingImpressionSession, 
-                      ChangeImpressionOrderPositionInSession, ImpressionLabel, ImpressionPriceInfoSession,
-                      ImpressionRating, SessionsImpressionsCountNumeric,
+    features_array = [ActionsInvolvingImpressionSession,
+                      ImpressionLabel, ImpressionPriceInfoSession,
                       TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
                       ImpressionPositionSession, LastInteractionInvolvingImpression,
                       SessionDevice, SessionSortOrderWhenClickout, MeanPriceClickout,
                       PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
-                      TimesImpressionAppearedInClickoutsSession, TopPopPerImpression]
+                      TimesImpressionAppearedInClickoutsSession,
+                      TopPopPerImpression,
+                      ActionTypeBefClick,ChangeImpressionOrderPositionInSession,
+                      ImpressionRating, SessionsImpressionsCountNumeric]
 
     train_df, test_df = merge_features(mode, cluster, features_array)
     # train_df = train_df.replace(-1, np.nan)

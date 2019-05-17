@@ -30,24 +30,24 @@ class SessionsImpressionsCount(FeatureBase):
         tqdm.pandas()
 
         df = data.full_df()
-        df = df.sort_values(['user_id','session_id','timestamp','step'])
+        df = df.sort_values(['user_id','session_id','timestamp','step']).reset_index()
         
         # find the last clickout rows
         last_clickout_idxs = find_last_clickout_indices(df)
-        clickout_rows = df.loc[last_clickout_idxs, ['user_id','session_id','impressions']]
+        clickout_rows = df.loc[last_clickout_idxs, ['user_id','session_id','impressions','index']]
         clickout_rows['impressions_count'] = clickout_rows.impressions.str.split('|').str.len()
         clickout_rows = clickout_rows.drop('impressions', axis=1)
 
         # multi-hot the counts
         one_hot_counts = np.zeros((clickout_rows.shape[0],25), dtype=np.int8)
-        for i,c in enumerate(clickout_rows.impressions_count.values):
+        for i,c in tqdm(enumerate(clickout_rows.impressions_count.values)):
             one_hot_counts[i, 0:c] = 1
         
         # add to the clickouts
         for i in range(25):
             clickout_rows['impr_c{}'.format(i)] = one_hot_counts[:,i]
         
-        return clickout_rows.drop('impressions_count', axis=1)
+        return clickout_rows.drop('impressions_count', axis=1).set_index('index')
 
 
     def join_to(self, df, one_hot=False):

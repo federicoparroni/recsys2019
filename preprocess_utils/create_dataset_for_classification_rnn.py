@@ -146,11 +146,12 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_it
     test_df = data.test_df(mode, cluster)
     print('Moving sessions not to be predicted from test to train...')
     test_df, sessions_not_to_predict = sess2predict.find(test_df)
+    test_df = test_df.sort_values(['user_id','session_id','timestamp','step'])
 
     if not only_test:
         ## ======== TRAIN ======== ##
         train_df = data.train_df(mode, cluster)
-        train_df = train_df.append(sessions_not_to_predict.sort_values(['user_id','session_id','timestamp','step']))
+        train_df = train_df.append(sessions_not_to_predict).sort_values(['user_id','session_id','timestamp','step'])
         TRAIN_LEN, final_new_index = create_ds_class(train_df, path, for_train=True, new_row_index=final_new_index)
         del train_df
 
@@ -192,13 +193,13 @@ if __name__ == "__main__":
         ReferencePositionInLastClickoutImpressions,
         GlobalClickoutPopularity,
         #GlobalInteractionsPopularity,
-        AveragePriceInNextClickout,
+        #AveragePriceInNextClickout,
         
         #ReferencePriceInNextClickout,
         #ReferencePriceInLastClickout,
 
         #ReferencePricePositionInNextClickout,
-        ReferencePricePositionInLastClickout,
+        #ReferencePricePositionInLastClickout,
 
         SessionsImpressionsCount,
     ]
