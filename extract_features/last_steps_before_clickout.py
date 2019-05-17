@@ -1,9 +1,5 @@
 import pandas as pd
 from tqdm.auto import tqdm
-import time
-import os
-os.chdir("/Users/Albo/Documents/GitHub/keyblade95/recsys2019")
-os.getcwd()
 tqdm.pandas()
 from extract_features.feature_base import FeatureBase
 import data
@@ -65,4 +61,4 @@ if __name__ == '__main__':
     mode = mode_selection()
     c = StepsBeforeLastClickout(mode=mode, cluster='no_cluster')
     c.save_feature()
-    print(c.read_feature())
+    #print(c.read_feature())
