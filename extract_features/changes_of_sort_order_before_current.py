@@ -1,9 +1,10 @@
 import pandas as pd
 from tqdm.auto import tqdm
-import time
 tqdm.pandas()
 import sys
 import os
+os.chdir("/Users/Albo/Documents/GitHub/keyblade95/recsys2019")
+os.getcwd()
 from extract_features.feature_base import FeatureBase
 import data
 
@@ -13,16 +14,16 @@ class ChangeOfSortOrderBeforeCurrent(FeatureBase):
     """
 
     for every user_session group:
-    the current sort order (if exists) on clk_out and the number of times a different change of sort order has been
-    clicked before current.
+    the current sort order (if exists) on clk_out and the number of times a change of sort order has been
+    clicked
+
+    If no sort order is present in 'current_filters' sets default sort order to 'our recommendations'
 
     returns:
-    user_id | session_id | current_sort_order | sorting by_distance and recommended | ... | sorting by_rating only
+    user_id | session_id | current_sort_order | distance and recommended | ... | rating only
 
     current_sort_order corresponds to the sort order at time of a clk_out
     All (user_id, session_id) groups are present on the first two columns of the returned dataframe.
-    If a current_sort_order is not present is set to 0
-    If a sort order before current is not present in session is set to zero.
 
     The types of sorting orders reference and their unique correspondence to filters reference is the following:
 
@@ -46,70 +47,91 @@ class ChangeOfSortOrderBeforeCurrent(FeatureBase):
         def func(x):
 
             def function_(d):
-               if len(d) > 1:
-                    df_filters_wout_last = d.iloc[:-1]
-                    return pd.get_dummies(df_filters_wout_last['reference']).sum(axis=0)
+                df_filters_wout_last = d.iloc[:]
+                return pd.get_dummies(df_filters_wout_last['reference']).sum(axis=0)
 
-            def merge_rows(d):
-                if d.shape[0] > 1:
-                    return d.sum(axis=0, numeric_only=True)
+            def function_2(d):
+                return pd.get_dummies(d['reference']).sum(axis=0)
 
             def return_current_sort(d):
                 if len(d) > 0:
                     last = d.iloc[-1]
                     return last['reference']
 
-            start = time.time()
+            def return_sort_by_popularity(d):
+                return pd.DataFrame({'current_sort_order': 'our recommendations'}, index=[0])
 
             tqdm.pandas()
             change_of_sort_order_train = x[(x['action_type'] == 'change of sort order') &
-                                               (x['reference'] != 'interaction sort button')]
+                                           (x['reference'] != 'interaction sort button')]
 
-            gbus_train = change_of_sort_order_train.groupby(['user_id', 'session_id'])
+            if len(change_of_sort_order_train) == 0:  # non ci sono change of sort order
 
-            feature = gbus_train.progress_apply(function_)
+                return pd.DataFrame({'current_sort_order': 'our recommendations',
+                                     'distance and recommended': 0,
+                                     'distance only': 0,
+                                     'our recommendations': 0,
+                                     'price and recommended': 0,
+                                     'price only': 0,
+                                     'rating and recommended': 0,
+                                     'rating only': 0}, index=[0])
 
-            f = pd.DataFrame(feature).reset_index()
+            else:  # ci sono change of sort order
 
-            f_dummies = pd.get_dummies(f, columns=['level_2'], prefix='sorting by')
+                index_of_corresponding_filter = change_of_sort_order_train.tail(1).index + 1
+                current_filters = x.tail(1)['current_filters']
 
-            for i in f_dummies.columns.values[3:]:
-                f_dummies[i] = f_dummies[i] * f_dummies[0]
+                if isinstance(x.tail(1)['current_filters'], str):  # se ci sono filtri nel clk
 
-            f_dummies_dropped = f_dummies.drop(labels=[f_dummies.columns[2]], axis=1)
+                    current_filters = x.tail(1)['current_filters'].split('|')
 
-            f = f_dummies_dropped.groupby(['user_id', 'session_id']).progress_apply(merge_rows)
+                possible_current_filter = x.loc[index_of_corresponding_filter]['reference']
 
-            last_df = f.reset_index()
+                if possible_current_filter.isin(
+                        current_filters).any():  # un change of sort order è dentro current_filter finale
 
-            current_df = change_of_sort_order_train.groupby(['user_id', 'session_id']).progress_apply(return_current_sort)
+                    if len(change_of_sort_order_train) == 1:  # se è l'unico change of sort order
 
-            currentdf = pd.DataFrame(current_df).reset_index()
+                        r = pd.DataFrame({'current_sort_order': change_of_sort_order_train['reference'].values[0],
+                                             'distance and recommended': 0,
+                                             'distance only': 0,
+                                             'our recommendations': 0,
+                                             'price and recommended': 0,
+                                             'price only': 0,
+                                             'rating and recommended': 0,
+                                             'rating only': 0}, index=[0])
+                        r[change_of_sort_order_train['reference'].values[0]] += 1
 
-            final_features = currentdf.rename(columns={0: 'current_sort_order'}).merge(last_df)
+                        return r
 
-            gtrain = x.groupby(['user_id', 'session_id'])
+                    else:  # non è l'unico
 
-            keys = list(gtrain.groups.keys())
+                        feature = change_of_sort_order_train.groupby(['user_id', 'session_id']).apply(
+                            function_).reset_index()
+                        current_df = change_of_sort_order_train.groupby(['user_id', 'session_id']).apply(
+                            return_current_sort).reset_index()
+                        final_features = current_df.rename(columns={0: 'current_sort_order'}).merge(feature)
 
-            df_train_grouped = pd.DataFrame({'user_id': [i[0] for i in keys], 'session_id': [i[1] for i in keys]})
+                        return final_features.drop(columns=[feature.columns[1], feature.columns[0]])
 
-            feature_final = df_train_grouped.merge(final_features, how='left').fillna(0)
+                else:  # nessun change of sort order è all'interno del current_filters finale
 
-            feature_final.astype(dtype={x: int for x in feature_final.columns.values[3:]})
+                    feature = change_of_sort_order_train.groupby(['user_id', 'session_id']).apply(
+                        function_2).reset_index()
+                    current_df = change_of_sort_order_train.groupby(['user_id', 'session_id']).apply(
+                        return_sort_by_popularity).reset_index().drop(columns='level_2')
+                    final_features = current_df.merge(feature)
 
-            _time = time.time() - start
-            elapsed = time.strftime('%Mm %Ss', time.gmtime(_time))
-            print(f"elapsed on train local: {elapsed}")
-
-            return feature_final
+                    return final_features.drop(columns=[feature.columns[1], feature.columns[0]])
 
         train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)
         df = pd.concat([train, test])
-        s = func(df)
+        s = df.groupby(['user_id','session_id']).progress_apply(func)
+        cso = s.reset_index().drop(columns='level_2').fillna(0)
+        cso = cso.astype(dtype={x: int for x in cso.columns.values[3:]})
         # s = s.drop(['current_sort_order'], axis=1)
-        return s
+        return cso
 
 
 if __name__ == '__main__':
