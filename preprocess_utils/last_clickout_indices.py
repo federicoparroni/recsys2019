@@ -4,11 +4,13 @@ import numpy as np
 
 def find(df):
     """ 
-    This assumes that the df is ordered by user_id, session_id, timestamp, step 
-    However it is possible to specify if we want an explicit sorting by setting
-    the flag sort to True
+    Return the last clickouts of each session in df.
     """
-    temp_df = df.reset_index().sort_values(['user_id','session_id','timestamp','step'])
+    temp_df = df.sort_values(['user_id','session_id','timestamp','step'])
+    if 'index' in temp_df.columns:
+        temp_df = temp_df.rename(columns={'index':'$_index'})
+
+    temp_df = temp_df.reset_index()
     temp_df = temp_df[temp_df.action_type == 'clickout item'][['index', 'user_id', 'session_id', 'action_type']]
 
     indices = []
