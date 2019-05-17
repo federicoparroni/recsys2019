@@ -20,7 +20,7 @@ def merge_features(mode, cluster, features_array):
 
     # retrieve the indeces of the last clikcouts
     print('find_last_click_idxs')
-    last_click_idxs=find_last_clickout_indices(full_df)
+    last_click_idxs=find_last_clickout_indices(full_df, False)
 
     # filter on the found indeces obtaining only the rows of a last clickout
     print('filter full on last click idxs')
