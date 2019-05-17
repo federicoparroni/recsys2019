@@ -322,7 +322,7 @@ def pad_sessions(df, max_session_length):
     """ Pad/truncate each session to have the specified length (pad by adding a number of initial rows) """
     tqdm.pandas()
     
-    clickouts_indices = find_last_clickout(df)
+    clickouts_indices = find_last_clickout(df, sort=False)
     # this is equals to the number of sessions (sessions must have at least one clickout)
     sess_count = len(clickouts_indices)
     
