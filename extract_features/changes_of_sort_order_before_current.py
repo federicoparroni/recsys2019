@@ -1,10 +1,7 @@
 import pandas as pd
 from tqdm.auto import tqdm
 tqdm.pandas()
-import sys
 import os
-os.chdir("/Users/Albo/Documents/GitHub/keyblade95/recsys2019")
-os.getcwd()
 from extract_features.feature_base import FeatureBase
 import data
 
