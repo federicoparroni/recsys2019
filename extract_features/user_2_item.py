@@ -32,8 +32,7 @@ class User2Item(FeatureBase):
         else:
             self.distance = 'jaccard_similarity'
         name = f'user_2_item_rr_{repeated_reference}_dist_{self.distance}'
-        super(User2Item, self).__init__(
-            name=name, mode=mode, cluster=cluster)
+        super(User2Item, self).__init__(name=name, mode=mode, cluster=cluster)
 
     def extract_feature(self):
 
@@ -87,7 +86,7 @@ class User2Item(FeatureBase):
             icm = data.accomodations_one_hot()
 
             sess_user_dict = create_user_feature_dict(df)
-            idxs_clicks = find_last_clickout_indices(df, sort=False)
+            idxs_clicks = find_last_clickout_indices(df)
 
             final_list = []
 
