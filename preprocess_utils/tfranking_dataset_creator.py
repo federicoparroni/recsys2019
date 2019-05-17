@@ -9,6 +9,7 @@ from tqdm.auto import tqdm
 from sklearn.model_selection import train_test_split
 import utils.check_folder as cf
 
+from extract_features.changes_of_sort_order_before_current import ChangeOfSortOrderBeforeCurrent
 from extract_features.action_type_bef_click import ActionTypeBefClick
 from extract_features.actions_involving_impression_session import ActionsInvolvingImpressionSession
 from extract_features.frenzy_factor_consecutive_steps import FrenzyFactorSession
@@ -33,7 +34,8 @@ from preprocess_utils.merge_features import merge_features
 from extract_features.impression_rating import ImpressionRating
 from extract_features.change_impression_order_position_in_session import ChangeImpressionOrderPositionInSession
 from extract_features.session_impression_count_numeric import SessionsImpressionsCountNumeric
-
+from extract_features.last_steps_before_clickout import StepsBeforeLastClickout
+from extract_features.user_2_item import User2Item
 
 
 
@@ -68,14 +70,20 @@ def create_dataset(mode, cluster, features_array, dataset_name):
 
 if __name__ == '__main__':
 
+    features_array=[ImpressionLabel, ImpressionPositionSession, User2Item]
+
+    """
     features_array = [ActionsInvolvingImpressionSession, ImpressionLabel, ImpressionPriceInfoSession,
                       TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
                       ImpressionPositionSession, LastInteractionInvolvingImpression,
                       TimesImpressionAppearedInClickoutsSession, MeanPriceClickout, SessionLength,
                       TimeFromLastActionBeforeClk, PricePositionInfoInteractedReferences,
-                      SessionDevice, ActionTypeBefClick, ImpressionRating, SessionsImpressionsCountNumeric]
-#ActionTypeBefClick
+                      SessionDevice, ActionTypeBefClick, ImpressionRating, SessionsImpressionsCountNumeric,
+                      ChangeImpressionOrderPositionInSession]
+    """
 
+#StepsBeforeLastClickout
+#ChangeOfSortOrderBeforeCurrent
     print('insert mode:')
     mode = input()
     print('insert cluster name:')

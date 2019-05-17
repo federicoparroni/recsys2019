@@ -274,7 +274,7 @@ def accomodations_one_hot():
     if not os.path.isfile(ACCOMODATIONS_1HOT_PATH):
         print('Accomodations one-hot not found! Creating it...', flush=True)
         import preprocess_utils.session2vec as sess2vec
-        sess2vec.save_accomodations_one_hot(accomodations_original_df(), ACCOMODATIONS_1HOT_PATH)
+        sess2vec.save_accomodations_one_hot(accomodations_df(), ACCOMODATIONS_1HOT_PATH)
     if _df_accomodations_one_hot is None:
         print('Loading accomodations one-hot...', flush=True)
         _df_accomodations_one_hot = pd.read_csv(ACCOMODATIONS_1HOT_PATH, index_col=0).astype('Int8')
