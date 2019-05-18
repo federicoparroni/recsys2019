@@ -69,8 +69,10 @@ def create_dataset(mode, cluster, features_array, dataset_name):
 
 
 if __name__ == '__main__':
-
-    features_array=[ImpressionLabel, ImpressionPositionSession, User2Item]
+    features_array = [ImpressionLabel, ImpressionPriceInfoSession, ActionsInvolvingImpressionSession,
+                      TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
+                      ImpressionPositionSession, LastInteractionInvolvingImpression, TimesImpressionAppearedInClickoutsSession,
+                      ImpressionRating]
 
     """
     features_array = [ActionsInvolvingImpressionSession, ImpressionLabel, ImpressionPriceInfoSession,
@@ -79,8 +81,9 @@ if __name__ == '__main__':
                       TimesImpressionAppearedInClickoutsSession, MeanPriceClickout, SessionLength,
                       TimeFromLastActionBeforeClk, PricePositionInfoInteractedReferences,
                       SessionDevice, ActionTypeBefClick, ImpressionRating, SessionsImpressionsCountNumeric,
-                      ChangeImpressionOrderPositionInSession]
+                      ChangeImpressionOrderPositionInSession,User2Item,User2Item,User2Item]
     """
+
 
 #StepsBeforeLastClickout
 #ChangeOfSortOrderBeforeCurrent
