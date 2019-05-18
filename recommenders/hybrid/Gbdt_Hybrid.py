@@ -11,11 +11,6 @@ import utils.functions as f
 import xgboost as xgb
 from preprocess_utils.dataset_xgboost import create_groups
 
-"""
-0.6670210196979507 learn_rate = 0.3
-0.6669933320555111 learn_rate = 0.1
-0.6671491436662834
-"""
 
 class Gbdt_Hybrid(RecommenderBase):
 
