@@ -269,7 +269,7 @@ def make_score_fn():
       cur_layer = tf.nn.relu(cur_layer)
       tf.summary.scalar("fully_connected_{}_sparsity".format(i),
                         tf.nn.zero_fraction(cur_layer))
-      cur_layer = tf.layers.dropout(
+    cur_layer = tf.layers.dropout(
     cur_layer, rate=FLAGS.dropout_rate, training=is_training)
     logits = tf.layers.dense(cur_layer, units=FLAGS.group_size)
     return logits
