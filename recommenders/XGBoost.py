@@ -34,6 +34,7 @@ class XGBoostWrapper(RecommenderBase):
         self.fixed_params_dict = {
             'mode': mode,
             'cluster': cluster,
+            'kind': kind,
             'min_child_weight': 1,
             'subsample': 1,
             'colsample_bytree': 1,
