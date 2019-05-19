@@ -78,8 +78,8 @@ class RecommenderBase(ABC):
             else:
                 print("I gonna fit the model and recommend the accomodations")
         self.fit()
-        recommendations = self.recommend_batch()
         if export_sub:
+            recommendations = self.recommend_batch()
             out.create_sub(recommendations, submission_name=self.name)
         if export_scores:
             check_folder('scores')

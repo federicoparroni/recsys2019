@@ -32,6 +32,7 @@ from extract_features.action_type_bef_click import ActionTypeBefClick
 from extract_features.change_impression_order_position_in_session import ChangeImpressionOrderPositionInSession
 from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
 from extract_features.top_pop_per_impression import TopPopPerImpression
+from extract_features.top_pop_interaction_clickout_per_impression import TopPopInteractionClickoutPerImpression
 from utils.menu import single_choice
 from preprocess_utils.merge_features import merge_features
 from os.path import join
@@ -70,7 +71,8 @@ def create_dataset(mode, cluster, class_weights=False):
     # training
     kind = single_choice(['1', '2'], ['kind1', 'kind2'])
     if kind == 'kind1':
-        features_array = [ActionsInvolvingImpressionSession,
+        features_array = [TopPopPerImpression, TopPopInteractionClickoutPerImpression, 
+                          ImpressionRatingNumeric, ActionsInvolvingImpressionSession,
                           ImpressionLabel, ImpressionPriceInfoSession,
                           TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
                           ImpressionPositionSession, LastInteractionInvolvingImpression,
