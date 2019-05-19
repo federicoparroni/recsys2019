@@ -1,3 +1,6 @@
+from utils.menu import yesno_choice
+from utils.check_folder import check_folder
+import os
 import math
 import xgboost as xgb
 import data
@@ -8,9 +11,6 @@ from pandas import Series
 from tqdm import tqdm
 import scipy.sparse as sps
 tqdm.pandas()
-import os
-from utils.check_folder import check_folder
-from utils.menu import yesno_choice
 
 
 class XGBoostWrapper(RecommenderBase):
@@ -34,6 +34,7 @@ class XGBoostWrapper(RecommenderBase):
         self.fixed_params_dict = {
             'mode': mode,
             'cluster': cluster,
+            'kind': kind,
             'min_child_weight': 1,
             'subsample': 1,
             'colsample_bytree': 1,
@@ -94,7 +95,7 @@ class XGBoostWrapper(RecommenderBase):
 
     def get_scores_batch(self):
         X_test = data.dataset_xgboost_test(
-            mode=self.mode, cluster=self.cluster)
+            mode=self.mode, cluster=self.cluster, kind=kind)
         target_indices = data.target_indices(self.mode, self.cluster)
         # full_impressions = pd.read_csv(
         #     'dataset/preprocessed/full.csv', usecols=["impressions"])
@@ -121,7 +122,8 @@ class XGBoostWrapper(RecommenderBase):
         :return: MRR computed on just the sessions where the clickout is not on the first impression
         """
         assert (self.mode == 'local' or self.mode == 'small')
-        train_df = pd.read_csv('dataset/preprocessed/{}/full/train.csv'.format(self.cluster), usecols=['reference', 'impressions'])
+        train_df = pd.read_csv('dataset/preprocessed/{}/full/train.csv'.format(
+            self.cluster), usecols=['reference', 'impressions'])
 
         target_indices, recs = zip(*predictions)
         target_indices = list(target_indices)
@@ -150,16 +152,21 @@ class XGBoostWrapper(RecommenderBase):
 
         return MRR
 
+
 if __name__ == '__main__':
     from utils.menu import mode_selection
     from utils.menu import single_choice
-    import out
+    from utils.menu import options
     kind = single_choice(['1', '2'], ['kind1', 'kind2'])
     mode = mode_selection()
+    sel = options(['evaluate', 'export the sub', 'export the scores'], ['evaluate', 'export the sub',
+                                                                  'export the scores'], 'what do you want to do after model fitting and the recommendations?')
     model = XGBoostWrapper(mode=mode, cluster='no_cluster', kind=kind)
-    model.fit()
-    recs = model.recommend_batch()
-    MRR = model.compute_MRR(recs)
-    #out.create_sub(recs, submission_name=model.name)
-    # model.evaluate(send_MRR_on_telegram=True)
-    # model.run(False)
+    if 'evaluate' in sel:
+        model.evaluate(True)
+    if 'export the sub' in sel and 'export the scores' in sel:
+        model.run(export_sub=True, export_scores=True)
+    elif 'export the sub' in sel and 'export the scores' not in sel:
+        model.run(export_sub=True, export_scores=False)
+    elif 'export the sub' not in sel and 'export the scores' in sel:
+        model.run(export_sub=False, export_scores=True)

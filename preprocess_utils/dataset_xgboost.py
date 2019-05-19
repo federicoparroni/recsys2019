@@ -5,6 +5,7 @@ from tqdm import tqdm
 import pandas as pd
 import pickle
 from utils.check_folder import check_folder
+from extract_features.impression_rating_numeric import ImpressionRatingNumeric
 from extract_features.actions_involving_impression_session import ActionsInvolvingImpressionSession
 from extract_features.frenzy_factor_consecutive_steps import FrenzyFactorSession
 from extract_features.impression_features import ImpressionFeature
@@ -31,6 +32,7 @@ from extract_features.action_type_bef_click import ActionTypeBefClick
 from extract_features.change_impression_order_position_in_session import ChangeImpressionOrderPositionInSession
 from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
 from extract_features.top_pop_per_impression import TopPopPerImpression
+from extract_features.top_pop_interaction_clickout_per_impression import TopPopInteractionClickoutPerImpression
 from utils.menu import single_choice
 from preprocess_utils.merge_features import merge_features
 from os.path import join
@@ -69,7 +71,8 @@ def create_dataset(mode, cluster, class_weights=False):
     # training
     kind = single_choice(['1', '2'], ['kind1', 'kind2'])
     if kind == 'kind1':
-        features_array = [ActionsInvolvingImpressionSession,
+        features_array = [TopPopPerImpression, TopPopInteractionClickoutPerImpression, 
+                          ImpressionRatingNumeric, ActionsInvolvingImpressionSession,
                           ImpressionLabel, ImpressionPriceInfoSession,
                           TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
                           ImpressionPositionSession, LastInteractionInvolvingImpression,
@@ -80,7 +83,7 @@ def create_dataset(mode, cluster, class_weights=False):
                         #   ActionTypeBefClick, ChangeImpressionOrderPositionInSession,
                         #   ImpressionRating, SessionsImpressionsCountNumeric]
     elif kind == 'kind2':
-        features_array = [ImpressionFeature]
+        features_array = [ImpressionLabel, ImpressionFeature]
 
     train_df, test_df = merge_features(mode, cluster, features_array)
     # train_df = train_df.replace(-1, np.nan)

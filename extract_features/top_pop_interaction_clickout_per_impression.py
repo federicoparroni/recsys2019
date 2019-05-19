@@ -8,24 +8,18 @@ from extract_features.impression_features import ImpressionFeature
 from preprocess_utils.last_clickout_indices import find
 
 
-class TopPopPerImpression(FeatureBase):
+class TopPopInteractionClickoutPerImpression(FeatureBase):
 
     """
-    say how many time each user interacted with an impression, so interaction item image, clickouts ecc
-    | item_id | top_pop_per_impression
+    say for each impression of a clickout the popularity of the impression ie the number of times a user
+    made a clickout on one it
+    | item_id | top_pop_interaction_clickout_per_impression
     """
 
     def __init__(self, mode, cluster='no_cluster'):
-        name = 'top_pop_per_impression'
-        super(TopPopPerImpression, self).__init__(
+        name = 'top_pop_interaction_clickout_per_impression'
+        super(TopPopInteractionClickoutPerImpression, self).__init__(
             name=name, mode=mode, cluster=cluster)
-
-    def RepresentsInt(self, s):
-        try:
-            int(s)
-            return True
-        except ValueError:
-            return False
 
     def extract_feature(self):
         o = ImpressionFeature(mode)
@@ -39,14 +33,13 @@ class TopPopPerImpression(FeatureBase):
         df = pd.concat([train, test])
         last_clickout_indices = find(df)
         df_dropped_last_clickouts = df.drop(last_clickout_indices)
-        df_no_last_clickouts = df_dropped_last_clickouts[~(df_dropped_last_clickouts.reference.isnull())]
+        df_no_last_clickouts = df_dropped_last_clickouts[(df_dropped_last_clickouts.action_type == 'clickout item') & ~(df_dropped_last_clickouts.reference.isnull())]
         references = df_no_last_clickouts.reference.values
 
         for r in references:
-            if self.RepresentsInt(r):
-                pop[int(r)] += 1
+            pop[int(r)] += 1
 
-        final_df = pd.DataFrame(pop.items(), columns=['item_id', 'top_pop_per_impression'])
+        final_df = pd.DataFrame(pop.items(), columns=['item_id', 'top_pop_interaction_clickout_per_impression'])
 
         return final_df
 
@@ -56,7 +49,7 @@ if __name__ == '__main__':
     mode = menu.mode_selection()
     cluster = menu.cluster_selection()
 
-    c = TopPopPerImpression(mode, cluster)
+    c = TopPopInteractionClickoutPerImpression(mode, cluster)
 
     print('Creating {} for {} {}'.format(c.name, c.mode, c.cluster))
     c.save_feature()
