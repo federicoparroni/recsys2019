@@ -7,10 +7,12 @@ tqdm.pandas()
 from pathlib import Path
 import os
 import data
-import utils.functions as f
 import xgboost as xgb
 from preprocess_utils.dataset_xgboost import create_groups
 
+"""
+0.667092866498346 learning rate = 0.3
+"""
 
 class Gbdt_Hybrid(RecommenderBase):
 
@@ -22,7 +24,8 @@ class Gbdt_Hybrid(RecommenderBase):
         in order to train the model and optimize hyperparameters, we need to cross-validate the dataset
     """
 
-    def __init__(self, mode='local', learning_rate=0.3, min_child_weight=1, n_estimators=100, max_depth=3, subsample=1, colsample_bytree=1, reg_lambda=1, reg_alpha=0):
+    def __init__(self, mode='local', learning_rate=0.3, min_child_weight=1, n_estimators=100, max_depth=3,
+                 subsample=1, colsample_bytree=1, reg_lambda=1, reg_alpha=0):
         name = 'gbdt_hybrid'
         cluster = 'no_cluster'
         super(Gbdt_Hybrid, self).__init__(mode, cluster, name)
@@ -42,8 +45,9 @@ class Gbdt_Hybrid(RecommenderBase):
             subsample=subsample, colsample_bytree=colsample_bytree, reg_lambda=reg_lambda, reg_alpha=reg_alpha,
             n_jobs=-1, objective='rank:pairwise')
 
+        self.cv_path = self.data_directory.joinpath('cross_validation')
 
-        if os.path.isfile('/Users/claudiorussointroito/Documents/GitHub/recsysTrivago2019/submissions/gbdt_train.csv'):
+        if os.path.isfile(str(directory.joinpath('..', '..', 'gbdt_train.csv'))):
             for root, dirs, files in os.walk(directory):
                 file = files[0]
                 f = pd.read_csv(directory.joinpath(file))
@@ -78,7 +82,6 @@ class Gbdt_Hybrid(RecommenderBase):
         self.train = self.train.sort_values(by=['trg_idx', 'impression_position'])
         self.train.to_csv('/Users/claudiorussointroito/Documents/GitHub/recsysTrivago2019/submissions/gbdt_train.csv', index=False)
         print('Dataset created!')
-        print(self.train)
         print(self.train.columns)
 
     def expand_item_recommendations(self, df):
@@ -197,9 +200,19 @@ class Gbdt_Hybrid(RecommenderBase):
     def cross_validation(self):
         self.mrrs = []
         for i in range(len(self.sess_groups)):
-            mask = self.train['session_id'].isin(self.sess_groups[i])
-            test_df = self.train[mask]
-            train_df = self.train[~mask]
+            if os.path.isfile(str(self.cv_path) + '/train' + str(i) + '.csv'):
+                print(f'Getting train and test number: {i}')
+                path = str(self.cv_path) + '/train' + str(i) + '.csv'
+                print(path)
+                train_df = pd.read_csv(str(self.cv_path) + '/train' + str(i) + '.csv')
+                test_df = pd.read_csv(str(self.cv_path) + '/test' + str(i) + '.csv')
+            else:
+                mask = self.train['session_id'].isin(self.sess_groups[i])
+                test_df = self.train[mask]
+                train_df = self.train[~mask]
+                train_df.to_csv(str(self.cv_path) + '/train' + str(i) + '.csv', index=False)
+                test_df.to_csv(str(self.cv_path) + '/test' + str(i) + '.csv', index=False)
+
             target_indices = list(set(test_df['trg_idx'].values))
             target_indices.sort()
 
@@ -209,6 +222,7 @@ class Gbdt_Hybrid(RecommenderBase):
             self.mrrs.append(mrr)
 
         print(f'Averaged MRR: {sum(self.mrrs)/len(self.mrrs)}')
+        return sum(self.mrrs)/len(self.mrrs)
 
 
 if __name__=='__main__':
