@@ -5,6 +5,7 @@ from tqdm import tqdm
 import pandas as pd
 import pickle
 from utils.check_folder import check_folder
+from extract_features.impression_rating_numeric import ImpressionRatingNumeric
 from extract_features.actions_involving_impression_session import ActionsInvolvingImpressionSession
 from extract_features.frenzy_factor_consecutive_steps import FrenzyFactorSession
 from extract_features.impression_features import ImpressionFeature
