@@ -81,7 +81,7 @@ def create_dataset(mode, cluster, class_weights=False):
                         #   ActionTypeBefClick, ChangeImpressionOrderPositionInSession,
                         #   ImpressionRating, SessionsImpressionsCountNumeric]
     elif kind == 'kind2':
-        features_array = [ImpressionFeature]
+        features_array = [ImpressionLabel, ImpressionFeature]
 
     train_df, test_df = merge_features(mode, cluster, features_array)
     # train_df = train_df.replace(-1, np.nan)
