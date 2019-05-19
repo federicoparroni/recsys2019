@@ -28,23 +28,27 @@ class ReferencePriceInLastClickout(FeatureBase):
         tqdm.pandas()
 
         df = data.full_df()
-        df = df.sort_values(['user_id','session_id','timestamp','step'])
-        
+        df = df.sort_values(['user_id','session_id','timestamp','step']).reset_index()
+
         # find the last clickout rows
         last_clickout_idxs = find_last_clickout_indices(df)
         clickout_rows = df.loc[last_clickout_idxs, ['user_id','session_id','action_type','impressions','prices']]
         clickout_rows['impression_list'] = clickout_rows.impressions.str.split('|')
         clickout_rows['price_list'] = clickout_rows.prices.str.split('|')
         # find the interactions with numeric reference
-        reference_rows = df[['user_id','session_id','reference','action_type']]
-        reference_rows = reference_rows[df.reference.str.isnumeric() & (df.action_type != 'clickout item')]
+        reference_rows = df[['user_id','session_id','reference','action_type', 'index']]
+        reference_rows = reference_rows[df.reference.str.isnumeric() == True]
+        # skip last clickouts
+        reference_rows = reference_rows.loc[~reference_rows.index.isin(last_clickout_idxs)]
         reference_rows = reference_rows.drop('action_type',axis=1)
         reference_rows['price'] = 0
-        reference_rows = reference_rows.sort_index()
 
         # iterate over the sorted reference_rows and clickout_rows
         j = 0
         clickout_indices = clickout_rows.index.values
+        ckidx = clickout_indices[j]
+        next_clickout_user_id = clickout_rows.at[ckidx, 'user_id']
+        next_clickout_sess_id = clickout_rows.at[ckidx, 'session_id']
         for idx,row in tqdm(reference_rows.iterrows()):
             # if the current index is over the last clickout, break
             if idx >= clickout_indices[-1]:
@@ -52,17 +56,19 @@ class ReferencePriceInLastClickout(FeatureBase):
             # find the next clickout index
             while idx > clickout_indices[j]:
                 j += 1
-            next_clickout = clickout_rows.loc[clickout_indices[j]]
+                ckidx = clickout_indices[j]
+                next_clickout_user_id = clickout_rows.at[ckidx, 'user_id']
+                next_clickout_sess_id = clickout_rows.at[ckidx, 'session_id']
 
             # check if row and next_clickout are in the same session
-            if row.user_id == next_clickout.user_id and row.session_id == next_clickout.session_id:
+            if row.user_id == next_clickout_user_id and row.session_id == next_clickout_sess_id:
                 try:
-                    ref_idx = next_clickout.impression_list.index(row.reference)
-                    reference_rows.at[idx, 'price'] = next_clickout.price_list[ref_idx]
+                    ref_idx = clickout_rows.at[ckidx, 'impression_list'].index(row.reference)
+                    reference_rows.at[idx, 'price'] = clickout_rows.at[ckidx, 'price_list'][ref_idx]
                 except:
                     pass
         
-        return reference_rows.drop(['user_id','session_id','reference'], axis=1)
+        return reference_rows.drop(['user_id','session_id','reference'], axis=1).set_index('index')
 
 
     def join_to(self, df, one_hot=False):

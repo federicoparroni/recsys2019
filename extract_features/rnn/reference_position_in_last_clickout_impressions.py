@@ -63,11 +63,12 @@ class ReferencePositionInLastClickoutImpressions(FeatureBase):
                 ckidx = clickout_indices[j]
                 next_clickout_user_id = clickout_rows.at[ckidx, 'user_id']
                 next_clickout_sess_id = clickout_rows.at[ckidx, 'session_id']
+                next_clickout_impress = clickout_rows.at[ckidx, 'impression_list']
 
             # check if row and next_clickout are in the same session
             if row.user_id == next_clickout_user_id and row.session_id == next_clickout_sess_id:
                 try:
-                    reference_rows.at[idx,'ref_pos'] = clickout_rows.at[ckidx, 'impression_list'].index(row.reference)
+                    reference_rows.at[idx,'ref_pos'] = next_clickout_impress.index(row.reference)
                 except:
                     pass
         
