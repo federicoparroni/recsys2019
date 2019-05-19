@@ -345,7 +345,7 @@ def train_and_eval():
           #tfr.feature.make_identity_transform_fn(['28'])
           ranking_head=ranking_head),
     config=tf.estimator.RunConfig(
-      FLAGS.output_dir, save_checkpoints_steps=1000))
+      FLAGS.output_dir, save_checkpoints_steps=FLAGS.save_checkpoints_steps))
 
 
   train_spec = tf.estimator.TrainSpec(
@@ -525,7 +525,9 @@ if __name__ == "__main__":
 
     flags.DEFINE_string("loss", loss,
                       "The RankingLossKey for loss function.")
-
+    print('save checkpoint steps')
+    save_checkpoints_steps = int(input())
+    flags.DEFINE_integer('save_checkpoints_steps', save_checkpoints_steps, "number of steps after which save the checkpoint")
     FLAGS = flags.FLAGS
 
     tf.app.run()
