@@ -1,9 +1,12 @@
+import os
+
 from extract_features.feature_base import FeatureBase
 import data
 import pandas as pd
 from tqdm.auto import tqdm
 import numpy as np
 
+from preprocess_utils.create_user_features_from_full import extract_features_from_full
 from preprocess_utils.last_clickout_indices import expand_impressions
 from preprocess_utils.last_clickout_indices import find as find_last_clickout
 
@@ -97,6 +100,12 @@ class PastFutureSessionFeatures(FeatureBase):
         Must distinsuish between past sessions and future sessions, and for each compute same features.
         This will help understand the moves of the user through the impressions
         """
+        if self.mode != 'full':
+            if os.path.isfile('dataset/preprocessed/no_cluster/full/feature/past_session_features/features.csv'):
+                extract_features_from_full(self.mode, self.cluster)
+                return
+            else:
+                print('full features not found: creating full first...')
 
         train_df = data.train_df(mode='full', cluster=self.cluster)
         test_df = data.test_df(mode='full', cluster=self.cluster)
@@ -107,7 +116,7 @@ class PastFutureSessionFeatures(FeatureBase):
 
         i = 0
 
-        idxs_click = find_last_clickout(df, sort=False)
+        idxs_click = find_last_clickout(df)
 
         users = df.user_id.values
 
