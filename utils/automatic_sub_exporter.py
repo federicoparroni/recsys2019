@@ -12,11 +12,9 @@ class AutomaticSubExporter:
     def export(self, obj, params_dict, mode, mrr):
         params_dict['mode'] = mode
         instance = obj(**params_dict)
-        HERA.send_message('EXPORTING sub algo {} with score {} in mode {} with params {}'.format(instance.name, mrr, mode, params_dict))
-        instance.fit()
-        recommendations = instance.recommend_batch()
-        out.create_sub(recommendations, submission_name='{}_{}_{}'.format(instance.name, mrr, mode))
-        HERA.send_message('EXPORTED sub algo {} with score {} in mode {} with params {}'.format(instance.name, mrr, mode, params_dict))
+        HERA.send_message('EXPORTING sub and scores algo {} with score {} in mode {} with params {}'.format(instance.name, mrr, mode, params_dict))
+        instance.run(export_sub=True, export_scores=True)
+        HERA.send_message('EXPORTED sub and scores algo {} with score {} in mode {} with params {}'.format(instance.name, mrr, mode, params_dict))
 
     def check_if_export(self, mrr, params_dict):
         if self.actual_score == 0:
