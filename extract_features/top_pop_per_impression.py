@@ -4,13 +4,15 @@ import pandas as pd
 from tqdm.auto import tqdm
 import numpy as np
 tqdm.pandas()
+from extract_features.impression_features import ImpressionFeature
+from preprocess_utils.last_clickout_indices import find
 
 
 class TopPopPerImpression(FeatureBase):
 
     """
-    say for each impression of a clickout the popularity of the impression
-    | user_id | session_id | reference | popularity
+    say how many time each user interacted with an impression, so interaction item image, clickouts ecc
+    | item_id | top_pop_per_impression
     """
 
     def __init__(self, mode, cluster='no_cluster'):
@@ -18,65 +20,33 @@ class TopPopPerImpression(FeatureBase):
         super(TopPopPerImpression, self).__init__(
             name=name, mode=mode, cluster=cluster)
 
+    def RepresentsInt(self, s):
+        try:
+            int(s)
+            return True
+        except ValueError:
+            return False
+
     def extract_feature(self):
-        def find_last_clickout_indices(df):
-            indices = []
-            cur_ses = ''
-            cur_user = ''
-            temp_df = df[df.action_type == 'clickout item'][['user_id', 'session_id', 'action_type']]
-            for idx in tqdm(temp_df.index.values[::-1]):
-                ruid = temp_df.at[idx, 'user_id']
-                rsid = temp_df.at[idx, 'session_id']
-                if (ruid != cur_user or rsid != cur_ses):
-                    indices.append(idx)
-                    cur_user = ruid
-                    cur_ses = rsid
-            return indices[::-1]
+        o = ImpressionFeature(mode)
+        f = o.read_feature()
+        f = f.drop(['properties'], axis=1)
+        f['popularity'] = 0
+        pop = dict(zip(f.item_id.values, f.popularity.values))
 
-        def expand_impressions(df):
-            res_df = df.copy()
-            res_df = res_df.reset_index()
-            res_df = pd.DataFrame({
-                col: np.repeat(res_df[col].values, res_df.impression_list.str.len())
-                for col in res_df.columns.drop('impression_list')
-            }
-            ).assign(**{'impression_list': np.concatenate(res_df.impression_list.values)})[res_df.columns]
-
-            res_df = res_df.rename(columns={'impression_list': 'reference'})
-            res_df = res_df.astype({'reference': 'int'})
-
-            return res_df
-
-        train = data.train_df(mode=self.mode, cluster=self.cluster)
-        test = data.test_df(mode=self.mode, cluster=self.cluster)
+        train = data.train_df(mode=mode)
+        test = data.test_df(mode=mode)
         df = pd.concat([train, test])
-        df = df.sort_values(['user_id','session_id','timestamp','step'])
-        last_clickout_indices = find_last_clickout_indices(df)
-        clickout_rows = df.loc[last_clickout_indices, ['user_id','session_id','action_type','impressions']][df.action_type == 'clickout item']
-        # cast the impressions and the prices to lists
-        clickout_rows['impression_list'] = clickout_rows.impressions.str.split('|')
-        clickout_rows = clickout_rows.drop('impressions', axis=1)
+        last_clickout_indices = find(df)
+        df_dropped_last_clickouts = df.drop(last_clickout_indices)
+        df_no_last_clickouts = df_dropped_last_clickouts[~(df_dropped_last_clickouts.reference.isnull())]
+        references = df_no_last_clickouts.reference.values
 
-        last_clk_removed_df = df.drop(last_clickout_indices)
-        reference_rows = last_clk_removed_df[last_clk_removed_df.reference.astype(str).str.isnumeric()]
-        reference_rows = reference_rows.drop('action_type',axis=1)
-        reference_rows = reference_rows.sort_index()
+        for r in references:
+            if self.RepresentsInt(r):
+                pop[int(r)] += 1
 
-        df_item_clicks = (
-            reference_rows
-            .groupby("reference")
-            .size()
-            .reset_index(name="n_clicks")
-            .transform(lambda x: x.astype(int))
-        )
-
-        final_df = expand_impressions(clickout_rows)
-        impressions = final_df['reference'].unique().tolist()
-        df_item_clicks = df_item_clicks[df_item_clicks['reference'].isin(impressions)]
-        final_df['popularity'] = final_df.reference.map(df_item_clicks.set_index('reference')['n_clicks'])
-        final_df = final_df.drop(['index', 'action_type'], axis=1)
-        final_df.rename(columns={'reference':'item_id'}, inplace=True)
-        final_df['popularity'] = final_df['popularity'].fillna(0).astype(int)
+        final_df = pd.DataFrame(pop.items(), columns=['item_id', 'top_pop_per_impression'])
 
         return final_df
 
@@ -91,4 +61,4 @@ if __name__ == '__main__':
     print('Creating {} for {} {}'.format(c.name, c.mode, c.cluster))
     c.save_feature()
 
-    print(c.read_feature(one_hot=True))
+    # print(c.read_feature(one_hot=True))
