@@ -1,6 +1,7 @@
 from tqdm.auto import tqdm
 import pandas as pd
 import numpy as np
+import math
 
 
 def find(df):
@@ -11,7 +12,7 @@ def find(df):
     indices = []
     cur_ses = ''
     cur_user = ''
-    for idx in temp_df.index.values[::-1]:
+    for idx in tqdm(temp_df.index.values[::-1]):
         #print(temp_df.at[idx, 'index'])
         ruid = temp_df.at[idx, 'user_id']
         rsid = temp_df.at[idx, 'session_id']
@@ -21,9 +22,10 @@ def find(df):
             indices.append(temp_df.at[idx, 'index'])
             cur_user = ruid
             cur_ses = rsid
-        if ruid == cur_user and rsid == cur_ses and reference == np.nan:
-            indices = indices[:-1]
-            indices.append(temp_df.at[idx, 'index'])
+        else:
+            if pd.isnull(reference):
+                indices = indices[:-1]
+                indices.append(temp_df.at[idx, 'index'])
     return indices[::-1]
 
 
