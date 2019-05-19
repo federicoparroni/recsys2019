@@ -15,13 +15,14 @@ from utils.menu import yesno_choice
 
 class XGBoostWrapper(RecommenderBase):
 
-    def __init__(self, mode, cluster='no_cluster', class_weights=False, learning_rate=0.3, min_child_weight=1, n_estimators=100, max_depth=3, subsample=1, colsample_bytree=1, reg_lambda=1, reg_alpha=0):
-        name = 'xgboost_ranker_mode={}_cluster={}_class_weights={}_learning_rate={}_min_child_weight={}_n_estimators={}_max_depth={}_subsample={}_colsample_bytree={}_reg_lambda={}_reg_alpha={}'.format(
-            mode, cluster, class_weights, learning_rate, min_child_weight, n_estimators, max_depth, subsample, colsample_bytree, reg_lambda, reg_alpha
+    def __init__(self, mode, cluster='no_cluster', kind='kind1', class_weights=False, learning_rate=0.3, min_child_weight=1, n_estimators=100, max_depth=3, subsample=1, colsample_bytree=1, reg_lambda=1, reg_alpha=0):
+        name = 'xgboost_ranker_mode={}_cluster={}_kind={}_class_weights={}_learning_rate={}_min_child_weight={}_n_estimators={}_max_depth={}_subsample={}_colsample_bytree={}_reg_lambda={}_reg_alpha={}'.format(
+            mode, cluster, kind, class_weights, learning_rate, min_child_weight, n_estimators, max_depth, subsample, colsample_bytree, reg_lambda, reg_alpha
         )
         super(XGBoostWrapper, self).__init__(
             name=name, mode=mode, cluster=cluster)
         self.class_weights = class_weights
+        self.kind = kind
 
         self.xg = xgb.XGBRanker(
             learning_rate=learning_rate, min_child_weight=min_child_weight, max_depth=math.ceil(
@@ -55,10 +56,10 @@ class XGBoostWrapper(RecommenderBase):
 
         if self.class_weights:
             X_train, y_train, group, weights = data.dataset_xgboost_train(
-                mode=self.mode, cluster=self.cluster, class_weights=self.class_weights)
+                mode=self.mode, cluster=self.cluster, class_weights=self.class_weights, kind=kind)
         else:
             X_train, y_train, group = data.dataset_xgboost_train(
-                mode=self.mode, cluster=self.cluster, class_weights=self.class_weights)
+                mode=self.mode, cluster=self.cluster, class_weights=self.class_weights, kind=kind)
         print('data for train ready')
 
         if self.class_weights:
@@ -71,7 +72,7 @@ class XGBoostWrapper(RecommenderBase):
 
     def recommend_batch(self):
         X_test = data.dataset_xgboost_test(
-            mode=self.mode, cluster=self.cluster)
+            mode=self.mode, cluster=self.cluster, kind=kind)
         target_indices = data.target_indices(self.mode, self.cluster)
         # full_impressions = pd.read_csv(
         #     'dataset/preprocessed/full.csv', usecols=["impressions"])
@@ -151,9 +152,11 @@ class XGBoostWrapper(RecommenderBase):
 
 if __name__ == '__main__':
     from utils.menu import mode_selection
+    from utils.menu import single_choice
     import out
+    kind = single_choice(['1', '2'], ['kind1', 'kind2'])
     mode = mode_selection()
-    model = XGBoostWrapper(mode=mode, cluster='no_cluster')
+    model = XGBoostWrapper(mode=mode, cluster='no_cluster', kind=kind)
     model.fit()
     recs = model.recommend_batch()
     MRR = model.compute_MRR(recs)
