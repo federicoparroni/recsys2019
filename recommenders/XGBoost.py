@@ -57,10 +57,10 @@ class XGBoostWrapper(RecommenderBase):
 
         if self.class_weights:
             X_train, y_train, group, weights = data.dataset_xgboost_train(
-                mode=self.mode, cluster=self.cluster, class_weights=self.class_weights, kind=kind)
+                mode=self.mode, cluster=self.cluster, class_weights=self.class_weights, kind=self.kind)
         else:
             X_train, y_train, group = data.dataset_xgboost_train(
-                mode=self.mode, cluster=self.cluster, class_weights=self.class_weights, kind=kind)
+                mode=self.mode, cluster=self.cluster, class_weights=self.class_weights, kind=self.kind)
         print('data for train ready')
 
         if self.class_weights:
@@ -73,7 +73,7 @@ class XGBoostWrapper(RecommenderBase):
 
     def recommend_batch(self):
         X_test = data.dataset_xgboost_test(
-            mode=self.mode, cluster=self.cluster, kind=kind)
+            mode=self.mode, cluster=self.cluster, kind=self.kind)
         target_indices = data.target_indices(self.mode, self.cluster)
         # full_impressions = pd.read_csv(
         #     'dataset/preprocessed/full.csv', usecols=["impressions"])
