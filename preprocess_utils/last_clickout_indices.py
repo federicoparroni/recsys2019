@@ -1,27 +1,31 @@
 from tqdm.auto import tqdm
 import pandas as pd
 import numpy as np
+import math
+
 
 def find(df):
-    """ 
-    This assumes that the df is ordered by user_id, session_id, timestamp, step 
-    However it is possible to specify if we want an explicit sorting by setting
-    the flag sort to True
-    """
+
     temp_df = df.reset_index().sort_values(['user_id','session_id','timestamp','step'])
-    temp_df = temp_df[temp_df.action_type == 'clickout item'][['index', 'user_id', 'session_id', 'action_type']]
+    temp_df = temp_df[temp_df.action_type == 'clickout item'][['index', 'user_id', 'session_id', 'action_type', 'reference']]
 
     indices = []
     cur_ses = ''
     cur_user = ''
     for idx in tqdm(temp_df.index.values[::-1]):
+        #print(temp_df.at[idx, 'index'])
         ruid = temp_df.at[idx, 'user_id']
         rsid = temp_df.at[idx, 'session_id']
+        reference = temp_df.at[idx, 'reference']
         if (ruid != cur_user or rsid != cur_ses):
             # append the original index
             indices.append(temp_df.at[idx, 'index'])
             cur_user = ruid
             cur_ses = rsid
+        else:
+            if pd.isnull(reference):
+                indices = indices[:-1]
+                indices.append(temp_df.at[idx, 'index'])
     return indices[::-1]
 
 
