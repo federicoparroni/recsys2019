@@ -31,14 +31,17 @@ from extract_features.action_type_bef_click import ActionTypeBefClick
 from extract_features.change_impression_order_position_in_session import ChangeImpressionOrderPositionInSession
 from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
 from extract_features.top_pop_per_impression import TopPopPerImpression
-
+from utils.menu import single_choice
 from preprocess_utils.merge_features import merge_features
+from os.path import join
 
 
 def create_groups(df):
     df = df[['user_id', 'session_id']]
-    group = df.groupby(['user_id', 'session_id'], sort=False).apply(lambda x: len(x)).values
+    group = df.groupby(['user_id', 'session_id'],
+                       sort=False).apply(lambda x: len(x)).values
     return group
+
 
 def create_weights(df):
     df_slice = df[['user_id', 'session_id', 'impression_position', 'label']]
@@ -61,61 +64,71 @@ def create_weights(df):
             found = True
     return weights
 
+
 def create_dataset(mode, cluster, class_weights=False):
     # training
-    features_array = [ActionsInvolvingImpressionSession,
-                      ImpressionLabel, ImpressionPriceInfoSession,
-                      TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
-                      ImpressionPositionSession, LastInteractionInvolvingImpression,
-                      SessionDevice, SessionSortOrderWhenClickout, MeanPriceClickout,
-                      PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
-                      TimesImpressionAppearedInClickoutsSession,
-                      TopPopPerImpression,
-                      ActionTypeBefClick,ChangeImpressionOrderPositionInSession,
-                      ImpressionRating, SessionsImpressionsCountNumeric]
+    kind = single_choice(['1', '2'], ['kind1', 'kind2'])
+    if kind == 'kind1':
+        features_array = [ActionsInvolvingImpressionSession,
+                          ImpressionLabel, ImpressionPriceInfoSession,
+                          TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
+                          ImpressionPositionSession, LastInteractionInvolvingImpression,
+                          SessionDevice, SessionSortOrderWhenClickout, MeanPriceClickout,
+                          PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
+                          TimesImpressionAppearedInClickoutsSession]
+                        #   TopPopPerImpression,
+                        #   ActionTypeBefClick, ChangeImpressionOrderPositionInSession,
+                        #   ImpressionRating, SessionsImpressionsCountNumeric]
+    elif kind == 'kind2':
+        features_array = [ImpressionFeature]
 
     train_df, test_df = merge_features(mode, cluster, features_array)
     # train_df = train_df.replace(-1, np.nan)
     # test_df = test_df.replace(-1, np.nan)
 
-    check_folder('dataset/preprocessed/{}/{}/xgboost/'.format(cluster, mode))
+    bp = 'dataset/preprocessed/{}/{}/xgboost/{}/'.format(cluster, mode, kind)
+    check_folder(bp)
 
     if class_weights:
-        weights = train_df[['user_id', 'session_id', 'weights']].drop_duplicates().weights.values
+        weights = train_df[['user_id', 'session_id',
+                            'weights']].drop_duplicates().weights.values
         print(len(weights))
-        np.save('dataset/preprocessed/{}/{}/xgboost/class_weights'.format(cluster, mode), weights)
+        np.save(join(bp, 'class_weights'), weights)
         print('class weights saved')
 
     if class_weights:
-        X_train = train_df.drop(['index', 'user_id', 'session_id', 'item_id', 'label', 'weights'], axis=1)
+        X_train = train_df.drop(
+            ['index', 'user_id', 'session_id', 'item_id', 'label', 'weights'], axis=1)
     else:
-        X_train = train_df.drop(['index', 'user_id', 'session_id', 'item_id', 'label'], axis=1)
+        X_train = train_df.drop(
+            ['index', 'user_id', 'session_id', 'item_id', 'label'], axis=1)
     X_train = X_train.to_sparse(fill_value=0)
     X_train = X_train.astype(np.float64)
     X_train = X_train.to_coo().tocsr()
-    save_npz('dataset/preprocessed/{}/{}/xgboost/X_train'.format(cluster, mode), X_train)
+    save_npz(join(bp, 'X_train'), X_train)
     print('X_train saved')
 
     y_train = train_df[['label']]
-    y_train.to_csv(
-        'dataset/preprocessed/{}/{}/xgboost/y_train.csv'.format(cluster, mode), index=False)
+    y_train.to_csv(join(bp, 'y_train.csv'))
     print('y_train saved')
 
     group = create_groups(train_df)
     print(len(group))
-    np.save('dataset/preprocessed/{}/{}/xgboost/group'.format(cluster, mode), group)
+    np.save(join(bp, 'group'), group)
     print('groups saved')
 
     print('train data completed')
 
     if class_weights:
-        X_test = test_df.drop(['index', 'user_id', 'session_id', 'item_id', 'label', 'weights'], axis=1)
+        X_test = test_df.drop(
+            ['index', 'user_id', 'session_id', 'item_id', 'label', 'weights'], axis=1)
     else:
-        X_test = test_df.drop(['index', 'user_id', 'session_id', 'item_id', 'label'], axis=1)
+        X_test = test_df.drop(
+            ['index', 'user_id', 'session_id', 'item_id', 'label'], axis=1)
     X_test = X_test.to_sparse(fill_value=0)
     X_test = X_test.astype(np.float64)
     X_test = X_test.to_coo().tocsr()
-    save_npz('dataset/preprocessed/{}/{}/xgboost/X_test'.format(cluster, mode), X_test)
+    save_npz(join(bp, 'X_test'), X_test)
     print('X_test saved')
 
     print('test data completed')

@@ -118,9 +118,9 @@ def target_indices(mode, cluster='no_cluster'):
     return _target_indices[path]
 
 
-def dataset_xgboost_train(mode, cluster='no_cluster', class_weights=False):
+def dataset_xgboost_train(mode, cluster='no_cluster', kind='kind1', class_weights=False):
     global _dataset_xgboost_train
-    bp = 'dataset/preprocessed/{}/{}/xgboost'.format(cluster, mode)
+    bp = 'dataset/preprocessed/{}/{}/xgboost/{}/'.format(cluster, mode, kind)
     if not 'a' in _dataset_xgboost_train:
         _dataset_xgboost_train[bp+'a'] = sps.load_npz(
             os.path.join(bp, 'X_train.npz'))
@@ -142,9 +142,9 @@ def dataset_xgboost_train(mode, cluster='no_cluster', class_weights=False):
                _dataset_xgboost_train[bp + 'c']
 
 
-def dataset_xgboost_test(mode, cluster='no_cluster'):
+def dataset_xgboost_test(mode, cluster='no_cluster', kind='kind1'):
     global _dataset_xgboost_test
-    bp = 'dataset/preprocessed/{}/{}/xgboost'.format(cluster, mode)
+    bp = 'dataset/preprocessed/{}/{}/xgboost/{}/'.format(cluster, mode, kind)
     if not 'a' in _dataset_xgboost_test:
         _dataset_xgboost_test[bp+'a'] = sps.load_npz(
             os.path.join(bp, 'X_test.npz'))
