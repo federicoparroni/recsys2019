@@ -22,13 +22,13 @@ class SessionLabel(FeatureBase):
         name = 'session_label'
         columns_to_onehot = []
 
-        super().__init__(name=name, mode=mode, columns_to_onehot=columns_to_onehot, save_index=True)
+        super().__init__(name=name, mode=mode, cluster=cluster, columns_to_onehot=columns_to_onehot, save_index=True)
 
 
     def extract_feature(self):
         tqdm.pandas()
 
-        df = pd.concat([data.train_df(mode), data.test_df(mode)])
+        df = pd.concat([data.train_df(self.mode), data.test_df(self.mode)])
         
         # find the last clickout rows
         idxs = find_last_clickout_indices(df)
