@@ -59,21 +59,28 @@ class RecommenderBase(ABC):
             print("The list has lenght > 25. It will be cut")
         self.weight_per_position = list_weight[:25]
 
-    def run(self, export_scores=False):
+    def run(self, export_sub=True, export_scores=False):
         """
         Handle all the operations needed to run this model a single time.
         In particular, performs the fit and get the recommendations.
-        Then, it can either export the submission or not based on the mode.
+        Then, it can either export the submission or not based the flag export_sub.
         Moreover, it can export the scores of the algorithm based on the flag export_scores
         """
         print('running {}'.format(self.name))
         if export_scores:
-            print("I gonna fit the model, recommend the accomodations, save the scores and export the submission")
+            if export_sub:
+                print("I gonna fit the model, recommend the accomodations, save the scores and export the submission")
+            else:
+                print("I gonna fit the model, recommend the accomodations and save the scores")
         else:
-            print("I gonna fit the model, recommend the accomodations and export the submission")
+            if export_sub:
+                print("I gonna fit the model, recommend the accomodations and export the submission")
+            else:
+                print("I gonna fit the model and recommend the accomodations")
         self.fit()
-        recommendations = self.recommend_batch()
-        out.create_sub(recommendations, submission_name=self.name)
+        if export_sub:
+            recommendations = self.recommend_batch()
+            out.create_sub(recommendations, submission_name=self.name)
         if export_scores:
             check_folder('scores')
             scores_batch = self.get_scores_batch()

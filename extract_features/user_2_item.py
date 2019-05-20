@@ -62,7 +62,7 @@ class User2Item(FeatureBase):
 
                 # cut the session to the last clickout
                 click = group[group['action_type'] == 'clickout item']
-                if len(click > 1):
+                if len(click) > 1:
                     last_click_index = click.tail(1)
                     head_index = group.head(1).index
                     group = group.loc[head_index.values[0]:last_click_index.index.values[0] - 1]

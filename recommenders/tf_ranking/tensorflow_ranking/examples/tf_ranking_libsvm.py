@@ -87,6 +87,15 @@ class IteratorInitializerHook(tf.train.SessionRunHook):
     del coord
     self.iterator_initializer_fn(session)
 
+def all_equals(list):
+    _RESULT = True
+    current_el = list[0]
+    for i in range(1,len(list),1):
+        if list[i] != current_el:
+            _RESULT = False
+            break
+    return _RESULT
+
 
 def example_feature_columns():
   """Returns the example feature columns."""
@@ -151,8 +160,24 @@ def load_libsvm_data(path, list_size):
   tf.logging.info("Number of documents discarded: {}".format(discarded_docs))
 
   # Convert everything to np.array.
+
+  context_features_id = []
+  example_features_id = []
   for k in feature_map:
     feature_map[k] = np.array(feature_map[k])
+    f_values = [el[0] for el in feature_map[k][0]]
+    if k in FLAGS.context_features_id:
+        # convert the shape of the feature to a context feature shape
+        feature_map[k] = feature_map[k][:, 0, :]
+        context_features_id.append(k)
+    else:
+        example_features_id.append(k)
+  print(context_features_id)
+
+  _mode = path.split('/')[-1].split('.')[0]
+  flags.DEFINE_list(f'{_mode}_context_features_id', context_features_id, 'all the key number of the context features')
+  flags.DEFINE_list(f'{_mode}_per_example_features_id', example_features_id, 'all the key number of the per example features')
+
   return feature_map, np.array(label_list)
 
 
@@ -219,13 +244,18 @@ def make_score_fn():
     """Defines the network to score a group of documents."""
 
     with tf.name_scope("input_layer"):
+      """
       names = sorted(example_feature_columns())
+      names.remove('28')
       group_input = [
           tf.layers.flatten(group_features[name])
-
           for name in names
       ]
-      input_layer = tf.concat(group_input, 1)
+      """
+      per_ex_features = tf.concat([tf.layers.flatten(group_features[name]) for name in FLAGS.train_per_example_features_id],1)
+      context_features = tf.concat([tf.layers.flatten(unused_context_features[name]) for name in FLAGS.train_context_features_id],1)
+
+      input_layer = tf.concat([per_ex_features, context_features], axis=1)
       tf.summary.scalar("input_sparsity", tf.nn.zero_fraction(input_layer))
       tf.summary.scalar("input_max", tf.reduce_max(input_layer))
 
@@ -239,7 +269,7 @@ def make_score_fn():
       cur_layer = tf.nn.relu(cur_layer)
       tf.summary.scalar("fully_connected_{}_sparsity".format(i),
                         tf.nn.zero_fraction(cur_layer))
-      cur_layer = tf.layers.dropout(
+    cur_layer = tf.layers.dropout(
     cur_layer, rate=FLAGS.dropout_rate, training=is_training)
     logits = tf.layers.dense(cur_layer, units=FLAGS.group_size)
     return logits
@@ -311,11 +341,11 @@ def train_and_eval():
       model_fn=tfr.model.make_groupwise_ranking_fn(
           group_score_fn=make_score_fn(),
           group_size=FLAGS.group_size,
-          transform_fn=None,
-          #tfr.feature.make_identity_transform_fn(['5'])
+          transform_fn=tfr.feature.make_identity_transform_fn(FLAGS.train_context_features_id),
+          #tfr.feature.make_identity_transform_fn(['28'])
           ranking_head=ranking_head),
     config=tf.estimator.RunConfig(
-      FLAGS.output_dir, save_checkpoints_steps=1000))
+      FLAGS.output_dir, save_checkpoints_steps=FLAGS.save_checkpoints_steps))
 
 
   train_spec = tf.estimator.TrainSpec(
@@ -348,8 +378,14 @@ def train_and_test():
             learning_rate=FLAGS.learning_rate,
             optimizer="Adagrad")
 
+    if FLAGS.loss == 'list_mle_loss':
+        lambda_weight = tfr.losses.create_p_list_mle_lambda_weight(list_size=25)
+    elif FLAGS.loss == 'approx_ndcg_loss':
+        lambda_weight = tfr.losses.create_ndcg_lambda_weight(topn=25)
+    else:
+        lambda_weight = tfr.losses.create_reciprocal_rank_lambda_weight(topn=25)
     ranking_head = tfr.head.create_ranking_head(
-        loss_fn=tfr.losses.make_loss_fn(FLAGS.loss, lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight(topn=25)),
+        loss_fn=tfr.losses.make_loss_fn(FLAGS.loss, lambda_weight=lambda_weight),
         eval_metric_fns=get_eval_metric_fns(),
         train_op_fn=_train_op_fn)
     # tfr.losses.create_p_list_mle_lambda_weight(25)
@@ -399,6 +435,9 @@ if __name__ == "__main__":
     _TRAIN_PATH = f'{_BASE_PATH}/train.txt'
     _TEST_PATH = f'{_BASE_PATH}/test.txt'
     _VALI_PATH = f'{_BASE_PATH}/vali.txt'
+
+    # load context features id
+    flags.DEFINE_list("context_features_id", list(np.load(f'{_BASE_PATH}/context_features_id.npy')), "id of the context features of the dataset")
 
     cf.check_folder(f'{_BASE_PATH}/output_dir_{datetime.datetime.now().strftime("%Y-%m-%d_%H:%M")}')
     _OUTPUT_DIR = f'{_BASE_PATH}/output_dir_{datetime.datetime.now().strftime("%Y-%m-%d_%H:%M")}'
@@ -471,14 +510,24 @@ if __name__ == "__main__":
     # ["256", "128", "64"]
     # best ["256", "128"]
 
-    flags.DEFINE_integer("num_features", 28, "Number of features per document.")
+    # retrieve the number of features
+    with open(f'{_BASE_PATH}/features_num.txt') as f:
+        num_features = int(f.readline())
+        print(f'num_features is: {num_features}')
+
+    flags.DEFINE_integer("num_features", num_features, "Number of features per document.")
+
+    print('insert the group_size:')
+    group_size = int(input())
+
     flags.DEFINE_integer("list_size", 25, "List size used for training.")
-    flags.DEFINE_integer("group_size", 25, "Group size used in score function.")
-    #1
+    flags.DEFINE_integer("group_size", group_size, "Group size used in score function.")
 
     flags.DEFINE_string("loss", loss,
                       "The RankingLossKey for loss function.")
-
+    print('save checkpoint steps')
+    save_checkpoints_steps = int(input())
+    flags.DEFINE_integer('save_checkpoints_steps', save_checkpoints_steps, "number of steps after which save the checkpoint")
     FLAGS = flags.FLAGS
 
     tf.app.run()

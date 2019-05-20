@@ -17,7 +17,7 @@ def create_sub(predictions, submission_name, directory='submissions'):
       os.mkdir(directory)
 
     tm = time.strftime('%H-%M-%S')
-    path_time = f'{directory}/{submission_name} {tm}.csv'
+    path_time = f'{directory}/{submission_name}_{tm}.csv'
     print(f'Exporting the sub to {path_time}...')
     start = time.time()
 
