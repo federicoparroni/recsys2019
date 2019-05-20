@@ -103,7 +103,7 @@ class PastFutureSessionFeatures(FeatureBase):
         if self.mode != 'full':
             if os.path.isfile('dataset/preprocessed/no_cluster/full/feature/past_session_features/features.csv'):
                 extract_features_from_full(self.mode, self.cluster)
-                return
+                exit(0)
             else:
                 print('full features not found: creating full first...')
 
