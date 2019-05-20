@@ -50,6 +50,13 @@ class TopPopPerImpression(FeatureBase):
 
         return final_df
 
+    def post_loading(self, df):
+        df.top_pop_interaction_per_impression = df.top_pop_per_impression.astype(np.float)
+        v = df.top_pop_per_impression.values
+        v += 1
+        df.top_pop_per_impression = np.log(v)
+        return df
+
 if __name__ == '__main__':
     import utils.menu as menu
 
