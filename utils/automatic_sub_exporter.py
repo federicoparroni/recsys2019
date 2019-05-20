@@ -6,7 +6,7 @@ class AutomaticSubExporter:
 
     def __init__(self, referenced_object):
         self.reference_object = referenced_object
-        self.threshold = 1e-3
+        self.threshold = 1e-4
         self.actual_score = 0
 
     def export(self, obj, params_dict, mode, mrr):
