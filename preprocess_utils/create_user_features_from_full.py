@@ -1,7 +1,6 @@
 import pandas as pd
 from tqdm import tqdm
 import data
-from preprocess_utils.last_clickout_indices import find as find_last_clickout
 from utils.check_folder import check_folder
 
 
@@ -21,15 +20,15 @@ def extract_features_from_full(mode, cluster='no_cluster'):
     features = features_full[['user_id', 'session_id']]
 
     full_sm = pd.concat([data.train_df(mode, cluster), data.test_df(mode, cluster)])
-    target_idx = find_last_clickout(full_sm)
 
-    irrelevant_sessions = []
+    target_sessions = []
     for name, group in full_sm.groupby(['user_id', 'session_id']):
-        if 'clickout item' not in list(set(group.action_type.values)):
-            irrelevant_sessions += [group.session_id.values[0]]
+        if 'clickout item' in list(set(group.action_type.values)):
+            target_sessions += [group.session_id.values[0]]
 
+    # Avoid terminating with index out of range
+    target_sessions += [-1]
     print('sorted')
-    target_sessions = [x for x in _set_no_reordering(list(full_sm.iloc[target_idx, :].sort_values(by=['user_id', 'session_id']).session_id.values)) if x not in irrelevant_sessions] + [-1]
 
     relevant_idx = []
 

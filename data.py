@@ -42,6 +42,10 @@ _df_classification_test = {}
 _dataset_xgboost_train = {}
 _dataset_xgboost_test = {}
 
+
+_dataset_xgboost_classifier_train = {}
+_dataset_xgboost_classifier_test = {}
+
 _df_accomodations_one_hot = None
 
 _user_prop = {}
@@ -104,7 +108,6 @@ def test_df(mode, cluster='no_cluster'):
     global _df_test
     path = 'dataset/preprocessed/{}/{}/test.csv'.format(cluster, mode)
     if path not in _df_test:
-        print("Loading {} test_df, it will take a while..".format(mode), flush=True)
         _df_test[path] = pd.read_csv(path, index_col=0)
     return _df_test[path]
 
@@ -141,7 +144,6 @@ def dataset_xgboost_train(mode, cluster='no_cluster', kind='kind1', class_weight
                _dataset_xgboost_train[bp + 'b'], \
                _dataset_xgboost_train[bp + 'c']
 
-
 def dataset_xgboost_test(mode, cluster='no_cluster', kind='kind1'):
     global _dataset_xgboost_test
     bp = 'dataset/preprocessed/{}/{}/xgboost/{}/'.format(cluster, mode, kind)
@@ -150,6 +152,19 @@ def dataset_xgboost_test(mode, cluster='no_cluster', kind='kind1'):
             os.path.join(bp, 'X_test.npz'))
     return _dataset_xgboost_test[bp+'a']
 
+def dataset_xgboost_classifier_train(mode, cluster='no_cluster'):
+    global _dataset_xgboost_classifier_train
+    path = 'dataset/preprocessed/{}/{}/xgboost_classifier/train.csv'.format(cluster, mode)
+    if not _dataset_xgboost_classifier_train:
+        _dataset_xgboost_classifier_train = pd.read_csv(path)
+    return _dataset_xgboost_classifier_train
+
+def dataset_xgboost_classifier_test(mode, cluster='no_cluster'):
+    global _dataset_xgboost_classifier_test
+    path = 'dataset/preprocessed/{}/{}/xgboost_classifier/test.csv'.format(cluster, mode)
+    if not _dataset_xgboost_classifier_test:
+        _dataset_xgboost_classifier_test = pd.read_csv(path)
+    return _dataset_xgboost_classifier_test
 
 def classification_train_df(mode, sparse=True, cluster='no_cluster', algo='xgboost'):
     global _df_classification_train
