@@ -241,9 +241,15 @@ class SequenceDatasetForClassification(Dataset):
         #cols_to_drop_in_X = ['timestamp','reference','step','platform','city','current_filters']
 
         # scale the dataframe
+
         # glo_click_pop_feat = GlobalClickoutPopularity(self.mode, self.cluster)
         # max_pop = glo_click_pop_feat.read_feature()['glob_clickout_popularity'].max()
         # X_df['glob_clickout_popularity'] = scale.logarithmic(X_df['glob_clickout_popularity'], max_value=max_pop)
+
+        price_cols = ['price_{}'.format(i) for i in range(25) ]
+        max_of_prices = np.max(X_df.loc[:,price_cols], axis=1)
+        mask = max_of_prices > 0
+        X_df.loc[mask,price_cols] /= max_of_prices[mask][:,None]
         
         # glob_int_pop_feat = GlobalInteractionsPopularity(self.mode, self.cluster)
         # glob_int_pop_max = glob_int_pop_feat.read_feature()['glob_inter_popularity'].max()

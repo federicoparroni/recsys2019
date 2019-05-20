@@ -190,7 +190,7 @@ def add_reference_labels(df, mode, classes_prefix='ref_'):
         
     return res_df.drop('label', axis=1)
 
-def add_reference_binary_labels(df, mode, classes_prefix='ref_'):
+def add_reference_binary_labels(df, mode, col_name='label'):
     """ Add the reference index in the impressions list as a new column for each clickout in the dataframe.
     For the clickout interactions, a 1 is placed in the column with name {classes_prefix}{reference index in impressions}.
     For the non-clickout interactions, 0s are placed in every columns with names {classes_prefix}{0...} if 
@@ -202,7 +202,7 @@ def add_reference_binary_labels(df, mode, classes_prefix='ref_'):
     res_df['label'] = (res_df['label'] == 0) * 1
     res_df = res_df.astype({'label':'int8'})
         
-    return res_df
+    return res_df.rename(columns={'label':col_name})
 
 
 def get_last_clickout(df, index_name=None, rename_index=None):

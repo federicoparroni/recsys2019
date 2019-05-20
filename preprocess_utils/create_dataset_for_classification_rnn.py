@@ -20,6 +20,7 @@ from extract_features.rnn.reference_price_position_in_last_clickout import Refer
 #from extract_features.rnn.global_interactions_popularity import GlobalInteractionsPopularity
 from extract_features.rnn.global_clickout_popularity import GlobalClickoutPopularity
 from extract_features.rnn.session_impressions_count import SessionsImpressionsCount
+from extract_features.rnn.clickout_vector_prices import ClickoutVectorPrices
 
 import preprocess_utils.session2vec as sess2vec
 
@@ -90,6 +91,7 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_it
         if for_train and resample:
             # resample the dataset to balance the classes
             resample_perc = 0.5 / df.ref_class.mean()
+            print('resample perc:', resample_perc)
             df = df_utils.resample_sessions(df, by=resample_perc, when=df_utils.ref_class_is_1)
 
         # join the accomodations one-hot features
@@ -179,7 +181,7 @@ if __name__ == "__main__":
     features_to_join = [
         #ReferencePositionInNextClickoutImpressions,
         ReferencePositionInLastClickoutImpressions,
-        #GlobalClickoutPopularity,
+        GlobalClickoutPopularity,
         #GlobalInteractionsPopularity,
         #AveragePriceInNextClickout,
         
@@ -187,9 +189,10 @@ if __name__ == "__main__":
         ReferencePriceInLastClickout,
 
         #ReferencePricePositionInNextClickout,
-        #ReferencePricePositionInLastClickout,
+        ReferencePricePositionInLastClickout,
 
         SessionsImpressionsCount,
+        ClickoutVectorPrices,
     ]
     features = []
     # create the features to join

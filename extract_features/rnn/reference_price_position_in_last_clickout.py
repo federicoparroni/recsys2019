@@ -30,11 +30,11 @@ class ReferencePricePositionInLastClickout(FeatureBase):
 
         df = data.full_df()
         # reset index to correct access
-        df = df.sort_values(['user_id','session_id','timestamp','step'])
+        df = df.sort_values(['user_id','session_id','timestamp','step']).reset_index()
         
         # find the last clickout rows
         last_clickout_idxs = find_last_clickout_indices(df)
-        clickout_rows = df.loc[last_clickout_idxs, ['user_id','session_id','action_type','impressions']]
+        clickout_rows = df.loc[last_clickout_idxs, ['user_id','session_id','action_type','impressions','prices']]
         # cast the impressions and the prices to lists
         clickout_rows['impression_list'] = clickout_rows.impressions.str.split('|')
         clickout_rows['price_list'] = clickout_rows.prices.str.split('|').apply(lambda x: list(map(int,x)))
@@ -91,7 +91,7 @@ class ReferencePricePositionInLastClickout(FeatureBase):
 
     def join_to(self, df, one_hot=True):
         """ Join this feature to the specified dataframe """
-        feature_df = self.read_feature(one_hot=one_hot).drop(['user_id','session_id'],axis=1)
+        feature_df = self.read_feature(one_hot=one_hot)
         feature_cols = feature_df.columns
         res_df = df.merge(feature_df, how='left', left_index=True, right_index=True)
         if one_hot:
