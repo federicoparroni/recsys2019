@@ -101,7 +101,7 @@ def __logout(session):
   return 
 
 
-def send(file_path, username='federico.parroni@live.it', password='siamoi3piùcarichi'):
+def send(file_path, username='policloud8@gmail.com', password='FerrariDC8'):
   session = __login(username, password)
   if session is None:
     print('Error while logging in!')
