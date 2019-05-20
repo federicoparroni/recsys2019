@@ -26,10 +26,10 @@ class PricePositionInfoInteractedReferences(FeatureBase):
 
         def func(x):
             y = x[x['action_type'] == 'clickout item']
-            mean_pos = -1
-            pos_last_reference = -1
-            mean_cheap_position = -1
-            mean_price_interacted = -1
+            mean_pos = 0
+            pos_last_reference = 0
+            mean_cheap_position = 0
+            mean_price_interacted = 0
 
             if len(y) > 0:
                 clk = y.tail(1)

@@ -4,3 +4,4 @@ class AutomaticSubExporter:
         self.model_class = model_class
 
     def check_if_export(self, mrr, params):
+        return False

@@ -42,6 +42,10 @@ _df_classification_test = {}
 _dataset_xgboost_train = {}
 _dataset_xgboost_test = {}
 
+
+_dataset_xgboost_classifier_train = {}
+_dataset_xgboost_classifier_test = {}
+
 _df_accomodations_one_hot = None
 
 _user_prop = {}
@@ -130,6 +134,21 @@ def dataset_xgboost_train(mode, cluster='no_cluster'):
     return _dataset_xgboost_train[bp+'a'], \
         _dataset_xgboost_train[bp+'b'], \
         _dataset_xgboost_train[bp+'c']
+
+
+def dataset_xgboost_classifier_train(mode, cluster='no_cluster'):
+    global _dataset_xgboost_classifier_train
+    path = 'dataset/preprocessed/{}/{}/xgboost_classifier/train.csv'.format(cluster, mode)
+    if not _dataset_xgboost_classifier_train:
+        _dataset_xgboost_classifier_train = pd.read_csv(path)
+    return _dataset_xgboost_classifier_train
+
+def dataset_xgboost_classifier_test(mode, cluster='no_cluster'):
+    global _dataset_xgboost_classifier_test
+    path = 'dataset/preprocessed/{}/{}/xgboost_classifier/test.csv'.format(cluster, mode)
+    if not _dataset_xgboost_classifier_test:
+        _dataset_xgboost_classifier_test = pd.read_csv(path)
+    return _dataset_xgboost_classifier_test
 
 
 def dataset_xgboost_test(mode, cluster='no_cluster'):
