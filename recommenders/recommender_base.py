@@ -5,6 +5,8 @@ import numpy as np
 from tqdm import tqdm
 import out
 import utils.telegram_bot as HERA
+from utils.check_folder import check_folder
+import time
 
 
 class RecommenderBase(ABC):
@@ -57,24 +59,34 @@ class RecommenderBase(ABC):
             print("The list has lenght > 25. It will be cut")
         self.weight_per_position = list_weight[:25]
 
-    def run(self):
+    def run(self, export_sub=True, export_scores=False):
         """
         Handle all the operations needed to run this model a single time.
         In particular, performs the fit and get the recommendations.
-        Then, it can either export the recommendations or not
+        Then, it can either export the submission or not based the flag export_sub.
+        Moreover, it can export the scores of the algorithm based on the flag export_scores
         """
-        export = False
         print('running {}'.format(self.name))
-        if (self.mode == 'full') or (self.mode == 'local'):
-            export = True
-            print("I gonna fit the model, recommend the accomodations, and save the submission")
+        if export_scores:
+            if export_sub:
+                print("I gonna fit the model, recommend the accomodations, save the scores and export the submission")
+            else:
+                print("I gonna fit the model, recommend the accomodations and save the scores")
         else:
-            print("I gonna fit the model and recommend the accomodations")
-
+            if export_sub:
+                print("I gonna fit the model, recommend the accomodations and export the submission")
+            else:
+                print("I gonna fit the model and recommend the accomodations")
         self.fit()
-        recommendations = self.recommend_batch()
-        if export:
+        if export_sub:
+            recommendations = self.recommend_batch()
             out.create_sub(recommendations, submission_name=self.name)
+        if export_scores:
+            check_folder('scores')
+            scores_batch = self.get_scores_batch()
+            path = 'scores/{}_{}'.format(self.name, time.strftime('%H-%M-%S'))
+            np.save(path, scores_batch)
+            print('scores exported in {}'.format(path))
 
     def evaluate(self, send_MRR_on_telegram = False):
         """
@@ -86,7 +98,7 @@ class RecommenderBase(ABC):
         
         # infos on the perc of target indices in which I'm evaluating the model
         perc = len(data.target_indices(self.mode, self.cluster))/len(data.target_indices(self.mode, data.SPLIT_USED))
-        print('\nevaluating with mode {} on {} percent of the targets\n'.format(self.mode, perc))
+        print('\nevaluating with mode {} on {} percent of the targets\n'.format(self.mode, perc*100))
 
         self.fit()
         recommendations = self.recommend_batch()

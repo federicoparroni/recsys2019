@@ -5,19 +5,20 @@ sys.path.append(os.getcwd())
 from extract_features.feature_base import FeatureBase
 import data
 import pandas as pd
+from preprocess_utils.last_clickout_indices import find as find_last_clickout_indices
 from tqdm.auto import tqdm
 
-class ReferencePricePositionInNextClickout(FeatureBase):
+class ReferencePricePositionInLastClickout(FeatureBase):
 
     """
-    Extracts the position of the reference price inside the next clickout impressions prices.
+    Extracts the position of the reference price inside the last clickout impressions prices.
     If the reference is not present in the next clickout impressions, the position will be -1
     | index | price_pos
     price_pos is a number between 0-24 or -1
     """
 
-    def __init__(self, mode, cluster):
-        name = 'reference_price_position_in_next_clickout'
+    def __init__(self, mode='full', cluster='no_cluster'):
+        name = 'reference_price_position_in_last_clickout'
         columns_to_onehot = [('price_pos', 'single')]
 
         super().__init__(name=name, mode='full', columns_to_onehot=columns_to_onehot, save_index=True)
@@ -28,25 +29,34 @@ class ReferencePricePositionInNextClickout(FeatureBase):
         tqdm.pandas()
 
         df = data.full_df()
-
-        df = df.sort_index()
-        # find the clickout rows
-        clickout_rows = df[['user_id','session_id','action_type','impressions','prices']][df.action_type == 'clickout item']
+        # reset index to correct access
+        df = df.sort_values(['user_id','session_id','timestamp','step'])
+        
+        # find the last clickout rows
+        last_clickout_idxs = find_last_clickout_indices(df)
+        clickout_rows = df.loc[last_clickout_idxs, ['user_id','session_id','action_type','impressions']]
         # cast the impressions and the prices to lists
         clickout_rows['impression_list'] = clickout_rows.impressions.str.split('|')
         clickout_rows['price_list'] = clickout_rows.prices.str.split('|').apply(lambda x: list(map(int,x)))
-        # order the prices
+        clickout_rows = clickout_rows.drop('impressions', axis=1)
+        # order the prices lists
         clickout_rows['sorted_price_list'] = clickout_rows.price_list.apply(lambda x: sorted(x))
         clickout_rows = clickout_rows.drop('prices', axis=1)
-        # find the interaction with numeric reference
-        reference_rows = df[['user_id','session_id','reference','action_type']]
-        reference_rows = reference_rows[df.reference.str.isnumeric() & (df.action_type != 'clickout item')]
-        reference_rows = reference_rows.drop('action_type',axis=1)
+
+        # find the interactions with numeric reference and not last clickouts
+        reference_rows = df[['user_id','session_id','reference','action_type','index']]
+        reference_rows = reference_rows[df.reference.str.isnumeric() == True]
+        # skip last clickouts
+        reference_rows = reference_rows.loc[~reference_rows.index.isin(last_clickout_idxs)]
+        reference_rows = reference_rows.drop('action_type', axis=1)
         reference_rows['price_pos'] = -1
 
         # iterate over the sorted reference_rows and clickout_rows
         j = 0
         clickout_indices = clickout_rows.index.values
+        ckidx = clickout_indices[j]
+        next_clickout_user_id = clickout_rows.at[ckidx, 'user_id']
+        next_clickout_sess_id = clickout_rows.at[ckidx, 'session_id']
         for idx,row in tqdm(reference_rows.iterrows()):
             # if the current index is over the last clickout, break
             if idx >= clickout_indices[-1]:
@@ -54,18 +64,23 @@ class ReferencePricePositionInNextClickout(FeatureBase):
             # find the next clickout index
             while idx > clickout_indices[j]:
                 j += 1
-            next_clickout = clickout_rows.loc[clickout_indices[j]]
+                ckidx = clickout_indices[j]
+                next_clickout_user_id = clickout_rows.at[ckidx, 'user_id']
+                next_clickout_sess_id = clickout_rows.at[ckidx, 'session_id']
+                next_clickout_impress = clickout_rows.at[ckidx, 'impression_list']
+                next_clickout_prices = clickout_rows.at[ckidx, 'price_list']
+                next_clickout_sortedprices = clickout_rows.at[ckidx, 'sorted_price_list']
 
             # check if row and next_clickout are in the same session
-            if row.user_id == next_clickout.user_id and row.session_id == next_clickout.session_id:
+            if row.user_id == next_clickout_user_id and row.session_id == next_clickout_sess_id:
                 try:
-                    ref_idx = next_clickout.impression_list.index(row.reference)
-                    ref_price = int(next_clickout.price_list[ref_idx])
-                    reference_rows.at[idx, 'price_pos'] = next_clickout.sorted_price_list.index(ref_price)
+                    ref_idx = next_clickout_impress.index(row.reference)
+                    ref_price = int(next_clickout_prices[ref_idx])
+                    reference_rows.at[idx, 'price_pos'] = next_clickout_sortedprices.index(ref_price)
                 except:
                     pass
         
-        return reference_rows.drop('reference', axis=1)
+        return reference_rows.drop(['user_id','session_id','reference'], axis=1).set_index('index')
 
     def post_loading(self, df):
         # drop the one-hot column -1, representing a non-numeric reference or a reference not present
@@ -88,10 +103,7 @@ class ReferencePricePositionInNextClickout(FeatureBase):
 if __name__ == '__main__':
     import utils.menu as menu
 
-    mode = menu.mode_selection()
-    cluster = menu.cluster_selection()
-
-    c = ReferencePricePositionInNextClickout(mode, cluster)
+    c = ReferencePricePositionInLastClickout()
 
     print('Creating {} for {} {}'.format(c.name, c.mode, c.cluster))
     c.save_feature()

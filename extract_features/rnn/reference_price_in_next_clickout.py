@@ -16,7 +16,7 @@ class ReferencePriceInNextClickout(FeatureBase):
     price is a positive number
     """
 
-    def __init__(self, mode, cluster):
+    def __init__(self, mode='full', cluster='no_cluster'):
         name = 'reference_price_in_next_clickout'
         columns_to_onehot = []
 
@@ -38,6 +38,7 @@ class ReferencePriceInNextClickout(FeatureBase):
         reference_rows = reference_rows[df.reference.str.isnumeric() & (df.action_type != 'clickout item')]
         reference_rows = reference_rows.drop('action_type',axis=1)
         reference_rows['price'] = 0
+        reference_rows = reference_rows.sort_index()
 
         # iterate over the sorted reference_rows and clickout_rows
         j = 0

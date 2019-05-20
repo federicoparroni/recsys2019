@@ -64,6 +64,8 @@ You can use TensorBoard to display the training results stored in $OUTPUT_DIR.
 from absl import flags
 
 import utils.check_folder as cf
+import utils.telegram_bot as HERA
+from recommenders.tf_ranking import TensorflowRankig
 import numpy as np
 import six
 import tensorflow as tf
@@ -84,6 +86,15 @@ class IteratorInitializerHook(tf.train.SessionRunHook):
     """Initialize the iterator after the session has been created."""
     del coord
     self.iterator_initializer_fn(session)
+
+def all_equals(list):
+    _RESULT = True
+    current_el = list[0]
+    for i in range(1,len(list),1):
+        if list[i] != current_el:
+            _RESULT = False
+            break
+    return _RESULT
 
 
 def example_feature_columns():
@@ -149,8 +160,24 @@ def load_libsvm_data(path, list_size):
   tf.logging.info("Number of documents discarded: {}".format(discarded_docs))
 
   # Convert everything to np.array.
+
+  context_features_id = []
+  example_features_id = []
   for k in feature_map:
     feature_map[k] = np.array(feature_map[k])
+    f_values = [el[0] for el in feature_map[k][0]]
+    if k in FLAGS.context_features_id:
+        # convert the shape of the feature to a context feature shape
+        feature_map[k] = feature_map[k][:, 0, :]
+        context_features_id.append(k)
+    else:
+        example_features_id.append(k)
+  print(context_features_id)
+
+  _mode = path.split('/')[-1].split('.')[0]
+  flags.DEFINE_list(f'{_mode}_context_features_id', context_features_id, 'all the key number of the context features')
+  flags.DEFINE_list(f'{_mode}_per_example_features_id', example_features_id, 'all the key number of the per example features')
+
   return feature_map, np.array(label_list)
 
 
@@ -215,14 +242,23 @@ def make_score_fn():
   def _score_fn(unused_context_features, group_features, mode, unused_params,
                 unused_config):
     """Defines the network to score a group of documents."""
+
     with tf.name_scope("input_layer"):
+      """
+      names = sorted(example_feature_columns())
+      names.remove('28')
       group_input = [
           tf.layers.flatten(group_features[name])
-          for name in sorted(example_feature_columns())
+          for name in names
       ]
-      input_layer = tf.concat(group_input, 1)
+      """
+      per_ex_features = tf.concat([tf.layers.flatten(group_features[name]) for name in FLAGS.train_per_example_features_id],1)
+      context_features = tf.concat([tf.layers.flatten(unused_context_features[name]) for name in FLAGS.train_context_features_id],1)
+
+      input_layer = tf.concat([per_ex_features, context_features], axis=1)
       tf.summary.scalar("input_sparsity", tf.nn.zero_fraction(input_layer))
       tf.summary.scalar("input_max", tf.reduce_max(input_layer))
+
       tf.summary.scalar("input_min", tf.reduce_min(input_layer))
 
     is_training = (mode == tf.estimator.ModeKeys.TRAIN)
@@ -234,7 +270,7 @@ def make_score_fn():
       tf.summary.scalar("fully_connected_{}_sparsity".format(i),
                         tf.nn.zero_fraction(cur_layer))
     cur_layer = tf.layers.dropout(
-        cur_layer, rate=FLAGS.dropout_rate, training=is_training)
+    cur_layer, rate=FLAGS.dropout_rate, training=is_training)
     logits = tf.layers.dense(cur_layer, units=FLAGS.group_size)
     return logits
 
@@ -264,12 +300,6 @@ def train_and_eval():
   vali_input_fn, vali_hook = get_batches(features_vali, labels_vali,
                                                 FLAGS.train_batch_size)
 
-  features_test, labels_test = load_libsvm_data(FLAGS.test_path,
-                                                FLAGS.list_size)
-  test_input_fn, test_hook= get_batches(features_test, labels_test,
-                                                FLAGS.train_batch_size)
-
-
   def _train_op_fn(loss):
     """Defines train op used in ranking head."""
     return tf.contrib.layers.optimize_loss(
@@ -290,28 +320,32 @@ def train_and_eval():
       dataset_name=FLAGS.dataset_name,
       save_path=f'{FLAGS.save_path}',
       #save_path=f'dataset/preprocessed/tf_ranking/{_CLUSTER}/full/{_DATASET_NAME}/predictions',
-      test_x=features_test,
-      test_y=labels_test,
-      mode = FLAGS.mode,
-      loss = FLAGS.loss,
+      test_x=features_vali,
+      test_y=labels_vali,
+      mode=FLAGS.mode,
+      loss=FLAGS.loss,
       min_mrr_start=FLAGS.min_mrr_start,
+      params=FLAGS
       )
 
 
   ranking_head = tfr.head.create_ranking_head(
-      loss_fn=tfr.losses.make_loss_fn(FLAGS.loss, lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight()),
+      loss_fn=tfr.losses.make_loss_fn(FLAGS.loss, lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight(smooth_fraction=0.5, topn=25)),
       eval_metric_fns=get_eval_metric_fns(),
       train_op_fn=_train_op_fn)
-  #lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight()
+
+  #weights_feature_name=FLAGS.weights_feature_number
+  #lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight(smooth_fraction=0.5)
 
   estimator = tf.estimator.Estimator(
       model_fn=tfr.model.make_groupwise_ranking_fn(
           group_score_fn=make_score_fn(),
           group_size=FLAGS.group_size,
-          transform_fn=None,
+          transform_fn=tfr.feature.make_identity_transform_fn(FLAGS.train_context_features_id),
+          #tfr.feature.make_identity_transform_fn(['28'])
           ranking_head=ranking_head),
     config=tf.estimator.RunConfig(
-      FLAGS.output_dir, save_checkpoints_steps=1000))
+      FLAGS.output_dir, save_checkpoints_steps=FLAGS.save_checkpoints_steps))
 
 
   train_spec = tf.estimator.TrainSpec(
@@ -329,50 +363,81 @@ def train_and_eval():
   # Train and validate
   tf.estimator.train_and_evaluate(estimator, train_spec, vali_spec)
 
-  """
-  if FLAGS.mode != 'full':
-      # Evaluate on the test data.
-      print('\n\n\nevaluation on test')
-      estimator.evaluate(input_fn=lambda: batch_inputs(features_test,labels_test,FLAGS.train_batch_size))
-      print('DONE! \n\n\n ')
-  
+def train_and_test():
+    features, labels = load_libsvm_data(FLAGS.train_path, FLAGS.list_size)
+    train_input_fn, train_hook = get_train_inputs(features, labels,
+                                                  FLAGS.train_batch_size)
+    features_test, labels_test = load_libsvm_data(FLAGS.test_path,
+                                                  FLAGS.list_size)
 
-  print('\n\n\n PREDICT TEST AND SAVE PREDICTIONS')
+    def _train_op_fn(loss):
+        """Defines train op used in ranking head."""
+        return tf.contrib.layers.optimize_loss(
+            loss=loss,
+            global_step=tf.train.get_global_step(),
+            learning_rate=FLAGS.learning_rate,
+            optimizer="Adagrad")
 
-  predictor = estimator.predict(lambda: batch_inputs(features_test,labels_test,FLAGS.train_batch_size))
-  predictions = list(predictor)
-  np.save(f'{FLAGS.save_path}/predictions', np.array(predictions))
+    if FLAGS.loss == 'list_mle_loss':
+        lambda_weight = tfr.losses.create_p_list_mle_lambda_weight(list_size=25)
+    elif FLAGS.loss == 'approx_ndcg_loss':
+        lambda_weight = tfr.losses.create_ndcg_lambda_weight(topn=25)
+    else:
+        lambda_weight = tfr.losses.create_reciprocal_rank_lambda_weight(topn=25)
+    ranking_head = tfr.head.create_ranking_head(
+        loss_fn=tfr.losses.make_loss_fn(FLAGS.loss, lambda_weight=lambda_weight),
+        eval_metric_fns=get_eval_metric_fns(),
+        train_op_fn=_train_op_fn)
+    # tfr.losses.create_p_list_mle_lambda_weight(25)
+    # lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight()
 
-  print('DONE! \n\n\n ')
-  """
+    estimator = tf.estimator.Estimator(
+        model_fn=tfr.model.make_groupwise_ranking_fn(
+            group_score_fn=make_score_fn(),
+            group_size=FLAGS.group_size,
+            transform_fn=None,
+            ranking_head=ranking_head))
+
+    estimator.train(train_input_fn, hooks=[train_hook], steps=FLAGS.num_train_steps)
+
+    pred = np.array(list(estimator.predict(lambda: batch_inputs(features_test, labels_test, 128))))
+
+    pred_name=f'predictions_{FLAGS.loss}_learning_rate_{FLAGS.learning_rate}_train_batch_size_{FLAGS.train_batch_size}_' \
+        f'hidden_layers_dim_{FLAGS.hidden_layer_dims}_num_train_steps_{FLAGS.num_train_steps}_dropout_{FLAGS.dropout_rate}_{FLAGS.grup_size}'
+    np.save(f'{FLAGS.save_path}/{pred_name}', pred)
+
+    HERA.send_message(f'EXPORTING A SUB... mode:{FLAGS.mode}')
+    model = TensorflowRankig(mode=FLAGS.mode, cluster='no_cluster', dataset_name=FLAGS.dataset_name,
+                             pred_name=pred_name)
+    model.name = f'tf_ranking_{pred_name}'
+    model.run()
+    HERA.send_message(f'EXPORTED... mode:{FLAGS.mode}')
+
 
 def main(_):
   tf.logging.set_verbosity(tf.logging.INFO)
 
-  #TODO: save the prediction in numpy arry format
-  train_and_eval()
+  if FLAGS.mode == 'full':
+    train_and_test()
+  else:
+    train_and_eval()
 
 
 if __name__ == "__main__":
 
     print('type mode: small, local or full')
     _MODE = input()
-
     print('type cluster')
-    #cluster = input()
-    _CLUSTER='no_cluster'
+    _CLUSTER=input()
     print('type dataset_name')
     _DATASET_NAME = input()
-
     _BASE_PATH = f'dataset/preprocessed/tf_ranking/{_CLUSTER}/{_MODE}/{_DATASET_NAME}'
-
-
-
     _TRAIN_PATH = f'{_BASE_PATH}/train.txt'
     _TEST_PATH = f'{_BASE_PATH}/test.txt'
-    #_TEST_PATH = f'dataset/preprocessed/tf_ranking/{_CLUSTER}/full/{_DATASET_NAME}/test.txt'
-
     _VALI_PATH = f'{_BASE_PATH}/vali.txt'
+
+    # load context features id
+    flags.DEFINE_list("context_features_id", list(np.load(f'{_BASE_PATH}/context_features_id.npy')), "id of the context features of the dataset")
 
     cf.check_folder(f'{_BASE_PATH}/output_dir_{datetime.datetime.now().strftime("%Y-%m-%d_%H:%M")}')
     _OUTPUT_DIR = f'{_BASE_PATH}/output_dir_{datetime.datetime.now().strftime("%Y-%m-%d_%H:%M")}'
@@ -384,29 +449,85 @@ if __name__ == "__main__":
     flags.DEFINE_string("output_dir", _OUTPUT_DIR, "Output directory for models.")
     flags.DEFINE_string("mode", _MODE, "mode of the models.")
     flags.DEFINE_string("dataset_name", _DATASET_NAME, "name of the dataset")
-    flags.DEFINE_float("min_mrr_start", 0.66, "min_mrr_from_which_save_model")
 
-    flags.DEFINE_integer("train_batch_size", 128, "The batch size for training.")
+
+    # let the user choose the params
+    print('insert the min_MRR from which export the sub')
+    min_mrr = input()
+    print('insert train batch size')
+    train_batch_size = input()
+    print('insert learning rate')
+    learning_rate = input()
+    print('insert dropout rate')
+    dropout_rate = input()
+    print('insert hidden layer dims as numbers separeted by spaces')
+    hidden_layer_dims = input().split(' ')
+    print('select loss:\n'
+          '1) PAIRWISE_HINGE_LOSS\n'
+          '2) PAIRWISE_LOGISTIC_LOSS\n'
+          '3) PAIRWISE_SOFT_ZERO_ONE_LOSS\n'
+          '4) SOFTMAX_LOSS\n'
+          '5) SIGMOID_CROSS_ENTROPY_LOSS\n'
+          '6) MEAN_SQUARED_LOSS\n'
+          '7) LIST_MLE_LOSS\n'
+          '8) APPROX_NDCG_LOSS\n')
+
+    selection=input()
+    loss = None
+    if selection == '1':
+        loss = 'pairwise_hinge_loss'
+    elif selection == '2':
+        loss = 'pairwise_logistic_loss'
+    elif selection == '3':
+        loss = 'pairwise_soft_zero_one_loss'
+    elif selection == '4':
+        loss = 'softmax_loss'
+    elif selection == '5':
+        loss = 'sigmoid_cross_entropy_loss'
+    elif selection == '6':
+        loss = 'mean_squared_loss'
+    elif selection == '7':
+        loss = 'list_mle_loss'
+    elif selection == '8':
+        loss = 'approx_ndcg_loss'
+
+    if _MODE == 'full':
+        print('insert_num_train_step')
+        num_train_steps = input()
+    else:
+        num_train_steps = None
+
+    flags.DEFINE_float("min_mrr_start", min_mrr, "min_mrr_from_which_save_model")
+    flags.DEFINE_integer("train_batch_size", train_batch_size, "The batch size for training.")
     # 32
-    flags.DEFINE_integer("num_train_steps", None, "Number of steps for training.")
-
-    flags.DEFINE_float("learning_rate", 0.1, "Learning rate for optimizer.")
+    flags.DEFINE_integer("num_train_steps", num_train_steps, "Number of steps for training.")
+    flags.DEFINE_float("learning_rate", learning_rate, "Learning rate for optimizer.")
     #0.01
-    flags.DEFINE_float("dropout_rate", 0.5, "The dropout rate before output layer.")
+    flags.DEFINE_float("dropout_rate", dropout_rate, "The dropout rate before output layer.")
     # 0.5
-    flags.DEFINE_list("hidden_layer_dims", ['256','128'],
+    flags.DEFINE_list("hidden_layer_dims", hidden_layer_dims,
                     "Sizes for hidden layers.")
     # ["256", "128", "64"]
     # best ["256", "128"]
 
-    flags.DEFINE_integer("num_features", 225, "Number of features per document.")
+    # retrieve the number of features
+    with open(f'{_BASE_PATH}/features_num.txt') as f:
+        num_features = int(f.readline())
+        print(f'num_features is: {num_features}')
+
+    flags.DEFINE_integer("num_features", num_features, "Number of features per document.")
+
+    print('insert the group_size:')
+    group_size = int(input())
+
     flags.DEFINE_integer("list_size", 25, "List size used for training.")
-    flags.DEFINE_integer("group_size", 1, "Group size used in score function.")
-    #1
+    flags.DEFINE_integer("group_size", group_size, "Group size used in score function.")
 
-    flags.DEFINE_string("loss", "pairwise_logistic_loss",
+    flags.DEFINE_string("loss", loss,
                       "The RankingLossKey for loss function.")
-
+    print('save checkpoint steps')
+    save_checkpoints_steps = int(input())
+    flags.DEFINE_integer('save_checkpoints_steps', save_checkpoints_steps, "number of steps after which save the checkpoint")
     FLAGS = flags.FLAGS
 
     tf.app.run()

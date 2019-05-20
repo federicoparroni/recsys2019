@@ -5,10 +5,13 @@ sys.path.append(os.getcwd())
 import data
 import pandas as pd
 import utils.sparsedf as sparsedf
+from preprocess_utils.last_clickout_indices import find as find_last_clickout
+
+from extract_features.rnn.session_label import SessionLabel
 
 import numpy as np
 import scipy.sparse as sps
-from sklearn.preprocessing import MultiLabelBinarizer
+from sklearn.preprocessing import MultiLabelBinarizer, OneHotEncoder
 from keras.utils import to_categorical
 from tqdm import tqdm
 
@@ -106,13 +109,25 @@ def add_accomodations_features(df, path_to_save, logic='skip', row_indices=[]):
     # return the features columns and the one-hot attributes
     #return df
 
-def add_reference_labels(df, actiontype_col='clickout item', action_equals=1, classes_prefix='ref_',
+def merge_reference_features(df, pad_sessions_length):
+    res_df = df.copy()
+    # set the non-numeric references to 0 and cast to int
+    res_df.loc[res_df.reference.str.isnumeric() != True, 'reference'] = 0
+    res_df = res_df.astype({'reference':'int'})
+    # join
+    res_df = res_df.merge(data.accomodations_one_hot(), how='left', left_on='reference', right_index=True)
+    # set to 0 the features of the non-joined rows
+    features_cols = data.accomodations_one_hot().columns
+    col_start = list(res_df.columns).index(features_cols[0])
+    col_end = list(res_df.columns).index(features_cols[-1])
+    res_df.loc[:, features_cols] = res_df.loc[:, features_cols].fillna(0)
+    # remove the item features for the last clickout of each session: TO-DO clickout may be not the last item
+    res_df.iloc[np.arange(-1,len(res_df),pad_sessions_length)[1:], col_start:col_end] = 0
+    return res_df
+
+"""
+def add_reference_labels_old(df, actiontype_col='clickout item', action_equals=1, classes_prefix='ref_',
                             num_classes=25, only_clickouts=False):
-    """ Add the reference index in the impressions list as a new column for each clickout in the dataframe.
-    For the clickout interactions, a 1 is placed in the column with name {classes_prefix}{reference index in impressions}.
-    For the non-clickout interactions, 0s are placed in every columns with names {classes_prefix}{0...} if 
-    only_clickouts is True, else set the label for all the interactions in the session
-    """
     res_df = df.copy()
     tqdm.pandas()
     if only_clickouts:
@@ -152,44 +167,43 @@ def add_reference_labels(df, actiontype_col='clickout item', action_equals=1, cl
         res_df[c] = encoding[:,i+1]
 
     return res_df.drop('temp_ref_class', axis=1), ref_classes
+"""
 
-def add_reference_binary_labels(df, actiontype_col='clickout item', action_equals=1, only_clickouts=False):
-    """ Create a new column 'ref_class' containing 1 if the correct reference is the first in the impressions list,
-    0 otherwise. If only_clickouts is True, set the label in each interaction of the sessions, otherwise set the label
-    for all the interactions in the session.
+def add_reference_labels(df, mode, classes_prefix='ref_'):
+    """ Add the reference index in the impressions list as a new column for each clickout in the dataframe.
+    For the clickout interactions, a 1 is placed in the column with name {classes_prefix}{reference index in impressions}.
+    For the non-clickout interactions, 0s are placed in every columns with names {classes_prefix}{0...} if 
+    only_clickouts is True, else set the label for all the interactions in the session.
+    NOTE: this assumes that df contains groups of padded sessions of length pad_sessions_length!
     """
-    res_df = df.copy()
-    tqdm.pandas()
-    if only_clickouts:
-        def set_class(row):
-            if row[actiontype_col] == action_equals:
-                try:
-                    ref_class = 1 if row.impressions.split('|').index(row.reference) == 0 else 0
-                except ValueError:
-                    ref_class = 0
-                return ref_class
-            else:
-                return 0
-    else:
-        def set_class(group):
-            clickouts = group[group[actiontype_col] == action_equals]
-            if len(clickouts) > 0:
-                last_clickout = clickouts.iloc[-1]
-                try:
-                    ref_class = 1 if last_clickout.impressions.split('|').index(last_clickout.reference) == 0 else 0
-                except ValueError:
-                    ref_class = 0
-                    #print(clickouts.iloc[[-1]].index)      # reference not in the impressions
-                group['ref_class'] = ref_class
-            return group
+    f = SessionLabel(mode=mode).read_feature()
+    res_df = df.merge(f.drop(['user_id','session_id'],axis=1), how='left', left_index=True, right_index=True)
+    res_df = res_df.astype({'label':'int'})
 
-    res_df['ref_class'] = 0
-    if only_clickouts:
-        res_df['ref_class'] = res_df.progress_apply(set_class, axis=1)
-    else:
-        res_df = res_df.groupby('session_id').progress_apply(set_class)
+    enc = OneHotEncoder(categories=[range(25)], sparse=False)
+    one_hot = enc.fit_transform(res_df['label'].values.reshape(-1, 1))
     
-    return res_df.astype({'ref_class':'int8'})
+    # add the new columns
+    for c in range(25):
+        refclass = '{}{}'.format(classes_prefix, c)
+        res_df[refclass] = one_hot[:,c].astype('int8')
+        
+    return res_df.drop('label', axis=1)
+
+def add_reference_binary_labels(df, mode, classes_prefix='ref_'):
+    """ Add the reference index in the impressions list as a new column for each clickout in the dataframe.
+    For the clickout interactions, a 1 is placed in the column with name {classes_prefix}{reference index in impressions}.
+    For the non-clickout interactions, 0s are placed in every columns with names {classes_prefix}{0...} if 
+    only_clickouts is True, else set the label for all the interactions in the session.
+    NOTE: this assumes that df contains groups of padded sessions of length pad_sessions_length!
+    """
+    f = SessionLabel(mode=mode).read_feature()
+    res_df = df.merge(f.drop(['user_id','session_id'],axis=1), how='left', left_index=True, right_index=True)
+    res_df['label'] = (res_df['label'] == 0) * 1
+    res_df = res_df.astype({'label':'int8'})
+        
+    return res_df
+
 
 def get_last_clickout(df, index_name=None, rename_index=None):
     """ Return a dataframe with the session_id as index and the reference of the last clickout of that session. """
@@ -265,33 +279,58 @@ def add_impressions_as_new_actions(df, new_rows_starting_index=99000000, drop_co
 def pad_sessions(df, max_session_length):
     """ Pad/truncate each session to have the specified length (pad by adding a number of initial rows) """
     tqdm.pandas()
-
-    def pad(g, max_length):
-        # remove all interactions after the last clickout
-        clickout_rows = g[g.action_type == 'clickout item']
-        if clickout_rows.shape[0] > 0:
-            index_of_last_clickout = clickout_rows.iloc[[-1]].index.values[0]
-            g = g.loc[:index_of_last_clickout]
-        
-        grouplen = g.shape[0]
-        if grouplen <= max_length:
-            # pad with zeros
-            array = np.zeros((max_length, g.shape[1]), dtype=object)
-            # set index to -1 timestamp as the first one
-            array[:,0] = -1
-            # user_id and session_id are set equal to the ones for the current session
-            array[:,1] = g.user_id.values[0]
-            array[:,2] = g.session_id.values[0]
-            # timestamp is set equal to the first of the sequence
-            array[:,3] = g.timestamp.values[0]
-            # the final part is written in place of the zeros
-            array[-grouplen:] = g.values[-grouplen:]
-        else:
-            # truncate
-            array = g.values[-max_length:]
-        return pd.DataFrame(array, columns=g.columns)
     
-    return df.reset_index().groupby('session_id').progress_apply(pad, max_length=max_session_length).set_index('index')
+    clickouts_indices = find_last_clickout(df)
+    # this is equals to the number of sessions (sessions must have at least one clickout)
+    sess_count = len(clickouts_indices)
+    
+    # build the resulting np matrix
+    cols = ['index_column'] + list(df.columns)
+    res = np.zeros((sess_count * max_session_length, len(cols)), dtype='object')
+    res[:,0] = -1        # index col in first column
+    
+    # count how many rows we are taking for each session
+    c = max_session_length
+    j = sess_count-1            # point to last clickout index
+    cur_userid = df.at[clickouts_indices[j], 'user_id']
+    cur_sessid = df.at[clickouts_indices[j], 'session_id']
+    saving_rows = False
+    for idx,row in tqdm(df[::-1].iterrows()):
+        #print(idx)
+        user_id = df.at[idx, 'user_id']
+        sess_id = df.at[idx, 'session_id']
+        
+        same_session_as_last_iteration = (cur_userid == user_id and cur_sessid == sess_id)
+        
+        # check if we are in a new session
+        if not same_session_as_last_iteration:
+            # new session met, pass to the next clickout index
+            cur_userid = user_id
+            cur_sessid = sess_id
+            #print('new session began:', cur_userid, cur_sessid)
+            j -= 1
+            if j < 0:
+                break
+        
+        # start taking a new session when the last clickout is found
+        if idx == clickouts_indices[j]:
+            # restart saving rows from the current one
+            #print('idx is equal to clickout index', clickouts_indices[j])
+            saving_rows = True
+            c = max_session_length
+        
+        # iterating within the same session
+        if c <= max_session_length and c > 0 and saving_rows:
+            # store this interaction
+            row_idx = j * max_session_length + c - 1
+            #print('writing in', row_idx)
+            res[row_idx, 0] = idx
+            res[row_idx, 1:] = row.values
+            c -= 1
+        else:
+            saving_rows = False
+        
+    return pd.DataFrame(res[:,1:], columns=df.columns, index=res[:,0])
 
 def sessions2tensor(df, drop_cols=[], return_index=False):
     """

@@ -3,6 +3,7 @@ import os
 import numpy as np
 from tqdm import tqdm
 import data
+import utils.check_folder as cf
 
 
 class TensorflowRankig(RecommenderBase):
@@ -23,22 +24,18 @@ class TensorflowRankig(RecommenderBase):
         _BASE_PATH = f'dataset/preprocessed/tf_ranking/{cluster}/{mode}/{self.dataset_name}'
 
         _PREDICTION_PATH = f'{_BASE_PATH}/{pred_name}.npy'
-        _TARGET_INDICES_PATH = f'{_BASE_PATH}/target_indices.npy'
 
         # check if the PREDICTION have been made
         exists_path_predictions = os.path.isfile(_PREDICTION_PATH)
-        exists_path_indices = os.path.isfile(_TARGET_INDICES_PATH)
 
-        if (not exists_path_indices) or (not exists_path_predictions):
-            print(f'the prediction or the target indices for the \ndataset: {self.dataset_name}\n mode:{mode}\n '
+        if not exists_path_predictions:
+            print(f'the prediction for the \ndataset: {self.dataset_name}\n mode:{mode}\n '
                   f'cluster:{cluster}\n have not been made')
             exit(0)
 
         self.predictions = np.load(_PREDICTION_PATH)
         print('predictions loaded')
-
-        self.target_indices = np.load(_TARGET_INDICES_PATH)
-        print('target indices loaded')
+        self.target_indices = data.target_indices(mode, cluster)
 
     def fit(self):
         pass
@@ -46,6 +43,7 @@ class TensorflowRankig(RecommenderBase):
     def recommend_batch(self):
 
         final_predictions = []
+        scores_batch=[]
 
         count = 0
         for index in tqdm(self.target_indices):
@@ -54,14 +52,29 @@ class TensorflowRankig(RecommenderBase):
             couples = list(zip(pred, impr))
             #print(couples)
             couples.sort(key=lambda x: x[0], reverse=True)
-            _, sorted_impr = zip(*couples)
+            scores, sorted_impr = zip(*couples)
             final_predictions.append((index, list(sorted_impr)))
+            scores_batch.append((index, list(sorted_impr), list(scores)))
             count += 1
+        if self.mode != 'small':
+            cf.check_folder('scores')
+            np.save(f'scores/{self.name}', np.array(scores_batch))
         return final_predictions
 
     def get_scores_batch(self):
-        #TODO: IMPLEMENT GET_SCORES_BATCH
-        pass
+        final_predictions = []
+
+        count = 0
+        for index in tqdm(self.target_indices):
+            impr = list(map(int, data.full_df().loc[index]['impressions'].split('|')))
+            pred = self.predictions[count][0:len(impr)]
+            couples = list(zip(pred, impr))
+            # print(couples)
+            couples.sort(key=lambda x: x[0], reverse=True)
+            scores, sorted_impr = zip(*couples)
+            final_predictions.append((index, list(sorted_impr), list(scores)))
+            count += 1
+        return final_predictions
 
 
 

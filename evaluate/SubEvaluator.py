@@ -66,7 +66,8 @@ class SubEvaluator():
         'gt_less_than_5_interaction_sessions.csv',
         'gt_5_to_10_interaction_sessions.csv',
         'gt_more_than_10_interaction_sessions.csv',
-        'ground_truth_small.csv'
+        #TODO ADD OTHER CLUSTERS
+        'gt_no_num_reference_sessions.csv'
         ]
 
         total_score = self.score_sub(self.sub, self.data_directory.joinpath('ground_truth.csv'))
@@ -214,6 +215,27 @@ class SubEvaluator():
             new_gt = df_gt.head(int(df_gt.shape[0]/3))
             new_gt.to_csv(self.data_directory.joinpath('gt_clusters/ground_truth_small.csv'), encoding='utf-8', index=False)
             print('Done.')
+
+
+        if not os.path.isfile(self.data_directory.joinpath('gt_clusters/gt_no_num_reference_sessions.csv')):
+            print('Creating cluster of sessions with no numeric reference...')
+            # remove one step sessions
+            one_step_count = df_test.groupby('session_id')['step'].count()
+            one_step = one_step_count[one_step_count == 1]
+            one_step_s = list(one_step.index)
+            df = df_test[~df_test['session_id'].isin(one_step_s)]
+
+            # get session with no numeric reference and no one step
+            group = df.groupby('session_id')['reference'].apply(
+                lambda x: False if x.str.isnumeric().any() else True)
+            sess_list = list(group.index)
+            index_list = []
+            for i in range(len(group)):
+                if group.iloc[i] == True:
+                    index_list.append(i)
+            no_ref_sessions = [sess_list[i] for i in index_list]
+            new_gt = df_gt[df_gt['session_id'].isin(no_ref_sessions)]
+            new_gt.to_csv(self.data_directory.joinpath('gt_clusters/gt_no_num_reference_sessions.csv'), encoding='utf-8', index=False)
 
 if __name__=='__main__':
     sub_evaluator = SubEvaluator('xgboostlocal.csv')

@@ -28,7 +28,8 @@ class BestCheckpointCopier(tf.estimator.Exporter):
   sort_key_fn = None
   sort_reverse = None
 
-  def __init__(self, min_mrr_start, loss, dataset_name, save_path, test_x, test_y, mode, name='best_checkpoints', checkpoints_to_keep=1, score_metric='Loss/total_loss',
+  def __init__(self, min_mrr_start, loss, dataset_name, save_path, test_x, test_y, params,
+               mode, name='best_checkpoints', checkpoints_to_keep=1, score_metric='Loss/total_loss',
                compare_fn=lambda x,y: x.score > y.score, sort_key_fn=lambda x: x.score, sort_reverse=False):
     self.checkpoints = []
     self.checkpoints_to_keep = checkpoints_to_keep
@@ -39,12 +40,16 @@ class BestCheckpointCopier(tf.estimator.Exporter):
     self.sort_reverse = sort_reverse
 
     self.mode = mode
+
+
     self.test_x = test_x
     self.test_y = test_y
     self.save_path = save_path
+
     self.dataset_name = dataset_name
     self.loss = loss
     self.min_mrr = min_mrr_start
+    self.params = params
     super(BestCheckpointCopier, self).__init__()
 
   def _copyCheckpoint(self, checkpoint):
@@ -96,27 +101,33 @@ class BestCheckpointCopier(tf.estimator.Exporter):
     def create_sub(estimator, checkpoint_path, eval_result, batch_size=128, patience=0.001):
       # now works also for local and small it will create a sub
       # create a sub only if the MMR is > 0.65
-      if (self.mode == 'full') or (self.mode == 'local'):
+      if self.mode == 'local':
         eval_result_f = eval_result['metric/mrr']
+        global_step = eval_result['global_step']
         if eval_result_f>self.min_mrr+patience:
           # set as new threshold the new mrr
           self.min_mrr = eval_result_f
 
+          # predict the test...
           pred = np.array(list(estimator.predict(lambda: batch_inputs(self.test_x, self.test_y, batch_size))))
-          np.save(f'{self.save_path}/predictions_{eval_result_f}', pred)
+          pred_name = f'predictions_{self.params.loss}_learning_rate_{self.params.learning_rate}_train_batch_size_{self.params.train_batch_size}_' \
+            f'hidden_layers_dim_{self.params.hidden_layer_dims}_num_train_steps_{self.params.num_train_steps}' \
+            f'_dropout_{self.params.dropout_rate}_global_steps_{global_step}_{self.params.group_size}_mrr_{eval_result_f}'
+          np.save(f'{self.save_path}/{pred_name}', pred)
           HERA.send_message(f'EXPORTING A SUB... {eval_result_f} mode:{self.mode}')
           model = TensorflowRankig(mode=self.mode, cluster='no_cluster', dataset_name=self.dataset_name,
-                                   pred_name=f'predictions_{eval_result_f}')
-          score = eval_result_f
-          model.name = f'tf_ranking_{self.mode}_{self.loss}_{score}'
+                                   pred_name=pred_name)
+          model.name = f'tf_ranking_{pred_name}'
           model.run()
           HERA.send_message(f'EXPORTED... {eval_result_f} mode:{self.mode}')
 
     self._log('export checkpoint {}'.format(checkpoint_path))
-
+    step = eval_result['global_step']
     score = eval_result['metric/mrr']
     checkpoint = Checkpoint(path=checkpoint_path, score=score)
-    HERA.send_message(f'mode: {self.mode} TFRANKING mrr is: {score}')
+    HERA.send_message(f'mode: {self.mode}\n step:{step}\nTFRANKING mrr is: {score}\n dropout:{self.params.dropout_rate}\n'
+                      f'learning_rate:{self.params.learning_rate}\n train_batch_size:{self.params.train_batch_size}\n'
+                      f'hidden_layer_dims:{self.params.hidden_layer_dims}\n loss:{self.params.loss}\n group_size:{self.params.group_size}')
     if self._shouldKeep(checkpoint):
       self._keepCheckpoint(checkpoint)
 

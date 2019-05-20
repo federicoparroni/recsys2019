@@ -121,9 +121,9 @@ def target_indices(mode, cluster='no_cluster'):
     return _target_indices[path]
 
 
-def dataset_xgboost_train(mode, cluster='no_cluster'):
+def dataset_xgboost_train(mode, cluster='no_cluster', kind='kind1', class_weights=False):
     global _dataset_xgboost_train
-    bp = 'dataset/preprocessed/{}/{}/xgboost'.format(cluster, mode)
+    bp = 'dataset/preprocessed/{}/{}/xgboost/{}/'.format(cluster, mode, kind)
     if not 'a' in _dataset_xgboost_train:
         _dataset_xgboost_train[bp+'a'] = sps.load_npz(
             os.path.join(bp, 'X_train.npz'))
@@ -131,10 +131,26 @@ def dataset_xgboost_train(mode, cluster='no_cluster'):
             os.path.join(bp, 'y_train.csv'))['label'].to_dense()
         _dataset_xgboost_train[bp+'c'] = np.load(
             os.path.join(bp, 'group.npy'))
-    return _dataset_xgboost_train[bp+'a'], \
-        _dataset_xgboost_train[bp+'b'], \
-        _dataset_xgboost_train[bp+'c']
+        if class_weights:
+            _dataset_xgboost_train[bp+'d'] = np.load(
+            os.path.join(bp, 'class_weights.npy'))
+    if class_weights:
+        return _dataset_xgboost_train[bp+'a'], \
+            _dataset_xgboost_train[bp+'b'], \
+            _dataset_xgboost_train[bp+'c'], \
+            _dataset_xgboost_train[bp + 'd']
+    else:
+        return _dataset_xgboost_train[bp + 'a'], \
+               _dataset_xgboost_train[bp + 'b'], \
+               _dataset_xgboost_train[bp + 'c']
 
+def dataset_xgboost_test(mode, cluster='no_cluster', kind='kind1'):
+    global _dataset_xgboost_test
+    bp = 'dataset/preprocessed/{}/{}/xgboost/{}/'.format(cluster, mode, kind)
+    if not 'a' in _dataset_xgboost_test:
+        _dataset_xgboost_test[bp+'a'] = sps.load_npz(
+            os.path.join(bp, 'X_test.npz'))
+    return _dataset_xgboost_test[bp+'a']
 
 def dataset_xgboost_classifier_train(mode, cluster='no_cluster'):
     global _dataset_xgboost_classifier_train
@@ -149,19 +165,6 @@ def dataset_xgboost_classifier_test(mode, cluster='no_cluster'):
     if not _dataset_xgboost_classifier_test:
         _dataset_xgboost_classifier_test = pd.read_csv(path)
     return _dataset_xgboost_classifier_test
-
-
-def dataset_xgboost_test(mode, cluster='no_cluster'):
-    global _dataset_xgboost_test
-    bp = 'dataset/preprocessed/{}/{}/xgboost'.format(cluster, mode)
-    if not 'a' in _dataset_xgboost_test:
-        _dataset_xgboost_test[bp+'a'] = sps.load_npz(
-            os.path.join(bp, 'X_test.npz'))
-        _dataset_xgboost_test[bp+'b'] = np.load(
-            os.path.join(bp, 'target_indices_reordered.npy'))
-    return _dataset_xgboost_test[bp+'a'], \
-        _dataset_xgboost_test[bp+'b']
-
 
 def classification_train_df(mode, sparse=True, cluster='no_cluster', algo='xgboost'):
     global _df_classification_train
@@ -286,7 +289,7 @@ def accomodations_one_hot():
     if not os.path.isfile(ACCOMODATIONS_1HOT_PATH):
         print('Accomodations one-hot not found! Creating it...', flush=True)
         import preprocess_utils.session2vec as sess2vec
-        sess2vec.save_accomodations_one_hot(accomodations_original_df(), ACCOMODATIONS_1HOT_PATH)
+        sess2vec.save_accomodations_one_hot(accomodations_df(), ACCOMODATIONS_1HOT_PATH)
     if _df_accomodations_one_hot is None:
         print('Loading accomodations one-hot...', flush=True)
         _df_accomodations_one_hot = pd.read_csv(ACCOMODATIONS_1HOT_PATH, index_col=0).astype('Int8')

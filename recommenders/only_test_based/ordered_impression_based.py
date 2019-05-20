@@ -16,7 +16,7 @@ class OrderedImpressionRecommender(RecommenderBase):
         super(OrderedImpressionRecommender, self).__init__(mode, cluster, name)
 
         self.mode = mode
-
+        self.recs_batch = None
         self.weight_per_position = [32.24, 10.63, 7.53, 6.01, 5.1, 4.13, 3.63, 3.17,
                                     2.86, 2.597, 2.33, 2.148, 1.96, 1.8, 1.669, 1.58,
                                     1.43, 1.32, 1.25, 1.166, 1.115, 1.055, 1.019, 1.007, 1.14]
@@ -42,6 +42,8 @@ class OrderedImpressionRecommender(RecommenderBase):
         self.recs_batch = recs_tuples
 
     def recommend_batch(self):
+        if self.recs_batch is None:
+            self.fit()
         return self.recs_batch
 
     def get_scores_batch(self):
