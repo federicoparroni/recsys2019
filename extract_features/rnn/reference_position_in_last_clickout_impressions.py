@@ -34,7 +34,7 @@ class ReferencePositionInLastClickoutImpressions(FeatureBase):
         df = df.sort_values(['user_id','session_id','timestamp','step']).reset_index()
             
         # find the last clickout rows
-        last_clickout_idxs = find_last_clickout_indices(df, sort=False)
+        last_clickout_idxs = find_last_clickout_indices(df)
         clickout_rows = df.loc[last_clickout_idxs, ['user_id','session_id','action_type','impressions']]
         clickout_rows['impression_list'] = clickout_rows.impressions.str.split('|')
         clickout_rows = clickout_rows.drop('impressions', axis=1)
@@ -63,11 +63,12 @@ class ReferencePositionInLastClickoutImpressions(FeatureBase):
                 ckidx = clickout_indices[j]
                 next_clickout_user_id = clickout_rows.at[ckidx, 'user_id']
                 next_clickout_sess_id = clickout_rows.at[ckidx, 'session_id']
+                next_clickout_impress = clickout_rows.at[ckidx, 'impression_list']
 
             # check if row and next_clickout are in the same session
             if row.user_id == next_clickout_user_id and row.session_id == next_clickout_sess_id:
                 try:
-                    reference_rows.at[idx,'ref_pos'] = clickout_rows.at[ckidx, 'impression_list'].index(row.reference)
+                    reference_rows.at[idx,'ref_pos'] = next_clickout_impress.index(row.reference)
                 except:
                     pass
         

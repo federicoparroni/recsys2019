@@ -9,13 +9,13 @@ import pandas as pd
 from preprocess_utils import create_icm, create_urm
 import numpy as np
 
-def remove_clickout_after_missing_clickout_test():
-    test = data.test_df('full')
-    test = test.drop([16727761, 16727762])
-    test.to_csv('dataset/preprocessed/no_cluster/full/test.csv')
-    full = data.full_df()
-    full = full.drop([16727761, 16727762])
-    full.to_csv(data.FULL_PATH)
+# def remove_clickout_after_missing_clickout_test():
+#     test = data.test_df('full')
+#     test = test.drop([16727761, 16727762])
+#     test.to_csv('dataset/preprocessed/no_cluster/full/test.csv')
+#     full = data.full_df()
+#     full = full.drop([16727761, 16727762])
+#     full.to_csv(data.FULL_PATH)
 
 def reset_step_for_duplicated_sessions(df):
     """ Reset the step for some bugged session in which the step restart from 1 in some random interaction """
@@ -137,8 +137,6 @@ def create_full_df():
         # TEST; DELETING UNNFORMATIVE INTERACTIONS
         mask = (test_df["action_type"] != "clickout item") & (test_df["reference"].isnull())
         test_df = test_df.drop(test_df[mask].index)
-        # delete the session in test with a clickout after the clickout to predict
-        test_df = test_df.drop([16727761, 16727762])
 
         test_df.to_csv(f, header=False)
 

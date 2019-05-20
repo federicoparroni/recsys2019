@@ -23,19 +23,20 @@ def extract_features_from_full(mode, cluster='no_cluster'):
     full_sm = pd.concat([data.train_df(mode, cluster), data.test_df(mode, cluster)])
     target_idx = find_last_clickout(full_sm)
 
-    train_df = data.train_df('full', 'no_cluster').sort_values(by=['user_id', 'session_id'])
+    irrelevant_sessions = []
+    for name, group in full_sm.groupby(['user_id', 'session_id']):
+        if 'clickout item' not in list(set(group.action_type.values)):
+            irrelevant_sessions += [group.session_id.values[0]]
 
     print('sorted')
-    target_sessions = _set_no_reordering(list(train_df.iloc[target_idx, :].sort_values(by=['user_id', 'session_id']).session_id.values))
+    target_sessions = [x for x in _set_no_reordering(list(full_sm.iloc[target_idx, :].sort_values(by=['user_id', 'session_id']).session_id.values)) if x not in irrelevant_sessions] + [-1]
 
     relevant_idx = []
 
     grouped = features.groupby(['user_id', 'session_id'])
 
     for name, group in tqdm(grouped):
-        print(group.session_id.values[0], target_sessions[0])
         if group.session_id.values[0] == target_sessions[0]:
-            print(group.session_id.values[0])
             relevant_idx += list(group.index.values)
             target_sessions.pop(0)
 

@@ -29,27 +29,34 @@ class ReferencePricePositionInLastClickout(FeatureBase):
         tqdm.pandas()
 
         df = data.full_df()
+        # reset index to correct access
         df = df.sort_values(['user_id','session_id','timestamp','step'])
         
-        # find the clickout rows
+        # find the last clickout rows
         last_clickout_idxs = find_last_clickout_indices(df)
-        clickout_rows = df.loc[last_clickout_idxs, ['user_id','session_id','action_type','impressions','prices']]
+        clickout_rows = df.loc[last_clickout_idxs, ['user_id','session_id','action_type','impressions']]
         # cast the impressions and the prices to lists
         clickout_rows['impression_list'] = clickout_rows.impressions.str.split('|')
         clickout_rows['price_list'] = clickout_rows.prices.str.split('|').apply(lambda x: list(map(int,x)))
-        # order the prices
+        clickout_rows = clickout_rows.drop('impressions', axis=1)
+        # order the prices lists
         clickout_rows['sorted_price_list'] = clickout_rows.price_list.apply(lambda x: sorted(x))
         clickout_rows = clickout_rows.drop('prices', axis=1)
-        # find the interaction with numeric reference
-        reference_rows = df[['user_id','session_id','reference','action_type']]
-        reference_rows = reference_rows[df.reference.str.isnumeric() & (df.action_type != 'clickout item')]
-        reference_rows = reference_rows.drop('action_type',axis=1)
+
+        # find the interactions with numeric reference and not last clickouts
+        reference_rows = df[['user_id','session_id','reference','action_type','index']]
+        reference_rows = reference_rows[df.reference.str.isnumeric() == True]
+        # skip last clickouts
+        reference_rows = reference_rows.loc[~reference_rows.index.isin(last_clickout_idxs)]
+        reference_rows = reference_rows.drop('action_type', axis=1)
         reference_rows['price_pos'] = -1
-        reference_rows = reference_rows.sort_index()
 
         # iterate over the sorted reference_rows and clickout_rows
         j = 0
         clickout_indices = clickout_rows.index.values
+        ckidx = clickout_indices[j]
+        next_clickout_user_id = clickout_rows.at[ckidx, 'user_id']
+        next_clickout_sess_id = clickout_rows.at[ckidx, 'session_id']
         for idx,row in tqdm(reference_rows.iterrows()):
             # if the current index is over the last clickout, break
             if idx >= clickout_indices[-1]:
@@ -57,18 +64,23 @@ class ReferencePricePositionInLastClickout(FeatureBase):
             # find the next clickout index
             while idx > clickout_indices[j]:
                 j += 1
-            next_clickout = clickout_rows.loc[clickout_indices[j]]
+                ckidx = clickout_indices[j]
+                next_clickout_user_id = clickout_rows.at[ckidx, 'user_id']
+                next_clickout_sess_id = clickout_rows.at[ckidx, 'session_id']
+                next_clickout_impress = clickout_rows.at[ckidx, 'impression_list']
+                next_clickout_prices = clickout_rows.at[ckidx, 'price_list']
+                next_clickout_sortedprices = clickout_rows.at[ckidx, 'sorted_price_list']
 
             # check if row and next_clickout are in the same session
-            if row.user_id == next_clickout.user_id and row.session_id == next_clickout.session_id:
+            if row.user_id == next_clickout_user_id and row.session_id == next_clickout_sess_id:
                 try:
-                    ref_idx = next_clickout.impression_list.index(row.reference)
-                    ref_price = int(next_clickout.price_list[ref_idx])
-                    reference_rows.at[idx, 'price_pos'] = next_clickout.sorted_price_list.index(ref_price)
+                    ref_idx = next_clickout_impress.index(row.reference)
+                    ref_price = int(next_clickout_prices[ref_idx])
+                    reference_rows.at[idx, 'price_pos'] = next_clickout_sortedprices.index(ref_price)
                 except:
                     pass
         
-        return reference_rows.drop('reference', axis=1)
+        return reference_rows.drop(['user_id','session_id','reference'], axis=1).set_index('index')
 
     def post_loading(self, df):
         # drop the one-hot column -1, representing a non-numeric reference or a reference not present

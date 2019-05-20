@@ -1,13 +1,18 @@
 from tqdm.auto import tqdm
 import pandas as pd
 import numpy as np
-import math
 
 
 def find(df):
+    """ 
+    Return the last clickouts of each session in df.
+    """
+    temp_df = df.sort_values(['user_id','session_id','timestamp','step'])
+    if 'index' in temp_df.columns:
+        temp_df = temp_df.rename(columns={'index':'$_index'})
 
-    temp_df = df.reset_index().sort_values(['user_id','session_id','timestamp','step'])
-    temp_df = temp_df[temp_df.action_type == 'clickout item'][['index', 'user_id', 'session_id', 'action_type', 'reference']]
+    temp_df = temp_df.reset_index()
+    temp_df = temp_df[temp_df.action_type == 'clickout item'][['index','user_id','session_id','action_type','reference']]
 
     indices = []
     cur_ses = ''
