@@ -26,7 +26,7 @@ HEADERS = {
 def __success(response):
   return response.status_code >= 200 and response.status_code < 300
 
-def __login(username='federico.parroni@live.it', password='siamoi3piùcarichi'):
+def __login(username='policloud8@gmail.com', password='FerrariDC8'):
   # Return a session logged into the ACM competition website
 
   # begin a new session

@@ -4,9 +4,6 @@ import pandas as pd
 from tqdm.auto import tqdm
 tqdm.pandas()
 
-import os
-#os.chdir("../")
-#print(os.getcwd())
 
 class TimeFromLastActionBeforeClk(FeatureBase):
 
