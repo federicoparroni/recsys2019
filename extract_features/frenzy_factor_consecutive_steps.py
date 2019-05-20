@@ -1,8 +1,10 @@
 from extract_features.feature_base import FeatureBase
+from preprocess_utils.last_clickout_indices import find
+from preprocess_utils.last_clickout_indices import expand_impressions
 import data
 import pandas as pd
-from tqdm.auto import tqdm
-tqdm.pandas()
+import numpy as np
+from tqdm import tqdm
 
 
 class FrenzyFactorSession(FeatureBase):
@@ -21,59 +23,35 @@ class FrenzyFactorSession(FeatureBase):
 
     def extract_feature(self):
 
-        def func(x):
-
-            y = x[x['action_type'] == 'clickout item']
-
-            var = -1
-            mean_time_per_step = -1
-
-            if len(y) > 0:
-                clk = y.tail(1)
-                head_index = x.head(1).index
-                x = x.loc[head_index.values[0]:clk.index.values[0] - 1]
-
-                if len(x) > 1:
-                    session_actions_num = int(clk.step.values[0])
-
-                    clickout_tm = int(clk.timestamp.values[0])
-                    time_length = clickout_tm - int(x.head(1).timestamp.values[0])
-
-                    mean_time_per_step = round(
-                        time_length / (session_actions_num - 1), 2)
-
-                    var = 0
-                    prev_tm = 0
-
-                    for i in x.index:
-                        curr_tm = int(x.at[i, 'timestamp'])
-
-                        if prev_tm == 0:
-                            prev_tm = curr_tm
-                        else:
-                            var += (mean_time_per_step - (curr_tm - prev_tm)) ** 2
-                            prev_tm = curr_tm
-
-                    # summing var wrt of clickout
-                    var += (mean_time_per_step - (clickout_tm - prev_tm)) ** 2
-
-                    if session_actions_num > 0:
-                        var = round((var / session_actions_num) ** 0.5, 2)
-                    else:
-                        var = 0
-
-            # return pd.Series({'mean_time_per_step':mean_time_per_step, 'frenzy_factor':var})
-            return [(mean_time_per_step, var)]
-
-        train = data.train_df(mode=self.mode, cluster=self.cluster)
-        test = data.test_df(mode=self.mode, cluster=self.cluster)
-        df = pd.concat([train, test])
-        s = df.groupby(['user_id', 'session_id']).progress_apply(func)
-        s = s.apply(pd.Series).reset_index().melt(id_vars=['user_id', 'session_id'], value_name='tuple').sort_values(
-            by=['user_id', 'session_id']).dropna()
-        s[['mean_time_per_step', 'frenzy_factor']] = pd.DataFrame(s['tuple'].tolist(), index=s.index)
-        s = s.drop(['variable', 'tuple'], axis=1)
-        return s.reset_index(drop=True)
+        train = data.train_df(mode=self.mode)
+        test = data.test_df(mode=self.mode)
+        df_full = pd.concat([train, test])[['user_id', 'session_id', 'timestamp', 'step', 'action_type','reference']]
+        last_clickout_indices = sorted(find(df_full), reverse=True)
+        df = df_full[['user_id', 'session_id', 'timestamp']]
+        cuid = df.at[last_clickout_indices[0], 'user_id']
+        csid = df.at[last_clickout_indices[0], 'session_id']
+        i = last_clickout_indices[0]
+        means = []
+        variances = [] 
+        for idx in tqdm(last_clickout_indices):
+            
+            cuid = df.at[idx, 'user_id']
+            csid = df.at[idx, 'session_id']
+            time_differences = np.array([])
+            i = idx - 1
+            while df.at[i, 'user_id'] == cuid and df.at[i, 'session_id'] == csid:
+                time_differences = np.append(time_differences, [df.at[i+1, 'timestamp'] - df.at[i, 'timestamp']])
+                i -= 1
+                if i == -1:
+                    break
+            means.append(np.mean(time_differences))
+            variances.append(np.std(time_differences))
+        final = df.loc[last_clickout_indices].drop(['timestamp'], axis=1)
+        final['mean_time_per_step'] = means
+        final['frenzy_factor'] = variances
+        final.mean_time_per_step.fillna(final.mean_time_per_step.mean(), inplace=True)
+        final.frenzy_factor.fillna(final.frenzy_factor.mean(), inplace=True)
+        return final.reset_index(drop=True)
 
 
 if __name__ == '__main__':
