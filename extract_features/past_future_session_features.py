@@ -166,8 +166,9 @@ class PastFutureSessionFeatures(FeatureBase):
                     idx_session_final = len(df_samecity) - list(df_samecity.session_id.values)[::-1].index(curr_session)
 
                     if df_samecity.index.values[0] < idx_session_initial:
+                        temp_df = df_samecity.iloc[0:idx_session_initial, :]
                         self.compute_past_sessions_feat(
-                            df_samecity.iloc[0:idx_session_initial, :][df_samecity.city == row.city], impressions,
+                            temp_df[temp_df.city == row.city], impressions,
                             int(df_only_user.at[idx_session_initial, 'timestamp']))
                     else:
                         self.add_empty_features(impressions, 'past')
