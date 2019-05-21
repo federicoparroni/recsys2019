@@ -246,11 +246,15 @@ class SequenceDatasetForClassification(Dataset):
         # max_pop = glo_click_pop_feat.read_feature()['glob_clickout_popularity'].max()
         # X_df['glob_clickout_popularity'] = scale.logarithmic(X_df['glob_clickout_popularity'], max_value=max_pop)
 
-        price_cols = ['price_{}'.format(i) for i in range(25) ]
+        """ scaling """
+        price_cols = ['price_{}'.format(i) for i in range(25)]
         max_of_prices = np.max(X_df.loc[:,price_cols], axis=1)
         mask = max_of_prices > 0
-        X_df.loc[mask,price_cols] /= max_of_prices[mask][:,None]
-        
+        X_df.loc[mask, price_cols + ['price']] /= max_of_prices[mask][:,None]
+        #X_df.loc[mask, price_cols] /= max_of_prices[mask][:,None]
+
+        #X_df = X_df.drop('duration', axis=1)
+
         # glob_int_pop_feat = GlobalInteractionsPopularity(self.mode, self.cluster)
         # glob_int_pop_max = glob_int_pop_feat.read_feature()['glob_inter_popularity'].max()
         # X_df['glob_inter_popularity'] = scale.logarithmic(X_df['glob_inter_popularity'], max_value=glob_int_pop_max)
@@ -266,6 +270,10 @@ class SequenceDatasetForClassification(Dataset):
         # X_df.frequence /= 120
 
         X_df = X_df.drop(cols_to_drop_in_X, axis=1)
+
+        scaler = MinMaxScaler()
+        X_df.loc[:,:] = scaler.fit_transform(X_df)
+
         if return_indices:
             target = np.arange(-1, len(X_df), self.rows_per_sample)[1:]
             indices = X_df.index.values[target]
@@ -305,7 +313,7 @@ class SequenceDatasetForClassification(Dataset):
             print('X_test:', self._xtest.shape)
         return self._xtest, self._xtestindices
 
-    def prefix_xy(self, Xchunk_df, Ychunk_df, index):
+    def prefit_xy(self, Xchunk_df, Ychunk_df, index):
         """ Preprocess a chunk of the sequence dataset """
         #Xchunk_df = self._preprocess_x_df(Xchunk_df, partial=True)
         #Ychunk_df = self._preprocess_y_df(Ychunk_df)
@@ -339,10 +347,10 @@ class SequenceDatasetForClassification(Dataset):
         #batches_in_val = tot_batches - batches_in_train
 
         print('Train generator:')
-        train_gen = DataGenerator(self, pre_fit_fn=self.prefix_xy, rows_to_read=train_rows)
+        train_gen = DataGenerator(self, pre_fit_fn=self.prefit_xy, rows_to_read=train_rows)
         #train_gen.name = 'train_gen'
         print('Validation generator:')
-        val_gen = DataGenerator(self, pre_fit_fn=self.prefix_xy, skip_rows=train_rows)
+        val_gen = DataGenerator(self, pre_fit_fn=self.prefit_xy, skip_rows=train_rows)
         #val_gen.name = 'val_gen'
 
         return train_gen, val_gen
@@ -374,6 +382,11 @@ class SequenceDatasetForBinaryClassification(SequenceDatasetForClassification):
         # max_pop = glo_click_pop_feat.read_feature()['glob_clickout_popularity'].max()
         # X_df['glob_clickout_popularity'] = scale.logarithmic(X_df['glob_clickout_popularity'], max_value=max_pop)
         
+        price_cols = ['price_{}'.format(i) for i in range(25)]
+        max_of_prices = np.max(X_df.loc[:,price_cols], axis=1)
+        mask = max_of_prices > 0
+        X_df.loc[mask, price_cols + ['price']] /= max_of_prices[mask][:,None]
+
         # glob_int_pop_feat = GlobalInteractionsPopularity(self.mode, self.cluster)
         # glob_int_pop_max = glob_int_pop_feat.read_feature()['glob_inter_popularity'].max()
         # X_df['glob_inter_popularity'] = scale.logarithmic(X_df['glob_inter_popularity'], max_value=glob_int_pop_max)
@@ -389,6 +402,10 @@ class SequenceDatasetForBinaryClassification(SequenceDatasetForClassification):
         # X_df.frequence /= 120
 
         X_df = X_df.drop(cols_to_drop_in_X, axis=1)
+        
+        scaler = MinMaxScaler()
+        X_df.loc[:,:] = scaler.fit_transform(X_df)
+
         if return_indices:
             target = np.arange(-1, len(X_df), self.rows_per_sample)[1:]
             indices = X_df.index.values[target]

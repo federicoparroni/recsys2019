@@ -21,6 +21,7 @@ from extract_features.rnn.reference_price_position_in_last_clickout import Refer
 from extract_features.rnn.global_clickout_popularity import GlobalClickoutPopularity
 from extract_features.rnn.session_impressions_count import SessionsImpressionsCount
 from extract_features.rnn.clickout_vector_prices import ClickoutVectorPrices
+from extract_features.rnn.interaction_duration import InteractionDuration
 
 import preprocess_utils.session2vec as sess2vec
 
@@ -193,6 +194,8 @@ if __name__ == "__main__":
 
         SessionsImpressionsCount,
         ClickoutVectorPrices,
+
+        InteractionDuration,
     ]
     features = []
     # create the features to join
