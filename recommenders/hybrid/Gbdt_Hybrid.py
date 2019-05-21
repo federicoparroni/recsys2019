@@ -18,22 +18,24 @@ class Gbdt_Hybrid(RecommenderBase):
 
     """To create dataset, put submissions on submissions
                                                 |__local
+
         At the moment, it takes the position in the recommended impressions of each submission for each item such as:
         user_id | session_id | item_id | item_pos_catboost | item_pos_xgboost | ...
         Then Xgboost is used to train and recommend. Since only local submissions can be used (thus the dataset size is like the local test size),
         in order to train the model and optimize hyperparameters, we need to cross-validate the dataset
     """
 
-    def __init__(self, mode='local', learning_rate=0.3, min_child_weight=1, n_estimators=100, max_depth=3,
-                 subsample=1, colsample_bytree=1, reg_lambda=1, reg_alpha=0):
+    def __init__(self, mode='local', learning_rate=0.01, min_child_weight=1, n_estimators=500, max_depth=6,
+                 subsample=1, colsample_bytree=1, reg_lambda=0.0, reg_alpha=0):
         name = 'gbdt_hybrid'
         cluster = 'no_cluster'
         super(Gbdt_Hybrid, self).__init__(mode, cluster, name)
 
         self.current_directory = Path(__file__).absolute().parent
         self.data_directory = self.current_directory.joinpath('..', '..', 'submissions/hybrid')
-        self.gt_csv = self.data_directory.joinpath('ground_truth.csv')
+        #self.gt_csv = self.data_directory.joinpath('ground_truth.csv')
         self.mode = mode
+        self.full = data.full_df()
 
         directory = self.data_directory.joinpath(self.mode)
 
@@ -49,44 +51,93 @@ class Gbdt_Hybrid(RecommenderBase):
 
         if os.path.isfile(str(directory.joinpath('..', '..', 'gbdt_train.csv'))):
             for root, dirs, files in os.walk(directory):
-                file = files[0]
-                f = pd.read_csv(directory.joinpath(file))
+                if str(files[0]) == '.DS_Store':
+                    file = files[1]
+                else:
+                    file = files[0]
+
+                if file.endswith(".npy"):
+                    f = np.load(directory.joinpath(file))
+                    f = pd.DataFrame(f, columns=['index', 'item_recommendations', 'scores'])
+                else:
+                    f = pd.read_csv(directory.joinpath(file))
                 self.get_groups(f)
                 self.train = pd.read_csv(str(directory.joinpath('..', '..', 'gbdt_train.csv')))
             return
 
+        self.create_dataset(directory)  #dataset per il train
+
+        #self.create_dataset(#Directory del full, mode='full, name='test') # directory per il full--> dataset per il test
+
+
+    def create_dataset(self, directory, mode='local', name='train'):
         print('Creating gbdt-like dataset...')
 
         num_file = 0
         #train = pd.DataFrame()
         for root, dirs, files in os.walk(directory):
             for file in files:
+                print(f'Reading {str(file)}')
+
                 if file.endswith(".csv"):
+
                     f = pd.read_csv(directory.joinpath(file))
+
                     print(file)
                     #t = self.convert_and_add_pos(f, str(file))
                     if num_file == 0:
                         self.get_groups(f)
+
                         t = self.convert_and_add_labels(f, str(file))
-                        # inserire qui la divisione in K fold delle sessioni
-                        # Attaccare la colonna label al dataset
                         self.train = t
                     else:
                         t = self.convert_and_add_pos(f, str(file))
+
                         print(t.columns)
                         self.train = pd.merge(self.train, t, on=['user_id', 'session_id', 'item_id', 'step','timestamp'])
+
                     print(f'file read: {num_file}')
                     print(self.train.shape)
-                num_file += 1
 
-        self.train = self.train.sort_values(by=['trg_idx', 'impression_position'])
-        self.train.to_csv('/Users/claudiorussointroito/Documents/GitHub/recsysTrivago2019/submissions/gbdt_train.csv', index=False)
+                elif file.endswith(".npy"):
+
+                    f = np.load(directory.joinpath(file))
+                    f = pd.DataFrame(f, columns=['index', 'item_recommendations', 'scores'])
+
+                    print(file)
+                    if num_file == 0:
+
+                        self.get_groups(f)
+                        t = self.convert_and_add_labels(f, str(file), mode)
+                        self.train = t
+                    else:
+                        t = self.convert_and_assign_score(f, str(file))
+
+                        print(t.columns)
+                        self.train = pd.merge(self.train, t,
+                                              on=['index', 'item_id'])
+
+                    print(f'file read: {num_file}')
+                    print(self.train.shape)
+
+
+                num_file += 1
+                if str(file) == '.DS_Store':
+                    num_file -= 1
+
+        self.train = self.train.sort_values(by=['index', 'impression_position'])
+        self.train.to_csv(str(directory.joinpath('..', '..', 'gbdt_' + name + '.csv')), index=False)
         print('Dataset created!')
         print(self.train.columns)
 
+
+    """  ------------- Second step re-ranking per scores ------------------ """
+    """
     def expand_item_recommendations(self, df):
         res_df = df.copy()
+
         res_df.item_recommendations = res_df.item_recommendations.str.split(' ')
+
         res_df = res_df.reset_index()
         res_df = pd.DataFrame({
             col: np.repeat(res_df[col].values, res_df.item_recommendations.str.len())
@@ -107,12 +158,14 @@ class Gbdt_Hybrid(RecommenderBase):
         df = pd.merge(df_t, df, how='left', on=['index', 'user_id', 'session_id'])
 
         #df['item_pos_' + name] = df.progress_apply(lambda x: (x['item_recommendations'].index(str(x['item_id']))) + 1, axis=1)
+
         df['item_pos_' + name] = self.get_pos(df['item_id'].values, df['item_recommendations'].values)
+
         df = df.drop(['item_recommendations', 'index'], axis=1)
         return df
 
     def convert_and_add_labels(self, df, name=''):
-        full = data.full_df()
+        full = self.full
         target_indices = data.target_indices(mode='local', cluster='no_cluster')
 
         full = full.loc[target_indices]
@@ -128,8 +181,79 @@ class Gbdt_Hybrid(RecommenderBase):
         df['label'] = np.where(df['reference'].astype(str) == df['item_id'].astype(str), 1, 0)
 
         df['impression_position'] = self.get_pos(df['item_id'].values, df['impressions'].values)
+
         df = df.drop(['reference', 'impressions'], axis=1)
         return df
+    
+    def get_pos(self, item, rec):
+        res = np.empty(item.shape)
+        for i in range(len(item)):
+            res[i] = rec[i].index(str(item[i])) + 1
+        return res.astype(int)
+    """
+
+
+    """  ------------- Second step re-ranking per scores ------------------ """
+
+
+    def expand_item_recommendations(self, df, perScore=True):
+        res_df = df.copy()
+
+        if perScore == False:
+            res_df.item_recommendations = res_df.item_recommendations.str.split(' ')
+
+        res_df = res_df.reset_index()
+        res_df = pd.DataFrame({
+            col: np.repeat(res_df[col].values, res_df.item_recommendations.str.len())
+            for col in res_df.columns.drop('item_recommendations')}
+        ).assign(**{'item_recommendations': np.concatenate(res_df.item_recommendations.values)})[res_df.columns]
+
+        res_df = res_df.rename(columns={'item_recommendations': 'item_id'})
+        res_df = res_df.astype({'item_id': 'int'})
+        return res_df[['index', 'item_id']]
+
+
+    def convert_and_add_labels(self, df, name='', perScore=True, mode='local'):
+        #full = data.full_df()
+        full = self.full
+        target_indices = data.target_indices(mode=mode, cluster='no_cluster')
+
+        full = full.loc[target_indices]
+        full['index'] = list(full.index)
+        full['impressions'] = full['impressions'].str.split('|')
+        full = full[['reference', 'index', 'impressions']]
+
+        #df = pd.merge(df, full, on=['user_id', 'session_id'])
+        df = pd.merge(df, full, on=['index'], how='left')
+
+        df = self.convert_and_assign_score(df, name)
+
+        print('Adding labels..')
+        print(df.columns)
+
+        # df['label'] = df.progress_apply(lambda x: 1 if str(x['reference']) == str(x['item_id']) else 0, axis=1)
+        df['label'] = np.where(df['reference'].astype(str) == df['item_id'].astype(str), 1, 0)
+
+        df['impression_position'] = self.get_pos(df['item_id'].values, df['impressions'].values)
+
+        df = df.drop(['reference', 'impressions'], axis=1)
+        return df
+
+    def convert_and_assign_score(self, df, name):
+        print('Convert and adding submission scores positions..')
+        df_t = self.expand_item_recommendations(df)
+
+        df = pd.merge(df_t, df, on=['index'], how='left')
+        df['score_' + name] = self.get_score(df['item_id'].values, df['scores'].values, df['item_recommendations'].values)
+        df = df.drop(['scores', 'item_recommendations'], axis=1)
+        return df
+
+
+    def get_score(self, item, scores, rec):
+        res = np.empty(item.shape)
+        for i in range(len(item)):
+            res[i] = scores[i][rec[i].index(item[i])]
+        return res
 
     def get_pos(self, item, rec):
         res = np.empty(item.shape)
@@ -139,7 +263,11 @@ class Gbdt_Hybrid(RecommenderBase):
 
     def get_groups(self, df):
         print('Getting groups for k-fold..')
-        sessions = list(set(list(df['session_id'].values)))
+        if 'session_id' in df.columns:
+            sessions = list(set(list(df['session_id'].values)))
+        else:
+            sessions = list(set(list(df['index'].values)))
+
         sess_dict = {}
         for i in range(len(sessions)):
             sess_dict[i] = sessions[i]
@@ -161,22 +289,99 @@ class Gbdt_Hybrid(RecommenderBase):
             self.sess_groups.append(sess_group)
         print('Done!')
 
+    def create_groups_cv(self,df):
+        df = df[['index', 'item_id']]
+        group = df.groupby('index',
+                           sort=False).apply(lambda x: len(x)).values
+        return group
 
-    def fit(self, train):
-        X_train = train.drop(
-            ['user_id', 'session_id', 'item_id', 'label', 'timestamp', 'step', 'trg_idx'], axis=1)
+    def fit_cv(self, train):
+        #X_train = train.drop(['user_id', 'session_id', 'item_id', 'label', 'timestamp', 'step', 'trg_idx'], axis=1)
+        X_train = train.drop(['item_id', 'label', 'index'], axis=1)
+
         print(f'Train columns: {list(X_train.columns)}')
         y_train = list(train['label'].values)
         X_train = X_train.astype(np.float64)
-        group = create_groups(train)
+        group = self.create_groups_cv(train)
 
+        print('Training XGBOOST..')
         self.xg.fit(X_train, y_train, group)
+        print('Training done!')
 
+    def recommend_batch_cv(self, test, target_indices):
 
-    def recommend_batch(self, test, target_indices):
+        X_test = test.sort_values(by=['index', 'impression_position'])
+        X_test = X_test.drop(['item_id', 'label', 'index'], axis=1)
+        X_test = X_test.astype(np.float64)
+        full_impressions = data.full_df()
+        print('data for test ready')
+        scores = list(self.xg.predict(X_test))
+        final_predictions = []
+        count = 0
+        for index in tqdm(target_indices):
+            impressions = list(
+                map(int, full_impressions.loc[index]['impressions'].split('|')))
+            predictions = scores[count:count + len(impressions)]
+            couples = list(zip(predictions, impressions))
+            couples.sort(key=lambda x: x[0], reverse=True)
+            _, sorted_impr = zip(*couples)
+            final_predictions.append((index, list(sorted_impr)))
+            count = count + len(impressions)
+        return final_predictions
 
-        X_test = test.sort_values(by=['trg_idx', 'impression_position'])
-        X_test = X_test.drop(['user_id', 'session_id', 'item_id', 'label', 'timestamp', 'step', 'trg_idx'], axis=1)
+    def cross_validation(self):
+        self.mrrs = []
+        for i in range(len(self.sess_groups)):
+            if os.path.isfile(str(self.cv_path) + '/train' + str(i) + '.csv'):
+                print(f'Getting train and test number: {i}')
+                path = str(self.cv_path) + '/train' + str(i) + '.csv'
+                print(path)
+                train_df = pd.read_csv(str(self.cv_path) + '/train' + str(i) + '.csv')
+                test_df = pd.read_csv(str(self.cv_path) + '/test' + str(i) + '.csv')
+            else:
+                if 'session_id' in self.train.columns:
+                    mask = self.train['session_id'].isin(self.sess_groups[i])
+                else:
+                    mask = self.train['index'].isin(self.sess_groups[i])
+
+                test_df = self.train[mask]
+                train_df = self.train[~mask]
+                train_df.to_csv(str(self.cv_path) + '/train' + str(i) + '.csv', index=False)
+                test_df.to_csv(str(self.cv_path) + '/test' + str(i) + '.csv', index=False)
+
+            #target_indices = list(set(test_df['trg_idx'].values))
+            target_indices = list(set(test_df['index'].values))
+
+            target_indices.sort()
+
+            self.fit_cv(train_df)
+            recs = self.recommend_batch_cv(test_df, target_indices)
+            mrr = self.compute_MRR(recs)
+            self.mrrs.append(mrr)
+
+        print(f'Averaged MRR: {sum(self.mrrs)/len(self.mrrs)}')
+        return sum(self.mrrs)/len(self.mrrs)
+
+    def fit(self):
+        train = pd.read_csv('/Users/claudiorussointroito/Documents/GitHub/recsysTrivago2019/submissions/gbdt_train.csv')
+        X_train = train.drop(
+            ['item_id', 'label', 'index'], axis=1)
+        print(f'Train columns: {list(X_train.columns)}')
+        y_train = list(train['label'].values)
+        X_train = X_train.astype(np.float64)
+
+        group = self.create_groups_cv(train)
+
+        print('Training XGBOOST..')
+        self.xg.fit(X_train, y_train, group)
+        print('Training done!')
+
+    def recommend_batch(self):
+        test = pd.read_csv('/Users/claudiorussointroito/Documents/GitHub/recsysTrivago2019/submissions/gbdt_test.csv')
+        target_indices = data.target_indices(mode='full')
+
+        X_test = test.sort_values(by=['index', 'impression_position'])
+        X_test = X_test.drop(['item_id', 'label', 'trg_idx'], axis=1)
         X_test = X_test.astype(np.float64)
         full_impressions = data.full_df()
         print('data for test ready')
@@ -196,34 +401,6 @@ class Gbdt_Hybrid(RecommenderBase):
 
     def get_scores_batch(self):
         pass
-
-    def cross_validation(self):
-        self.mrrs = []
-        for i in range(len(self.sess_groups)):
-            if os.path.isfile(str(self.cv_path) + '/train' + str(i) + '.csv'):
-                print(f'Getting train and test number: {i}')
-                path = str(self.cv_path) + '/train' + str(i) + '.csv'
-                print(path)
-                train_df = pd.read_csv(str(self.cv_path) + '/train' + str(i) + '.csv')
-                test_df = pd.read_csv(str(self.cv_path) + '/test' + str(i) + '.csv')
-            else:
-                mask = self.train['session_id'].isin(self.sess_groups[i])
-                test_df = self.train[mask]
-                train_df = self.train[~mask]
-                train_df.to_csv(str(self.cv_path) + '/train' + str(i) + '.csv', index=False)
-                test_df.to_csv(str(self.cv_path) + '/test' + str(i) + '.csv', index=False)
-
-            target_indices = list(set(test_df['trg_idx'].values))
-            target_indices.sort()
-
-            self.fit(train_df)
-            recs = self.recommend_batch(test_df, target_indices)
-            mrr = self.compute_MRR(recs)
-            self.mrrs.append(mrr)
-
-        print(f'Averaged MRR: {sum(self.mrrs)/len(self.mrrs)}')
-        return sum(self.mrrs)/len(self.mrrs)
-
 
 if __name__=='__main__':
     model = Gbdt_Hybrid(mode='local')
