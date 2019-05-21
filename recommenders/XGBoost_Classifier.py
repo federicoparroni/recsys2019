@@ -15,7 +15,8 @@ tqdm.pandas()
 
 class XGBoostWrapperClassifier(RecommenderBase):
 
-    def __init__(self, mode, cluster='no_cluster', learning_rate=1, min_child_weight=1, n_estimators=100, max_depth=3, subsample=1, colsample_bytree=1, reg_lambda=1, reg_alpha=0):
+    def __init__(self, mode, cluster='no_cluster', learning_rate=1, min_child_weight=1, n_estimators=100, max_depth=3,
+                 subsample=1, colsample_bytree=1, reg_lambda=1, reg_alpha=0):
         name = 'xgboost_classifier'
         super(XGBoostWrapperClassifier, self).__init__(
             name=name, mode=mode, cluster=cluster)
@@ -25,7 +26,8 @@ class XGBoostWrapperClassifier(RecommenderBase):
                 max_depth),
             n_estimators=math.ceil(
                 n_estimators),
-            subsample=subsample, colsample_bytree=colsample_bytree, reg_lambda=reg_lambda, reg_alpha=reg_alpha, n_jobs=-1, objective='rank:pairwise')
+            subsample=subsample, colsample_bytree=colsample_bytree, reg_lambda=reg_lambda, reg_alpha=reg_alpha, n_jobs=-1,
+                                     objective='binary:logistic')
 
         self.fixed_params_dict = {
             'mode': mode,
@@ -48,10 +50,14 @@ class XGBoostWrapperClassifier(RecommenderBase):
         train_df = train_df.drop(["user_id", "session_id"], axis=1)
         X_train = train_df.drop("label", axis=1)
         Y_train = train_df["label"]
+        self.Y_train = Y_train
+        self.X_train = X_train
         self.xgb.fit(X_train, Y_train)
 
     def get_scores_batch(self):
         pass
+
+
 
     def recommend_batch(self):
         test_df = data.dataset_xgboost_classifier_test(self.mode, self.cluster)
@@ -59,22 +65,30 @@ class XGBoostWrapperClassifier(RecommenderBase):
         test_df = test_df.drop(["user_id", "session_id"], axis=1)
         X_test = test_df.drop("label", axis=1)
         Y_test = test_df["label"]
-
-
         Y_pred = self.xgb.predict(X_test)
-        #temp["label"] = Y_pred
-        #temp = temp[["user_id", "session_id", "label"]]
-        #temp.to_csv("classifier.csv")
         return Y_test, Y_pred
 
     def evaluate(self, send_MRR_on_telegram = False):
         self.fit()
-        print(self.xgb.feature_importances_)
+        #print(self.xgb.feature_importances_)
         Y_test, Y_pred = self.recommend_batch()
         report = classification_report(Y_test , Y_pred)
         print(report)
         if send_MRR_on_telegram:
             HERA.send_message('evaluating classifier {} on {}.\n Classification report is: \n {}\n\n'.format(self.name, self.mode, report))
+
+        return report
+
+    def extract_feature(self):
+        test_df = data.dataset_xgboost_classifier_test(self.mode, self.cluster)
+        temp = test_df.copy()
+        test_df = test_df.drop(["user_id", "session_id"], axis=1)
+        X_test = test_df.drop("label", axis=1)
+        Y_pred = self.xgb.predict_proba(X_test)
+        temp["positive_score"] = [b for a,b in Y_pred]
+        temp["negative_score"] = [a for a, b in Y_pred]
+        temp = temp[["user_id", "session_id", "positive_score", "negative_score"]]
+        return temp
 
 if __name__ == '__main__':
     from utils.menu import mode_selection
