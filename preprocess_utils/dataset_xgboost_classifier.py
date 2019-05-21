@@ -1,4 +1,5 @@
 import data
+from extract_features.classifier.popularity_first_impression import PopularityFirstImpression
 from extract_features.first_impression_price import FirstImpressionPrice
 from extract_features.label_classification import LabelClassification
 from extract_features.last_action_before_clickout import LastActionBeforeClickout
@@ -40,7 +41,9 @@ def create_dataset(mode, cluster):
                       NumInteractionsWithFirstImpression, FirstImpressionPrice,
                       LastActionFirstImpression,
                       LastActionInvolvingFirstImpressions,
-                      NumInteractionsWithFirstImpression, NumImpressionsInClickout]
+                      NumInteractionsWithFirstImpression, NumImpressionsInClickout,
+                      PopularityFirstImpression
+                      ]
 
     train_df, test_df = merge_features_classifier(mode, cluster, features_array, LabelClassification)
     check_folder('dataset/preprocessed/{}/{}/xgboost_classifier/'.format(cluster, mode))
