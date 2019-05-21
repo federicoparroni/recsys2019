@@ -57,6 +57,8 @@ class XGBoostWrapperClassifier(RecommenderBase):
     def get_scores_batch(self):
         pass
 
+
+
     def recommend_batch(self):
         test_df = data.dataset_xgboost_classifier_test(self.mode, self.cluster)
         temp = test_df.copy()
@@ -64,9 +66,6 @@ class XGBoostWrapperClassifier(RecommenderBase):
         X_test = test_df.drop("label", axis=1)
         Y_test = test_df["label"]
         Y_pred = self.xgb.predict(X_test)
-        temp["label"] = Y_pred
-        temp = temp[["user_id", "session_id", "label"]]
-        temp.to_csv("classifier.csv")
         return Y_test, Y_pred
 
     def evaluate(self, send_MRR_on_telegram = False):
@@ -79,6 +78,17 @@ class XGBoostWrapperClassifier(RecommenderBase):
             HERA.send_message('evaluating classifier {} on {}.\n Classification report is: \n {}\n\n'.format(self.name, self.mode, report))
 
         return report
+
+    def extract_feature(self):
+        test_df = data.dataset_xgboost_classifier_test(self.mode, self.cluster)
+        temp = test_df.copy()
+        test_df = test_df.drop(["user_id", "session_id"], axis=1)
+        X_test = test_df.drop("label", axis=1)
+        Y_pred = self.xgb.predict_proba(X_test)
+        temp["positive_score"] = [b for a,b in Y_pred]
+        temp["negative_score"] = [a for a, b in Y_pred]
+        temp = temp[["user_id", "session_id", "positive_score", "negative_score"]]
+        return temp
 
 if __name__ == '__main__':
     from utils.menu import mode_selection
