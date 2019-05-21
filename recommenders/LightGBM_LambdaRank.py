@@ -5,7 +5,7 @@ import data
 import lightgbm as lgb
 from sklearn.datasets import load_svmlight_file
 import numpy as np
-from recommenders.recommender_base_edited import RecommenderBase        #TODO modify without _edited version
+from recommenders.recommender_base import RecommenderBase
 import os
 from pathlib import Path
 from tqdm import tqdm
