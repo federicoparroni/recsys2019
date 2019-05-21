@@ -71,7 +71,8 @@ def create_dataset(mode, cluster, class_weights=False):
     # training
     kind = single_choice(['1', '2'], ['kind1', 'kind2'])
     if kind == 'kind1':
-        features_array = [TopPopPerImpression, TopPopInteractionClickoutPerImpression, 
+        features_array = [ActionTypeBefClick, ChangeImpressionOrderPositionInSession, FrenzyFactorSession,
+                          TopPopPerImpression, TopPopInteractionClickoutPerImpression, 
                           ImpressionRatingNumeric, ActionsInvolvingImpressionSession,
                           ImpressionLabel, ImpressionPriceInfoSession,
                           TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
@@ -79,9 +80,7 @@ def create_dataset(mode, cluster, class_weights=False):
                           SessionDevice, SessionSortOrderWhenClickout, MeanPriceClickout,
                           PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
                           TimesImpressionAppearedInClickoutsSession]
-                        #   TopPopPerImpression,
-                        #   ActionTypeBefClick, ChangeImpressionOrderPositionInSession,
-                        #   ImpressionRating, SessionsImpressionsCountNumeric]
+
     elif kind == 'kind2':
         features_array = [ImpressionLabel, ImpressionFeature]
 
