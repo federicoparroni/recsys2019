@@ -381,6 +381,7 @@ class SequenceDatasetForBinaryClassification(SequenceDatasetForClassification):
         # glo_click_pop_feat = GlobalClickoutPopularity(self.mode, self.cluster)
         # max_pop = glo_click_pop_feat.read_feature()['glob_clickout_popularity'].max()
         # X_df['glob_clickout_popularity'] = scale.logarithmic(X_df['glob_clickout_popularity'], max_value=max_pop)
+        X_df['glob_clickout_popularity'] = np.log(X_df['glob_clickout_popularity'])
         
         price_cols = ['price_{}'.format(i) for i in range(25)]
         max_of_prices = np.max(X_df.loc[:,price_cols], axis=1)
@@ -403,8 +404,9 @@ class SequenceDatasetForBinaryClassification(SequenceDatasetForClassification):
 
         X_df = X_df.drop(cols_to_drop_in_X, axis=1)
         
-        scaler = MinMaxScaler()
-        X_df.loc[:,:] = scaler.fit_transform(X_df)
+        if self.scaler is None:
+            self.scaler = MinMaxScaler()
+        X_df.loc[:,:] = self.scaler.fit_transform(X_df)
 
         if return_indices:
             target = np.arange(-1, len(X_df), self.rows_per_sample)[1:]
