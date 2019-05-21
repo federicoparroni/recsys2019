@@ -15,7 +15,7 @@ tqdm.pandas()
 
 class XGBoostWrapper(RecommenderBase):
 
-    def __init__(self, mode, cluster='no_cluster', kind='kind1', aks_to_load=True, class_weights=False, learning_rate=0.3, min_child_weight=1, n_estimators=100, max_depth=3, subsample=1, colsample_bytree=1, reg_lambda=1, reg_alpha=0):
+    def __init__(self, mode, cluster='no_cluster', kind='kind1', ask_to_load=True, class_weights=False, learning_rate=0.3, min_child_weight=1, n_estimators=100, max_depth=3, subsample=1, colsample_bytree=1, reg_lambda=1, reg_alpha=0):
         name = 'xgboost_ranker_mode={}_cluster={}_kind={}_class_weights={}_learning_rate={}_min_child_weight={}_n_estimators={}_max_depth={}_subsample={}_colsample_bytree={}_reg_lambda={}_reg_alpha={}'.format(
             mode, cluster, kind, class_weights, learning_rate, min_child_weight, n_estimators, max_depth, subsample, colsample_bytree, reg_lambda, reg_alpha
         )
@@ -23,7 +23,7 @@ class XGBoostWrapper(RecommenderBase):
             name=name, mode=mode, cluster=cluster)
         self.class_weights = class_weights
         self.kind = kind
-        self.aks_to_load = aks_to_load
+        self.ask_to_load = ask_to_load
 
         self.xg = xgb.XGBRanker(
             learning_rate=learning_rate, min_child_weight=min_child_weight, max_depth=math.ceil(
@@ -52,7 +52,7 @@ class XGBoostWrapper(RecommenderBase):
 
     def fit(self):
         check_folder('models')
-        if self.aks_to_load:
+        if self.ask_to_load:
             if os.path.isfile('models/{}.model'.format(self.name)):
                 if yesno_choice('the exact same model was yet created. want to load?') == 'y':
                     self.xg.load_model('models/{}.model'.format(self.name))

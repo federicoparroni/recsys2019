@@ -4,7 +4,6 @@ from extract_features.feature_base import FeatureBase
 import data
 import pandas as pd
 from tqdm.auto import tqdm
-import numpy as np
 
 from preprocess_utils.create_user_features_from_full import extract_features_from_full
 from preprocess_utils.last_clickout_indices import expand_impressions
@@ -144,13 +143,12 @@ class PastFutureSessionFeatures(FeatureBase):
             sessions_count = len(sessions_user_idxs)
 
             if sessions_count > 1:
-                if sessions_count > 3:
-                    print('Having {} sessions for user {}'.format(sessions_count, user))
-
-                # Start computing features: keeping the lasst clickouts where to iterate for getting features
+                # Start computing features: keeping the last clickouts where to iterate for getting features
                 user_sessions_df = df.iloc[sessions_user_idxs, :]
 
-                df_only_user = df[initial_i:i]
+                df_only_user = df.iloc[initial_i:i, :]
+
+                df_only_user = df_only_user.reset_index(drop=True)
 
                 # Iterating over clickouts to predict of session: computing features
                 for idx, row in user_sessions_df.iterrows():
@@ -161,19 +159,21 @@ class PastFutureSessionFeatures(FeatureBase):
 
                     df_samecity = df_only_user  # [df_only_user.city == row.city]
                     idx = list(df_samecity.session_id.values).index(curr_session)
-                    idx_session_initial = df_samecity.index.values[idx]
-                    idx_session_final = df_samecity.index.values[
-                        len(df_samecity) - 1 - list(df_samecity.session_id.values)[::-1].index(curr_session)]
+
+
+                    # Get index of df where considered session starts and ends
+                    idx_session_initial = idx
+                    idx_session_final = len(df_samecity) - list(df_samecity.session_id.values)[::-1].index(curr_session)
 
                     if df_samecity.index.values[0] < idx_session_initial:
                         self.compute_past_sessions_feat(
-                            df_samecity[:idx_session_initial][df_only_user.city == row.city], impressions,
-                            int(df_only_user.at[initial_i, 'timestamp']))
+                            df_samecity.iloc[0:idx_session_initial, :][df_samecity.city == row.city], impressions,
+                            int(df_only_user.at[idx_session_initial, 'timestamp']))
                     else:
                         self.add_empty_features(impressions, 'past')
 
                     tm_clk = int(row['timestamp'])
-                    df_samecity = df_samecity[df_samecity.index > idx_session_final]
+                    df_samecity = df_samecity.iloc[idx_session_final:len(df_samecity), :]
 
                     df_samecity = df_samecity[df_samecity.city == row.city]
                     if len(df_samecity) > 0:
@@ -195,9 +195,6 @@ class PastFutureSessionFeatures(FeatureBase):
         pbar.close()
 
         df = expand_impressions(df.iloc[idxs_click, :][['user_id', 'session_id', 'reference', 'impressions']])
-
-        print('Tot len of df is {}'.format(len(df)))
-        print(len(self.features['past_actions_involving_impression_session_item_deals']))
 
         for key in self.features.keys():
             print(key, len(self.features[key]))
@@ -267,9 +264,6 @@ class PastFutureSessionFeatures(FeatureBase):
 
         vectors_price = get_mean_price_info(df, impressions, mode='future')
 
-        if vectors_price[0] is None:
-            print(vectors_price)
-            print(impressions)
         self.features['future_mean_price_interacted'] += vectors_price[0]
 
         self.features['future_mean_cheap_pos_interacted'] += vectors_price[1]
