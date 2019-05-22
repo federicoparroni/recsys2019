@@ -1,11 +1,15 @@
 from abc import abstractmethod
 from abc import ABC
+
+from category_encoders import BinaryEncoder
+
 from utils.check_folder import check_folder
 import pandas as pd
 from utils.menu import yesno_choice
 import os
 from sklearn.preprocessing import MultiLabelBinarizer
 import numpy as np
+import category_encoders as ce
 
 """
 extend this class and give an implementation to extract_feature to 
@@ -104,6 +108,9 @@ class FeatureBase(ABC):
                 col = df[t[0]]
                 if t[1] == 'single':
                     oh = pd.get_dummies(col, prefix=self.one_hot_prefix)
+                elif t[1] == 'binary':
+                    ce = BinaryEncoder(cols=t[0])
+                    oh = ce.fit_transform(col)
                 else:
                     mid = col.apply(lambda x: x.split('|') if isinstance(x, str) else x)
                     mid.fillna(value='', inplace=True)

@@ -105,7 +105,7 @@ class RecurrentRecommender(RecommenderBase):
 
     def build_model(self, input_shape, cell_type, num_recurrent_layers, num_recurrent_units, num_dense_layers,
                     bidirectional, output_size, use_batch_normalization):
-        CELL = LSTM if self.name == 'LSTM' else GRU
+        CELL = LSTM if cell_type == 'LSTM' else GRU
         self.model = Sequential()
 
         #self.model.add( TimeDistributed(Dense(num_recurrent_units, activation='relu'), input_shape=self.input_shape) )
@@ -185,6 +185,7 @@ class RecurrentRecommender(RecommenderBase):
         - the state of the optimizer (allowing to resume the training)
         See: https://keras.io/getting-started/faq/#savingloading-whole-models-architecture-weights-optimizer-state
         """
+        check_folder(folderpath)
         path = os.path.join(folderpath, '{}.h5'.format(self.name))
         self.model.save(path)
     

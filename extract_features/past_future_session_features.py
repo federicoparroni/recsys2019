@@ -13,7 +13,7 @@ from preprocess_utils.last_clickout_indices import find as find_last_clickout
 class PastFutureSessionFeatures(FeatureBase):
     """
     say for each session the platform nationality and the city of the platform
-    | user_id | session_id |
+    | user_id | session_id | ...
 
 
     feature description: (valid either for past / future sessions.
@@ -37,7 +37,7 @@ class PastFutureSessionFeatures(FeatureBase):
     past_mean_pos: the averaged position of impression with which the user clicked during all past sessions
     past_pos_closest_reference: the position of the closest element clicked in past session belonging
     (None if not belonging to the current session impression
-    past_position_impression_changed_closest_clickout: 1 if impressions changed wrt the clickout, 0 else
+    past_position_impression_same_closest_clickout:  1 if impressions remained the same wrt the clickout of current session, 0 else
 
     # FUTURE SESSIONS #
     future_times_interacted_impr: the number of times user interacted with the session
@@ -57,16 +57,19 @@ class PastFutureSessionFeatures(FeatureBase):
     future_mean_pos: the averaged position of impression with which the user clicked during all past sessions
     future_pos_closest_reference: the position of the closest element clicked in past session belonging
     (None if not belonging to the current session impression
-    future_position_impression_changed_closest_clickout: 1 if impressions changed wrt the clickout, 0 else
+    future_position_impression_same_closest_clickout: 1 if impressions remained the same wrt the clickout of current session, 0 else
     """
 
     def __init__(self, mode, cluster='no_cluster'):
-        name = 'past_session_features'
+        name = 'past_future_session_features'
+        columns_to_onehot = [('past_closest_action_involving_impression', 'single'), ('future_closest_action_involving_impression', 'single')]
+
         super(PastFutureSessionFeatures, self).__init__(
-            name=name, mode=mode, cluster=cluster)
+            name=name, mode=mode, cluster=cluster, columns_to_onehot=columns_to_onehot)
 
         # Feature initialization
         self.features = {'past_times_interacted_impr': [], 'past_session_num': [],
+                         'past_closest_action_involving_impression': [],
                          'past_time_from_closest_interaction_impression': [],
                          'past_times_user_interacted_impression': [],
                          'past_actions_involving_impression_session_clickout_item': [],
@@ -77,8 +80,9 @@ class PastFutureSessionFeatures(FeatureBase):
                          'past_actions_involving_impression_session_search_for_item': [],
                          'past_actions_involving_impression_session_no_action': [],
                          'past_mean_price_interacted': [], 'past_mean_cheap_pos_interacted': [], 'past_mean_pos': [],
-                         'past_pos_closest_reference': [], 'past_position_impression_changed_closest_clickout': [],
+                         'past_pos_closest_reference': [], 'past_position_impression_same_closest_clickout': [],
                          'future_times_interacted_impr': [], 'future_session_num': [],
+                         'future_closest_action_involving_impression': [],
                          'future_time_from_closest_interaction_impression': [],
                          'future_times_user_interacted_impression': [],
                          'future_actions_involving_impression_session_clickout_item': [],
@@ -91,7 +95,7 @@ class PastFutureSessionFeatures(FeatureBase):
                          'future_mean_price_interacted': [], 'future_mean_cheap_pos_interacted': [],
                          'future_mean_pos': [],
                          'future_pos_closest_reference': [],
-                         'future_position_impression_changed_closest_clickout': []}
+                         'future_position_impression_same_closest_clickout': []}
 
     def extract_feature(self):
         """
@@ -218,10 +222,10 @@ class PastFutureSessionFeatures(FeatureBase):
 
         if mode == 'past' or mode == 'both':
             for key in past_features:
-                self.features[key] += [-1] * len(impr)
+                self.features[key] += [0] * len(impr)
         if mode == 'future' or mode == 'both':
             for key in future_features:
-                self.features[key] += [-1] * len(impr)
+                self.features[key] += [0] * len(impr)
 
     def compute_past_sessions_feat(self, df, impressions, closest_tm):
 
@@ -229,7 +233,7 @@ class PastFutureSessionFeatures(FeatureBase):
 
         self.features['past_session_num'] += [len(set(df.session_id.values))] * len(impressions)
 
-        #self.features['past_closest_action_involving_impression'] += get_closest_actions_impressions(df, impressions, mode='past')
+        self.features['past_closest_action_involving_impression'] += get_closest_actions_impressions(df, impressions, mode='past')
 
         self.features['past_times_user_interacted_impression'] += get_times_interacted_impression(df, impressions)
 
@@ -246,7 +250,7 @@ class PastFutureSessionFeatures(FeatureBase):
 
         self.features['past_pos_closest_reference'] += vectors_price[3]
 
-        self.features['past_position_impression_changed_closest_clickout'] += vectors_price[4]
+        self.features['past_position_impression_same_closest_clickout'] += vectors_price[4]
 
         self.get_action_involving_impressions(df, impressions, prefix='past')
 
@@ -256,7 +260,7 @@ class PastFutureSessionFeatures(FeatureBase):
 
         self.features['future_session_num'] += [len(set(df.session_id.values))] * len(impressions)
 
-        # self.features['future_closest_action_involving_impression'] += get_closest_actions_impressions(df, impressions, mode='future')
+        self.features['future_closest_action_involving_impression'] += get_closest_actions_impressions(df, impressions, mode='future')
 
         self.features['future_times_user_interacted_impression'] += get_times_interacted_impression(df, impressions)
 
@@ -273,7 +277,7 @@ class PastFutureSessionFeatures(FeatureBase):
 
         self.features['future_pos_closest_reference'] += vectors_price[3]
 
-        self.features['future_position_impression_changed_closest_clickout'] += vectors_price[4]
+        self.features['future_position_impression_same_closest_clickout'] += vectors_price[4]
 
         self.get_action_involving_impressions(df, impressions, 'future')
 
@@ -392,7 +396,7 @@ def get_time_from_closest_interacted_impression(df, impressions, closest_tm, mod
     vector_closest_actions = []
     for i in impressions:
         if i not in references_inv:
-            vector_closest_actions += [-1]
+            vector_closest_actions += [0]
         else:
             vector_closest_actions += [abs(
                 int(timestamps_inv[references_inv.index(i)]) - closest_tm)]
@@ -401,13 +405,13 @@ def get_time_from_closest_interacted_impression(df, impressions, closest_tm, mod
 
 
 def get_mean_price_info(x, impressions, mode='past'):
-    mean_pos = -1
-    pos_last_reference = -1
-    mean_cheap_position = -1
-    mean_price_interacted = -1
+    mean_pos = 0
+    pos_last_reference = 0
+    mean_cheap_position = 0
+    mean_price_interacted = 0
 
     # 0 if same, 1 if changed
-    position_impression_changed_closest_clickout = 1
+    position_impression_same_closest_clickout = 0
 
     y = x[x.action_type == 'clickout item']
     if len(x) > 1:
@@ -485,7 +489,7 @@ def get_mean_price_info(x, impressions, mode='past'):
 
                     if len(impressions_pos_available) > 0 and impressions == \
                             impressions_pos_available.tail(1).impressions.values[-1].split('|'):
-                        position_impression_changed_closest_clickout = 0
+                        position_impression_same_closest_clickout = 1
 
 
                 elif mode == 'future':
@@ -493,7 +497,7 @@ def get_mean_price_info(x, impressions, mode='past'):
 
                     if len(impressions_pos_available) > 0 and impressions == \
                             impressions_pos_available.tail(1).impressions.values[0].split('|'):
-                        position_impression_changed_closest_clickout = 0
+                        position_impression_same_closest_clickout = 1
 
                 else:
                     print("ERROR: wrong mode in mean price info!")
@@ -503,7 +507,7 @@ def get_mean_price_info(x, impressions, mode='past'):
 
     lenIm = len(impressions)
     return ([mean_price_interacted] * lenIm, [mean_cheap_position] * lenIm,
-            [mean_pos] * lenIm, [pos_last_reference] * lenIm, [position_impression_changed_closest_clickout] * lenIm)
+            [mean_pos] * lenIm, [pos_last_reference] * lenIm, [position_impression_same_closest_clickout] * lenIm)
 
 
 if __name__ == '__main__':
