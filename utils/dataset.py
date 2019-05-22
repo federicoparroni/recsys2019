@@ -262,7 +262,7 @@ class SequenceDatasetForClassification(Dataset):
         # glob_int_pop_feat = GlobalInteractionsPopularity(self.mode, self.cluster)
         # glob_int_pop_max = glob_int_pop_feat.read_feature()['glob_inter_popularity'].max()
         
-        X_df['glob_clickout_popularity'] = np.log(X_df['glob_clickout_popularity'] + 1)
+        #X_df['glob_clickout_popularity'] = np.log(X_df['glob_clickout_popularity'] + 1)
 
         # avg_price_feat = AveragePriceInNextClickout(self.mode, self.cluster)
         # max_avg_price = avg_price_feat.read_feature().avg_price.max()
