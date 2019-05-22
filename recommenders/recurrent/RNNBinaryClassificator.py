@@ -152,8 +152,7 @@ if __name__ == "__main__":
     # train
     m.fit(epochs=1000)
 
-    timenow = datetime.datetime.now()
-    m.save('gru_binary_{}.h5'.format(timenow))
+    m.save('saved_models')
 
     # evaluate
     m.evaluate()
