@@ -176,8 +176,7 @@ class XGBoostWrapperSmartValidation(XGBoostWrapper):
 
         # create hyperparameters dictionary
         self.hyperparameters_dict = {'learning_rate': (0.01, 0.3),
-                                     'max_depth': (2, 4),
-                                     'n_estimators': (10, 40),
+                                     'max_depth': (3, 7),
                                      'reg_lambda': (0, 0.5),
                                      'reg_alpha': (0, 0.5)
                                      }
