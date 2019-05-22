@@ -1,6 +1,9 @@
 import utils.functions as f
 import os
+
+import data
 import pandas as pd
+
 from tqdm import tqdm
 from pathlib import Path
 from prettytable import PrettyTable
@@ -103,7 +106,7 @@ class SubEvaluator():
         print(x)
 
     def generate_clusters(self):
-        df_test = pd.read_csv(self.data_directory.joinpath('test.csv'))
+        df_test = data.test_df('local')
         df_gt = pd.read_csv(self.data_directory.joinpath('ground_truth.csv'))
 
         if not os.path.exists(self.data_directory.joinpath('gt_clusters')):
