@@ -16,7 +16,7 @@ class LocationReferencePercentageOfInteractions(FeatureBase):
     20 times in Milan, the feature value for the impression 3 will be 0.2 (that means
     that 20% of all the interactions in Milan have been with impression 3).
 
-    user_id | session_id | session_length_timestamp | session_length_step
+    user_id | session_id | item_id | percentage_of_total_city_inter
 
     """
 
