@@ -11,7 +11,7 @@ class GlobalClickoutPopularity(FeatureBase):
     """
     Compute the popularity of a reference by means of the number of times it has been interacted (in whatever action).
     The popularity is calculated in the train df.
-    | item_id | popularity
+    | item_id | glob_clickout_popularity
     popularity is a positive number
     """
 
