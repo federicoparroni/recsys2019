@@ -79,8 +79,6 @@ class XGBoostWrapper(RecommenderBase):
         X_test, _, _ = data.dataset_xgboost_test(
             mode=self.mode, cluster=self.cluster, kind=self.kind)
         target_indices = data.target_indices(self.mode, self.cluster)
-        # full_impressions = pd.read_csv(
-        #     'dataset/preprocessed/full.csv', usecols=["impressions"])
         full_impressions = data.full_df()
         print('data for test ready')
         scores = list(self.xg.predict(X_test))
@@ -99,10 +97,8 @@ class XGBoostWrapper(RecommenderBase):
 
     def get_scores_batch(self):
         X_test, _, _ = data.dataset_xgboost_test(
-            mode=self.mode, cluster=self.cluster, kind=kind)
+            mode=self.mode, cluster=self.cluster, kind=self.kind)
         target_indices = data.target_indices(self.mode, self.cluster)
-        # full_impressions = pd.read_csv(
-        #     'dataset/preprocessed/full.csv', usecols=["impressions"])
         full_impressions = data.full_df()
         print('data for test ready')
         scores = list(self.xg.predict(X_test))
@@ -220,8 +216,8 @@ def callbak(obj):
     global _best_so_far
     if -obj[6][1][1] > _best_so_far:
         _best_so_far = -obj[6][1][1]
-        #HERA.send_message('xgboost witeration {} mrr is {}'. format(
-        #    obj.iteration, _best_so_far))
+        HERA.send_message('xgboost iteration {} mrr is {}'. format(
+            obj.iteration, _best_so_far))
         print('xgboost iteration {} mrr is {}'. format(obj.iteration, _best_so_far))
 
 def _mrr(y_true, y_pred):

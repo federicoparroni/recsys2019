@@ -59,16 +59,17 @@ class RandomValidator:
             params_dict = {**self.fixed_params_dict, **sampled_params}
             if self.automatic_export != None:
                 self.automatic_export.check_if_export(score, params_dict)
-            
+
             self.writer.write(
                 'params: {}\n MRR is: {}\n\n'.format(params_dict, score))
 
             # sending a message on the telegram channel
             HERA.send_message(
-                'name: {} params: {}\n MRR is: {}\n\n'.format(model.name, params_dict, score))
+               'name: {} params: {}\n MRR is: {}\n\n'.format(model.name, params_dict, score))
+            # print('name: {} params: {}\n MRR is: {}\n\n'.format(model.name, params_dict, score))
 
 if __name__ == "__main__":
-    m = XGBoostWrapperSmartValidation(mode='local')
-    # a = XGBoostWrapper(mode='small')
-    v = RandomValidator(m, automatic_export=False)#, reference_object_for_sub_exporter=a)
+    m = XGBoostWrapperSmartValidation(mode='local', ask_to_load=False)
+    a = XGBoostWrapper(mode='local')
+    v = RandomValidator(m, automatic_export=True, reference_object_for_sub_exporter=a)
     v.validate(100)
