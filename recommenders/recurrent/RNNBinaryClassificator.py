@@ -43,7 +43,7 @@ class RNNBinaryClassificator(RNNClassificationRecommender):
         
         self.model = Sequential()
         #m.add( TimeDistributed(Dense(64), input_shape=(6,68)) )
-        self.model.add( CELL(64, input_shape=(dataset.rows_per_sample, 118), recurrent_dropout=0.2, dropout=0.2, return_sequences=True) )
+        self.model.add( CELL(64, input_shape=(self.dataset.rows_per_sample, 118), recurrent_dropout=0.2, dropout=0.2, return_sequences=True) )
         self.model.add( CELL(32, recurrent_dropout=0.2, dropout=0.2, return_sequences=False) )
         self.model.add( Dense(32, activation='relu') )
         self.model.add( Dropout(0.2) )
@@ -96,7 +96,7 @@ class RNNBinaryClassificator(RNNClassificationRecommender):
         """
 
     def evaluate(self):
-        xtest, indices = dataset.load_Xtest()
+        xtest, indices = self.dataset.load_Xtest()
 
         def get_y_true(clickout_indices):
             df = data.full_df().loc[clickout_indices]
@@ -117,10 +117,27 @@ class RNNBinaryClassificator(RNNClassificationRecommender):
         y_true = get_y_true(indices)
         y_pred = self.model.predict_classes(xtest)
 
-        print('Opt: {}'.format(opt))
-        print('Lr: {}'.format(lr))
         print(classification_report(y_true, y_pred, target_names=['class1','class0']))
 
+    def create_feature(self):
+        # load dataset and indices
+        train, train_indices = self.dataset.load_Xtrain(return_indices=True)
+        test, test_indices = self.dataset.load_Xtest()
+        # make predictions
+        predictions = np.concatenate([self.model.predict(train), self.model.predict(test)]).flatten()
+        # build feature df
+        concat_indices = np.concatenate([train_indices, test_indices])
+        users_sessions = data.full_df().loc[concat_indices]
+        feature_df = pd.DataFrame({ 'user_id':          users_sessions['user_id'],
+                                    'session_id':       users_sessions['session_id'],
+                                    'rnn_binary_preds':  predictions },
+                                index=concat_indices)
+        
+        path = 'dataset/preprocessed/no_cluster/{}/feature/rnn_binary_preds/features.csv'.format(self.mode)
+        check_folder(path)
+        feature_df.to_csv(path)
+        
+        return feature_df
 
     def get_scores_batch(self):
         return None
@@ -156,4 +173,7 @@ if __name__ == "__main__":
 
     # evaluate
     m.evaluate()
+
+    print('Opt: {}'.format(opt))
+    print('Lr: {}'.format(lr))
 
