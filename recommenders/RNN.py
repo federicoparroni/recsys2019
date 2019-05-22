@@ -185,6 +185,7 @@ class RecurrentRecommender(RecommenderBase):
         - the state of the optimizer (allowing to resume the training)
         See: https://keras.io/getting-started/faq/#savingloading-whole-models-architecture-weights-optimizer-state
         """
+        check_folder(folderpath)
         path = os.path.join(folderpath, '{}.h5'.format(self.name))
         self.model.save(path)
     
