@@ -6,7 +6,8 @@ from utils.check_folder import check_folder
 
 def extract_features_from_full(mode, cluster='no_cluster'):
 
-    features_full = pd.read_csv('dataset/preprocessed/no_cluster/full/feature/past_session_features/features.csv')
+    feature_name = 'past_future_session_features'
+    features_full = pd.read_csv('dataset/preprocessed/no_cluster/full/feature/{}/features.csv'.format(feature_name))
 
     print('loaded full')
 
@@ -80,7 +81,7 @@ def extract_features_from_full(mode, cluster='no_cluster'):
 
     print(len(features_target))
 
-    path = 'dataset/preprocessed/{}/{}/feature/past_session_features/features.csv'.format(cluster, mode)
+    path = 'dataset/preprocessed/{}/{}/feature/{}/features.csv'.format(cluster, mode, feature_name)
     check_folder(path)
 
     features_target.to_csv(path, index=False)
