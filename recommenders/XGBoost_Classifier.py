@@ -81,12 +81,20 @@ class XGBoostWrapperClassifier(RecommenderBase):
 
     def extract_feature(self):
         test_df = data.dataset_xgboost_classifier_test(self.mode, self.cluster)
-        temp = test_df.copy()
+        train_df = data.dataset_xgboost_classifier_train(self.mode, self.cluster)
+        temp = pd.concat([train_df, test_df])
         test_df = test_df.drop(["user_id", "session_id"], axis=1)
         X_test = test_df.drop("label", axis=1)
+
+
+        Y_pred = self.xgb.predict_proba(self.X_train)
+        pos = [b for a,b in Y_pred]
+        neg = [a for a, b in Y_pred]
         Y_pred = self.xgb.predict_proba(X_test)
-        temp["positive_score"] = [b for a,b in Y_pred]
-        temp["negative_score"] = [a for a, b in Y_pred]
+        pos += [b for a, b in Y_pred]
+        neg += [a for a, b in Y_pred]
+        temp["positive_score"] = pos
+        temp["negative_score"] = neg
         temp = temp[["user_id", "session_id", "positive_score", "negative_score"]]
         return temp
 
