@@ -124,9 +124,14 @@ class RNNBinaryClassificator(RNNClassificationRecommender):
         train, train_indices = self.dataset.load_Xtrain(return_indices=True)
         test, test_indices = self.dataset.load_Xtest()
         # make predictions
-        predictions = np.concatenate([self.model.predict(train), self.model.predict(test)]).flatten()
+        train_test = np.concatenate([train, test])
+        del train
+        del test
+        predictions = self.model.predict(train_test).flatten()
         # build feature df
         concat_indices = np.concatenate([train_indices, test_indices])
+        del train_indices
+        del test_indices
         users_sessions = data.full_df().loc[concat_indices]
         feature_df = pd.DataFrame({ 'user_id':          users_sessions['user_id'],
                                     'session_id':       users_sessions['session_id'],
@@ -136,7 +141,7 @@ class RNNBinaryClassificator(RNNClassificationRecommender):
         path = 'dataset/preprocessed/no_cluster/{}/feature/rnn_binary_preds/features.csv'.format(self.mode)
         check_folder(path)
         feature_df.to_csv(path)
-        
+
         return feature_df
 
     def get_scores_batch(self):
