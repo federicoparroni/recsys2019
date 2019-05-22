@@ -245,6 +245,10 @@ class SequenceDatasetForClassification(Dataset):
         # glo_click_pop_feat = GlobalClickoutPopularity(self.mode, self.cluster)
         # max_pop = glo_click_pop_feat.read_feature()['glob_clickout_popularity'].max()
         # X_df['glob_clickout_popularity'] = scale.logarithmic(X_df['glob_clickout_popularity'], max_value=max_pop)
+        
+        """ trick """
+        impr_count_cols = ['impr_c{}'.format(i) for i in range(25)]
+        X_df.loc[:, impr_count_cols] = 1 - X_df.loc[:, impr_count_cols]
 
         """ scaling """
         price_cols = ['price_{}'.format(i) for i in range(25)]
@@ -257,7 +261,8 @@ class SequenceDatasetForClassification(Dataset):
 
         # glob_int_pop_feat = GlobalInteractionsPopularity(self.mode, self.cluster)
         # glob_int_pop_max = glob_int_pop_feat.read_feature()['glob_inter_popularity'].max()
-        # X_df['glob_inter_popularity'] = scale.logarithmic(X_df['glob_inter_popularity'], max_value=glob_int_pop_max)
+        
+        X_df['glob_clickout_popularity'] = np.log(X_df['glob_clickout_popularity'] + 1)
 
         # avg_price_feat = AveragePriceInNextClickout(self.mode, self.cluster)
         # max_avg_price = avg_price_feat.read_feature().avg_price.max()
@@ -366,56 +371,6 @@ class SequenceDatasetForClassification(Dataset):
 
 
 class SequenceDatasetForBinaryClassification(SequenceDatasetForClassification):
-
-    def _preprocess_x_df(self, X_df, partial, fillNaN=0, return_indices=False):
-        """ Preprocess the loaded data (X)
-        partial (bool): True if X_df is a chunk of the entire file
-        return_indices (bool): True to return the indices of the rows (useful at prediction time)
-        """
-        X_df = X_df.fillna(fillNaN)
-
-        cols_to_drop_in_X = ['user_id','session_id','timestamp','reference','step','platform','city','current_filters']
-        #cols_to_drop_in_X = ['timestamp','reference','step','platform','city','current_filters']
-
-        # scale the dataframe
-        # glo_click_pop_feat = GlobalClickoutPopularity(self.mode, self.cluster)
-        # max_pop = glo_click_pop_feat.read_feature()['glob_clickout_popularity'].max()
-        # X_df['glob_clickout_popularity'] = scale.logarithmic(X_df['glob_clickout_popularity'], max_value=max_pop)
-        X_df['glob_clickout_popularity'] = np.log(X_df['glob_clickout_popularity'])
-        
-        price_cols = ['price_{}'.format(i) for i in range(25)]
-        max_of_prices = np.max(X_df.loc[:,price_cols], axis=1)
-        mask = max_of_prices > 0
-        X_df.loc[mask, price_cols + ['price']] /= max_of_prices[mask][:,None]
-
-        # glob_int_pop_feat = GlobalInteractionsPopularity(self.mode, self.cluster)
-        # glob_int_pop_max = glob_int_pop_feat.read_feature()['glob_inter_popularity'].max()
-        # X_df['glob_inter_popularity'] = scale.logarithmic(X_df['glob_inter_popularity'], max_value=glob_int_pop_max)
-
-        # avg_price_feat = AveragePriceInNextClickout(self.mode, self.cluster)
-        # max_avg_price = avg_price_feat.read_feature().avg_price.max()
-        # X_df.avg_price /= max_avg_price
-
-        # ref_price_feat = ReferencePriceInNextClickout(self.mode, self.cluster)
-        # max_ref_price = ref_price_feat.read_feature().price.max()
-        # X_df.price /= max_ref_price
-
-        # X_df.frequence /= 120
-
-        X_df = X_df.drop(cols_to_drop_in_X, axis=1)
-        
-        if self.scaler is None:
-            self.scaler = MinMaxScaler()
-        X_df.loc[:,:] = self.scaler.fit_transform(X_df)
-
-        if return_indices:
-            target = np.arange(-1, len(X_df), self.rows_per_sample)[1:]
-            indices = X_df.index.values[target]
-            return X_df.values.reshape((-1, self.rows_per_sample, len(X_df.columns))), indices
-        else:
-            return X_df.values.reshape((-1, self.rows_per_sample, len(X_df.columns)))
-        #return sess2vec.sessions2tensor(X_df, drop_cols=cols_to_drop_in_X, return_index=return_indices)
-
     
     def prefit_xy(self, Xchunk_df, Ychunk_df, index):
         """ Preprocess a chunk of the sequence dataset """
