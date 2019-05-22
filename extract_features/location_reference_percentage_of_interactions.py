@@ -34,7 +34,6 @@ class LocationReferencePercentageOfInteractions(FeatureBase):
 
         last_clk_removed_df = df.drop(last_clickout_indices)
         reference_rows = last_clk_removed_df[(last_clk_removed_df.reference.str.isnumeric() == True)]
-        reference_rows = reference_rows.sort_index()
 
         df_item_clicks = (
             reference_rows
@@ -44,7 +43,6 @@ class LocationReferencePercentageOfInteractions(FeatureBase):
         )
         df_item_clicks = df_item_clicks.rename(columns={'reference':'item_id'})
         df_item_clicks['item_id'] = df_item_clicks['item_id'].astype(int)
-        df_item_clicks = df_item_clicks.sort_values(by=['city'])
 
         df_city_clicks = (
         reference_rows
@@ -54,8 +52,6 @@ class LocationReferencePercentageOfInteractions(FeatureBase):
         )
 
         final_df = pd.merge(df_item_clicks, df_city_clicks, how='left', on=['city']).fillna(0)
-        final_df = final_df.sort_values(by=['city'])
-        final_df = final_df.reset_index(drop=True)
 
         final_df['percentage_of_total_city_inter'] = 0.0
         for t in zip(final_df.index, final_df.n_interactions_per_item, final_df.n_interactions_per_city):
