@@ -163,6 +163,7 @@ if __name__ == '__main__':
                       ImpressionPositionSession, LastInteractionInvolvingImpression,
                       SessionDevice, SessionSortOrderWhenClickout, MeanPriceClickout,
                       PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
-                      TimesImpressionAppearedInClickoutsSession]
+                      TimesImpressionAppearedInClickoutsSession, ChangeImpressionOrderPositionInSession,
+                      ActionTypeBefClick, TopPopPerImpression, TopPopInteractionClickoutPerImpression]
 
     create_lightGBM_dataset('small', 'no_cluster', features_array, 'prova')

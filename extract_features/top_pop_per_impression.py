@@ -46,7 +46,7 @@ class TopPopPerImpression(FeatureBase):
             if self.RepresentsInt(r):
                 pop[int(r)] += 1
 
-        final_df = pd.DataFrame(pop.items(), columns=['item_id', 'top_pop_per_impression'])
+        final_df = pd.DataFrame(list(pop.items()), columns=['item_id', 'top_pop_per_impression'])
 
         return final_df
 

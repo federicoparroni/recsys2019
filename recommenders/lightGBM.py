@@ -177,7 +177,7 @@ class lightGBM(RecommenderBase):
     def get_optimize_params():
         space = [
             Real(0.05, 0.2, name='learning_rate'),
-            Integer(6, 50, name='num_leaves'),
+            Integer(6, 80, name='num_leaves'),
             Integer(100, 500, name='min_child_samples'),
             Real(1e-5, 1e4, name='min_child_weight'),
             Real(0.2, 0.8, name='subsample'),
