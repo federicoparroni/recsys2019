@@ -27,9 +27,9 @@ cpdef double mrr(int[:] l, float[:] p, int[:] g, int n_groups):
             if l[index+i]==1:
                 idx_one = i+index
         our_guess = p[idx_one]
-        times_worse = 1
+        times_worse = 0
         for i in range(ggr):
-            if p[index+i] > our_guess:
+            if p[index+i] >= our_guess:
                 times_worse += 1
         rr = 1.0/times_worse
         time = gr+1.0

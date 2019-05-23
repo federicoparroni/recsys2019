@@ -17,6 +17,7 @@ To create a new private channel, you will need 2 things:
 accounts = {
     'default': (-1001481984580, '819065046:AAFee77GqSpq8XBzmEnAMybLqOHuy6PJ_bg'),
     'parro': (125016709, '716431813:AAHaKh7gsBrMoexVs1Lm7gcfHct-3Y3WT4U'),
+    'gabbo': (361500321, '800854524:AAGUxIYNxcVHKyjbiQk_SbU-jWj1-3lSpEA')
     # <insert your chat_id and token here>
 }
 
