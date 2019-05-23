@@ -70,7 +70,7 @@ class XGBoostWrapperClassifier(RecommenderBase):
 
     def evaluate(self, send_MRR_on_telegram = False):
         self.fit()
-        #print(self.xgb.feature_importances_)
+        print(self.xgb.feature_importances_)
         Y_test, Y_pred = self.recommend_batch()
         report = classification_report(Y_test , Y_pred)
         print(report)
@@ -101,6 +101,6 @@ class XGBoostWrapperClassifier(RecommenderBase):
 if __name__ == '__main__':
     from utils.menu import mode_selection
     mode = mode_selection()
-    model = XGBoostWrapperClassifier(mode=mode, cluster='no_cluster')
+    model = XGBoostWrapperClassifier(mode=mode, cluster='no_cluster', n_estimators=900, max_depth=5, learning_rate=0.3, reg_alpha=0.5, reg_lambda=0.5)
     model.evaluate(send_MRR_on_telegram=True)
     #model.run()

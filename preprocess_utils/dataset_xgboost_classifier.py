@@ -42,7 +42,7 @@ def create_dataset(mode, cluster):
                       LastActionFirstImpression,
                       LastActionInvolvingFirstImpressions,
                       NumInteractionsWithFirstImpression, NumImpressionsInClickout,
-                      PopularityFirstImpression,
+                      #PopularityFirstImpression
                       Platform, RNNOutput
                       ]
 
