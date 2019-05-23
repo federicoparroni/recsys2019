@@ -66,7 +66,7 @@ class RandomValidator:
             # sending a message on the telegram channel
             HERA.send_message(
                'name: {} params: {}\n MRR is: {}\n\n'.format(model.name, params_dict, score))
-            # print('name: {} params: {}\n MRR is: {}\n\n'.format(model.name, params_dict, score))
+            print('name: {} params: {}\n MRR is: {}\n\n'.format(model.name, params_dict, score))
 
 if __name__ == "__main__":
     m = XGBoostWrapperSmartValidation(mode='local', ask_to_load=False)
