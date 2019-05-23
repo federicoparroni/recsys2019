@@ -155,14 +155,14 @@ def dataset_xgboost_test(mode, cluster='no_cluster', kind='kind1'):
 def dataset_xgboost_classifier_train(mode, cluster='no_cluster'):
     global _dataset_xgboost_classifier_train
     path = 'dataset/preprocessed/{}/{}/xgboost_classifier/train.csv'.format(cluster, mode)
-    if not _dataset_xgboost_classifier_train:
+    if path not in _dataset_xgboost_classifier_train:
         _dataset_xgboost_classifier_train = pd.read_csv(path)
     return _dataset_xgboost_classifier_train
 
 def dataset_xgboost_classifier_test(mode, cluster='no_cluster'):
     global _dataset_xgboost_classifier_test
     path = 'dataset/preprocessed/{}/{}/xgboost_classifier/test.csv'.format(cluster, mode)
-    if not _dataset_xgboost_classifier_test:
+    if path not in _dataset_xgboost_classifier_test:
         _dataset_xgboost_classifier_test = pd.read_csv(path)
     return _dataset_xgboost_classifier_test
 

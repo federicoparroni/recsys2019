@@ -2,6 +2,7 @@ from recommenders.XGBoost import XGBoostWrapper
 from functools import partial
 
 # from recommenders.catboost_rank import CatboostRanker
+from recommenders.XGBoost_Classifier import XGBoostWrapperClassifier
 from utils.writer import writer
 import gc
 import utils.telegram_bot as HERA
@@ -39,7 +40,7 @@ class RandomValidator:
         step = (upp_bound - low_bound)/self.granularity
         return low_bound + step*rand_numb
 
-    def validate(self, iterations):
+    def validate(self, iterations, is_classifier=False):
         self.fixed_params_dict, self.hyperparameters_dict = self.reference_object.get_params()
         for i in range(iterations):
             # sample a random parameter from the dictionary
@@ -54,7 +55,7 @@ class RandomValidator:
 
             if self.automatic_export != None:
                 self.automatic_export.check_if_export(score, params_dict)
-            
+
             self.writer.write(
                 'params: {}\n MRR is: {}\n\n'.format(params_dict, score))
 
@@ -63,6 +64,6 @@ class RandomValidator:
                 'name: {} params: {}\n MRR is: {}\n\n'.format(model.name, params_dict, score))
 
 if __name__ == "__main__":
-    m = XGBoostWrapper(mode='local')
-    v = RandomValidator(m)
+    m = XGBoostWrapperClassifier(mode='small')
+    v = RandomValidator(m, automatic_export=None)
     v.validate(100)

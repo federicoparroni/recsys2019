@@ -2,6 +2,7 @@ import data
 from extract_features.classifier.platfrom import Platform
 from extract_features.classifier.popularity_first_impression import PopularityFirstImpression
 from extract_features.classifier.first_impression_price import FirstImpressionPrice
+from extract_features.classifier.rnn_output import RNNOutput
 from extract_features.label_classification import LabelClassification
 from extract_features.last_action_before_clickout import LastActionBeforeClickout
 from extract_features.last_action_first_impression import LastActionFirstImpression
@@ -42,7 +43,7 @@ def create_dataset(mode, cluster):
                       LastActionInvolvingFirstImpressions,
                       NumInteractionsWithFirstImpression, NumImpressionsInClickout,
                       PopularityFirstImpression,
-                      Platform
+                      Platform, RNNOutput
                       ]
 
     train_df, test_df = merge_features_classifier(mode, cluster, features_array, LabelClassification)
