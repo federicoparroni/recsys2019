@@ -165,14 +165,14 @@ def dataset_xgboost_test(mode, cluster='no_cluster', kind='kind1'):
 def dataset_xgboost_classifier_train(mode, cluster='no_cluster'):
     global _dataset_xgboost_classifier_train
     path = 'dataset/preprocessed/{}/{}/xgboost_classifier/train.csv'.format(cluster, mode)
-    if not _dataset_xgboost_classifier_train:
+    if path not in _dataset_xgboost_classifier_train:
         _dataset_xgboost_classifier_train = pd.read_csv(path)
     return _dataset_xgboost_classifier_train
 
 def dataset_xgboost_classifier_test(mode, cluster='no_cluster'):
     global _dataset_xgboost_classifier_test
     path = 'dataset/preprocessed/{}/{}/xgboost_classifier/test.csv'.format(cluster, mode)
-    if not _dataset_xgboost_classifier_test:
+    if path not in _dataset_xgboost_classifier_test:
         _dataset_xgboost_classifier_test = pd.read_csv(path)
     return _dataset_xgboost_classifier_test
 
@@ -302,7 +302,7 @@ def accomodations_one_hot():
         sess2vec.save_accomodations_one_hot(accomodations_df(), ACCOMODATIONS_1HOT_PATH)
     if _df_accomodations_one_hot is None:
         print('Loading accomodations one-hot...', flush=True)
-        _df_accomodations_one_hot = pd.read_csv(ACCOMODATIONS_1HOT_PATH, index_col=0).astype('Int8')
+        _df_accomodations_one_hot = pd.read_csv(ACCOMODATIONS_1HOT_PATH, index_col=0).astype('int8')
     return _df_accomodations_one_hot
 
 

@@ -22,6 +22,7 @@ from extract_features.rnn.global_clickout_popularity import GlobalClickoutPopula
 from extract_features.rnn.session_impressions_count import SessionsImpressionsCount
 from extract_features.rnn.clickout_vector_prices import ClickoutVectorPrices
 from extract_features.rnn.interaction_duration import InteractionDuration
+from extract_features.rnn.clickout_filters_satisfaction import ClickoutFiltersSatisfaction
 
 import preprocess_utils.session2vec as sess2vec
 
@@ -48,9 +49,9 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_it
 
         ds_type = 'train' if for_train else 'test'
         devices_classes = ['mobile', 'desktop', 'tablet']
-        actions_classes = ['show_impression', 'clickout item', 'interaction item rating', 'interaction item info',
-                'interaction item image', 'interaction item deals', 'change of sort order', 'filter selection',
-                'search for item', 'search for destination', 'search for poi']
+        actions_classes = ['clickout item', 'interaction item rating', 'interaction item info',
+                'interaction item image', 'interaction item deals', 'search for item', 'search for destination',
+                'search for poi'] #, 'change of sort order', 'filter selection', 'show_impression', ]
         
         # merge the features
         print('Merging the features...')
@@ -196,6 +197,8 @@ if __name__ == "__main__":
         ClickoutVectorPrices,
 
         InteractionDuration,
+
+        ClickoutFiltersSatisfaction
     ]
     features = []
     # create the features to join

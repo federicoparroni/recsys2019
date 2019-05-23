@@ -13,7 +13,9 @@ class ClusterRecurrent(ClusterizeBase):
     """
     Cluster used to train and test the recurrent models, the dataset
     is trasformed into vectors.
-    SESSIONS WITH NO CLICKOUTS ARE DISCARDED!
+    - Change of sort order interactions are discarded!
+    - SESSIONS WITH NO CLICKOUTS ARE DISCARDED!
+    
     Train: train sessions with at least one clickout
     Test: train sessions with at least one clickout
     Targets: all target
@@ -41,12 +43,24 @@ class ClusterRecurrent(ClusterizeBase):
             return df.set_index('index').sort_index()
 
         train_df = data.train_df(mode)
+        # remove the 'change-of-sort' interactions
+        train_df = train_df[train_df.action_type != 'change of sort order']
+        # remove the sessions with no clickouts
         train_df = remove_bad_sessions(train_df)
+        # merge consecutive filter interactions
+        train_df = train_df[train_df.action_type != 'filter selection']
+
         self.train_indices = train_df.index.values
         del train_df
 
         test_df = data.test_df(mode)
+        # remove the 'change-of-sort' interactions
+        test_df = test_df[test_df.action_type != 'change of sort order']
+        # remove the sessions with no clickouts
         test_df = remove_bad_sessions(test_df)
+        # merge consecutive filter interactions
+        test_df = test_df[test_df.action_type != 'filter selection']
+
         self.test_indices = test_df.index.values
 
         self.target_indices = []
