@@ -11,6 +11,7 @@ from pandas import Series
 from tqdm import tqdm
 import scipy.sparse as sps
 tqdm.pandas()
+import utils.telegram_bot as HERA
 
 
 class XGBoostWrapper(RecommenderBase):
@@ -75,11 +76,9 @@ class XGBoostWrapper(RecommenderBase):
         print('model saved')
 
     def recommend_batch(self):
-        X_test = data.dataset_xgboost_test(
+        X_test, _, _ = data.dataset_xgboost_test(
             mode=self.mode, cluster=self.cluster, kind=self.kind)
         target_indices = data.target_indices(self.mode, self.cluster)
-        # full_impressions = pd.read_csv(
-        #     'dataset/preprocessed/full.csv', usecols=["impressions"])
         full_impressions = data.full_df()
         print('data for test ready')
         scores = list(self.xg.predict(X_test))
@@ -97,11 +96,9 @@ class XGBoostWrapper(RecommenderBase):
         return final_predictions
 
     def get_scores_batch(self):
-        X_test = data.dataset_xgboost_test(
-            mode=self.mode, cluster=self.cluster, kind=kind)
+        X_test, _, _ = data.dataset_xgboost_test(
+            mode=self.mode, cluster=self.cluster, kind=self.kind)
         target_indices = data.target_indices(self.mode, self.cluster)
-        # full_impressions = pd.read_csv(
-        #     'dataset/preprocessed/full.csv', usecols=["impressions"])
         full_impressions = data.full_df()
         print('data for test ready')
         scores = list(self.xg.predict(X_test))
@@ -156,20 +153,130 @@ class XGBoostWrapper(RecommenderBase):
         return MRR
 
 
+class XGBoostWrapperSmartValidation(XGBoostWrapper):
+
+    def __init__(self, mode, cluster='no_cluster', kind='kind1', ask_to_load=True, class_weights=False, learning_rate=0.3, min_child_weight=1, n_estimators=100, max_depth=3, subsample=1, colsample_bytree=1, reg_lambda=1, reg_alpha=0):
+        super(XGBoostWrapperSmartValidation, self).__init__(mode, cluster=cluster, kind='kind1', ask_to_load=False, class_weights=False,
+                                                            learning_rate=learning_rate, min_child_weight=min_child_weight,
+                                                            n_estimators=n_estimators, max_depth=max_depth, subsample=subsample,
+                                                            colsample_bytree=colsample_bytree, reg_lambda=reg_lambda, reg_alpha=reg_alpha)
+        self.name = 'lr={} min_child_weight={} n_estimators={}, max_depth={}, subsample={}, colsample_bytree={}, reg_lambda={}, reg_alpha={}'.format(
+            learning_rate, min_child_weight, n_estimators, max_depth, subsample, colsample_bytree, reg_lambda, reg_alpha)
+
+        self.fixed_params_dict = {
+            'mode': mode,
+            'cluster': cluster,
+            'kind': kind,
+            'ask_to_load': False,
+            'min_child_weight': 1,
+            'subsample': 1,
+            'colsample_bytree': 1,
+            'n_estimators': 100000,
+        }
+
+        # create hyperparameters dictionary
+        self.hyperparameters_dict = {'learning_rate': (0.01, 0.3),
+                                     'max_depth': (3, 7),
+                                     'reg_lambda': (0, 0.5),
+                                     'reg_alpha': (0, 0.5)
+                                     }
+        global _best_so_far
+        global _group_t
+        _best_so_far = 0
+        _group_t = []
+
+    def fit(self):
+        global _group_t
+        X_train, y_train, group = data.dataset_xgboost_train(
+            mode=self.mode, cluster=self.cluster, class_weights=self.class_weights, kind=self.kind)
+        print('data for train ready')
+
+        X_test, y_test, groups_test = data.dataset_xgboost_test(
+            mode=self.mode, cluster=self.cluster, kind=self.kind)
+        _group_t = groups_test
+        print('data for evaluation ready')
+
+        self.xg.fit(X_train, y_train, group, eval_set=[
+                    (X_test, y_test)], eval_group=[groups_test], eval_metric=_mrr, verbose=False, callbacks=[callbak], early_stopping_rounds=1000)
+
+    def evaluate(self):
+        self.fit()
+        results = self.xg.evals_result
+        MRRs = -np.array(results['eval_0']['MRR'])
+        max_mrr = np.amax(MRRs)
+        max_idx = np.argmax(MRRs)
+        self.fixed_params_dict['n_estimators'] = max_idx+1
+        return max_mrr
+
+_best_so_far = 0
+_group_t = []
+
+def callbak(obj):
+    global _best_so_far
+    if -obj[6][1][1] > _best_so_far:
+        _best_so_far = -obj[6][1][1]
+        HERA.send_message('xgboost iteration {} mrr is {}'. format(
+            obj.iteration, _best_so_far))
+        print('xgboost iteration {} mrr is {}'. format(obj.iteration, _best_so_far))
+
+def _mrr(y_true, y_pred):
+    def _order_unzip_pad(arr):
+        # sort based on the score
+        ordered_arr = sorted(arr, key=lambda x: x[0], reverse=True)
+        # mantain only the label
+        labels_ordered = np.array(ordered_arr)[:, 1]
+        len_labels_ordered = len(labels_ordered)
+        if len_labels_ordered < 25:
+            labels_padded = np.append(
+                labels_ordered, np.zeros(25-len_labels_ordered))
+        else:
+            labels_padded = labels_ordered
+        return labels_padded
+
+    y_pred = y_pred.get_label()
+
+    # define the fixed array weights
+    WEIGHTS_ARR = 1/np.arange(1, 26)
+
+    # retrieve the indices where to split with a cumsim
+    indices_split = np.cumsum(_group_t)[:-1]
+
+    # zip the score and the label
+    couples_matrix_flattened = np.array(list(zip(y_true, y_pred)))
+
+    # split with the group
+    couples_matrix = np.split(
+        couples_matrix_flattened, indices_split, axis=0)
+    temp = np.array(list(map(_order_unzip_pad, couples_matrix)))
+    mrr = np.sum(temp * WEIGHTS_ARR) / temp.shape[0]
+    return 'MRR', -mrr
+
+
 if __name__ == '__main__':
     from utils.menu import mode_selection
     from utils.menu import single_choice
     from utils.menu import options
-    kind = single_choice(['1', '2'], ['kind1', 'kind2'])
-    mode = mode_selection()
-    sel = options(['evaluate', 'export the sub', 'export the scores'], ['evaluate', 'export the sub',
-                                                                  'export the scores'], 'what do you want to do after model fitting and the recommendations?')
-    model = XGBoostWrapper(mode=mode, cluster='no_cluster', kind=kind)
-    if 'evaluate' in sel:
-        model.evaluate(True)
-    if 'export the sub' in sel and 'export the scores' in sel:
-        model.run(export_sub=True, export_scores=True)
-    elif 'export the sub' in sel and 'export the scores' not in sel:
-        model.run(export_sub=True, export_scores=False)
-    elif 'export the sub' not in sel and 'export the scores' in sel:
-        model.run(export_sub=False, export_scores=True)
+
+    modality = single_choice('smart evaluate or normal recommender?', [
+                             'smart evaluate', 'normal recommender'])
+
+    if modality == 'normal recommender':
+        kind = single_choice('pick the kind', ['kind1', 'kind2'])
+        mode = mode_selection()
+        sel = options(['evaluate', 'export the sub', 'export the scores'], ['evaluate', 'export the sub',
+                                                                            'export the scores'], 'what do you want to do after model fitting and the recommendations?')
+        model = XGBoostWrapper(mode=mode, cluster='no_cluster', kind=kind)
+        model.fit()
+        if 'evaluate' in sel:
+            model.evaluate(True)
+        if 'export the sub' in sel and 'export the scores' in sel:
+            model.run(export_sub=True, export_scores=True)
+        elif 'export the sub' in sel and 'export the scores' not in sel:
+            model.run(export_sub=True, export_scores=False)
+        elif 'export the sub' not in sel and 'export the scores' in sel:
+            model.run(export_sub=False, export_scores=True)
+
+    else:
+        model = XGBoostWrapperSmartValidation(mode='local')
+        model.fit()
+        print(model.evaluate())

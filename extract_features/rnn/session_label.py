@@ -22,7 +22,7 @@ class SessionLabel(FeatureBase):
         name = 'session_label'
         columns_to_onehot = []
 
-        super().__init__(name=name, mode=mode, cluster=cluster, columns_to_onehot=columns_to_onehot, save_index=True)
+        super().__init__(name=name, mode=mode, cluster='no_cluster', columns_to_onehot=columns_to_onehot, save_index=True)
 
 
     def extract_feature(self):
@@ -36,10 +36,10 @@ class SessionLabel(FeatureBase):
         res_df = df[['user_id','session_id','reference','impressions']].loc[idxs]
         
         def add_label(row):
-            impress = list(map(int, row['impressions'].split('|')))
             ref = row.reference
             if pd.isnull(ref):
                 return np.NaN
+            impress = list(map(int, row['impressions'].split('|')))
 
             if ref in impress:
                 return impress.index(ref)

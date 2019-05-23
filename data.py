@@ -130,7 +130,7 @@ def dataset_xgboost_train(mode, cluster='no_cluster', kind='kind1', class_weight
         _dataset_xgboost_train[bp+'b'] = pd.read_csv(
             os.path.join(bp, 'y_train.csv'))['label'].to_dense()
         _dataset_xgboost_train[bp+'c'] = np.load(
-            os.path.join(bp, 'group.npy'))
+            os.path.join(bp, 'group_train.npy'))
         if class_weights:
             _dataset_xgboost_train[bp+'d'] = np.load(
             os.path.join(bp, 'class_weights.npy'))
@@ -148,21 +148,31 @@ def dataset_xgboost_test(mode, cluster='no_cluster', kind='kind1'):
     global _dataset_xgboost_test
     bp = 'dataset/preprocessed/{}/{}/xgboost/{}/'.format(cluster, mode, kind)
     if not 'a' in _dataset_xgboost_test:
+        #if mode == 'full':
         _dataset_xgboost_test[bp+'a'] = sps.load_npz(
             os.path.join(bp, 'X_test.npz'))
-    return _dataset_xgboost_test[bp+'a']
+        #else:
+        #    _dataset_xgboost_test[bp+'a'] = pd.read_csv(
+        #        os.path.join(bp, 'X_test.csv'), index_col=0)
+        _dataset_xgboost_test[bp+'b'] = pd.read_csv(
+            os.path.join(bp, 'y_test.csv'))['label'].to_dense()
+        _dataset_xgboost_test[bp+'c'] = np.load(
+            os.path.join(bp, 'group_test.npy'))
+    return _dataset_xgboost_test[bp+'a'], \
+           _dataset_xgboost_test[bp+'b'], \
+           _dataset_xgboost_test[bp+'c']
 
 def dataset_xgboost_classifier_train(mode, cluster='no_cluster'):
     global _dataset_xgboost_classifier_train
     path = 'dataset/preprocessed/{}/{}/xgboost_classifier/train.csv'.format(cluster, mode)
-    if not _dataset_xgboost_classifier_train:
+    if path not in _dataset_xgboost_classifier_train:
         _dataset_xgboost_classifier_train = pd.read_csv(path)
     return _dataset_xgboost_classifier_train
 
 def dataset_xgboost_classifier_test(mode, cluster='no_cluster'):
     global _dataset_xgboost_classifier_test
     path = 'dataset/preprocessed/{}/{}/xgboost_classifier/test.csv'.format(cluster, mode)
-    if not _dataset_xgboost_classifier_test:
+    if path not in _dataset_xgboost_classifier_test:
         _dataset_xgboost_classifier_test = pd.read_csv(path)
     return _dataset_xgboost_classifier_test
 
@@ -292,7 +302,7 @@ def accomodations_one_hot():
         sess2vec.save_accomodations_one_hot(accomodations_df(), ACCOMODATIONS_1HOT_PATH)
     if _df_accomodations_one_hot is None:
         print('Loading accomodations one-hot...', flush=True)
-        _df_accomodations_one_hot = pd.read_csv(ACCOMODATIONS_1HOT_PATH, index_col=0).astype('Int8')
+        _df_accomodations_one_hot = pd.read_csv(ACCOMODATIONS_1HOT_PATH, index_col=0).astype('int8')
     return _df_accomodations_one_hot
 
 

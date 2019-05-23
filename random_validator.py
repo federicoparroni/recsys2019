@@ -1,6 +1,6 @@
 from recommenders.XGBoost import XGBoostWrapper
+from recommenders.XGBoost import XGBoostWrapperSmartValidation
 from functools import partial
-
 # from recommenders.catboost_rank import CatboostRanker
 from utils.writer import writer
 import gc
@@ -17,7 +17,7 @@ class RandomValidator:
     (check out one that has those already specified)
     """
 
-    def __init__(self, reference_object, granularity=100, automatic_export=True):
+    def __init__(self, reference_object, reference_object_for_sub_exporter=None, granularity=100, automatic_export=True):
         self.reference_object = reference_object
         self.granularity = granularity
 
@@ -30,7 +30,10 @@ class RandomValidator:
 
         self.automatic_export = None
         if automatic_export:
-            self.automatic_export = AutomaticSubExporter(reference_object)
+            if reference_object_for_sub_exporter is None:
+                self.automatic_export = AutomaticSubExporter(reference_object)
+            else:
+                self.automatic_export = AutomaticSubExporter(reference_object_for_sub_exporter)
 
     def sample(self, tuple):
         low_bound = tuple[0]
@@ -52,17 +55,21 @@ class RandomValidator:
             model = self.reference_object.__class__(**params_dict)
             score = model.evaluate()
 
+            # assign it again in case a fixed parameter has changed
+            params_dict = {**self.fixed_params_dict, **sampled_params}
             if self.automatic_export != None:
                 self.automatic_export.check_if_export(score, params_dict)
-            
+
             self.writer.write(
                 'params: {}\n MRR is: {}\n\n'.format(params_dict, score))
 
             # sending a message on the telegram channel
             HERA.send_message(
-                'name: {} params: {}\n MRR is: {}\n\n'.format(model.name, params_dict, score))
+               'name: {} params: {}\n MRR is: {}\n\n'.format(model.name, params_dict, score))
+            # print('name: {} params: {}\n MRR is: {}\n\n'.format(model.name, params_dict, score))
 
 if __name__ == "__main__":
-    m = XGBoostWrapper(mode='local')
-    v = RandomValidator(m)
+    m = XGBoostWrapperSmartValidation(mode='local', ask_to_load=False)
+    a = XGBoostWrapper(mode='local')
+    v = RandomValidator(m, automatic_export=True, reference_object_for_sub_exporter=a)
     v.validate(100)

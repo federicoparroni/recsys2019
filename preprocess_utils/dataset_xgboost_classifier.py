@@ -1,6 +1,8 @@
 import data
+from extract_features.classifier.platfrom import Platform
 from extract_features.classifier.popularity_first_impression import PopularityFirstImpression
-from extract_features.first_impression_price import FirstImpressionPrice
+from extract_features.classifier.first_impression_price import FirstImpressionPrice
+from extract_features.classifier.rnn_output import RNNOutput
 from extract_features.label_classification import LabelClassification
 from extract_features.last_action_before_clickout import LastActionBeforeClickout
 from extract_features.last_action_first_impression import LastActionFirstImpression
@@ -8,8 +10,6 @@ from extract_features.last_action_involving_first_impression import LastActionIn
 from extract_features.mean_price_clickout import MeanPriceClickout
 from extract_features.num_impressions_in_clickout import NumImpressionsInClickout
 from extract_features.num_interactions_with_first_impression import NumInteractionsWithFirstImpression
-from extract_features.num_interactions_with_first_impression_in_history import \
-    NumInteractionsWithFirstImpressionInHistory
 from extract_features.price_position_info_interactions import PricePositionInfoInteractedReferences
 from extract_features.session_device import SessionDevice
 from extract_features.session_length import SessionLength
@@ -42,7 +42,8 @@ def create_dataset(mode, cluster):
                       LastActionFirstImpression,
                       LastActionInvolvingFirstImpressions,
                       NumInteractionsWithFirstImpression, NumImpressionsInClickout,
-                      PopularityFirstImpression
+                      #PopularityFirstImpression
+                      Platform, RNNOutput
                       ]
 
     train_df, test_df = merge_features_classifier(mode, cluster, features_array, LabelClassification)

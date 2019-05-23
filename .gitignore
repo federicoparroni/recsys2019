@@ -37,5 +37,6 @@ catboost_info/
 recommenders/recurrent/checkpoints
 *.txt
 *.csv
+!requirements.txt
 
 scores/

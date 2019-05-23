@@ -116,8 +116,8 @@ def create_dataset(mode, cluster, class_weights=False):
 
     group = create_groups(train_df)
     print(len(group))
-    np.save(join(bp, 'group'), group)
-    print('groups saved')
+    np.save(join(bp, 'group_train'), group)
+    print('train groups saved')
 
     print('train data completed')
 
@@ -127,11 +127,25 @@ def create_dataset(mode, cluster, class_weights=False):
     else:
         X_test = test_df.drop(
             ['index', 'user_id', 'session_id', 'item_id', 'label'], axis=1)
+
+    #if mode == 'full':
     X_test = X_test.to_sparse(fill_value=0)
     X_test = X_test.astype(np.float64)
     X_test = X_test.to_coo().tocsr()
     save_npz(join(bp, 'X_test'), X_test)
+    #else:
+    #    X_test.to_csv(join(bp, 'X_test.csv'))
     print('X_test saved')
+
+    y_test = test_df[['label']]
+    y_test.to_csv(join(bp, 'y_test.csv'))
+    print('y_test saved')
+
+    group = create_groups(test_df)
+    print(len(group))
+    np.save(join(bp, 'group_test'), group)
+    
+    print('test groups saved')
 
     print('test data completed')
 
