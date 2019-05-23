@@ -49,8 +49,8 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_it
         ds_type = 'train' if for_train else 'test'
         devices_classes = ['mobile', 'desktop', 'tablet']
         actions_classes = ['show_impression', 'clickout item', 'interaction item rating', 'interaction item info',
-                'interaction item image', 'interaction item deals', 'change of sort order', 'filter selection',
-                'search for item', 'search for destination', 'search for poi']
+                'interaction item image', 'interaction item deals', 'search for item', 'search for destination',
+                'search for poi'] #, 'change of sort order', 'filter selection']
         
         # merge the features
         print('Merging the features...')
