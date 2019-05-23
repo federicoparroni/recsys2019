@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 import utils.telegram_bot as Hera
 import datetime
 from skopt.space import Real, Integer, Categorical
+from utils.reduce_memory_usage_df import reduce_mem_usage
 
 _x_train = None
 _y_train = None
@@ -40,10 +41,10 @@ class lightGBM(RecommenderBase):
         if _x_train is None:
             start = time()
             print('Loading data...\n')
-            _x_train = pd.read_csv(f'{_BASE_PATH}/x_train.csv')
+            _x_train = reduce_mem_usage(pd.read_csv(f'{_BASE_PATH}/x_train.csv'))
             _y_train = np.load(f'{_BASE_PATH}/y_train.npy')
             _group_train = np.load(f'{_BASE_PATH}/groups_train.npy')
-            _x_vali = pd.read_csv(f'{_BASE_PATH}/x_vali.csv')
+            _x_vali = reduce_mem_usage(pd.read_csv(f'{_BASE_PATH}/x_vali.csv'))
             _y_vali = np.load(f'{_BASE_PATH}/y_vali.npy')
             _group_test = np.load(f'{_BASE_PATH}/groups_vali.npy')
             print(f'data loaded in: {time() - start}\n')
