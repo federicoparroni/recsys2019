@@ -5,6 +5,7 @@ import pandas as pd
 from preprocess_utils.last_clickout_indices import find as find_last_clickout_indices
 from preprocess_utils.last_clickout_indices import expand_impressions
 import numpy as np
+from utils.reduce_memory_usage_df import reduce_mem_usage
 
 from scipy.sparse import save_npz
 import data
@@ -128,6 +129,8 @@ def create_lightGBM_dataset(mode, cluster, features_array, dataset_name):
 
     def _save_dataset(base_path, mode, df):
         assert mode in ['train', 'vali'], 'the mode has to be train or vali'
+        print('reducing memory usage...')
+        df = reduce_mem_usage(df)
 
         check_folder(base_path)
 

@@ -55,7 +55,7 @@ def extract_features_from_full(mode, cluster='no_cluster'):
     to_add = feat_label[feat_label.session_id.isin(sessions_to_correct)]
     to_add = to_add.drop(['label'], axis=1)
     cols = features_full.columns.values[3:]
-    to_add[cols] = pd.DataFrame([[0] * len(cols)], index=to_add.index)
+    to_add[cols] = pd.DataFrame([[0]*2 + ['no_action'] + [0] * 16 + ['no_action'] + [0] * 14 ], index=to_add.index)
 
     features_target = features_target[~features_target.session_id.isin(sessions_to_correct)]
     features_target = pd.concat([features_target, to_add])

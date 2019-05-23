@@ -151,7 +151,7 @@ class RecurrentRecommender(RecommenderBase):
     def fit(self, epochs, early_stopping_patience=10, early_stopping_on='val_loss', mode='min'):
         #weights = self.class_weights if self.weight_samples else []
 
-        callbacks = [ TelegramBotKerasCallback() ]
+        callbacks = [ TelegramBotKerasCallback(log_every_epochs=1, account='parro') ]
         # early stopping callback
         if isinstance(early_stopping_patience, int):
             assert early_stopping_patience > 0

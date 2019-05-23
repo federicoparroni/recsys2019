@@ -75,7 +75,7 @@ class ClickoutFiltersSatisfaction(FeatureBase):
                 # take the one-hot of the impressions tags
                 impressions_features_one_hot = accom_df.loc[impressions].values
 
-                satisfaction_percentage = np.sum(filters_one_hot & impressions_features_one_hot, axis=1) / filters_len
+                satisfaction_percentage = np.sum( np.bitwise_and(filters_one_hot, impressions_features_one_hot), axis=1) / filters_len
                 result[k, 0:len(impressions)] = satisfaction_percentage
             else:
                 # there are only change-of-sort filters
@@ -83,7 +83,7 @@ class ClickoutFiltersSatisfaction(FeatureBase):
             k += 1
         
         result = result.round(4)
-        
+
         # add the 25 new columns
         for i in range(25):
             clickouts['satisf_perc_{}'.format(i)] = result[:,i]
@@ -96,7 +96,7 @@ class ClickoutFiltersSatisfaction(FeatureBase):
         feature_df = self.read_feature()
         feature_cols = feature_df.columns
         res_df = df.merge(feature_df, how='left', left_index=True, right_index=True)
-        res_df[feature_cols] = res_df[feature_cols].fillna(0).astype('int8')
+        res_df[feature_cols] = res_df[feature_cols].fillna(0)
         return res_df
 
 
