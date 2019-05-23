@@ -12,6 +12,7 @@ from tqdm import tqdm
 import scipy.sparse as sps
 tqdm.pandas()
 import utils.telegram_bot as HERA
+from cython_files.mrr import mrr as mrr_cython
 
 
 class XGBoostWrapper(RecommenderBase):
@@ -197,7 +198,7 @@ class XGBoostWrapperSmartValidation(XGBoostWrapper):
         print('data for evaluation ready')
 
         self.xg.fit(X_train, y_train, group, eval_set=[
-                    (X_test, y_test)], eval_group=[groups_test], eval_metric=_mrr, verbose=False, callbacks=[callbak], early_stopping_rounds=1000)
+                    (X_test, y_test)], eval_group=[groups_test], eval_metric=_mrr, verbose=False, callbacks=[callbak], early_stopping_rounds=200)
 
     def evaluate(self):
         self.fit()
@@ -219,36 +220,13 @@ def callbak(obj):
             obj.iteration, _best_so_far))
         print('xgboost iteration {} mrr is {}'. format(obj.iteration, _best_so_far))
 
+
 def _mrr(y_true, y_pred):
-    def _order_unzip_pad(arr):
-        # sort based on the score
-        ordered_arr = sorted(arr, key=lambda x: x[0], reverse=True)
-        # mantain only the label
-        labels_ordered = np.array(ordered_arr)[:, 1]
-        len_labels_ordered = len(labels_ordered)
-        if len_labels_ordered < 25:
-            labels_padded = np.append(
-                labels_ordered, np.zeros(25-len_labels_ordered))
-        else:
-            labels_padded = labels_ordered
-        return labels_padded
-
     y_pred = y_pred.get_label()
-
-    # define the fixed array weights
-    WEIGHTS_ARR = 1/np.arange(1, 26)
-
-    # retrieve the indices where to split with a cumsim
-    indices_split = np.cumsum(_group_t)[:-1]
-
-    # zip the score and the label
-    couples_matrix_flattened = np.array(list(zip(y_true, y_pred)))
-
-    # split with the group
-    couples_matrix = np.split(
-        couples_matrix_flattened, indices_split, axis=0)
-    temp = np.array(list(map(_order_unzip_pad, couples_matrix)))
-    mrr = np.sum(temp * WEIGHTS_ARR) / temp.shape[0]
+    l = memoryview(np.array(y_pred, dtype=np.int32))
+    p = memoryview(np.array(y_true, dtype=np.float32))
+    g = memoryview(np.array(_group_t, dtype=np.int32))
+    mrr = mrr_cython(l, p, g, len(_group_t))
     return 'MRR', -mrr
 
 
