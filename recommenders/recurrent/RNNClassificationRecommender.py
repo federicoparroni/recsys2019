@@ -143,4 +143,4 @@ if __name__ == "__main__":
     model.compute_MRR(recommendations)
 
     #menu.yesno_choice('Do you want to save the model?', lambda: model.save(folderpath='.'))
-    model.save(folderpath='.')
+    model.save(folderpath='saved_models/')
