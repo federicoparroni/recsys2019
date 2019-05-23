@@ -104,7 +104,7 @@ class PastFutureSessionFeatures(FeatureBase):
         This will help understand the moves of the user through the impressions
         """
         if self.mode != 'full':
-            if os.path.isfile('dataset/preprocessed/no_cluster/full/feature/past_session_features/features.csv'):
+            if os.path.isfile('dataset/preprocessed/no_cluster/full/feature/past_future_session_features/features.csv'):
                 extract_features_from_full(self.mode, self.cluster)
                 exit(0)
             else:

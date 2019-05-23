@@ -52,9 +52,10 @@ def extract_features_from_full(mode, cluster='no_cluster'):
 
     print(sessions_to_correct)
 
+
     to_add = feat_label[feat_label.session_id.isin(sessions_to_correct)]
     to_add = to_add.drop(['label'], axis=1)
-    cols = 'past_times_interacted_impr,past_session_num,past_time_from_closest_interaction_impression,' \
+    cols = 'past_times_interacted_impr,past_session_num,past_closest_action_involving_impression,past_time_from_closest_interaction_impression,' \
            'past_times_user_interacted_impression,past_actions_involving_impression_session_clickout_item,' \
            'past_actions_involving_impression_session_item_image,' \
            'past_actions_involving_impression_session_item_rating,' \
@@ -62,7 +63,7 @@ def extract_features_from_full(mode, cluster='no_cluster'):
            'past_actions_involving_impression_session_search_for_item,' \
            'past_actions_involving_impression_session_no_action,past_mean_price_interacted,' \
            'past_mean_cheap_pos_interacted,past_mean_pos,past_pos_closest_reference,' \
-           'past_position_impression_changed_closest_clickout,future_times_interacted_impr,future_session_num,' \
+           'past_position_impression_changed_closest_clickout,future_times_interacted_impr,future_session_num,future_closest_action_involving_impression,' \
            'future_time_from_closest_interaction_impression,future_times_user_interacted_impression,' \
            'future_actions_involving_impression_session_clickout_item,' \
            'future_actions_involving_impression_session_item_image,' \
