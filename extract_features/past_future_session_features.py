@@ -62,7 +62,7 @@ class PastFutureSessionFeatures(FeatureBase):
 
     def __init__(self, mode, cluster='no_cluster'):
         name = 'past_future_session_features'
-        columns_to_onehot = [('past_closest_action_involving_impression', 'single'), ('future_closest_action_involving_impression', 'single')]
+        columns_to_onehot = [('past_closest_action_involving_impression', 'single')]
 
         super(PastFutureSessionFeatures, self).__init__(
             name=name, mode=mode, cluster=cluster, columns_to_onehot=columns_to_onehot)
@@ -82,7 +82,6 @@ class PastFutureSessionFeatures(FeatureBase):
                          'past_mean_price_interacted': [], 'past_mean_cheap_pos_interacted': [], 'past_mean_pos': [],
                          'past_pos_closest_reference': [], 'past_position_impression_same_closest_clickout': [],
                          'future_times_interacted_impr': [], 'future_session_num': [],
-                         'future_closest_action_involving_impression': [],
                          'future_time_from_closest_interaction_impression': [],
                          'future_times_user_interacted_impression': [],
                          'future_actions_involving_impression_session_clickout_item': [],
