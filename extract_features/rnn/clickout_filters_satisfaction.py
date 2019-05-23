@@ -38,11 +38,11 @@ class ClickoutFiltersSatisfaction(FeatureBase):
         change_sort_filters = set(['sort by price', 'sort by distance', 'sort by rating', 'sort by popularity',
                                     'focus on rating', 'focus on distance', 'best value'])
         
-        # find the clickout rows with some active filters
-        clickouts = df[(df.action_type == 'clickout item') & df.current_filters.notnull()]
+        # find the clickout rows
+        clickouts = df[(df.action_type == 'clickout item')] # & df.current_filters.notnull()]
         clickouts = clickouts[['user_id','session_id','current_filters','impressions']]
         # split the filters and the impressions
-        clickouts['filters_list'] = clickouts['current_filters'].str.lower().str.split('|')
+        clickouts['filters_list'] = clickouts['current_filters'].str.lower().str.split('|').fillna('')
         clickouts['impress_list'] = clickouts['impressions'].str.split('|')
         clickouts = clickouts.drop(['impressions','current_filters'], axis=1)
         # cast the impressions to int
@@ -53,10 +53,11 @@ class ClickoutFiltersSatisfaction(FeatureBase):
         
         # iterate over the clickouts and one-hot
         print('Total interactions:', clickouts.shape[0])
-        result = np.zeros((clickouts.shape[0],25))
+        result = np.zeros((clickouts.shape[0],25), dtype='float')
         k = 0
         for idx in tqdm(clickouts.index):
             filters = clickouts.at[idx, 'filters_list']
+            impressions = clickouts.at[idx, 'impress_list']
             # do not consider change-of-sort filters
             filters = set(filters).difference(change_sort_filters)
             # fix some wrong filters names
@@ -72,7 +73,6 @@ class ClickoutFiltersSatisfaction(FeatureBase):
                 # one-hot the filters
                 filters_one_hot = mlb.fit_transform([filters])[0]
                 # take the one-hot of the impressions tags
-                impressions = clickouts.at[idx, 'impress_list']
                 impressions_features_one_hot = accom_df.loc[impressions].values
 
                 satisfaction_percentage = np.sum(filters_one_hot & impressions_features_one_hot, axis=1) / filters_len
@@ -81,6 +81,8 @@ class ClickoutFiltersSatisfaction(FeatureBase):
                 # there are only change-of-sort filters
                 result[k, 0:len(impressions)] = 1
             k += 1
+        
+        result = result.round(4)
         
         # add the 25 new columns
         for i in range(25):
