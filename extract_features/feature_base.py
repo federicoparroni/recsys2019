@@ -25,6 +25,8 @@ class FeatureBase(ABC):
         columns_to_onehot: [(columns_header, onehot_mode), ...]
             onehot_mode: 'single' or 'multiple'
                 'single': if we have just one categorical value for row
+                'binary: if we have just one categorical value, but with a lot of categories.
+                        Resulting columns created are log2(#categories)
                 'multiple': if we have multiple ones (assumes pipe separation)
 
         eg: [('action', 'single')]
@@ -107,7 +109,7 @@ class FeatureBase(ABC):
             for t in self.columns_to_onehot:
                 col = df[t[0]]
                 if t[1] == 'single':
-                    oh = pd.get_dummies(col, prefix=self.one_hot_prefix)
+                    oh = pd.get_dummies(col, prefix=t[0])
                 elif t[1] == 'binary':
                     ce = BinaryEncoder(cols=t[0])
                     oh = ce.fit_transform(col)
@@ -118,7 +120,7 @@ class FeatureBase(ABC):
                     oh = mlb.fit_transform(mid)
                     oh = pd.DataFrame(oh, columns=mlb.classes_)
                     oh = oh.astype(np.uint8)
-                    oh = oh.add_prefix(self.one_hot_prefix)
+                    oh = oh.add_prefix(t[0])
 
                 df = df.drop([t[0]], axis=1)
                 df = pd.concat([df, oh], axis=1)
