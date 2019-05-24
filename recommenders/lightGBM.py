@@ -158,10 +158,10 @@ class lightGBM(RecommenderBase):
         space = [
             Real(0.05, 0.2, name='learning_rate'),
             Integer(6, 80, name='num_leaves'),
-            Integer(100, 500, name='min_child_samples'),
-            Real(1e-5, 1e4, name='min_child_weight'),
-            Real(0.2, 0.8, name='subsample'),
-            Real(0.4, 0.6, name='colsample_bytree'),
+            Integer(10, 100, name='min_child_samples'),
+            Real(1e-5, 1e1, name='min_child_weight'),
+            Real(0.8, 1, name='subsample'),
+            Real(0.5, 1, name='colsample_bytree'),
             Real(0, 0.5, name='reg_lambda'),
             Real(0, 0.5, name='reg_alpha'),
         ]
