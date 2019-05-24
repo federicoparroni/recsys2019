@@ -40,3 +40,9 @@ recommenders/recurrent/checkpoints
 !requirements.txt
 
 scores/
+
+*.c
+
+*.so
+
+*.html

@@ -22,6 +22,7 @@ import utils.telegram_bot as Hera
 import datetime
 from skopt.space import Real, Integer, Categorical
 from utils.reduce_memory_usage_df import reduce_mem_usage
+from cython_files.mrr import mrr as mrr_cython
 
 _x_train = None
 _y_train = None
@@ -75,32 +76,10 @@ class lightGBM(RecommenderBase):
 
     def validate(self):
         def _mrr(y_true, y_pred, weight, group):
-            def _order_unzip_pad(arr):
-                # sort based on the score
-                ordered_arr = sorted(arr, key=lambda x: x[1], reverse=True)
-                # mantain only the label
-                labels_ordered = np.array(ordered_arr)[:, 0]
-                len_labels_ordered = len(labels_ordered)
-                if len_labels_ordered < 25:
-                    labels_padded = np.append(labels_ordered, np.zeros(25 - len_labels_ordered))
-                else:
-                    labels_padded = labels_ordered
-                return labels_padded
-
-            # define the fixed array weights
-            WEIGHTS_ARR = 1 / np.arange(1, 26)
-
-            # retrieve the indices where to split with a cumsim
-            indices_split = np.cumsum(group)[:-1]
-
-            # zip the score and the label
-            couples_matrix_flattened = np.array(list(zip(y_true, y_pred)))
-
-            # split with the group
-            couples_matrix = np.split(couples_matrix_flattened, indices_split, axis=0)
-            temp = np.array(list(map(_order_unzip_pad, couples_matrix)))
-            mrr = np.sum(temp * WEIGHTS_ARR) / temp.shape[0]
-            return 'MRR', mrr, True
+            l = memoryview(np.array(y_true, dtype=np.int32))
+            p = memoryview(np.array(y_pred, dtype=np.float32))
+            g = memoryview(np.array(group, dtype=np.int32))
+            return 'MRR', mrr_cython(l, p, g,len(g)), True
 
         def _hera_callback(param):
             iteration_num = param[2]
@@ -108,7 +87,7 @@ class lightGBM(RecommenderBase):
                 message = f'PARAMS:\n'
                 for k in param[1]:
                     message += f'{k}: {param[1][k]}\n'
-                Hera.send_message(f'ITERATION_NUM: {iteration_num}\n {message}\n MRR: {param[5][0][2]}')
+                Hera.send_message(f'ITERATION_NUM: {iteration_num}\n {message}\n MRR: {param[5][0][2]}', account='edo')
 
         # define a callback that will insert whitin the dictionary passed the history of the MRR metric during
         # the training phase
@@ -119,7 +98,7 @@ class lightGBM(RecommenderBase):
 
         self.model.fit(self.x_train, self.y_train, group=self.groups_train, eval_set=[(self.x_vali, self.y_vali)],
                   eval_group=[self.groups_vali], eval_metric=_mrr, eval_names='validation_set',
-                  early_stopping_rounds=200, verbose=1, callbacks=[eval_callback, _hera_callback])
+                  early_stopping_rounds=200, verbose=False, callbacks=[eval_callback, _hera_callback])
         # save the model parameters
         time = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M")
         check_folder(f'{self._BASE_PATH}/{time}')
@@ -175,25 +154,20 @@ class lightGBM(RecommenderBase):
         return final_predictions
 
     @staticmethod
-    def get_optimize_params():
+    def get_optimize_params(mode, cluster):
         space = [
             Real(0.05, 0.2, name='learning_rate'),
             Integer(6, 80, name='num_leaves'),
-            Integer(100, 500, name='min_child_samples'),
-            Real(1e-5, 1e4, name='min_child_weight'),
-            Real(0.2, 0.8, name='subsample'),
-            Real(0.4, 0.6, name='colsample_bytree'),
             Real(0, 0.5, name='reg_lambda'),
             Real(0, 0.5, name='reg_alpha'),
         ]
 
         def get_mrr(arg_list):
 
-            learning_rate, num_leaves, min_child_samples, min_child_weight, subsample, colsample_bytree, reg_lambda, reg_alpha = arg_list
+            learning_rate, num_leaves, reg_lambda, reg_alpha = arg_list
             Hera.send_message(f'Starting a train of bayesyan search with following params:\n '
-                              f'learning_rate:{learning_rate}, num_leaves:{num_leaves}, min_child_samples: {min_child_samples},'
-                              f'min_child_weight:{min_child_weight}, subsample:{subsample}, colsample_by_tree:{colsample_bytree}'
-                              f'reg_lambda{reg_lambda}, reg_alpha:{reg_alpha}')
+                              f'learning_rate:{learning_rate}, num_leaves:{num_leaves}, '
+                              f'reg_lambda{reg_lambda}, reg_alpha:{reg_alpha}', account='edo')
             params_dict = {
                 'boosting_type': 'gbdt',
                 'num_leaves': num_leaves,
@@ -203,11 +177,11 @@ class lightGBM(RecommenderBase):
                 'subsample_for_bin': 200000,
                 'class_weights': None,
                 'min_split_gain': 0.0,
-                'min_child_weight': min_child_weight,
-                'min_child_samples': min_child_samples,
-                'subsample': subsample,
+                'min_child_weight': 0.01,
+                'min_child_samples': 20,
+                'subsample': 1,
                 'subsample_freq': 0,
-                'colsample_bytree': colsample_bytree,
+                'colsample_bytree': 1,
                 'reg_alpha': reg_alpha,
                 'reg_lambda': reg_lambda,
                 'random_state': None,
@@ -217,12 +191,12 @@ class lightGBM(RecommenderBase):
                 'metric': 'None',
                 'print_every': 100,
             }
-            model=lightGBM(mode='small', cluster='no_cluster', dataset_name='prova', params_dict=params_dict)
+            model=lightGBM(mode=mode, cluster=cluster, dataset_name='dataset1', params_dict=params_dict)
             mrr = model.validate()
             Hera.send_message(f'MRR: {mrr}\n'
                               f'params:\n'
                               f'learning_rate:{learning_rate}, num_leaves:{num_leaves}, '
-                              f'reg_lambda{reg_lambda}, reg_alpha:{reg_alpha}')
+                              f'reg_lambda{reg_lambda}, reg_alpha:{reg_alpha}', account='edo')
             return -mrr
         return space, get_mrr
 
@@ -252,7 +226,7 @@ if __name__ == '__main__':
         'metric': 'None',
         'print_every': 100,
     }
-    model = lightGBM(mode='small', cluster='no_cluster', dataset_name='prova', params_dict=params_dict)
+    model = lightGBM(mode='local', cluster='no_cluster', dataset_name='dataset1', params_dict=params_dict)
     model.validate()
 
 
