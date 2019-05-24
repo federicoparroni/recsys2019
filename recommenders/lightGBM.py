@@ -154,7 +154,7 @@ class lightGBM(RecommenderBase):
         return final_predictions
 
     @staticmethod
-    def get_optimize_params():
+    def get_optimize_params(mode, cluster):
         space = [
             Real(0.05, 0.2, name='learning_rate'),
             Integer(6, 80, name='num_leaves'),
@@ -196,7 +196,7 @@ class lightGBM(RecommenderBase):
                 'metric': 'None',
                 'print_every': 100,
             }
-            model=lightGBM(mode='small', cluster='no_cluster', dataset_name='prova', params_dict=params_dict)
+            model=lightGBM(mode=mode, cluster=cluster, dataset_name='dataset1', params_dict=params_dict)
             mrr = model.validate()
             Hera.send_message(f'MRR: {mrr}\n'
                               f'params:\n'

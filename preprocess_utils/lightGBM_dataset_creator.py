@@ -164,6 +164,7 @@ def create_lightGBM_dataset(mode, cluster, features_array, dataset_name):
     train_df, validation_df = merge_features_lgb(mode, cluster, features_array)
 
     print('saving features names...')
+    check_folder(f"{_BASE_PATH}")
     with open(f"{_BASE_PATH}/Features.txt", "w+") as text_file:
         text_file.write(str([str(fn) for fn in features_array]))
 
@@ -184,4 +185,8 @@ if __name__ == '__main__':
                       LocationReferencePercentageOfClickouts, LocationReferencePercentageOfInteractions,
                       PercClickPerImpressions, CitySession, PlatformSession]
 
-    create_lightGBM_dataset('small', 'no_cluster', features_array, 'prova')
+    mode=single_choice('select mode:', ['full', 'local', 'small'])
+    cluster=single_choice('select cluster:', ['no_cluster'])
+    dataset_name=single_choice('select dataset name:',['prova', 'dataset1'])
+    create_lightGBM_dataset(mode=mode, cluster=cluster, features_array=features_array,
+                            dataset_name=dataset_name)
