@@ -180,14 +180,29 @@ if __name__ == '__main__':
                       ImpressionPositionSession, LastInteractionInvolvingImpression,
                       SessionDevice, SessionSortOrderWhenClickout, MeanPriceClickout,
                       PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
+                      PercClickPerImpressions, LocationReferencePercentageOfInteractions,
+                      LocationReferencePercentageOfClickouts,PlatformReferencePercentageOfClickouts,
+                      PlatformReferencePercentageOfInteractions, TimesImpressionAppearedInClickoutsSession,
+                      ChangeImpressionOrderPositionInSession,ActionTypeBefClick, TopPopPerImpression,
+                      TopPopInteractionClickoutPerImpression]
+    """
+    features_array = [ImpressionRatingNumeric, ActionsInvolvingImpressionSession,
+                      ImpressionLabel, ImpressionPriceInfoSession,
+                      TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
+                      ImpressionPositionSession, LastInteractionInvolvingImpression,
+                      SessionDevice, SessionSortOrderWhenClickout, MeanPriceClickout,
+                      PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
                       TimesImpressionAppearedInClickoutsSession, ChangeImpressionOrderPositionInSession,
                       ActionTypeBefClick, TopPopPerImpression, TopPopInteractionClickoutPerImpression,
                       PlatformReferencePercentageOfClickouts, PlatformReferencePercentageOfInteractions,
                       LocationReferencePercentageOfClickouts, LocationReferencePercentageOfInteractions,
                       PercClickPerImpressions, CitySession, PlatformSession, PastFutureSessionFeatures]
+    """
+
+#PlatformSession, CitySession
 
     mode=single_choice('select mode:', ['full', 'local', 'small'])
     cluster=single_choice('select cluster:', ['no_cluster'])
-    dataset_name=single_choice('select dataset name:',['prova', 'dataset1', 'dataset2'])
+    dataset_name=single_choice('select dataset name:',['prova', 'dataset1', 'dataset2', 'old'])
     create_lightGBM_dataset(mode=mode, cluster=cluster, features_array=features_array,
                             dataset_name=dataset_name)
