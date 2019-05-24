@@ -158,20 +158,15 @@ class lightGBM(RecommenderBase):
         space = [
             Real(0.05, 0.2, name='learning_rate'),
             Integer(6, 80, name='num_leaves'),
-            Integer(10, 100, name='min_child_samples'),
-            Real(1e-5, 1e1, name='min_child_weight'),
-            Real(0.8, 1, name='subsample'),
-            Real(0.5, 1, name='colsample_bytree'),
             Real(0, 0.5, name='reg_lambda'),
             Real(0, 0.5, name='reg_alpha'),
         ]
 
         def get_mrr(arg_list):
 
-            learning_rate, num_leaves, min_child_samples, min_child_weight, subsample, colsample_bytree, reg_lambda, reg_alpha = arg_list
+            learning_rate, num_leaves, reg_lambda, reg_alpha = arg_list
             Hera.send_message(f'Starting a train of bayesyan search with following params:\n '
-                              f'learning_rate:{learning_rate}, num_leaves:{num_leaves}, min_child_samples: {min_child_samples},'
-                              f'min_child_weight:{min_child_weight}, subsample:{subsample}, colsample_by_tree:{colsample_bytree}'
+                              f'learning_rate:{learning_rate}, num_leaves:{num_leaves}, '
                               f'reg_lambda{reg_lambda}, reg_alpha:{reg_alpha}', account='edo')
             params_dict = {
                 'boosting_type': 'gbdt',
@@ -182,11 +177,11 @@ class lightGBM(RecommenderBase):
                 'subsample_for_bin': 200000,
                 'class_weights': None,
                 'min_split_gain': 0.0,
-                'min_child_weight': min_child_weight,
-                'min_child_samples': min_child_samples,
-                'subsample': subsample,
+                'min_child_weight': 0.01,
+                'min_child_samples': 20,
+                'subsample': 1,
                 'subsample_freq': 0,
-                'colsample_bytree': colsample_bytree,
+                'colsample_bytree': 1,
                 'reg_alpha': reg_alpha,
                 'reg_lambda': reg_lambda,
                 'random_state': None,
