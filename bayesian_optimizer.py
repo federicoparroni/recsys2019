@@ -9,7 +9,7 @@ class OptimizerWrapper:
     def __init__(self, recommender_class, mode, cluster):
         self.space, self.objective = recommender_class.get_optimize_params(mode, cluster)
     def optimize(self):
-        best_param = gp_minimize(self.objective, self.space, n_random_starts=10, n_calls=10)
+        best_param = gp_minimize(self.objective, self.space, n_random_starts=10, n_calls=100)
         print(best_param)
 
 
