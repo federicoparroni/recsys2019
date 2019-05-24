@@ -48,6 +48,7 @@ class TelegramBotKerasCallback(keras.callbacks.Callback):
 
     def __init__(self, log_every_epochs=1, account='default'):
         self.log_every = log_every_epochs
+        self.account = account
 
     # def on_train_begin(self, logs={}):
     #     pass
@@ -70,7 +71,7 @@ class TelegramBotKerasCallback(keras.callbacks.Callback):
                 lines.append('mrr: {} - val_mrr: {}'.format( round(logs['mrr'],4), round(logs['val_mrr'],4) ))
             
             try:
-                send_message( '\n'.join(lines), account=account)
+                send_message( '\n'.join(lines), account=self.account)
             except:
                 pass
     
