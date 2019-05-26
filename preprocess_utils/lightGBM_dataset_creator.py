@@ -50,6 +50,7 @@ from extract_features.location_reference_percentage_of_interactions import Locat
 from extract_features.city_session import CitySession
 from extract_features.perc_click_per_impressions import PercClickPerImpressions
 from extract_features.platform_session import PlatformSession
+from extract_features.past_future_session_features import PastFutureSessionFeatures
 
 from utils.menu import single_choice
 from preprocess_utils.merge_features import merge_features
@@ -179,14 +180,29 @@ if __name__ == '__main__':
                       ImpressionPositionSession, LastInteractionInvolvingImpression,
                       SessionDevice, SessionSortOrderWhenClickout, MeanPriceClickout,
                       PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
+                      PercClickPerImpressions, LocationReferencePercentageOfInteractions,
+                      LocationReferencePercentageOfClickouts,PlatformReferencePercentageOfClickouts,
+                      PlatformReferencePercentageOfInteractions, TimesImpressionAppearedInClickoutsSession,
+                      ChangeImpressionOrderPositionInSession,ActionTypeBefClick, TopPopPerImpression,
+                      TopPopInteractionClickoutPerImpression]
+    """
+    features_array = [ImpressionRatingNumeric, ActionsInvolvingImpressionSession,
+                      ImpressionLabel, ImpressionPriceInfoSession,
+                      TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
+                      ImpressionPositionSession, LastInteractionInvolvingImpression,
+                      SessionDevice, SessionSortOrderWhenClickout, MeanPriceClickout,
+                      PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
                       TimesImpressionAppearedInClickoutsSession, ChangeImpressionOrderPositionInSession,
                       ActionTypeBefClick, TopPopPerImpression, TopPopInteractionClickoutPerImpression,
                       PlatformReferencePercentageOfClickouts, PlatformReferencePercentageOfInteractions,
                       LocationReferencePercentageOfClickouts, LocationReferencePercentageOfInteractions,
-                      PercClickPerImpressions, CitySession, PlatformSession]
+                      PercClickPerImpressions, CitySession, PlatformSession, PastFutureSessionFeatures]
+    """
+
+#PlatformSession, CitySession
 
     mode=single_choice('select mode:', ['full', 'local', 'small'])
     cluster=single_choice('select cluster:', ['no_cluster'])
-    dataset_name=single_choice('select dataset name:',['prova', 'dataset1'])
+    dataset_name=single_choice('select dataset name:',['prova', 'dataset1', 'dataset2', 'old'])
     create_lightGBM_dataset(mode=mode, cluster=cluster, features_array=features_array,
                             dataset_name=dataset_name)
