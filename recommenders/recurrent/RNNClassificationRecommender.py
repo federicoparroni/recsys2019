@@ -127,10 +127,13 @@ if __name__ == "__main__":
     if weights is not None:
         weights = dataset.get_class_weights()
     
-    model = RNNClassificationRecommender(dataset, use_generator=False, cell_type=cell_type, input_shape=(dataset.rows_per_sample, 140),
+    model = RNNClassificationRecommender(dataset, use_generator=False, cell_type=cell_type,
+                                        input_shape=(dataset.rows_per_sample, 167),
                                         num_recurrent_layers=rec_layers, num_recurrent_units=units, optimizer='adam',
                                         num_dense_layers=dense_layers, class_weights=weights)
-    model.fit(epochs=epochs)
+
+    model.fit(epochs=epochs, early_stopping_patience=25, early_stopping_on='val_mrr', mode='max')
+
 
     print('\nFit completed!')
 
