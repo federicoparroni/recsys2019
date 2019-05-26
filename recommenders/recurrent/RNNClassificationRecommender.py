@@ -146,11 +146,11 @@ if __name__ == "__main__":
         print('Recommending...')
         recommendations = model.recommend_batch(target_indices)
         print('Recommendation count: ', len(recommendations))
-        model.compute_MRR(recommendations)
+        mrr = model.compute_MRR(recommendations)
 
-        model.save(folderpath='saved_models/')
+        model.save(folderpath='saved_models/', suffix='_{}'.format(round(mrr, 5)).replace('.','') )
 
-    def sub():
+    def submission():
         mode = 'full'
         model = interactive_model(mode)
         sub_suffix = input('Insert submission suffix: ')
@@ -174,5 +174,5 @@ if __name__ == "__main__":
         sub.send(sub_path, username='federico.parroni@live.it', password='siamoi3piùcarichi')
 
     
-    activity = menu.single_choice('What do you want to do?', ['Train', 'Submission'], [train, sub])
+    activity = menu.single_choice('What do you want to do?', ['Train', 'Submission'], [train, submission])
         
