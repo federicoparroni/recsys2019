@@ -39,7 +39,6 @@ from extract_features.change_impression_order_position_in_session import ChangeI
 from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
 from extract_features.top_pop_per_impression import TopPopPerImpression
 from extract_features.top_pop_interaction_clickout_per_impression import TopPopInteractionClickoutPerImpression
-from extract_features.impression_stars import ImpressionStars
 from extract_features.platform_reference_percentage_of_clickouts import PlatformReferencePercentageOfClickouts
 from extract_features.platform_reference_percentage_of_interactions import PlatformReferencePercentageOfInteractions
 from extract_features.location_reference_percentage_of_clickouts import LocationReferencePercentageOfClickouts
@@ -159,17 +158,14 @@ def create_dataset(mode, cluster, features_array, dataset_name):
 
 
 if __name__ == '__main__':
-    features_array = [ImpressionRatingNumeric, ActionsInvolvingImpressionSession,
-                      ImpressionLabel, ImpressionPriceInfoSession,
-                      TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
-                      ImpressionPositionSession, LastInteractionInvolvingImpression,
-                      SessionDevice, SessionSortOrderWhenClickout, MeanPriceClickout,
-                      PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
-                      PercClickPerImpressions, LocationReferencePercentageOfInteractions,
-                      LocationReferencePercentageOfClickouts,PlatformReferencePercentageOfClickouts,
-                      PlatformReferencePercentageOfInteractions, TimesImpressionAppearedInClickoutsSession,
-                      ChangeImpressionOrderPositionInSession,ActionTypeBefClick, TopPopPerImpression,
-                      TopPopInteractionClickoutPerImpression]
+    features_array = [ChangeImpressionOrderPositionInSession, TopPopPerImpression, TopPopInteractionClickoutPerImpression,
+                      LocationReferencePercentageOfClickouts, LocationReferencePercentageOfInteractions, PlatformReferencePercentageOfInteractions,
+                      PlatformReferencePercentageOfClickouts, PastFutureSessionFeatures, CitySession, SessionsImpressionsCountNumeric,
+                      PlatformSession, FrenzyFactorSession, ImpressionRatingNumeric, ActionsInvolvingImpressionSession, ImpressionLabel,
+                      ImpressionPriceInfoSession, SessionActionNumRefDiffFromImpressions,TimingFromLastInteractionImpression,
+                      TimesUserInteractedWithImpression, ImpressionPositionSession, LastInteractionInvolvingImpression, SessionDevice,
+                      SessionSortOrderWhenClickout, MeanPriceClickout, PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
+                      TimesImpressionAppearedInClickoutsSession]
 
     """
     features_array = [ActionsInvolvingImpressionSession, ImpressionLabel, ImpressionPriceInfoSession,
