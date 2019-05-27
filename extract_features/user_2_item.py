@@ -8,7 +8,6 @@ tqdm.pandas()
 from preprocess_utils.last_clickout_indices import expand_impressions
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.metrics.pairwise import manhattan_distances
-from sklearn.metrics import jaccard_score
 
 class User2Item(FeatureBase):
 
