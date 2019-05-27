@@ -43,7 +43,7 @@ class XGBoostWrapperClassifier(RecommenderBase):
                                      'n_estimators': (300, 1000),
                                      'reg_lambda': (0, 1),
                                      'reg_alpha': (0, 1),
-                                     'scale_pos_weigth' : (1, 2)
+                                     'scale_pos_weight' : (1, 2)
                                      }
 
     def fit(self):
