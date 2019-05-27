@@ -19,133 +19,218 @@ tqdm.pandas()
 from time import time
 import matplotlib.pyplot as plt
 import utils.telegram_bot as Hera
+import datetime
+from skopt.space import Real, Integer, Categorical
+from utils.reduce_memory_usage_df import reduce_mem_usage
+from cython_files.mrr import mrr as mrr_cython
 
-def recommend_batch(pred):
-    target_indices = data.target_indices('small')
-    # full_impressions = pd.read_csv(
-    #     'dataset/preprocessed/full.csv', usecols=["impressions"])
-    full_impressions = data.full_df()
-    print('data for test ready')
-    scores = pred
-    final_predictions = []
-    count = 0
-    for index in tqdm(target_indices):
-        impressions = list(
-            map(int, full_impressions.loc[index]['impressions'].split('|')))
-        predictions = scores[count:count + len(impressions)]
-        couples = list(zip(predictions, impressions))
-        couples.sort(key=lambda x: x[0], reverse=True)
-        _, sorted_impr = zip(*couples)
-        final_predictions.append((index, list(sorted_impr)))
-        count = count + len(impressions)
-    return final_predictions
+_x_train = None
+_y_train = None
+_group_train = None
+
+_x_vali = None
+_y_vali = None
+_group_test = None
+
+
 
 class lightGBM(RecommenderBase):
-    def _load_data(self):
-        print('Loading data...\n')
-        start = time()
-        _BASE_PATH = f'dataset/preprocessed/lightGBM/{self.cluster}/{self.mode}/{self.dataset_name}'
-        self.x_train = sps.load_npz(f'{_BASE_PATH}/x_train.csv')
-        self.y_train = np.load(f'{_BASE_PATH}/y_train.npy')
-        self.groups_train = np.load(f'{_BASE_PATH}/groups_train.npy')
 
-        self.x_vali = sps.load_npz(f'{_BASE_PATH}/x_vali.csv')
-        self.y_vali = np.load(f'{_BASE_PATH}/y_vali.npy')
-        self.groups_vali = np.load(f'{_BASE_PATH}/groups_vali.npy')
-        print(f'data loaded in: {time()-start}\n')
+    def _load_data(self):
+        global _x_train, _x_vali, _y_train, _y_vali, _group_train, _group_test
+        _BASE_PATH = self._BASE_PATH
+        if _x_train is None:
+            start = time()
+            print('Loading data...\n')
+            _x_train = reduce_mem_usage(pd.read_csv(f'{_BASE_PATH}/x_train.csv'))
+            _y_train = np.load(f'{_BASE_PATH}/y_train.npy')
+            _group_train = np.load(f'{_BASE_PATH}/groups_train.npy')
+            _x_vali = reduce_mem_usage(pd.read_csv(f'{_BASE_PATH}/x_vali.csv'))
+            _y_vali = np.load(f'{_BASE_PATH}/y_vali.npy')
+            _group_test = np.load(f'{_BASE_PATH}/groups_vali.npy')
+            print(f'data loaded in: {time() - start}\n')
+
+        self.x_train = _x_train
+        self.y_train = _y_train
+        self.groups_train = _group_train
+
+        self.x_vali = _x_vali
+        self.y_vali = _y_vali
+        self.groups_vali = _group_test
+
 
     def __init__(self, mode, cluster, dataset_name, params_dict):
         self.dataset_name = dataset_name
         super(lightGBM, self).__init__(
             name=f'lightGBM_{dataset_name}', mode=mode, cluster=cluster)
+        self._BASE_PATH = f'dataset/preprocessed/lightGBM/{self.cluster}/{self.mode}/{self.dataset_name}'
         self._load_data()
+        self.params_dict = params_dict
+        self.eval_res = {}
+        self.model = None
 
     def fit(self):
-        pass
+        # initialize the model
+        self.model = lgb.LGBMRanker(**self.params_dict)
+        self.model.fit(self.x_train, self.y_train, group=self.groups_train, verbose=False)
 
-params_dict = {
-    'boosting_type':'gbdt',
-    'num_leaves': 31,
-    'max_depth': -1,
-    'learning_rate': 0.1,
-    'n_estimators': 100,
-    'subsample_for_bin': 200000,
-    'class_weights': None,
-    'min_split_gain': 0.0,
-    'min_child_weight': 0.001,
-    'min_child_samples': 20,
-    'subsample':1.0,
-    'subsample_freq': 0,
-    'colsample_bytree':1.0,
-    'reg_alpha': 0.0,
-    'reg_lambda': 0.0,
-    'random_state': None,
-    'n_jobs': -1,
-    'silent': False,
-    'importance_type': 'split'
-}
+    def validate(self):
+        def _mrr(y_true, y_pred, weight, group):
+            l = memoryview(np.array(y_true, dtype=np.int32))
+            p = memoryview(np.array(y_pred, dtype=np.float32))
+            g = memoryview(np.array(group, dtype=np.int32))
+            return 'MRR', mrr_cython(l, p, g,len(g)), True
 
+        def _hera_callback(param):
+            iteration_num = param[2]
+            if iteration_num % param[1]['print_every'] == 0:
+                message = f'PARAMS:\n'
+                for k in param[1]:
+                    message += f'{k}: {param[1][k]}\n'
+                Hera.send_message(f'ITERATION_NUM: {iteration_num}\n {message}\n MRR: {param[5][0][2]}', account='edo')
 
-def _load_data(mode, cluster, dataset_name):
-    _BASE_PATH = f'dataset/preprocessed/lightGBM/{cluster}/{mode}/{dataset_name}'
-    x_train = pd.read_csv(f'{_BASE_PATH}/x_train.csv')
-    y_train = np.load(f'{_BASE_PATH}/y_train.npy')
-    groups_train = np.load(f'{_BASE_PATH}/groups_train.npy')
+        # define a callback that will insert whitin the dictionary passed the history of the MRR metric during
+        # the training phase
+        eval_callback = lgb.record_evaluation(self.eval_res)
 
-    x_vali = pd.read_csv(f'{_BASE_PATH}/x_vali.csv')
-    y_vali = np.load(f'{_BASE_PATH}/y_vali.npy')
-    groups_vali = np.load(f'{_BASE_PATH}/groups_vali.npy')
+        # initialize the model
+        self.model = lgb.LGBMRanker(**self.params_dict)
 
-    return x_train, y_train, groups_train, x_vali, y_vali, groups_vali
-
-def _mrr(y_true, y_pred, weight, group):
-    def _order_unzip_pad(arr):
-        # sort based on the score
-        ordered_arr = sorted(arr, key=lambda x: x[1], reverse=True)
-        # mantain only the label
-        labels_ordered = np.array(ordered_arr)[:, 0]
-        len_labels_ordered = len(labels_ordered)
-        if len_labels_ordered < 25:
-            labels_padded = np.append(labels_ordered, np.zeros(25-len_labels_ordered))
-        else:
-            labels_padded = labels_ordered
-        return labels_padded
-
-    # define the fixed array weights
-    WEIGHTS_ARR = 1/np.arange(1, 26)
-
-    # retrieve the indices where to split with a cumsim
-    indices_split = np.cumsum(group)[:-1]
-
-    # zip the score and the label
-    couples_matrix_flattened = np.array(list(zip(y_true, y_pred)))
-
-    # split with the group
-    couples_matrix = np.split(couples_matrix_flattened, indices_split, axis=0)
-    temp = np.array(list(map(_order_unzip_pad, couples_matrix)))
-    mrr = np.sum(temp * WEIGHTS_ARR) / temp.shape[0]
-    return 'MRR', mrr, True
-
-x_train, y_train, groups_train, x_vali, y_vali, groups_vali = _load_data('small', 'no_cluster', 'prova')
-
-e_res = {}
-eval_callback = lgb.record_evaluation(e_res)
-
-def custom_callback(param):
-    iteration_num = param[2]
-    if iteration_num % param[1]['print_every'] == 0:
-        message = f'PARAMS:\n'
-        for k in param[1]:
-            message += f'{k}: {param[1][k]}\n'
+        self.model.fit(self.x_train, self.y_train, group=self.groups_train, eval_set=[(self.x_vali, self.y_vali)],
+                  eval_group=[self.groups_vali], eval_metric=_mrr, eval_names='validation_set',
+                  early_stopping_rounds=200, verbose=False, callbacks=[eval_callback, _hera_callback])
+        # save the model parameters
+        time = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M")
+        check_folder(f'{self._BASE_PATH}/{time}')
+        with open(f"{self._BASE_PATH}/{time}/Parameters.txt", "w+") as text_file:
+            text_file.write(str(self.params_dict))
+        self.model.booster_.save_model(f'{self._BASE_PATH}/{time}/{self.name}')
+        # return negative mrr
+        return self.eval_res['validation_set']['MRR'][self.model.booster_.best_iteration - 1]
 
 
-        Hera.send_message(f'ITERATION_NUM: {iteration_num}\n {message}\n MRR: {param[5][0][2]}')
+    def get_scores_batch(self):
+        print('loading target indices')
+        target_indices = data.target_indices(mode=self.mode, cluster=self.cluster)
+        print('done\n')
+
+        full_impressions = data.full_df()
+
+        print('retriving predictions')
+        scores = self.model.predict(self.x_vali)
+        final_predictions = []
+        count = 0
+        for index in tqdm(target_indices):
+            impressions = list(
+                map(int, full_impressions.loc[index]['impressions'].split('|')))
+            predictions = scores[count:count + len(impressions)]
+            couples = list(zip(predictions, impressions))
+            couples.sort(key=lambda x: x[0], reverse=True)
+            scores_reordered, sorted_impr = zip(*couples)
+            final_predictions.append((index, list(sorted_impr), list(scores_reordered)))
+            count = count + len(impressions)
+        return final_predictions
+
+    def recommend_batch(self):
+        print('loading target indices')
+        target_indices = data.target_indices(mode=self.mode, cluster=self.cluster)
+        print('done\n')
+
+        full_impressions = data.full_df()
+
+        print('retriving predictions')
+        scores = self.model.predict(self.x_vali)
+        final_predictions = []
+        count = 0
+        for index in tqdm(target_indices):
+            impressions = list(
+                map(int, full_impressions.loc[index]['impressions'].split('|')))
+            predictions = scores[count:count + len(impressions)]
+            couples = list(zip(predictions, impressions))
+            couples.sort(key=lambda x: x[0], reverse=True)
+            _, sorted_impr = zip(*couples)
+            final_predictions.append((index, list(sorted_impr)))
+            count = count + len(impressions)
+        return final_predictions
+
+    @staticmethod
+    def get_optimize_params(mode, cluster):
+        space = [
+            Real(0.05, 0.2, name='learning_rate'),
+            Integer(6, 80, name='num_leaves'),
+            Real(0, 0.5, name='reg_lambda'),
+            Real(0, 0.5, name='reg_alpha'),
+        ]
+
+        def get_mrr(arg_list):
+
+            learning_rate, num_leaves, reg_lambda, reg_alpha = arg_list
+            Hera.send_message(f'Starting a train of bayesyan search with following params:\n '
+                              f'learning_rate:{learning_rate}, num_leaves:{num_leaves}, '
+                              f'reg_lambda{reg_lambda}, reg_alpha:{reg_alpha}', account='edo')
+            params_dict = {
+                'boosting_type': 'gbdt',
+                'num_leaves': num_leaves,
+                'max_depth': -1,
+                'n_estimators': 5000,
+                'learning_rate': learning_rate,
+                'subsample_for_bin': 200000,
+                'class_weights': None,
+                'min_split_gain': 0.0,
+                'min_child_weight': 0.01,
+                'min_child_samples': 20,
+                'subsample': 1,
+                'subsample_freq': 0,
+                'colsample_bytree': 1,
+                'reg_alpha': reg_alpha,
+                'reg_lambda': reg_lambda,
+                'random_state': None,
+                'n_jobs': -1,
+                'silent': False,
+                'importance_type': 'split',
+                'metric': 'None',
+                'print_every': 100,
+            }
+            model=lightGBM(mode=mode, cluster=cluster, dataset_name='dataset1', params_dict=params_dict)
+            mrr = model.validate()
+            Hera.send_message(f'MRR: {mrr}\n'
+                              f'params:\n'
+                              f'learning_rate:{learning_rate}, num_leaves:{num_leaves}, '
+                              f'reg_lambda{reg_lambda}, reg_alpha:{reg_alpha}', account='edo')
+            return -mrr
+        return space, get_mrr
 
 
-model = lgb.LGBMRanker(silent=False, boosting_type='gbdt', objective='lambdarank', n_estimators=10000000,
-                       max_depth=7, num_leaves=21,**{'metric': 'None', 'print_every':20})
-model.fit(x_train, y_train, group=groups_train, eval_set=[(x_vali, y_vali)], eval_group=[groups_vali],
-          eval_metric=_mrr, eval_at=1, early_stopping_rounds=50, verbose=False, callbacks=[eval_callback, custom_callback])
+
+if __name__ == '__main__':
+    params_dict = {
+        'boosting_type':'gbdt',
+        'num_leaves': 31,
+        'max_depth': -1,
+        'learning_rate': 0.1,
+        'n_estimators': 100,
+        'subsample_for_bin': 200000,
+        'class_weights': None,
+        'min_split_gain': 0.0,
+        'min_child_weight': 0.001,
+        'min_child_samples': 20,
+        'subsample':1.0,
+        'subsample_freq': 0,
+        'colsample_bytree':1.0,
+        'reg_alpha': 0.0,
+        'reg_lambda': 0.0,
+        'random_state': None,
+        'n_jobs': -1,
+        'silent': False,
+        'importance_type': 'split',
+        'metric': 'None',
+        'print_every': 100,
+    }
+    model = lightGBM(mode='local', cluster='no_cluster', dataset_name='dataset1', params_dict=params_dict)
+    model.validate()
+
+
+
 
 
 

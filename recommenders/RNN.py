@@ -151,7 +151,7 @@ class RecurrentRecommender(RecommenderBase):
     def fit(self, epochs, early_stopping_patience=10, early_stopping_on='val_loss', mode='min'):
         #weights = self.class_weights if self.weight_samples else []
 
-        callbacks = [ TelegramBotKerasCallback() ]
+        callbacks = [ TelegramBotKerasCallback(log_every_epochs=1, account='parro') ]
         # early stopping callback
         if isinstance(early_stopping_patience, int):
             assert early_stopping_patience > 0
@@ -177,7 +177,7 @@ class RecurrentRecommender(RecommenderBase):
                                             validation_split=self.validation_split,
                                             callbacks=callbacks, class_weight=self.class_weights)
         
-    def save(self, folderpath):
+    def save(self, folderpath, suffix=''):
         """ Save the full state of the model, including:
         - the architecture
         - the weights
@@ -186,7 +186,7 @@ class RecurrentRecommender(RecommenderBase):
         See: https://keras.io/getting-started/faq/#savingloading-whole-models-architecture-weights-optimizer-state
         """
         check_folder(folderpath)
-        path = os.path.join(folderpath, '{}.h5'.format(self.name))
+        path = os.path.join(folderpath, '{}{}.h5'.format(self.name, suffix))
         self.model.save(path)
     
     def load(self, path):

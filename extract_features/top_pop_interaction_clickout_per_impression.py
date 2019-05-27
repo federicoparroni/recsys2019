@@ -39,7 +39,7 @@ class TopPopInteractionClickoutPerImpression(FeatureBase):
         for r in references:
             pop[int(r)] += 1
 
-        final_df = pd.DataFrame(pop.items(), columns=['item_id', 'top_pop_interaction_clickout_per_impression'])
+        final_df = pd.DataFrame(list(pop.items()), columns=['item_id', 'top_pop_interaction_clickout_per_impression'])
 
         return final_df
 

@@ -11,6 +11,8 @@ from recommenders.RNN import RecurrentRecommender, mrr
 from utils.dataset import SequenceDatasetForClassification
 
 from utils.check_folder import check_folder
+import out
+import utils.submit as sub
 from tqdm import tqdm
 
 
@@ -102,45 +104,76 @@ if __name__ == "__main__":
     # weights = dict([(i,w) for i,w in enumerate(weights)])
     # print(weights)
 
-    mode = menu.mode_selection()
-    cell_type = menu.single_choice('Choose a network architecture:', ['LSTM', 'GRU', 'default architecture'], [lambda: 'LSTM', lambda: 'GRU', lambda: 'auto'])
-    print()
-    if cell_type == 'auto':
-        cell_type = 'GRU'
-        epochs = 1
-        rec_layers = 1
-        dense_layers = 2
-        units = 4
-        weights = True
-    else:
+    def interactive_model(mode):
+        cell_type = menu.single_choice('Choose a network architecture:', ['LSTM', 'GRU', 'default architecture'], [lambda: 'LSTM', lambda: 'GRU', lambda: 'auto'])
+        print()
+        if cell_type == 'auto':
+            cell_type = 'GRU'
+            rec_layers = 1
+            dense_layers = 2
+            units = 4
+            weights = True
+        else:
+            rec_layers = int(input('Insert number of recurrent layers: '))
+            units = int(input('Insert number of units per layer: '))
+            dense_layers = int(input('Insert number of dense layers: '))
+            weights = menu.yesno_choice('Do you want to use class weights?', lambda: True, lambda: None)
+            #tb_path = menu.yesno_choice('Do you want to enable Tensorboard?', lambda: 'recommenders/tensorboard', lambda: None)
+
+        pad = menu.single_choice('Which dataset?', ['Padded 6','Padded 12'], [lambda: 6, lambda: 12])
+        dataset = SequenceDatasetForClassification(f'dataset/preprocessed/cluster_recurrent/{mode}/dataset_classification_p{pad}')
+        
+        if weights is not None:
+            weights = dataset.get_class_weights()
+        
+        model = RNNClassificationRecommender(dataset, use_generator=False, cell_type=cell_type,
+                                            input_shape=(dataset.rows_per_sample, 167),
+                                            num_recurrent_layers=rec_layers, num_recurrent_units=units, optimizer='adam',
+                                            num_dense_layers=dense_layers, class_weights=weights)
+
+        return model
+
+    def train():
+        mode = menu.mode_selection()
+        # fit the model
+        model = interactive_model(mode)
         epochs = int(input('Insert number of epochs: '))
-        rec_layers = int(input('Insert number of recurrent layers: '))
-        units = int(input('Insert number of units per layer: '))
-        dense_layers = int(input('Insert number of dense layers: '))
-        weights = menu.yesno_choice('Do you want to use class weights?', lambda: True, lambda: None)
-        #tb_path = menu.yesno_choice('Do you want to enable Tensorboard?', lambda: 'recommenders/tensorboard', lambda: None)
-    tb_path = None
+        model.fit(epochs=epochs, early_stopping_patience=25, early_stopping_on='val_mrr', mode='max')
+        print('\nFit completed!')
 
-    pad = menu.single_choice('Which dataset?', ['Padded 6','Padded 12'], [lambda: 6, lambda: 12])
-    dataset = SequenceDatasetForClassification(f'dataset/preprocessed/cluster_recurrent/{mode}/dataset_classification_p{pad}')
-    
-    if weights is not None:
-        weights = dataset.get_class_weights()
-    
-    model = RNNClassificationRecommender(dataset, use_generator=False, cell_type=cell_type, input_shape=(dataset.rows_per_sample, 68),
-                                        num_recurrent_layers=rec_layers, num_recurrent_units=units, optimizer='adam',
-                                        num_dense_layers=dense_layers, class_weights=weights)
-    model.fit(epochs=epochs)
+        # recommend
+        target_indices = data.target_indices(mode, 'cluster_recurrent')
+        print('Recommending...')
+        recommendations = model.recommend_batch(target_indices)
+        print('Recommendation count: ', len(recommendations))
+        mrr = model.compute_MRR(recommendations)
 
-    print('\nFit completed!')
+        model.save(folderpath='saved_models/', suffix='_{}'.format(round(mrr, 5)).replace('.','') )
 
-    target_indices = data.target_indices(mode, 'cluster_recurrent')
-    
-    recommendations = model.recommend_batch(target_indices)
-    #print(recommendations)
-    print('Recommendation count: ', len(recommendations))
-    
-    model.compute_MRR(recommendations)
+    def submission():
+        mode = 'full'
+        model = interactive_model(mode)
+        sub_suffix = input('Insert submission suffix: ')
 
-    #menu.yesno_choice('Do you want to save the model?', lambda: model.save(folderpath='.'))
-    model.save(folderpath='.')
+        model_checkpoints = os.listdir('saved_models')
+        checkpoint_path = menu.single_choice('Choose the model checkpoint:', model_checkpoints)
+        checkpoint_path = os.path.join('saved_models', checkpoint_path)
+
+        print('Loading {}...'.format(checkpoint_path), end='\r', flush=True)
+        model.load(checkpoint_path)
+        print('Done!',  flush=True)
+
+        # recommend
+        target_indices = data.target_indices(mode, 'cluster_recurrent')
+        print('Recommending...')
+        recommendations = model.recommend_batch(target_indices)
+
+        # create and send sub
+        sub_name = f'{model.name}_{sub_suffix}'
+        sub_path = out.create_sub(recommendations, submission_name=sub_name)
+        print('Done')
+        sub.send(sub_path, username='federico.parroni@live.it', password='siamoi3piùcarichi')
+
+    
+    activity = menu.single_choice('What do you want to do?', ['Train', 'Submission'], [train, submission])
+        

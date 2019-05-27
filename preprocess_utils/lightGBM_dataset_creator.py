@@ -5,6 +5,7 @@ import pandas as pd
 from preprocess_utils.last_clickout_indices import find as find_last_clickout_indices
 from preprocess_utils.last_clickout_indices import expand_impressions
 import numpy as np
+from utils.reduce_memory_usage_df import reduce_mem_usage
 
 from scipy.sparse import save_npz
 import data
@@ -41,8 +42,19 @@ from extract_features.change_impression_order_position_in_session import ChangeI
 from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
 from extract_features.top_pop_per_impression import TopPopPerImpression
 from extract_features.top_pop_interaction_clickout_per_impression import TopPopInteractionClickoutPerImpression
+from extract_features.impression_stars import ImpressionStars
+from extract_features.platform_reference_percentage_of_clickouts import PlatformReferencePercentageOfClickouts
+from extract_features.platform_reference_percentage_of_interactions import PlatformReferencePercentageOfInteractions
+from extract_features.location_reference_percentage_of_clickouts import LocationReferencePercentageOfClickouts
+from extract_features.location_reference_percentage_of_interactions import LocationReferencePercentageOfInteractions
+from extract_features.city_session import CitySession
+from extract_features.perc_click_per_impressions import PercClickPerImpressions
+from extract_features.platform_session import PlatformSession
+from extract_features.past_future_session_features import PastFutureSessionFeatures
+
 from utils.menu import single_choice
 from preprocess_utils.merge_features import merge_features
+
 from os.path import join
 
 def merge_features_lgb(mode, cluster, features_array):
@@ -89,14 +101,15 @@ def merge_features_lgb(mode, cluster, features_array):
     # do the join
     print('join with the features')
     print(f'train_shape: {train_df.shape}\n vali_test_shape: {validation_test_df.shape}')
-    categorical_idxs = []
     for f in features_array:
         _feature = f(mode=mode, cluster='no_cluster')
         feature = _feature.read_feature(one_hot=False)
-        if len(_feature.columns_to_onehot)>0:
-            for i in range(train_df.shape[1]-6, train_df.shape[1]-6+feature.shape[1]-2+1, 1):
-                categorical_idxs.append(i)
-        print(f'categorical features id:{categorical_idxs}\n')
+
+        """
+        if len(_feature.columns_to_onehot) > 0:
+            cols_onehot = {cols[0]:'category' for cols in _feature.columns_to_onehot}
+            feature = feature.astype(cols_onehot)
+        """
         print(f'shape of feature: {feature.shape}\n')
         print(f'len of feature:{len(feature)}\n')
         train_df = train_df.merge(feature)
@@ -112,7 +125,7 @@ def merge_features_lgb(mode, cluster, features_array):
     validation_test_df.drop('dummy_step', axis=1, inplace=True)
 
     print('after join')
-    return train_df, validation_test_df, categorical_idxs
+    return train_df, validation_test_df
 
 def create_lightGBM_dataset(mode, cluster, features_array, dataset_name):
     def _create_groups(df):
@@ -128,11 +141,13 @@ def create_lightGBM_dataset(mode, cluster, features_array, dataset_name):
 
     def _save_dataset(base_path, mode, df):
         assert mode in ['train', 'vali'], 'the mode has to be train or vali'
+        print('reducing memory usage...')
+        df = reduce_mem_usage(df)
 
         check_folder(base_path)
 
         x = df.drop(['index', 'user_id', 'session_id', 'item_id', 'label'], axis=1)
-        x.to_csv(f'{_BASE_PATH}/x_{mode}.csv')
+        x.to_csv(f'{_BASE_PATH}/x_{mode}.csv', index=False)
         print(f'x_{mode} saved at: {_BASE_PATH}/x_{mode}.csv')
 
         y = df['label'].values
@@ -147,7 +162,12 @@ def create_lightGBM_dataset(mode, cluster, features_array, dataset_name):
     _BASE_PATH = f'dataset/preprocessed/lightGBM/{cluster}/{mode}/{dataset_name}'
 
     # retrieve the TRAIN and VALIDATION/TEST data
-    train_df, validation_df = merge_features(mode, cluster, features_array)
+    train_df, validation_df = merge_features_lgb(mode, cluster, features_array)
+
+    print('saving features names...')
+    check_folder(f"{_BASE_PATH}")
+    with open(f"{_BASE_PATH}/Features.txt", "w+") as text_file:
+        text_file.write(str([str(fn) for fn in features_array]))
 
     _save_dataset(_BASE_PATH, 'train', train_df)
     _save_dataset(_BASE_PATH, 'vali', validation_df)
@@ -160,6 +180,29 @@ if __name__ == '__main__':
                       ImpressionPositionSession, LastInteractionInvolvingImpression,
                       SessionDevice, SessionSortOrderWhenClickout, MeanPriceClickout,
                       PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
-                      TimesImpressionAppearedInClickoutsSession]
+                      PercClickPerImpressions, LocationReferencePercentageOfInteractions,
+                      LocationReferencePercentageOfClickouts,PlatformReferencePercentageOfClickouts,
+                      PlatformReferencePercentageOfInteractions, TimesImpressionAppearedInClickoutsSession,
+                      ChangeImpressionOrderPositionInSession,ActionTypeBefClick, TopPopPerImpression,
+                      TopPopInteractionClickoutPerImpression]
+    """
+    features_array = [ImpressionRatingNumeric, ActionsInvolvingImpressionSession,
+                      ImpressionLabel, ImpressionPriceInfoSession,
+                      TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
+                      ImpressionPositionSession, LastInteractionInvolvingImpression,
+                      SessionDevice, SessionSortOrderWhenClickout, MeanPriceClickout,
+                      PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
+                      TimesImpressionAppearedInClickoutsSession, ChangeImpressionOrderPositionInSession,
+                      ActionTypeBefClick, TopPopPerImpression, TopPopInteractionClickoutPerImpression,
+                      PlatformReferencePercentageOfClickouts, PlatformReferencePercentageOfInteractions,
+                      LocationReferencePercentageOfClickouts, LocationReferencePercentageOfInteractions,
+                      PercClickPerImpressions, CitySession, PlatformSession, PastFutureSessionFeatures]
+    """
 
-    create_lightGBM_dataset('small', 'no_cluster', features_array, 'prova')
+#PlatformSession, CitySession
+
+    mode=single_choice('select mode:', ['full', 'local', 'small'])
+    cluster=single_choice('select cluster:', ['no_cluster'])
+    dataset_name=single_choice('select dataset name:',['prova', 'dataset1', 'dataset2', 'old'])
+    create_lightGBM_dataset(mode=mode, cluster=cluster, features_array=features_array,
+                            dataset_name=dataset_name)

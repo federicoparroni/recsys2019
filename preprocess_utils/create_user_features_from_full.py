@@ -54,26 +54,8 @@ def extract_features_from_full(mode, cluster='no_cluster'):
 
     to_add = feat_label[feat_label.session_id.isin(sessions_to_correct)]
     to_add = to_add.drop(['label'], axis=1)
-    cols = 'past_times_interacted_impr,past_session_num,past_time_from_closest_interaction_impression,' \
-           'past_times_user_interacted_impression,past_actions_involving_impression_session_clickout_item,' \
-           'past_actions_involving_impression_session_item_image,' \
-           'past_actions_involving_impression_session_item_rating,' \
-           'past_actions_involving_impression_session_item_deals,past_actions_involving_impression_session_item_info,' \
-           'past_actions_involving_impression_session_search_for_item,' \
-           'past_actions_involving_impression_session_no_action,past_mean_price_interacted,' \
-           'past_mean_cheap_pos_interacted,past_mean_pos,past_pos_closest_reference,' \
-           'past_position_impression_changed_closest_clickout,future_times_interacted_impr,future_session_num,' \
-           'future_time_from_closest_interaction_impression,future_times_user_interacted_impression,' \
-           'future_actions_involving_impression_session_clickout_item,' \
-           'future_actions_involving_impression_session_item_image,' \
-           'future_actions_involving_impression_session_item_rating,' \
-           'future_actions_involving_impression_session_item_deals,' \
-           'future_actions_involving_impression_session_item_info,' \
-           'future_actions_involving_impression_session_search_for_item,' \
-           'future_actions_involving_impression_session_no_action,future_mean_price_interacted,' \
-           'future_mean_cheap_pos_interacted,future_mean_pos,future_pos_closest_reference,' \
-           'future_position_impression_changed_closest_clickout'.split(',')
-    to_add[cols] = pd.DataFrame([[-1] * 32], index=to_add.index)
+    cols = features_full.columns.values[3:]
+    to_add[cols] = pd.DataFrame([[0]*2 + ['no_action'] + [0] * 16 + ['no_action'] + [0] * 14 ], index=to_add.index)
 
     features_target = features_target[~features_target.session_id.isin(sessions_to_correct)]
     features_target = pd.concat([features_target, to_add])
