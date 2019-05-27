@@ -157,6 +157,7 @@ if __name__ == "__main__":
 
         model_checkpoints = os.listdir('saved_models')
         checkpoint_path = menu.single_choice('Choose the model checkpoint:', model_checkpoints)
+        checkpoint_path = os.path.join('saved_models', checkpoint_path)
 
         print('Loading {}...'.format(checkpoint_path), end='\r', flush=True)
         model.load(checkpoint_path)
