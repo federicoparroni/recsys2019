@@ -15,6 +15,8 @@ class RandomValidator:
     searches the parameter space randomly.
     params can be specified directly in the recommender class that I want to validate 
     (check out one that has those already specified)
+    convention: range in tuple -> consider all the possible value in between
+                range in list  -> consider just the values in the list
     """
 
     def __init__(self, reference_object, reference_object_for_sub_exporter=None, granularity=100, automatic_export=True):
@@ -35,12 +37,15 @@ class RandomValidator:
             else:
                 self.automatic_export = AutomaticSubExporter(reference_object_for_sub_exporter)
 
-    def sample(self, tuple):
-        low_bound = tuple[0]
-        upp_bound = tuple[1]
-        rand_numb = randint(0, self.granularity)
-        step = (upp_bound - low_bound)/self.granularity
-        return low_bound + step*rand_numb
+    def sample(self, obj):
+        if type(obj) == tuple:
+            low_bound = obj[0]
+            upp_bound = obj[1]
+            rand_numb = randint(0, self.granularity)
+            step = (upp_bound - low_bound)/self.granularity
+            return low_bound + step*rand_numb
+        elif type(obj) == list:
+            return obj[randint(0, len(obj)-1)]
 
     def validate(self, iterations):
         self.fixed_params_dict, self.hyperparameters_dict = self.reference_object.get_params()
@@ -56,6 +61,7 @@ class RandomValidator:
             score = model.evaluate()
 
             # assign it again in case a fixed parameter has changed
+            self.fixed_params_dict, self.hyperparameters_dict = model.get_params()
             params_dict = {**self.fixed_params_dict, **sampled_params}
             if self.automatic_export != None:
                 self.automatic_export.check_if_export(score, params_dict)
