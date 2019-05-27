@@ -28,8 +28,6 @@ def merge_features_classifier(mode, cluster, features_array, starting_feature):
         print("Merged with feature:" + feature.name)
         print("New df shape: {}".format(df.shape))
 
-    print(df.describe())
-
     test_df = data.test_df(mode, cluster)
     test_df = test_df[(test_df.action_type == "clickout item") & (test_df.reference.isnull())]
     sessions = set(test_df.session_id)
