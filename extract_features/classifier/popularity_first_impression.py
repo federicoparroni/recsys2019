@@ -4,8 +4,6 @@ from extract_features.feature_base import FeatureBase
 import data
 import pandas as pd
 from tqdm.auto import tqdm
-
-from extract_features.top_pop_interaction_image_per_impression import TopPopInteractionImagePerImpression
 from extract_features.top_pop_per_impression import TopPopPerImpression
 tqdm.pandas()
 
