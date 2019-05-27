@@ -43,7 +43,7 @@ class RNNBinaryClassificator(RNNClassificationRecommender):
         
         self.model = Sequential()
         #m.add( TimeDistributed(Dense(64), input_shape=(6,68)) )
-        self.model.add( CELL(64, input_shape=(self.dataset.rows_per_sample, 118), recurrent_dropout=0.2, dropout=0.2, return_sequences=True) )
+        self.model.add( CELL(64, input_shape=input_shape, recurrent_dropout=0.2, dropout=0.2, return_sequences=True) )
         self.model.add( CELL(32, recurrent_dropout=0.2, dropout=0.2, return_sequences=False) )
         self.model.add( Dense(32, activation='relu') )
         self.model.add( Dropout(0.2) )
