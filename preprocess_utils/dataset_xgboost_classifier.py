@@ -17,6 +17,7 @@ from extract_features.session_device import SessionDevice
 from extract_features.session_length import SessionLength
 from extract_features.session_sort_order_when_clickout import SessionSortOrderWhenClickout
 from extract_features.time_from_last_action_before_clk import TimeFromLastActionBeforeClk
+from extract_features.classifier.popularity_clickout_first_impression import PopularityClickoutFirstImpression
 from utils.check_folder import check_folder
 
 
@@ -52,7 +53,8 @@ def create_dataset(mode, cluster):
                       RNNOutput,
                       PriceStats,
                       PopularityFirstImpression,
-                      AvgInteractedPrice
+                      AvgInteractedPrice,
+                      PopularityClickoutFirstImpression
                       ]
 
     train_df, test_df = merge_features_classifier(mode, cluster, features_array, LabelClassification)
