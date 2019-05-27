@@ -1,7 +1,9 @@
 import data
+from extract_features.classifier.avg_interacted_price import AvgInteractedPrice
 from extract_features.classifier.platfrom import Platform
 from extract_features.classifier.popularity_first_impression import PopularityFirstImpression
 from extract_features.classifier.first_impression_price import FirstImpressionPrice
+from extract_features.classifier.price_stats import PriceStats
 from extract_features.classifier.rnn_output import RNNOutput
 from extract_features.label_classification import LabelClassification
 from extract_features.last_action_before_clickout import LastActionBeforeClickout
@@ -26,6 +28,8 @@ def merge_features_classifier(mode, cluster, features_array, starting_feature):
         print("Merged with feature:" + feature.name)
         print("New df shape: {}".format(df.shape))
 
+    print(df.describe())
+
     test_df = data.test_df(mode, cluster)
     test_df = test_df[(test_df.action_type == "clickout item") & (test_df.reference.isnull())]
     sessions = set(test_df.session_id)
@@ -35,15 +39,22 @@ def merge_features_classifier(mode, cluster, features_array, starting_feature):
 
 def create_dataset(mode, cluster):
     # training
-    features_array = [SessionDevice, SessionSortOrderWhenClickout, MeanPriceClickout,
+    features_array = [SessionDevice,
+                      SessionSortOrderWhenClickout,
                       PricePositionInfoInteractedReferences,
-                      SessionLength, TimeFromLastActionBeforeClk, LastActionBeforeClickout,
-                      NumInteractionsWithFirstImpression, FirstImpressionPrice,
-                      LastActionFirstImpression,
+                      SessionLength,
+                      TimeFromLastActionBeforeClk,
+                      LastActionBeforeClickout,
+                      NumInteractionsWithFirstImpression,
+                      FirstImpressionPrice,
                       LastActionInvolvingFirstImpressions,
-                      NumInteractionsWithFirstImpression, NumImpressionsInClickout,
-                      #PopularityFirstImpression
-                      Platform, RNNOutput
+                      NumInteractionsWithFirstImpression,
+                      NumImpressionsInClickout,
+                      Platform,
+                      RNNOutput,
+                      PriceStats,
+                      PopularityFirstImpression,
+                      AvgInteractedPrice
                       ]
 
     train_df, test_df = merge_features_classifier(mode, cluster, features_array, LabelClassification)
