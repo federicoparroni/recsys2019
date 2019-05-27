@@ -43,7 +43,7 @@ class RNNBinaryClassificator(RNNClassificationRecommender):
         
         self.model = Sequential()
         #m.add( TimeDistributed(Dense(64), input_shape=(6,68)) )
-        self.model.add( CELL(64, input_shape=(self.dataset.rows_per_sample, 118), recurrent_dropout=0.2, dropout=0.2, return_sequences=True) )
+        self.model.add( CELL(64, input_shape=input_shape, recurrent_dropout=0.2, dropout=0.2, return_sequences=True) )
         self.model.add( CELL(32, recurrent_dropout=0.2, dropout=0.2, return_sequences=False) )
         self.model.add( Dense(32, activation='relu') )
         self.model.add( Dropout(0.2) )
@@ -51,7 +51,7 @@ class RNNBinaryClassificator(RNNClassificationRecommender):
         self.model.add( Dropout(0.1) )
 
 
-    def fit(self, epochs, early_stopping_patience=10, early_stopping_on='val_acc', mode='min'):
+    def fit(self, epochs, early_stopping_patience=20, early_stopping_on='val_loss', mode='min'):
         super().fit(epochs=epochs, early_stopping_patience=early_stopping_patience, early_stopping_on=early_stopping_on,
                     mode=mode)
 
@@ -167,7 +167,7 @@ if __name__ == "__main__":
     else:
         optim = keras.optimizers.RMSprop(lr=lr)
     
-    m = RNNBinaryClassificator(dataset, input_shape=(dataset.rows_per_sample, 118), cell_type='gru', 
+    m = RNNBinaryClassificator(dataset, input_shape=(dataset.rows_per_sample, 170), cell_type='gru', 
                                 num_recurrent_layers=2, num_recurrent_units=64, num_dense_layers=2,
                                 class_weights=weights, optimizer=optim)
     
