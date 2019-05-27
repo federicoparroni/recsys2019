@@ -8,7 +8,6 @@ import data
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MultiLabelBinarizer
-from preprocess_utils.last_clickout_indices import find as find_last_clickout_indices
 from tqdm.auto import tqdm
 
 class ClickoutFiltersSatisfaction(FeatureBase):
