@@ -159,17 +159,14 @@ def create_dataset(mode, cluster, features_array, dataset_name):
 
 
 if __name__ == '__main__':
-    features_array = [ImpressionRatingNumeric, ActionsInvolvingImpressionSession,
-                      ImpressionLabel, ImpressionPriceInfoSession,
-                      TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
-                      ImpressionPositionSession, LastInteractionInvolvingImpression,
-                      SessionDevice, SessionSortOrderWhenClickout, MeanPriceClickout,
-                      PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
-                      PercClickPerImpressions, LocationReferencePercentageOfInteractions,
-                      LocationReferencePercentageOfClickouts,PlatformReferencePercentageOfClickouts,
-                      PlatformReferencePercentageOfInteractions, TimesImpressionAppearedInClickoutsSession,
-                      ChangeImpressionOrderPositionInSession,ActionTypeBefClick, TopPopPerImpression,
-                      TopPopInteractionClickoutPerImpression]
+    features_array = [ChangeImpressionOrderPositionInSession, TopPopPerImpression, TopPopInteractionClickoutPerImpression,
+                      LocationReferencePercentageOfClickouts, LocationReferencePercentageOfInteractions, PlatformReferencePercentageOfInteractions,
+                      PlatformReferencePercentageOfClickouts, PastFutureSessionFeatures, CitySession, SessionsImpressionsCountNumeric,
+                      PlatformSession, FrenzyFactorSession, ImpressionRatingNumeric, ActionsInvolvingImpressionSession, ImpressionLabel,
+                      ImpressionPriceInfoSession, SessionActionNumRefDiffFromImpressions,TimingFromLastInteractionImpression,
+                      TimesUserInteractedWithImpression, ImpressionPositionSession, LastInteractionInvolvingImpression, SessionDevice,
+                      SessionSortOrderWhenClickout, MeanPriceClickout, PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
+                      TimesImpressionAppearedInClickoutsSession]
 
     """
     features_array = [ActionsInvolvingImpressionSession, ImpressionLabel, ImpressionPriceInfoSession,
