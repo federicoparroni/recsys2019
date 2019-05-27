@@ -4,9 +4,7 @@ from extract_features.feature_base import FeatureBase
 import data
 import pandas as pd
 from tqdm.auto import tqdm
-
-from extract_features.top_pop_interaction_image_per_impression import TopPopInteractionImagePerImpression
-
+from extract_features.top_pop_per_impression import TopPopPerImpression
 tqdm.pandas()
 
 
@@ -22,26 +20,37 @@ class PopularityFirstImpression(FeatureBase):
 
     def extract_feature(self):
 
-        feature = TopPopInteractionImagePerImpression(mode=self.mode, cluster=self.cluster).read_feature()
+        feature = TopPopPerImpression(mode=self.mode, cluster=self.cluster).read_feature()
+        items = dict()
+        for t in tqdm(zip(feature.item_id, feature.top_pop_per_impression), desc="Creating item dict..."):
+            items[t[0]] = t[1]
+        train = data.train_df(mode=self.mode, cluster=self.cluster)
+        test = data.test_df(mode=self.mode, cluster=self.cluster)
+        df = pd.concat([train, test])
+        target_indices = list(df[df.action_type == "clickout item"].drop_duplicates("session_id", keep="last").index)
+        temp = df[df.index.isin(target_indices)]
+        first_pop = list()
+        max_pop_in_impressions = list()
 
-        session = feature.session_id.values[0]
-        max_pop = 0
-        others_pop = list()
-        for t in tqdm(zip(feature.session_id, feature.popularity)):
-            if t[0] != session:
-                session = t[0]
-                others_pop.append(max_pop)
-                max_pop = 0
+        for t in tqdm(temp.impressions):
+            impressions = list(map(int, t.split("|")))
+            fi = impressions[0]
+            if fi in items:
+                fi_pop = items[fi]
             else:
-                max_pop = max((t[1], max_pop))
-        others_pop.append(max_pop)
+                fi_pop = 0
+            first_pop.append(fi_pop)
+            max_pop = fi_pop
+            for i in impressions[1:]:
+                if i in items:
+                    pop = items[i]
+                    max_pop = max(pop, max_pop)
+            max_pop_in_impressions.append(max_pop)
 
-
-
-        feature = feature.drop_duplicates("session_id", keep="first")
-        feature = feature.drop("item_id", axis=1)
-        feature["max_popularity_other_impressions"] = others_pop
-        return feature
+        temp = temp[["user_id", "session_id"]]
+        temp["pop_first_impression"] = first_pop
+        temp["max_pop_in_impressions"] = max_pop_in_impressions
+        return temp
 
 
 
