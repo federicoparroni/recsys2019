@@ -29,24 +29,24 @@ class ImpressionsPopularity(FeatureBase):
     def extract_feature(self):
         tqdm.pandas()
 
-        df = data.train_df('full')
+        df = data.full_df()
 
         # count the popularity
         cnt = Counter(df[(df.action_type == 'clickout item') & (df.reference.str.isnumeric() == True)].reference.values.astype(int))
         
         # find the clickout rows
         clickout_rows = df[df.action_type == 'clickout item'][['reference','impressions']]
-        clickout_rows = clickout_rows.astype({'reference':'int'})
+        clickout_rows = clickout_rows.fillna(-1).astype({'reference':'int'})
         clickout_rows['impressions'] = clickout_rows.apply(lambda x: list(map(int,x.impressions.split('|'))), axis=1)
 
         # build the resulting matrix
         matrix = np.zeros((clickout_rows.shape[0],25), dtype=int)
         
         i = 0
-        for idx,row in tqdm(clickout_rows.iterrows()):
-            for j,impr in enumerate(row.impressions):
+        for row in tqdm(zip(clickout_rows.impressions, clickout_rows.reference)):
+            for j,impr in enumerate(row[0]):
                 popularity = cnt[impr] if impr in cnt else 0
-                if popularity == row.reference:
+                if popularity == row[1]:
                     popularity -= 1
                 matrix[i, j] = popularity
             i += 1
