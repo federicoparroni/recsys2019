@@ -152,7 +152,7 @@ if __name__ == "__main__":
     import utils.menu as menu
     tqdm.pandas()
 
-    def interactive_model(mode, opt, lr):
+    def interactive_model(mode, optim, lr):
         pad = menu.single_choice('Which dataset?', ['Padded 6','Padded 12'], [lambda: 6, lambda: 12])
         dataset = SequenceDatasetForBinaryClassification(f'dataset/preprocessed/cluster_recurrent/{mode}/dataset_binary_classification_p{pad}')
 
@@ -166,7 +166,7 @@ if __name__ == "__main__":
     
     def train():
         mode = menu.mode_selection()
-        
+
         # build the model
         opt = menu.single_choice('Optimizer?', ['Adam','RMSProp'], ['adam','rmsprop'])
         lr = menu.single_choice('Learning rate?', ['e-3', 'e-4', 'e-5'], [1e-3, 1e-4, 1e-5])
@@ -175,7 +175,7 @@ if __name__ == "__main__":
         else:
             optim = keras.optimizers.RMSprop(lr=lr)
         
-        model = interactive_model(mode, opt=opt, lr=lr)
+        model = interactive_model(mode, optim=optim, lr=lr)
 
         # fit the model
         model.fit(epochs=10000, early_stopping_patience=25, early_stopping_on='val_mrr', mode='max')
