@@ -4,8 +4,10 @@ sys.path.append(os.getcwd())
 
 from extract_features.feature_base import FeatureBase
 import data
+import numpy as np
 import pandas as pd
 from preprocess_utils.last_clickout_indices import find as find_last_clickout_indices
+from sklearn.preprocessing import MinMaxScaler
 from tqdm.auto import tqdm
 
 class ClickoutVectorPrices(FeatureBase):
@@ -34,6 +36,11 @@ class ClickoutVectorPrices(FeatureBase):
 
         # expand the prices as vector
         expanded_prices = res_df.prices.str.split('|', expand=True).fillna(0)
+
+        # scale log and min-max
+        expanded_prices = np.log(expanded_prices + 1)
+        scaler = MinMaxScaler()
+        expanded_prices = scaler.fit_transform(expanded_prices)
 
         # add the prices to the resulting df
         for i in range(25):
