@@ -7,7 +7,6 @@ import data
 import numpy as np
 import pandas as pd
 from preprocess_utils.last_clickout_indices import find as find_last_clickout_indices
-from sklearn.preprocessing import MinMaxScaler
 from tqdm.auto import tqdm
 
 class ClickoutVectorPrices(FeatureBase):
@@ -35,19 +34,18 @@ class ClickoutVectorPrices(FeatureBase):
         res_df = res_df[df.action_type == 'clickout item']
 
         # expand the prices as vector
-        expanded_prices = res_df.prices.str.split('|', expand=True).fillna(0)
+        expanded_prices = res_df.prices.str.split('|', expand=True).fillna(0).astype('int')
 
-        # scale log and min-max
-        expanded_prices.loc[:,:] = np.log(expanded_prices.values + 1)
-        scaler = MinMaxScaler()
-        expanded_prices = scaler.fit_transform(expanded_prices.values)
+        # scale log
+        log_prices = np.log(expanded_prices.values + 1)
+        # scale min-max
+        max_price = np.max(log_prices)
+        min_price = np.min(log_prices)
+        log_prices = (log_prices - min_price) / (max_price - min_price)
 
         # add the prices to the resulting df
         for i in range(25):
-            if i < expanded_prices.shape[1]:
-                res_df['price_{}'.format(i)] = expanded_prices[i].astype('int')
-            else:
-                res_df['price_{}'.format(i)] = 0
+            res_df['price_{}'.format(i)] = log_prices[:,i]
         
         return res_df.drop(['user_id','session_id','prices'], axis=1)
 
