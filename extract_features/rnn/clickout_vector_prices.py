@@ -38,9 +38,9 @@ class ClickoutVectorPrices(FeatureBase):
         expanded_prices = res_df.prices.str.split('|', expand=True).fillna(0)
 
         # scale log and min-max
-        expanded_prices = np.log(expanded_prices + 1)
+        expanded_prices.loc[:,:] = np.log(expanded_prices.values + 1)
         scaler = MinMaxScaler()
-        expanded_prices = scaler.fit_transform(expanded_prices)
+        expanded_prices = scaler.fit_transform(expanded_prices.values)
 
         # add the prices to the resulting df
         for i in range(25):
