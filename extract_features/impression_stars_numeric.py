@@ -23,8 +23,8 @@ class ImpressionStarsNumeric(FeatureBase):
             name=name, mode=mode, cluster=cluster)
 
     def extract_feature(self):
-        train = data.train_df(mode='small', cluster='no_cluster')
-        test = data.test_df(mode='small', cluster='no_cluster')
+        train = data.train_df(mode=self.mode, cluster='no_cluster')
+        test = data.test_df(mode=self.mode, cluster='no_cluster')
         df = pd.concat([train, test])
         last_clickout_indices = find(df)
         clickout_rows = df.loc[last_clickout_indices, ['user_id','session_id','impressions']]
