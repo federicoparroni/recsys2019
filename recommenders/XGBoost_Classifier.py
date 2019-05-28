@@ -42,8 +42,8 @@ class XGBoostWrapperClassifier(RecommenderBase):
         self.hyperparameters_dict = {'learning_rate': (0.001, 1),
                                      'max_depth': (2, 8),
                                      'n_estimators': (200, 800),
-                                     'reg_lambda': (0, 5),
-                                     'reg_alpha': (0, 5),
+                                     'reg_lambda': (0, 0.5),
+                                     'reg_alpha': (0, 0.5),
                                      }
 
     def fit(self):
