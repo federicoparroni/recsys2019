@@ -8,9 +8,8 @@ tqdm.pandas()
 class LastActionBeforeClickout(FeatureBase):
 
     """
-    device used during a session:
-    | user_id | session_id | session_device
-    device is string
+    last action occourring before each last clickout:
+    | user_id | session_id | last_action
     """
 
     def __init__(self, mode, cluster='no_cluster'):

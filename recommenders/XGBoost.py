@@ -206,7 +206,7 @@ class XGBoostWrapperSmartValidation(XGBoostWrapper):
         MRRs = -np.array(results['eval_0']['MRR'])
         max_mrr = np.amax(MRRs)
         max_idx = np.argmax(MRRs)
-        self.fixed_params_dict['n_estimators'] = max_idx+1
+        self.fixed_params_dict['n_estimators'] = max_idx
         return max_mrr
 
 _best_so_far = 0
@@ -244,7 +244,6 @@ if __name__ == '__main__':
         sel = options(['evaluate', 'export the sub', 'export the scores'], ['evaluate', 'export the sub',
                                                                             'export the scores'], 'what do you want to do after model fitting and the recommendations?')
         model = XGBoostWrapper(mode=mode, cluster='no_cluster', kind=kind)
-        model.fit()
         if 'evaluate' in sel:
             model.evaluate(True)
         if 'export the sub' in sel and 'export the scores' in sel:
