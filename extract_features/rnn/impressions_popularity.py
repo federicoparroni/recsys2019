@@ -7,6 +7,7 @@ import data
 import pandas as pd
 import numpy as np
 from collections import Counter
+from sklearn.preprocessing import MinMaxScaler
 from tqdm.auto import tqdm
 
 class ImpressionsPopularity(FeatureBase):
@@ -43,13 +44,22 @@ class ImpressionsPopularity(FeatureBase):
         matrix = np.zeros((clickout_rows.shape[0],25), dtype=int)
         
         i = 0
-        for row in tqdm(zip(clickout_rows.impressions, clickout_rows.reference)):
-            for j,impr in enumerate(row[0]):
-                popularity = cnt[impr] if impr in cnt else 0
-                if popularity == row[1]:
-                    popularity -= 1
+        for impr in tqdm(clickout_rows.impressions):
+            for j,impr in enumerate(impr):
+                ## OLD version
+                #popularity = cnt[impr] if impr in cnt else 0
+                #if popularity == row.reference:
+                #    popularity -= 1
+
+                ## NEW ! (decrease 1 to all references)
+                popularity = cnt[impr]-1 if impr in cnt else 0
                 matrix[i, j] = popularity
             i += 1
+        
+        # scale log and min-max
+        matrix = np.log(matrix + 1)
+        scaler = MinMaxScaler()
+        matrix = scaler.fit_transform(matrix)
 
         # add the columns to the resulting dataframe
         for i in range(25):

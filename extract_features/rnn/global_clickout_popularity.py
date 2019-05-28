@@ -5,6 +5,8 @@ sys.path.append(os.getcwd())
 from extract_features.feature_base import FeatureBase
 import data
 import pandas as pd
+import numpy as np
+from sklearn.preprocessing import MinMaxScaler
 
 class GlobalClickoutPopularity(FeatureBase):
 
@@ -15,24 +17,31 @@ class GlobalClickoutPopularity(FeatureBase):
     popularity is a positive number
     """
 
-    def __init__(self, mode, cluster):
+    def __init__(self, mode='full', cluster='no_cluster'):
         name = 'global_clickout_popularity'
         columns_to_onehot = []
 
-        super().__init__(name=name, mode=mode, cluster=cluster, columns_to_onehot=columns_to_onehot)
+        super().__init__(name=name, mode='full', cluster='no_cluster', columns_to_onehot=columns_to_onehot)
 
 
     def extract_feature(self):
-        train = data.train_df(mode=self.mode, cluster=self.cluster)
-        test = data.test_df(mode=self.mode, cluster=self.cluster)
-        df = pd.concat([train, test])
-        del train
-        del test
+        # train = data.train_df(mode=self.mode, cluster=self.cluster)
+        # test = data.test_df(mode=self.mode, cluster=self.cluster)
+        # df = pd.concat([train, test])
+        # del train
+        # del test
+        df = data.full_df()
 
         # count the numeric references (skipping NaN in the test)
         res_df = df[(df.action_type == 'clickout item') & (df.reference.str.isnumeric() == True)]
         res_df = res_df.astype({'reference':'int'})
         res_df = res_df[['reference','frequence']].groupby('reference').sum()
+        res_df['frequence'] -= 1
+        res_df['frequence'].clip(lower=0, inplace=True)
+
+        # scale log and min-max
+        scaler = MinMaxScaler()
+        res_df['frequence'] = scaler.fit_transform( np.log(res_df['frequence'].values+1).reshape((-1,1)) ).flatten()
 
         res_df = res_df.reset_index()
         return res_df.rename(columns={'reference': 'item_id', 'frequence': 'glob_clickout_popularity'})
@@ -54,10 +63,7 @@ class GlobalClickoutPopularity(FeatureBase):
 if __name__ == '__main__':
     import utils.menu as menu
 
-    mode = menu.mode_selection()
-    cluster = menu.cluster_selection()
-
-    c = GlobalClickoutPopularity(mode, cluster)
+    c = GlobalClickoutPopularity()
     
     print('Creating {} for {} {}'.format(c.name, c.mode, c.cluster))
     c.save_feature()
