@@ -35,15 +35,15 @@ class XGBoostWrapperClassifier(RecommenderBase):
             'min_child_weight': 1,
             'subsample': 1,
             'colsample_bytree': 1,
-            'scale_pos_weight': 1.5
+            'scale_pos_weight': 1.2
         }
 
         # create hyperparameters dictionary
-        self.hyperparameters_dict = {'learning_rate': (0.001, 1),
+        self.hyperparameters_dict = {'learning_rate': (0.001, 0.5),
                                      'max_depth': (2, 8),
                                      'n_estimators': (200, 800),
-                                     'reg_lambda': (0, 0.5),
-                                     'reg_alpha': (0, 0.5),
+                                     'reg_lambda': (0, 1),
+                                     'reg_alpha': (0, 1),
                                      }
 
     def fit(self):
