@@ -61,7 +61,7 @@ def create_dataset(mode, cluster):
                       LocationReferenceFirstImpression,
                       PlatformReferenceFirstImpression,
                       FrenzyFactorSession,
-                      NumInteractionsWithFirstImpressionInHistory
+
                       ]
 
     train_df, test_df = merge_features_classifier(mode, cluster, features_array, LabelClassification)
