@@ -244,7 +244,6 @@ if __name__ == '__main__':
         sel = options(['evaluate', 'export the sub', 'export the scores'], ['evaluate', 'export the sub',
                                                                             'export the scores'], 'what do you want to do after model fitting and the recommendations?')
         model = XGBoostWrapper(mode=mode, cluster='no_cluster', kind=kind)
-        model.fit()
         if 'evaluate' in sel:
             model.evaluate(True)
         if 'export the sub' in sel and 'export the scores' in sel:
