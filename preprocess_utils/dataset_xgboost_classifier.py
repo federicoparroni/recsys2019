@@ -1,5 +1,7 @@
 import data
 from extract_features.classifier.avg_interacted_price import AvgInteractedPrice
+from extract_features.classifier.location_reference_first_impression import LocationReferenceFirstImpression
+from extract_features.classifier.platform_reference_first_impression import PlatformReferenceFirstImpression
 from extract_features.classifier.platfrom import Platform
 from extract_features.classifier.popularity_first_impression import PopularityFirstImpression
 from extract_features.classifier.first_impression_price import FirstImpressionPrice
@@ -17,6 +19,7 @@ from extract_features.session_device import SessionDevice
 from extract_features.session_length import SessionLength
 from extract_features.session_sort_order_when_clickout import SessionSortOrderWhenClickout
 from extract_features.time_from_last_action_before_clk import TimeFromLastActionBeforeClk
+from extract_features.classifier.popularity_clickout_first_impression import PopularityClickoutFirstImpression
 from utils.check_folder import check_folder
 
 
@@ -52,7 +55,10 @@ def create_dataset(mode, cluster):
                       RNNOutput,
                       PriceStats,
                       PopularityFirstImpression,
-                      AvgInteractedPrice
+                      AvgInteractedPrice,
+                      PopularityClickoutFirstImpression,
+                      LocationReferenceFirstImpression,
+                      PlatformReferenceFirstImpression
                       ]
 
     train_df, test_df = merge_features_classifier(mode, cluster, features_array, LabelClassification)
