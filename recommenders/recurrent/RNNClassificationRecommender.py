@@ -137,8 +137,7 @@ if __name__ == "__main__":
         mode = menu.mode_selection()
         # fit the model
         model = interactive_model(mode)
-        epochs = int(input('Insert number of epochs: '))
-        model.fit(epochs=epochs, early_stopping_patience=25, early_stopping_on='val_mrr', mode='max')
+        model.fit(epochs=10000, early_stopping_patience=25, early_stopping_on='val_mrr', mode='max')
         print('\nFit completed!')
 
         # recommend

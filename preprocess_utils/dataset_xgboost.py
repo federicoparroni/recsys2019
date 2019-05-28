@@ -28,11 +28,26 @@ from extract_features.weights_class import WeightsClass
 from extract_features.impression_rating import ImpressionRating
 from extract_features.time_per_impression import TimeImpressionLabel
 from extract_features.session_impression_count_numeric import SessionsImpressionsCountNumeric
-from extract_features.action_type_bef_click import ActionTypeBefClick
 from extract_features.change_impression_order_position_in_session import ChangeImpressionOrderPositionInSession
 from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
 from extract_features.top_pop_per_impression import TopPopPerImpression
 from extract_features.top_pop_interaction_clickout_per_impression import TopPopInteractionClickoutPerImpression
+from extract_features.classifier_piccio import ClassifierPiccio
+from extract_features.classifier_parro import ClassifierParro
+from extract_features.classifier.last_action_before_clickout import LastActionBeforeClickout
+from extract_features.impression_stars_numeric import ImpressionStarsNumeric
+from extract_features.last_steps_before_clickout import StepsBeforeLastClickout
+from extract_features.location_reference_percentage_of_clickouts import LocationReferencePercentageOfClickouts
+from extract_features.location_reference_percentage_of_interactions import LocationReferencePercentageOfInteractions
+from extract_features.num_impressions_in_clickout import NumImpressionsInClickout
+from extract_features.num_times_item_impressed import NumTimesItemImpressed
+from extract_features.past_future_session_features import PastFutureSessionFeatures
+from extract_features.perc_click_per_impressions import PercClickPerImpressions
+from extract_features.platform_reference_percentage_of_clickouts import PlatformReferencePercentageOfClickouts
+from extract_features.platform_reference_percentage_of_interactions import PlatformReferencePercentageOfInteractions
+from extract_features.platform_session import PlatformSession
+from extract_features.time_per_impression import TimeImpressionLabel
+from extract_features.user_2_item import User2Item
 from utils.menu import single_choice
 from preprocess_utils.merge_features import merge_features
 from os.path import join
@@ -71,7 +86,11 @@ def create_dataset(mode, cluster, class_weights=False):
     # training
     kind = single_choice(['1', '2'], ['kind1', 'kind2'])
     if kind == 'kind1':
-        features_array = [ActionTypeBefClick, ChangeImpressionOrderPositionInSession, FrenzyFactorSession,
+        features_array = [User2Item, TimeImpressionLabel, PlatformSession, PlatformReferencePercentageOfInteractions, 
+                          PercClickPerImpressions, PlatformReferencePercentageOfClickouts,
+                          NumImpressionsInClickout, NumTimesItemImpressed, PastFutureSessionFeatures,
+                          LocationReferencePercentageOfClickouts, LocationReferencePercentageOfInteractions,
+                          StepsBeforeLastClickout, ImpressionStarsNumeric, LastActionBeforeClickout,
                           TopPopPerImpression, TopPopInteractionClickoutPerImpression, 
                           ImpressionRatingNumeric, ActionsInvolvingImpressionSession,
                           ImpressionLabel, ImpressionPriceInfoSession,

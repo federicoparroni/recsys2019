@@ -41,8 +41,11 @@ recommenders/recurrent/checkpoints
 
 scores/
 
+*.pem
+
 *.c
 
 *.so
 
 *.html
+

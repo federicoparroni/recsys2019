@@ -1,20 +1,32 @@
 import data
+from extract_features.classifier.avg_interacted_price import AvgInteractedPrice
+from extract_features.classifier.first_impression_price_info import FirstImpressionPriceInfo
+from extract_features.classifier.location_reference_first_impression import LocationReferenceFirstImpression
+from extract_features.classifier.num_interactions_with_first_impression_in_history import \
+    NumInteractionsWithFirstImpressionInHistory
+from extract_features.classifier.actions_count_classifier import ActionsCountClassifier
+from extract_features.classifier.platform_reference_first_impression import PlatformReferenceFirstImpression
 from extract_features.classifier.platfrom import Platform
 from extract_features.classifier.popularity_first_impression import PopularityFirstImpression
 from extract_features.classifier.first_impression_price import FirstImpressionPrice
+from extract_features.classifier.price_stats import PriceStats
 from extract_features.classifier.rnn_output import RNNOutput
-from extract_features.label_classification import LabelClassification
-from extract_features.last_action_before_clickout import LastActionBeforeClickout
-from extract_features.last_action_first_impression import LastActionFirstImpression
-from extract_features.last_action_involving_first_impression import LastActionInvolvingFirstImpressions
-from extract_features.mean_price_clickout import MeanPriceClickout
+from extract_features.classifier.label_classification import LabelClassification
+from extract_features.classifier.last_action_before_clickout import LastActionBeforeClickout
+from extract_features.classifier.last_action_involving_first_impression import LastActionInvolvingFirstImpressions
 from extract_features.num_impressions_in_clickout import NumImpressionsInClickout
-from extract_features.num_interactions_with_first_impression import NumInteractionsWithFirstImpression
+from extract_features.classifier.num_interactions_with_first_impression import NumInteractionsWithFirstImpression
 from extract_features.price_position_info_interactions import PricePositionInfoInteractedReferences
 from extract_features.session_device import SessionDevice
 from extract_features.session_length import SessionLength
 from extract_features.session_sort_order_when_clickout import SessionSortOrderWhenClickout
 from extract_features.time_from_last_action_before_clk import TimeFromLastActionBeforeClk
+from extract_features.classifier.popularity_clickout_first_impression import PopularityClickoutFirstImpression
+from extract_features.classifier.stars_ratings_first_impression import StarsRatingsFirstImpression
+from extract_features.frenzy_factor_consecutive_steps import FrenzyFactorSession
+from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
+from extract_features.classifier.timing_from_last_interaction_first_impression import TimingFromLastInteractionFirstImpression
+from extract_features.day_moment_in_day import DayOfWeekAndMomentInDay
 from utils.check_folder import check_folder
 
 
@@ -35,15 +47,32 @@ def merge_features_classifier(mode, cluster, features_array, starting_feature):
 
 def create_dataset(mode, cluster):
     # training
-    features_array = [SessionDevice, SessionSortOrderWhenClickout, MeanPriceClickout,
+    features_array = [SessionDevice,
+                      SessionSortOrderWhenClickout,
                       PricePositionInfoInteractedReferences,
-                      SessionLength, TimeFromLastActionBeforeClk, LastActionBeforeClickout,
-                      NumInteractionsWithFirstImpression, FirstImpressionPrice,
-                      LastActionFirstImpression,
+                      SessionLength,
+                      TimeFromLastActionBeforeClk,
+                      LastActionBeforeClickout,
+                      NumInteractionsWithFirstImpression,
+                      FirstImpressionPrice,
                       LastActionInvolvingFirstImpressions,
-                      NumInteractionsWithFirstImpression, NumImpressionsInClickout,
-                      #PopularityFirstImpression
-                      Platform, RNNOutput
+                      NumInteractionsWithFirstImpression,
+                      NumImpressionsInClickout,
+                      #Platform,
+                      RNNOutput,
+                      PriceStats,
+                      PopularityFirstImpression,
+                      AvgInteractedPrice,
+                      PopularityClickoutFirstImpression,
+                      LocationReferenceFirstImpression,
+                      PlatformReferenceFirstImpression,
+                      FrenzyFactorSession,
+                      StarsRatingsFirstImpression,
+                      ActionsCountClassifier,
+                      FirstImpressionPriceInfo,
+                      #SessionActionNumRefDiffFromImpressions,
+                      #TimingFromLastInteractionFirstImpression,
+                      #DayOfWeekAndMomentInDay
                       ]
 
     train_df, test_df = merge_features_classifier(mode, cluster, features_array, LabelClassification)

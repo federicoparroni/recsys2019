@@ -103,15 +103,8 @@ class PastFutureSessionFeatures(FeatureBase):
         Must distinsuish between past sessions and future sessions, and for each compute same features.
         This will help understand the moves of the user through the impressions
         """
-        if self.mode != 'full':
-            if os.path.isfile('dataset/preprocessed/no_cluster/full/feature/past_future_session_features/features.csv'):
-                extract_features_from_full(self.mode, self.cluster)
-                exit(0)
-            else:
-                print('full features not found: creating full first...')
-
-        train_df = data.train_df(mode='full', cluster=self.cluster)
-        test_df = data.test_df(mode='full', cluster=self.cluster)
+        train_df = data.train_df(mode=mode, cluster=self.cluster)
+        test_df = data.test_df(mode=mode, cluster=self.cluster)
         test_df = test_df.fillna(0)
         df = pd.concat([train_df, test_df])
         df.sort_values(by=['user_id', 'session_id', 'timestamp'], inplace=True)

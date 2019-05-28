@@ -36,6 +36,7 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_it
     add_dummy_actions (bool): whether to add dummy interactions representing the impressions before each clickout
     features (list): list of classes (inheriting from FeatureBase) that will provide additional features to be joined
     only_test (bool): whether to create only the test dataset (useful to make predictions with a pre-trained model)
+    resample (bool): whether to resample to reduce the unbalance between classes
     """
     
     path = f'dataset/preprocessed/{cluster}/{mode}/dataset_classification_p{pad_sessions_length}'

@@ -1,7 +1,7 @@
 import math
 import time
 import utils.telegram_bot as HERA
-
+from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 import data
@@ -23,8 +23,8 @@ class CatboostRanker(RecommenderBase):
     Custom_metric is @1 for maximizing first result as good
     """
 
-    def __init__(self, mode, cluster='no_cluster', learning_rate=0.15, iterations=10, max_depth=10, reg_lambda=2.0,
-                 colsample_bylevel=1, bootstrap_type='Bernoulli', subsample = 0.66,
+    def __init__(self, mode, cluster='no_cluster', learning_rate=0.15, iterations=10, max_depth=10, reg_lambda=6.0,
+                 colsample_bylevel=1, algo='xgboost',
                  custom_metric='AverageGain:top=1', include_test=False,
                  file_to_load=None,
                  file_to_store=None, limit_trees=False, features_to_one_hot=None):
@@ -44,6 +44,8 @@ class CatboostRanker(RecommenderBase):
         super(CatboostRanker, self).__init__(
             name=name, mode=mode, cluster=cluster)
 
+        self.curr_dir = Path(__file__).absolute().parent
+        self.data_dir = self.curr_dir.joinpath('..', 'dataset/preprocessed/{}/{}/catboost/'.format(cluster, mode))
         self.target_indices = data.target_indices(mode=mode, cluster=cluster)
         self.features_to_drop = []
         self.include_test = include_test
@@ -60,9 +62,7 @@ class CatboostRanker(RecommenderBase):
             'boosting_type': 'Plain',
             'loss_function': 'QuerySoftMax',
             'train_dir': 'QuerySoftMax',
-            'bootstrap_type': bootstrap_type,
             'logging_level': 'Verbose',
-            'subsample': subsample
         }
 
         # create hyperparameters dictionary
@@ -125,25 +125,29 @@ class CatboostRanker(RecommenderBase):
             return
 
         train_df = self.get_preprocessed_dataset(mode='train')
-
-        train_features = train_df.drop(['user_id', 'session_id', 'label', 'id'], axis=1)
-
-        self.train_features = train_features.columns.values
-
-        X_train = train_features.values
-        y_train = train_df['label'].values
-        queries_train = train_df['id'].values
+        train_features = train_df.drop(['user_id', 'session_id', 'label'], axis=1)
 
         if self.algo == 'catboost':
+            print('Entered')
             features = list(train_features.columns.values)
             self.categorical_features = []
             for f in features:
+                print(f)
+                print(train_features.head(1)[f].values[0])
                 if isinstance(train_features.head(1)[f].values[0], str):
                     self.categorical_features.append(features.index(f))
                     print(f + ' is categorical!')
+                    train_features.drop(f, axis=1, inplace=True)
 
             if len(self.categorical_features) == 0:
                 self.categorical_features = None
+
+
+        self.train_features = train_features.columns.values
+        X_train = train_features.values
+        y_train = train_df['label'].values
+        _path = self.data_dir.joinpath('catboost_train.txt.npy')
+        queries_train = np.load(_path)
 
         # Creating pool for training data
         train_with_weights = Pool(
@@ -334,15 +338,8 @@ class CatboostRanker(RecommenderBase):
         :return:
         """
 
-        if mode == 'test':
-            classification_df = data.classification_test_df(
-                mode=self.mode, sparse=False, cluster=self.cluster, algo=self.algo).copy()
-        else:
-            classification_df = data.classification_train_df(
-                mode=self.mode, sparse=False, cluster=self.cluster, algo=self.algo).copy()
-
-        classification_df = classification_df.reindex(
-            'user_id,session_id,label,times_impression_appeared,time_elapsed_from_last_time_impression_appeared,impression_position,steps_from_last_time_impression_appeared,price,price_position,impression_position_wrt_last_interaction,impression_position_wrt_second_last_interaction,clickout_item_session_ref_this_impr,interaction_item_deals_session_ref_this_impr,interaction_item_image_session_ref_this_impr,interaction_item_info_session_ref_this_impr,interaction_item_rating_session_ref_this_impr,search_for_item_session_ref_this_impr,clickout_item_session_ref_not_in_impr,interaction_item_deals_session_ref_not_in_impr,interaction_item_image_session_ref_not_in_impr,interaction_item_info_session_ref_not_in_impr,interaction_item_rating_session_ref_not_in_impr,search_for_item_session_ref_not_in_impr,session_length_in_step,session_length_in_time,time_per_step,frenzy_factor,average_price_position,avg_price_interacted_item,avg_pos_interacted_items_in_impressions,pos_last_interaction_in_impressions,search_for_poi_distance_from_last_clickout,search_for_poi_distance_from_first_action,change_sort_order_distance_from_last_clickout,change_sort_order_distance_from_first_action,time_passed_before_clk'.split(','), axis=1)
+        _path = self.data_dir.joinpath('{}.csv'.format(mode))
+        classification_df = pd.read_csv(_path)
 
         if len(self.features_to_drop) > 0:
             classification_df.drop(self.features_to_drop, axis=1, inplace=True)
@@ -376,9 +373,5 @@ class CatboostRanker(RecommenderBase):
 
 
 if __name__ == '__main__':
-    model = CatboostRanker(mode='local', cluster='no_cluster', file_to_load='cat_1200')
-    array = model.get_scores_batch()
-    np.save('localscores_catboost.npy', array)
-    model = CatboostRanker(mode='full', cluster='no_cluster', file_to_load='cat_1200')
-    array = model.get_scores_batch()
-    np.save('fullscores_catboost.npy', array)
+    model = CatboostRanker(mode='small', cluster='no_cluster', iterations=50, learning_rate=0.15, algo='catboost')
+    model.evaluate(send_MRR_on_telegram=True)
