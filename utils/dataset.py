@@ -7,15 +7,11 @@ from abc import abstractmethod
 import utils.datasetconfig as datasetconfig
 from generator import DataGenerator
 import preprocess_utils.session2vec as sess2vec
-from sklearn.preprocessing import MinMaxScaler
+#from sklearn.preprocessing import MinMaxScaler
 from sklearn.externals import joblib
 from sklearn.utils.class_weight import compute_class_weight
 import utils.scaling as scale
 
-# from extract_features.rnn.global_interactions_popularity import GlobalInteractionsPopularity
-# from extract_features.rnn.global_clickout_popularity import GlobalClickoutPopularity
-# from extract_features.rnn.average_price_in_next_clickout import AveragePriceInNextClickout
-# from extract_features.rnn.reference_price_in_next_clickout import ReferencePriceInNextClickout
 
 ## ======= Datasets - Base class ======= ##
 
@@ -253,36 +249,24 @@ class SequenceDatasetForClassification(Dataset):
         X_df.loc[:, impr_count_cols] = 1 - X_df.loc[:, impr_count_cols]
 
         """ scaling """
-        price_cols = ['price_{}'.format(i) for i in range(25)]
-        max_of_prices = np.max(X_df.loc[:,price_cols], axis=1)
-        mask = max_of_prices > 0
-        X_df.loc[mask, price_cols + ['price']] /= max_of_prices[mask][:,None]
-        #X_df.loc[mask, price_cols] /= max_of_prices[mask][:,None]
-
-        #X_df = X_df.drop('duration', axis=1)
-        X_df['duration'] = np.log(X_df['duration'] + 1)
-
-        # glob_int_pop_feat = GlobalInteractionsPopularity(self.mode, self.cluster)
-        # glob_int_pop_max = glob_int_pop_feat.read_feature()['glob_inter_popularity'].max()
+        # price_cols = ['price_{}'.format(i) for i in range(25)]
+        # max_of_prices = np.max(X_df.loc[:,price_cols], axis=1)
+        # mask = max_of_prices > 0
+        # X_df.loc[mask, price_cols + ['price']] /= max_of_prices[mask][:,None]
         
-        X_df['glob_clickout_popularity'] = np.log(X_df['glob_clickout_popularity'] + 1)
-        for j in range(25):
-            impr_pop_i = 'impr_pop{}'.format(j)
-            X_df[impr_pop_i] = np.log(X_df[impr_pop_i] + 1)
-        #X_df = X_df.drop('glob_clickout_popularity', axis=1)
+        #X_df = X_df.drop('duration', axis=1)
+        #X_df['duration'] = np.log(X_df['duration'] + 1)
+        
+        #X_df['glob_clickout_popularity'] = np.log(X_df['glob_clickout_popularity'] + 1)
+        # for j in range(25):
+        #     impr_pop_i = 'impr_pop{}'.format(j)
+        #     X_df[impr_pop_i] = np.log(X_df[impr_pop_i] + 1)
 
-        # avg_price_feat = AveragePriceInNextClickout(self.mode, self.cluster)
-        # max_avg_price = avg_price_feat.read_feature().avg_price.max()
-        # X_df.avg_price /= max_avg_price
-
-        # ref_price_feat = ReferencePriceInNextClickout(self.mode, self.cluster)
-        # max_ref_price = ref_price_feat.read_feature().price.max()
-        # X_df.price /= max_ref_price
-
-        # X_df.frequence /= 120
+        X_df.frequence = np.log(X_df.frequence.values +1)
 
         X_df = X_df.drop(cols_to_drop_in_X, axis=1)
 
+        """
         scaler_path = os.path.join(self.dataset_path, 'scaler.skl')
         if load_scaler:
             scaler = joblib.load(scaler_path)
@@ -295,6 +279,7 @@ class SequenceDatasetForClassification(Dataset):
             # save the scaler
             joblib.dump(scaler, scaler_path)
             print('Scaler saved!')
+        """
 
         if return_indices:
             target = np.arange(-1, len(X_df), self.rows_per_sample)[1:]
