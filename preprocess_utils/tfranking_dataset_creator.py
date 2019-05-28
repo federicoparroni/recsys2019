@@ -9,8 +9,9 @@ from tqdm.auto import tqdm
 from sklearn.model_selection import train_test_split
 import utils.check_folder as cf
 
-from extract_features.changes_of_sort_order_before_current import ChangeOfSortOrderBeforeCurrent
-from extract_features.action_type_bef_click import ActionTypeBefClick
+from preprocess_utils.last_clickout_indices import find as find_last_clickout_indices
+from preprocess_utils.last_clickout_indices import expand_impressions
+from extract_features.impression_rating_numeric import ImpressionRatingNumeric
 from extract_features.actions_involving_impression_session import ActionsInvolvingImpressionSession
 from extract_features.frenzy_factor_consecutive_steps import FrenzyFactorSession
 from extract_features.impression_features import ImpressionFeature
@@ -20,7 +21,7 @@ from extract_features.label import ImpressionLabel
 from extract_features.last_action_involving_impression import LastInteractionInvolvingImpression
 from extract_features.mean_price_clickout import MeanPriceClickout
 from extract_features.price_position_info_interactions import PricePositionInfoInteractedReferences
-#from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
+# from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
 from extract_features.session_device import SessionDevice
 from extract_features.session_filters_active_when_clickout import SessionFilterActiveWhenClickout
 from extract_features.session_length import SessionLength
@@ -30,14 +31,23 @@ from extract_features.times_impression_appeared_in_clickouts_session import Time
 from extract_features.times_user_interacted_with_impression import TimesUserInteractedWithImpression
 from extract_features.timing_from_last_interaction_impression import TimingFromLastInteractionImpression
 from extract_features.weights_class import WeightsClass
-from preprocess_utils.merge_features import merge_features
 from extract_features.impression_rating import ImpressionRating
-from extract_features.change_impression_order_position_in_session import ChangeImpressionOrderPositionInSession
+from extract_features.time_per_impression import TimeImpressionLabel
 from extract_features.session_impression_count_numeric import SessionsImpressionsCountNumeric
-from extract_features.last_steps_before_clickout import StepsBeforeLastClickout
-from extract_features.user_2_item import User2Item
-from preprocess_utils.last_clickout_indices import find as find_last_clickout_indices
-from preprocess_utils.last_clickout_indices import expand_impressions
+from extract_features.action_type_bef_click import ActionTypeBefClick
+from extract_features.change_impression_order_position_in_session import ChangeImpressionOrderPositionInSession
+from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
+from extract_features.top_pop_per_impression import TopPopPerImpression
+from extract_features.top_pop_interaction_clickout_per_impression import TopPopInteractionClickoutPerImpression
+from extract_features.platform_reference_percentage_of_clickouts import PlatformReferencePercentageOfClickouts
+from extract_features.platform_reference_percentage_of_interactions import PlatformReferencePercentageOfInteractions
+from extract_features.location_reference_percentage_of_clickouts import LocationReferencePercentageOfClickouts
+from extract_features.location_reference_percentage_of_interactions import LocationReferencePercentageOfInteractions
+from extract_features.city_session import CitySession
+from extract_features.perc_click_per_impressions import PercClickPerImpressions
+from extract_features.platform_session import PlatformSession
+from extract_features.past_future_session_features import PastFutureSessionFeatures
+
 
 
 
@@ -148,11 +158,14 @@ def create_dataset(mode, cluster, features_array, dataset_name):
 
 
 if __name__ == '__main__':
-    features_array = [ImpressionLabel, ImpressionPriceInfoSession, ActionsInvolvingImpressionSession,
-                      TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
-                      ImpressionPositionSession, LastInteractionInvolvingImpression, TimesImpressionAppearedInClickoutsSession,
-                      ImpressionRating, SessionLength, MeanPriceClickout, TimeFromLastActionBeforeClk,PricePositionInfoInteractedReferences, SessionDevice]
-#,
+    features_array = [ChangeImpressionOrderPositionInSession, TopPopPerImpression, TopPopInteractionClickoutPerImpression,
+                      LocationReferencePercentageOfClickouts, LocationReferencePercentageOfInteractions, PlatformReferencePercentageOfInteractions,
+                      PlatformReferencePercentageOfClickouts, PastFutureSessionFeatures, CitySession, SessionsImpressionsCountNumeric,
+                      PlatformSession, FrenzyFactorSession, ImpressionRatingNumeric, ActionsInvolvingImpressionSession, ImpressionLabel,
+                      ImpressionPriceInfoSession, SessionActionNumRefDiffFromImpressions,TimingFromLastInteractionImpression,
+                      TimesUserInteractedWithImpression, ImpressionPositionSession, LastInteractionInvolvingImpression, SessionDevice,
+                      SessionSortOrderWhenClickout, MeanPriceClickout, PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
+                      TimesImpressionAppearedInClickoutsSession]
 
     """
     features_array = [ActionsInvolvingImpressionSession, ImpressionLabel, ImpressionPriceInfoSession,

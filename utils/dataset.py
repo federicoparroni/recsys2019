@@ -260,11 +260,16 @@ class SequenceDatasetForClassification(Dataset):
         #X_df.loc[mask, price_cols] /= max_of_prices[mask][:,None]
 
         #X_df = X_df.drop('duration', axis=1)
+        X_df['duration'] = np.log(X_df['duration'] + 1)
 
         # glob_int_pop_feat = GlobalInteractionsPopularity(self.mode, self.cluster)
         # glob_int_pop_max = glob_int_pop_feat.read_feature()['glob_inter_popularity'].max()
         
-        #X_df['glob_clickout_popularity'] = np.log(X_df['glob_clickout_popularity'] + 1)
+        X_df['glob_clickout_popularity'] = np.log(X_df['glob_clickout_popularity'] + 1)
+        for j in range(25):
+            impr_pop_i = 'impr_pop{}'.format(j)
+            X_df[impr_pop_i] = np.log(X_df[impr_pop_i] + 1)
+        #X_df = X_df.drop('glob_clickout_popularity', axis=1)
 
         # avg_price_feat = AveragePriceInNextClickout(self.mode, self.cluster)
         # max_avg_price = avg_price_feat.read_feature().avg_price.max()

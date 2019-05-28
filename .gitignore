@@ -41,4 +41,11 @@ recommenders/recurrent/checkpoints
 
 scores/
 
-gabbo\.pem
+*.pem
+
+*.c
+
+*.so
+
+*.html
+

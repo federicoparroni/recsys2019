@@ -23,6 +23,7 @@ from extract_features.rnn.session_impressions_count import SessionsImpressionsCo
 from extract_features.rnn.clickout_vector_prices import ClickoutVectorPrices
 from extract_features.rnn.interaction_duration import InteractionDuration
 from extract_features.rnn.clickout_filters_satisfaction import ClickoutFiltersSatisfaction
+from extract_features.rnn.impressions_popularity import ImpressionsPopularity
 
 import preprocess_utils.session2vec as sess2vec
 
@@ -35,6 +36,7 @@ def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_it
     add_dummy_actions (bool): whether to add dummy interactions representing the impressions before each clickout
     features (list): list of classes (inheriting from FeatureBase) that will provide additional features to be joined
     only_test (bool): whether to create only the test dataset (useful to make predictions with a pre-trained model)
+    resample (bool): whether to resample to reduce the unbalance between classes
     """
     
     path = f'dataset/preprocessed/{cluster}/{mode}/dataset_classification_p{pad_sessions_length}'
@@ -198,7 +200,8 @@ if __name__ == "__main__":
 
         InteractionDuration,
 
-        ClickoutFiltersSatisfaction
+        ClickoutFiltersSatisfaction,
+        ImpressionsPopularity,
     ]
     features = []
     # create the features to join

@@ -39,3 +39,5 @@ def create_sub(predictions, submission_name, directory='submissions'):
     print()
     print(f"submission created in submissions folder in {elapsed}")
 
+    return path_time
+

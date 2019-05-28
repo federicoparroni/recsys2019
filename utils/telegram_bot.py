@@ -17,7 +17,8 @@ To create a new private channel, you will need 2 things:
 accounts = {
     'default': (-1001481984580, '819065046:AAFee77GqSpq8XBzmEnAMybLqOHuy6PJ_bg'),
     'parro': (125016709, '716431813:AAHaKh7gsBrMoexVs1Lm7gcfHct-3Y3WT4U'),
-    'gabbo': (361500321, '800854524:AAGUxIYNxcVHKyjbiQk_SbU-jWj1-3lSpEA')
+    'gabbo': (361500321, '800854524:AAGUxIYNxcVHKyjbiQk_SbU-jWj1-3lSpEA'),
+    'edo': (286935646, '675236794:AAEpSgQ44Ncs1a8nh_uvc8AXaWvspI6pz1U')
     # <insert your chat_id and token here>
 }
 
@@ -47,6 +48,7 @@ class TelegramBotKerasCallback(keras.callbacks.Callback):
 
     def __init__(self, log_every_epochs=1, account='default'):
         self.log_every = log_every_epochs
+        self.account = account
 
     # def on_train_begin(self, logs={}):
     #     pass
@@ -69,7 +71,7 @@ class TelegramBotKerasCallback(keras.callbacks.Callback):
                 lines.append('mrr: {} - val_mrr: {}'.format( round(logs['mrr'],4), round(logs['val_mrr'],4) ))
             
             try:
-                send_message( '\n'.join(lines), account=account)
+                send_message( '\n'.join(lines), account=self.account)
             except:
                 pass
     

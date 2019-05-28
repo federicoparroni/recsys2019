@@ -16,12 +16,12 @@ tqdm.pandas()
 class XGBoostWrapperClassifier(RecommenderBase):
 
     def __init__(self, mode, cluster='no_cluster', learning_rate=1, min_child_weight=1, n_estimators=100, max_depth=3,
-                 subsample=1, colsample_bytree=1, reg_lambda=1, reg_alpha=0):
+                 subsample=1, colsample_bytree=1, reg_lambda=1, reg_alpha=0, scale_pos_weight=1):
         name = 'xgboost_classifier'
         super(XGBoostWrapperClassifier, self).__init__(
             name=name, mode=mode, cluster=cluster)
 
-        self.xgb = xgb.XGBClassifier(silent=False,
+        self.xgb = xgb.XGBClassifier(verbosity=True, scale_pos_weight=scale_pos_weight,
             learning_rate=learning_rate, min_child_weight=min_child_weight, max_depth=math.ceil(
                 max_depth),
             n_estimators=math.ceil(
@@ -42,7 +42,8 @@ class XGBoostWrapperClassifier(RecommenderBase):
                                      'max_depth': (2, 6),
                                      'n_estimators': (300, 1000),
                                      'reg_lambda': (0, 1),
-                                     'reg_alpha': (0, 1)
+                                     'reg_alpha': (0, 1),
+                                     'scale_pos_weight' : (1, 2)
                                      }
 
     def fit(self):
@@ -101,6 +102,6 @@ class XGBoostWrapperClassifier(RecommenderBase):
 if __name__ == '__main__':
     from utils.menu import mode_selection
     mode = mode_selection()
-    model = XGBoostWrapperClassifier(mode=mode, cluster='no_cluster', n_estimators=900, max_depth=5, learning_rate=0.3, reg_alpha=0.5, reg_lambda=0.5)
+    model = XGBoostWrapperClassifier(mode=mode, cluster='no_cluster', n_estimators=300, max_depth=5, learning_rate=0.3, reg_alpha=0.5, reg_lambda=0.5)
     model.evaluate(send_MRR_on_telegram=True)
     #model.run()
