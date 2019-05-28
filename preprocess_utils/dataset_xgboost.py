@@ -35,6 +35,7 @@ from extract_features.top_pop_per_impression import TopPopPerImpression
 from extract_features.top_pop_interaction_clickout_per_impression import TopPopInteractionClickoutPerImpression
 from extract_features.classifier_piccio import ClassifierPiccio
 from extract_features.classifier_parro import ClassifierParro
+from extract_features.last_action_before_clickout import LastActionBeforeClickout
 from utils.menu import single_choice
 from preprocess_utils.merge_features import merge_features
 from os.path import join
