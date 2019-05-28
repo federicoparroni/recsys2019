@@ -15,8 +15,8 @@ class PlatformSession(FeatureBase):
             name=name, mode=mode, cluster=cluster, columns_to_onehot=columns_to_onehot)
 
     def extract_feature(self):
-        train = data.train_df(mode=mode)
-        test = data.test_df(mode=mode)
+        train = data.train_df(mode=self.mode)
+        test = data.test_df(mode=self.mode)
         df = pd.concat([train, test])
 
         user_ids = df.user_id.values

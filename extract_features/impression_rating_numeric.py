@@ -28,12 +28,12 @@ class ImpressionRatingNumeric(FeatureBase):
         from extract_features.impression_features import ImpressionFeature
         o = ImpressionFeature(mode=self.mode)
         f = o.read_feature(True)
-        f_ratings = f[['item_id', 'impression_featuresExcellent Rating',
-                       'impression_featuresVery Good Rating',
-                       'impression_featuresGood Rating',
-                       'impression_featuresSatisfactory Rating',
+        f_ratings = f[['item_id', 'propertiesExcellent Rating',
+                       'propertiesVery Good Rating',
+                       'propertiesGood Rating',
+                       'propertiesSatisfactory Rating',
                        ]]
-        f_ratings['impression_featuresNo Rating'] = pd.Series(np.ones(len(f_ratings), dtype=np.uint8),
+        f_ratings['propertiesNo Rating'] = pd.Series(np.ones(len(f_ratings), dtype=np.uint8),
                                                               index=f_ratings.index)
         df = f_ratings.iloc[:, 1:]
         df['fake'] = pd.Series(np.zeros(len(df), dtype=np.uint8), index=df.index)
