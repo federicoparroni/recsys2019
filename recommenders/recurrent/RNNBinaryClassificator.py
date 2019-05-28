@@ -17,6 +17,7 @@ from utils.dataset import SequenceDatasetForBinaryClassification
 from sklearn.metrics import classification_report
 
 from utils.check_folder import check_folder
+import utils.telegram_bot as bot
 from tqdm.auto import tqdm
 
 
@@ -117,7 +118,9 @@ class RNNBinaryClassificator(RNNClassificationRecommender):
         y_true = get_y_true(indices)
         y_pred = self.model.predict_classes(xtest)
 
-        print(classification_report(y_true, y_pred, target_names=['class1','class0']))
+        report = classification_report(y_true, y_pred, target_names=['class1','class0'])
+        print(report)
+        return report
 
     def create_feature(self):
         # load dataset and indices
@@ -178,14 +181,16 @@ if __name__ == "__main__":
         model = interactive_model(mode, optim=optim)
 
         # fit the model
-        model.fit(epochs=10000, early_stopping_patience=25, early_stopping_on='val_mrr', mode='max')
+        model.fit(epochs=1)
         print('\nFit completed!')
 
-        model.save('saved_models')
-        #model.save(folderpath='saved_models/', suffix='_{}'.format(round(mrr, 5)).replace('.','') )
+        best_accuracy = np.max(model.history.history['val_acc'])
+        
+        model.save(folderpath='saved_models/', suffix='_{}'.format(round(best_accuracy, 5)).replace('.','') )
 
         # evaluate
-        model.evaluate()
+        report = model.evaluate()
+        bot.send_message(report, account='parro')
 
         print('Opt: {}'.format(opt))
         print('Lr: {}'.format(lr))
