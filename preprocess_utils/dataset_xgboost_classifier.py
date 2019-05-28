@@ -3,6 +3,7 @@ from extract_features.classifier.avg_interacted_price import AvgInteractedPrice
 from extract_features.classifier.location_reference_first_impression import LocationReferenceFirstImpression
 from extract_features.classifier.num_interactions_with_first_impression_in_history import \
     NumInteractionsWithFirstImpressionInHistory
+from extract_features.classifier.actions_count_classifier import ActionsCountClassifier
 from extract_features.classifier.platform_reference_first_impression import PlatformReferenceFirstImpression
 from extract_features.classifier.platfrom import Platform
 from extract_features.classifier.popularity_first_impression import PopularityFirstImpression
@@ -62,7 +63,8 @@ def create_dataset(mode, cluster):
                       LocationReferenceFirstImpression,
                       PlatformReferenceFirstImpression,
                       FrenzyFactorSession,
-                      StarsRatingsFirstImpression
+                      StarsRatingsFirstImpression,
+                      ActionsCountClassifier
                       ]
 
     train_df, test_df = merge_features_classifier(mode, cluster, features_array, LabelClassification)
