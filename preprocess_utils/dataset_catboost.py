@@ -6,10 +6,18 @@ from tqdm import tqdm
 import pandas as pd
 from sklearn.datasets import dump_svmlight_file
 import pickle
-
+from extract_features.city_session import CitySession
+from extract_features.city_session_populars_only import CitySessionPopularsOnly
+from extract_features.day_moment_in_day import DayOfWeekAndMomentInDay
+from extract_features.location_reference_percentage_of_clickouts import LocationReferencePercentageOfClickouts
+from extract_features.location_reference_percentage_of_interactions import LocationReferencePercentageOfInteractions
+from extract_features.past_future_session_features import PastFutureSessionFeatures
+from extract_features.platform_reference_percentage_of_clickouts import PlatformReferencePercentageOfClickouts
+from extract_features.platform_reference_percentage_of_interactions import PlatformReferencePercentageOfInteractions
 from extract_features.platform_session import PlatformSession
-from utils.check_folder import check_folder
 from preprocess_utils.merge_features import merge_features
+from utils.check_folder import check_folder
+from extract_features.impression_rating_numeric import ImpressionRatingNumeric
 from extract_features.actions_involving_impression_session import ActionsInvolvingImpressionSession
 from extract_features.frenzy_factor_consecutive_steps import FrenzyFactorSession
 from extract_features.impression_features import ImpressionFeature
@@ -28,7 +36,28 @@ from extract_features.time_from_last_action_before_clk import TimeFromLastAction
 from extract_features.times_impression_appeared_in_clickouts_session import TimesImpressionAppearedInClickoutsSession
 from extract_features.times_user_interacted_with_impression import TimesUserInteractedWithImpression
 from extract_features.timing_from_last_interaction_impression import TimingFromLastInteractionImpression
-
+from extract_features.weights_class import WeightsClass
+from extract_features.impression_rating import ImpressionRating
+from extract_features.time_per_impression import TimeImpressionLabel
+#from extract_features.session_impression_count_numeric import SessionsImpressionsCountNumeric
+from extract_features.change_impression_order_position_in_session import ChangeImpressionOrderPositionInSession
+from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
+from extract_features.top_pop_per_impression import TopPopPerImpression
+from extract_features.top_pop_interaction_clickout_per_impression import TopPopInteractionClickoutPerImpression
+from extract_features.classifier_piccio import ClassifierPiccio
+from extract_features.classifier_parro import ClassifierParro
+from extract_features.classifier.last_action_before_clickout import LastActionBeforeClickout
+from extract_features.impression_stars_numeric import ImpressionStarsNumeric
+from extract_features.last_steps_before_clickout import StepsBeforeLastClickout
+from extract_features.location_reference_percentage_of_clickouts import LocationReferencePercentageOfClickouts
+from extract_features.location_reference_percentage_of_interactions import LocationReferencePercentageOfInteractions
+from extract_features.num_impressions_in_clickout import NumImpressionsInClickout
+from extract_features.num_times_item_impressed import NumTimesItemImpressed
+from extract_features.past_future_session_features import PastFutureSessionFeatures
+from extract_features.perc_click_per_impressions import PercClickPerImpressions
+from extract_features.platform_reference_percentage_of_clickouts import PlatformReferencePercentageOfClickouts
+from extract_features.platform_reference_percentage_of_interactions import PlatformReferencePercentageOfInteractions
+from extract_features.platform_session import PlatformSession
 import os
 from pathlib import Path
 
@@ -47,8 +76,17 @@ def to_pool_dataset(dataset, save_dataset=True, path=''):
 
 def create_dataset(mode, cluster):
     # training
-    features_array = [ActionsInvolvingImpressionSession, ImpressionLabel, ImpressionPriceInfoSession,
-                      ImpressionPositionSession, PlatformSession]
+    features_array = [ChangeImpressionOrderPositionInSession, TopPopPerImpression,
+                      TopPopInteractionClickoutPerImpression,
+                      LocationReferencePercentageOfClickouts, LocationReferencePercentageOfInteractions,
+                      PlatformReferencePercentageOfInteractions, PlatformReferencePercentageOfClickouts,
+                      PastFutureSessionFeatures, CitySessionPopularsOnly, PlatformSession, DayOfWeekAndMomentInDay,
+                      FrenzyFactorSession, ImpressionRatingNumeric, ActionsInvolvingImpressionSession,
+                      ImpressionLabel, ImpressionPriceInfoSession, SessionActionNumRefDiffFromImpressions,
+                      TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
+                      ImpressionPositionSession, LastInteractionInvolvingImpression, SessionDevice,
+                      SessionSortOrderWhenClickout, MeanPriceClickout, PricePositionInfoInteractedReferences,
+                      SessionLength, TimeFromLastActionBeforeClk, TimesImpressionAppearedInClickoutsSession]
 
     curr_dir = Path(__file__).absolute().parent
     data_dir = curr_dir.joinpath('..', 'dataset/preprocessed/{}/{}/catboost/'.format(cluster, mode))
