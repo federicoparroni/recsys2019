@@ -35,15 +35,15 @@ class XGBoostWrapperClassifier(RecommenderBase):
             'min_child_weight': 1,
             'subsample': 1,
             'colsample_bytree': 1,
+            'scale_pos_weight': 1.5
         }
 
         # create hyperparameters dictionary
-        self.hyperparameters_dict = {'learning_rate': (0.01, 0.3),
-                                     'max_depth': (2, 6),
-                                     'n_estimators': (300, 1000),
-                                     'reg_lambda': (0, 1),
-                                     'reg_alpha': (0, 1),
-                                     'scale_pos_weight' : (1, 2)
+        self.hyperparameters_dict = {'learning_rate': (0.001, 1),
+                                     'max_depth': (2, 8),
+                                     'n_estimators': (200, 800),
+                                     'reg_lambda': (0, 5),
+                                     'reg_alpha': (0, 5),
                                      }
 
     def fit(self):
@@ -102,6 +102,6 @@ class XGBoostWrapperClassifier(RecommenderBase):
 if __name__ == '__main__':
     from utils.menu import mode_selection
     mode = mode_selection()
-    model = XGBoostWrapperClassifier(mode=mode, cluster='no_cluster', n_estimators=300, max_depth=5, learning_rate=0.3, reg_alpha=0.5, reg_lambda=0.5)
+    model = XGBoostWrapperClassifier(mode=mode, cluster='no_cluster')
     model.evaluate(send_MRR_on_telegram=True)
     #model.run()
