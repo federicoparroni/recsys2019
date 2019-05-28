@@ -20,6 +20,7 @@ from extract_features.session_length import SessionLength
 from extract_features.session_sort_order_when_clickout import SessionSortOrderWhenClickout
 from extract_features.time_from_last_action_before_clk import TimeFromLastActionBeforeClk
 from extract_features.classifier.popularity_clickout_first_impression import PopularityClickoutFirstImpression
+from extract_features.classifier.stars_ratings_first_impression import StarsRatingsFirstImpression
 from extract_features.frenzy_factor_consecutive_steps import FrenzyFactorSession
 from utils.check_folder import check_folder
 
@@ -61,7 +62,7 @@ def create_dataset(mode, cluster):
                       LocationReferenceFirstImpression,
                       PlatformReferenceFirstImpression,
                       FrenzyFactorSession,
-
+                      StarsRatingsFirstImpression
                       ]
 
     train_df, test_df = merge_features_classifier(mode, cluster, features_array, LabelClassification)
