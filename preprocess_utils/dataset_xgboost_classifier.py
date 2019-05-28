@@ -1,5 +1,6 @@
 import data
 from extract_features.classifier.avg_interacted_price import AvgInteractedPrice
+from extract_features.classifier.first_impression_price_info import FirstImpressionPriceInfo
 from extract_features.classifier.location_reference_first_impression import LocationReferenceFirstImpression
 from extract_features.classifier.num_interactions_with_first_impression_in_history import \
     NumInteractionsWithFirstImpressionInHistory
@@ -64,7 +65,8 @@ def create_dataset(mode, cluster):
                       PlatformReferenceFirstImpression,
                       FrenzyFactorSession,
                       StarsRatingsFirstImpression,
-                      ActionsCountClassifier
+                      ActionsCountClassifier,
+                      FirstImpressionPriceInfo
                       ]
 
     train_df, test_df = merge_features_classifier(mode, cluster, features_array, LabelClassification)
