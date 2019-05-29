@@ -56,7 +56,6 @@ def create_dataset(mode, cluster):
                       NumInteractionsWithFirstImpression,
                       FirstImpressionPrice,
                       LastActionInvolvingFirstImpressions,
-                      NumInteractionsWithFirstImpression,
                       NumImpressionsInClickout,
                       #Platform,
                       RNNOutput,
