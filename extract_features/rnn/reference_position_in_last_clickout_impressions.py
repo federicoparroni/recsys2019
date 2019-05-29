@@ -5,6 +5,7 @@ sys.path.append(os.getcwd())
 from extract_features.feature_base import FeatureBase
 
 import data
+import numpy as np
 import pandas as pd
 from preprocess_utils.last_clickout_indices import find as find_last_clickout_indices
 from tqdm.auto import tqdm
@@ -36,16 +37,17 @@ class ReferencePositionInLastClickoutImpressions(FeatureBase):
         # find the last clickout rows
         last_clickout_idxs = find_last_clickout_indices(df)
         clickout_rows = df.loc[last_clickout_idxs, ['user_id','session_id','action_type','impressions']]
-        clickout_rows['impression_list'] = clickout_rows.impressions.str.split('|')
+        clickout_rows['impression_list'] = clickout_rows.impressions.str.split('|').apply(lambda x: list(map(int, x)))
         clickout_rows = clickout_rows.drop('impressions', axis=1)
 
         # find the interactions with numeric reference and not last clickouts
         reference_rows = df[['user_id','session_id','reference','action_type','index']]
-        reference_rows = reference_rows[df.reference.str.isnumeric() == True]
+        reference_rows = reference_rows[df.reference.str.isnumeric() == True].astype({'reference':'int'})
         # skip last clickouts
         reference_rows = reference_rows.loc[~reference_rows.index.isin(last_clickout_idxs)]
         reference_rows = reference_rows.drop('action_type', axis=1)
-        reference_rows['ref_pos'] = -1
+        # result array
+        ref_pos_serie = np.ones(reference_rows.shape[0], dtype=int) * (-1)
 
         # iterate over the sorted reference_rows and clickout_rows
         j = 0
@@ -53,7 +55,10 @@ class ReferencePositionInLastClickoutImpressions(FeatureBase):
         ckidx = clickout_indices[j]
         next_clickout_user_id = clickout_rows.at[ckidx, 'user_id']
         next_clickout_sess_id = clickout_rows.at[ckidx, 'session_id']
-        for idx,row in tqdm(reference_rows.iterrows()):
+        k = 0
+        for row in tqdm(zip(reference_rows.index, reference_rows.user_id, reference_rows.session_id, 
+                            reference_rows.reference)):
+            idx = row[0]
             # if the current index is over the last clickout, break
             if idx >= clickout_indices[-1]:
                 break
@@ -63,15 +68,17 @@ class ReferencePositionInLastClickoutImpressions(FeatureBase):
                 ckidx = clickout_indices[j]
                 next_clickout_user_id = clickout_rows.at[ckidx, 'user_id']
                 next_clickout_sess_id = clickout_rows.at[ckidx, 'session_id']
-                next_clickout_impress = clickout_rows.at[ckidx, 'impression_list']
+                next_clickout_impressions = clickout_rows.at[ckidx, 'impression_list']
 
             # check if row and next_clickout are in the same session
-            if row.user_id == next_clickout_user_id and row.session_id == next_clickout_sess_id:
+            if row[1] == next_clickout_user_id and row[2] == next_clickout_sess_id:
                 try:
-                    reference_rows.at[idx,'ref_pos'] = next_clickout_impress.index(row.reference)
+                    ref_pos_serie[k] = next_clickout_impressions.index(row[3])
                 except:
                     pass
+            k += 1
         
+        reference_rows['ref_pos'] = ref_pos_serie
         return reference_rows.drop(['user_id','session_id','reference'], axis=1).set_index('index')
 
     def post_loading(self, df):

@@ -91,8 +91,8 @@ class ReferencePricePositionInLastClickout(FeatureBase):
     def post_loading(self, df):
         # drop the one-hot column -1, representing a non-numeric reference or a reference not present
         # in the clickout impressions
-        if 'pricepos_-1' in df.columns:
-            df = df.drop('pricepos_-1', axis=1)
+        if 'price_pos_-1' in df.columns:
+            df = df.drop('price_pos_-1', axis=1)
         return df
 
     def join_to(self, df, one_hot=True):
