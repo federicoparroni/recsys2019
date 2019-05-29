@@ -70,8 +70,8 @@ def create_dataset(mode, cluster):
                       StarsRatingsFirstImpression,
                       ActionsCountClassifier,
                       FirstImpressionPriceInfo,
-                      #SessionActionNumRefDiffFromImpressions,
-                      #TimingFromLastInteractionFirstImpression,
+                      SessionActionNumRefDiffFromImpressions,
+                      TimingFromLastInteractionFirstImpression,
                       #DayOfWeekAndMomentInDay
                       ]
 
