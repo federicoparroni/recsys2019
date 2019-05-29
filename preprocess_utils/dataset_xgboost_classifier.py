@@ -24,6 +24,9 @@ from extract_features.time_from_last_action_before_clk import TimeFromLastAction
 from extract_features.classifier.popularity_clickout_first_impression import PopularityClickoutFirstImpression
 from extract_features.classifier.stars_ratings_first_impression import StarsRatingsFirstImpression
 from extract_features.frenzy_factor_consecutive_steps import FrenzyFactorSession
+from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
+from extract_features.classifier.timing_from_last_interaction_first_impression import TimingFromLastInteractionFirstImpression
+from extract_features.day_moment_in_day import DayOfWeekAndMomentInDay
 from utils.check_folder import check_folder
 
 
@@ -53,9 +56,8 @@ def create_dataset(mode, cluster):
                       NumInteractionsWithFirstImpression,
                       FirstImpressionPrice,
                       LastActionInvolvingFirstImpressions,
-                      NumInteractionsWithFirstImpression,
                       NumImpressionsInClickout,
-                      Platform,
+                      #Platform,
                       RNNOutput,
                       PriceStats,
                       PopularityFirstImpression,
@@ -66,7 +68,10 @@ def create_dataset(mode, cluster):
                       FrenzyFactorSession,
                       StarsRatingsFirstImpression,
                       ActionsCountClassifier,
-                      FirstImpressionPriceInfo
+                      FirstImpressionPriceInfo,
+                      SessionActionNumRefDiffFromImpressions,
+                      TimingFromLastInteractionFirstImpression,
+                      #DayOfWeekAndMomentInDay
                       ]
 
     train_df, test_df = merge_features_classifier(mode, cluster, features_array, LabelClassification)

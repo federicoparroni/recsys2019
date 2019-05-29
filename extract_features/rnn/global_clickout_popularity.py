@@ -57,7 +57,7 @@ class GlobalClickoutPopularity(FeatureBase):
         res_df = res_df.merge(feature_df, how='left', left_on='reference', right_on='item_id').set_index('index')
         res_df = res_df.drop('item_id', axis=1)
         res_df['reference'] = df['reference']
-        return res_df.fillna(0).astype({'glob_clickout_popularity': 'int'})
+        return res_df.fillna(0) #.astype({'glob_clickout_popularity': 'int'})
 
 
 if __name__ == '__main__':
