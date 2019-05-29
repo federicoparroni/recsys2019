@@ -489,8 +489,8 @@ if __name__ == "__main__":
             return params
 
         params_range_dict={
-        'train_batch_size_choice':[16, 32, 64, 128, 256, 512],
-        'learning_rate_choice ':[0.01, 0.03, 0.08, 0.1, 0.15, 0.2],
+        'train_batch_size_choice':[16, 32, 64, 128],
+        'learning_rate_choice ':[0.01, 0.03, 0.08, 0.1, 0.15],
         'dropout_rate_choice ':[0.1, 0.2, 0.3, 0.4, 0.5],
         'hidden_layer_dims_choice':[['512', '256', '128'],
                                     ['512', '256', '128', '64'],
@@ -499,7 +499,7 @@ if __name__ == "__main__":
                                     ['256', '128', '128'],
                                     ['128', '64'],
                                     ['128', '128']],
-        'group_size_choice ':[1, 2, 5, 10, 20, 25],
+        'group_size_choice ':[1, 2, 5, 25],
         'loss_choice ':['pairwise_hinge_loss', 'pairwise_logistic_loss', 'pairwise_soft_zero_one_loss',
                 'softmax_loss', 'approx_ndcg_loss'],
         }
