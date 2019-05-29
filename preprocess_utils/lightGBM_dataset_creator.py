@@ -36,8 +36,6 @@ from extract_features.timing_from_last_interaction_impression import TimingFromL
 from extract_features.weights_class import WeightsClass
 from extract_features.impression_rating import ImpressionRating
 from extract_features.time_per_impression import TimeImpressionLabel
-from extract_features.session_impression_count_numeric import SessionsImpressionsCountNumeric
-from extract_features.action_type_bef_click import ActionTypeBefClick
 from extract_features.change_impression_order_position_in_session import ChangeImpressionOrderPositionInSession
 from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
 from extract_features.top_pop_per_impression import TopPopPerImpression
@@ -173,17 +171,17 @@ def create_lightGBM_dataset(mode, cluster, features_array, dataset_name):
 
 
 if __name__ == '__main__':
-    features_array = [ImpressionRatingNumeric, ActionsInvolvingImpressionSession,
-                      ImpressionLabel, ImpressionPriceInfoSession,
+
+    features_array = [ImpressionLabel, ImpressionPriceInfoSession, ImpressionRatingNumeric,
                       TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
                       ImpressionPositionSession, LastInteractionInvolvingImpression,
                       SessionDevice, SessionSortOrderWhenClickout, MeanPriceClickout,
                       PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
-                      PercClickPerImpressions, LocationReferencePercentageOfInteractions,
-                      LocationReferencePercentageOfClickouts,PlatformReferencePercentageOfClickouts,
-                      PlatformReferencePercentageOfInteractions, TimesImpressionAppearedInClickoutsSession,
-                      ChangeImpressionOrderPositionInSession,ActionTypeBefClick, TopPopPerImpression,
-                      TopPopInteractionClickoutPerImpression]
+                      TimesImpressionAppearedInClickoutsSession,
+                      TopPopPerImpression, TopPopInteractionClickoutPerImpression,
+                      PlatformReferencePercentageOfClickouts, PlatformReferencePercentageOfInteractions,
+                      LocationReferencePercentageOfClickouts, LocationReferencePercentageOfInteractions,
+                      PercClickPerImpressions]
     """
     features_array = [ImpressionRatingNumeric, ActionsInvolvingImpressionSession,
                       ImpressionLabel, ImpressionPriceInfoSession,
@@ -192,11 +190,12 @@ if __name__ == '__main__':
                       SessionDevice, SessionSortOrderWhenClickout, MeanPriceClickout,
                       PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
                       TimesImpressionAppearedInClickoutsSession, ChangeImpressionOrderPositionInSession,
-                      ActionTypeBefClick, TopPopPerImpression, TopPopInteractionClickoutPerImpression,
+                      TopPopPerImpression, TopPopInteractionClickoutPerImpression,
                       PlatformReferencePercentageOfClickouts, PlatformReferencePercentageOfInteractions,
                       LocationReferencePercentageOfClickouts, LocationReferencePercentageOfInteractions,
-                      PercClickPerImpressions, CitySession, PlatformSession, PastFutureSessionFeatures]
+                      PercClickPerImpressions, PlatformSession]
     """
+
 
 #PlatformSession, CitySession
 

@@ -98,7 +98,7 @@ class lightGBM(RecommenderBase):
 
         self.model.fit(self.x_train, self.y_train, group=self.groups_train, eval_set=[(self.x_vali, self.y_vali)],
                   eval_group=[self.groups_vali], eval_metric=_mrr, eval_names='validation_set',
-                  early_stopping_rounds=200, verbose=False, callbacks=[eval_callback, _hera_callback])
+                  early_stopping_rounds=200, verbose=1, callbacks=[eval_callback, _hera_callback])
         # save the model parameters
         time = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M")
         check_folder(f'{self._BASE_PATH}/{time}')
@@ -108,6 +108,10 @@ class lightGBM(RecommenderBase):
         # return negative mrr
         return self.eval_res['validation_set']['MRR'][self.model.booster_.best_iteration - 1]
 
+    def plot_features_importance(self):
+        plot = lgb.plot_importance(self.model.booster_)
+        plt.subplot(plot)
+        plt.show()
 
     def get_scores_batch(self):
         print('loading target indices')
@@ -156,18 +160,24 @@ class lightGBM(RecommenderBase):
     @staticmethod
     def get_optimize_params(mode, cluster):
         space = [
-            Real(0.05, 0.2, name='learning_rate'),
+            Real(0.01, 0.2, name='learning_rate'),
             Integer(6, 80, name='num_leaves'),
             Real(0, 0.5, name='reg_lambda'),
             Real(0, 0.5, name='reg_alpha'),
+            Real(0, 0.1, name='min_split_gain'),
+            Real(0, 0.1, name='min_child_weight'),
+            Integer(10, 30000, name='min_child_samples'),
         ]
 
         def get_mrr(arg_list):
 
-            learning_rate, num_leaves, reg_lambda, reg_alpha = arg_list
+            learning_rate, num_leaves, reg_lambda, reg_alpha, min_split_gain,\
+                min_child_weight, min_child_samples = arg_list
             Hera.send_message(f'Starting a train of bayesyan search with following params:\n '
                               f'learning_rate:{learning_rate}, num_leaves:{num_leaves}, '
-                              f'reg_lambda{reg_lambda}, reg_alpha:{reg_alpha}', account='edo')
+                              f'reg_lambda{reg_lambda}, reg_alpha:{reg_alpha}, min_split_gain:{min_split_gain}'
+                              f'min_child_weight:{min_child_weight}, min_child_samples:{min_child_samples},'
+                              , account='edo')
             params_dict = {
                 'boosting_type': 'gbdt',
                 'num_leaves': num_leaves,
@@ -176,9 +186,9 @@ class lightGBM(RecommenderBase):
                 'learning_rate': learning_rate,
                 'subsample_for_bin': 200000,
                 'class_weights': None,
-                'min_split_gain': 0.0,
-                'min_child_weight': 0.01,
-                'min_child_samples': 20,
+                'min_split_gain': min_split_gain,
+                'min_child_weight': min_child_weight,
+                'min_child_samples': min_child_samples,
                 'subsample': 1,
                 'subsample_freq': 0,
                 'colsample_bytree': 1,
@@ -191,12 +201,13 @@ class lightGBM(RecommenderBase):
                 'metric': 'None',
                 'print_every': 100,
             }
-            model=lightGBM(mode=mode, cluster=cluster, dataset_name='dataset1', params_dict=params_dict)
+            model=lightGBM(mode=mode, cluster=cluster, dataset_name='prova', params_dict=params_dict)
             mrr = model.validate()
             Hera.send_message(f'MRR: {mrr}\n'
                               f'params:\n'
                               f'learning_rate:{learning_rate}, num_leaves:{num_leaves}, '
-                              f'reg_lambda{reg_lambda}, reg_alpha:{reg_alpha}', account='edo')
+                              f'reg_lambda{reg_lambda}, reg_alpha:{reg_alpha} , min_split_gain:{min_split_gain}'
+                              f'min_child_weight:{min_child_weight}, min_child_samples:{min_child_samples}', account='edo')
             return -mrr
         return space, get_mrr
 
@@ -205,18 +216,18 @@ class lightGBM(RecommenderBase):
 if __name__ == '__main__':
     params_dict = {
         'boosting_type':'gbdt',
-        'num_leaves': 31,
+        'num_leaves': 30,
         'max_depth': -1,
         'learning_rate': 0.1,
-        'n_estimators': 100,
+        'n_estimators': 1000,
         'subsample_for_bin': 200000,
         'class_weights': None,
         'min_split_gain': 0.0,
-        'min_child_weight': 0.001,
-        'min_child_samples': 20,
+        'min_child_weight': 0.0,#0.01
+        'min_child_samples': 10000,#20
         'subsample':1.0,
         'subsample_freq': 0,
-        'colsample_bytree':1.0,
+        'colsample_bytree':1,#1
         'reg_alpha': 0.0,
         'reg_lambda': 0.0,
         'random_state': None,
@@ -226,9 +237,9 @@ if __name__ == '__main__':
         'metric': 'None',
         'print_every': 100,
     }
-    model = lightGBM(mode='local', cluster='no_cluster', dataset_name='dataset1', params_dict=params_dict)
+    model = lightGBM(mode='small', cluster='no_cluster', dataset_name='prova', params_dict=params_dict)
     model.validate()
-
+    model.plot_features_importance()
 
 
 
