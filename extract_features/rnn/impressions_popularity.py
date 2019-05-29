@@ -73,7 +73,7 @@ class ImpressionsPopularity(FeatureBase):
         feature_df = self.read_feature(one_hot=one_hot)
         feature_cols = feature_df.columns
         res_df = df.merge(feature_df, how='left', left_index=True, right_index=True)
-        res_df[feature_cols] = res_df[feature_cols].fillna(0).astype('int')
+        res_df[feature_cols] = res_df[feature_cols].fillna(0) #.astype('int')
         return res_df
 
 

@@ -44,7 +44,7 @@ class InteractionDuration(FeatureBase):
         """ Join this feature to the specified dataframe """
         feature_df = self.read_feature().set_index('index')
         res_df = df.merge(feature_df, how='left', left_index=True, right_index=True)
-        res_df['duration'] = res_df['duration'].fillna(0).astype('int')
+        res_df['duration'] = res_df['duration'].fillna(0) #.astype('int')
         return res_df
 
 

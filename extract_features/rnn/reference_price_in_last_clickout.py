@@ -4,6 +4,7 @@ sys.path.append(os.getcwd())
 
 from extract_features.feature_base import FeatureBase
 import data
+import numpy as np
 import pandas as pd
 from preprocess_utils.last_clickout_indices import find as find_last_clickout_indices
 from tqdm.auto import tqdm
@@ -33,15 +34,19 @@ class ReferencePriceInLastClickout(FeatureBase):
         # find the last clickout rows
         last_clickout_idxs = find_last_clickout_indices(df)
         clickout_rows = df.loc[last_clickout_idxs, ['user_id','session_id','action_type','impressions','prices']]
-        clickout_rows['impression_list'] = clickout_rows.impressions.str.split('|')
-        clickout_rows['price_list'] = clickout_rows.prices.str.split('|')
+        clickout_rows['impression_list'] = clickout_rows.impressions.str.split('|').apply(lambda x: list(map(int, x)))
+        clickout_rows['price_list'] = clickout_rows.prices.str.split('|').apply(lambda x: list(map(int, x)))
         # find the interactions with numeric reference
         reference_rows = df[['user_id','session_id','reference','action_type', 'index']]
-        reference_rows = reference_rows[df.reference.str.isnumeric() == True]
+        reference_rows = reference_rows[df.reference.str.isnumeric() == True].astype({'reference':'int'})
         # skip last clickouts
         reference_rows = reference_rows.loc[~reference_rows.index.isin(last_clickout_idxs)]
         reference_rows = reference_rows.drop('action_type',axis=1)
-        reference_rows['price'] = 0
+        # store the resulting series of prices
+        price_series = np.ones(reference_rows.shape[0], dtype=float) * (-1)
+
+        min_price = 999999
+        max_price = -999999
 
         # iterate over the sorted reference_rows and clickout_rows
         j = 0
@@ -49,7 +54,10 @@ class ReferencePriceInLastClickout(FeatureBase):
         ckidx = clickout_indices[j]
         next_clickout_user_id = clickout_rows.at[ckidx, 'user_id']
         next_clickout_sess_id = clickout_rows.at[ckidx, 'session_id']
-        for idx,row in tqdm(reference_rows.iterrows()):
+        k = 0
+        for row in tqdm(zip(reference_rows.index, reference_rows.user_id, reference_rows.session_id, 
+                            reference_rows.reference)):
+            idx = row[0]
             # if the current index is over the last clickout, break
             if idx >= clickout_indices[-1]:
                 break
@@ -61,13 +69,34 @@ class ReferencePriceInLastClickout(FeatureBase):
                 next_clickout_sess_id = clickout_rows.at[ckidx, 'session_id']
 
             # check if row and next_clickout are in the same session
-            if row.user_id == next_clickout_user_id and row.session_id == next_clickout_sess_id:
-                try:
-                    ref_idx = clickout_rows.at[ckidx, 'impression_list'].index(row.reference)
-                    reference_rows.at[idx, 'price'] = clickout_rows.at[ckidx, 'price_list'][ref_idx]
-                except:
-                    pass
+            if row[1] == next_clickout_user_id and row[2] == next_clickout_sess_id:
+                impress = clickout_rows.at[ckidx, 'impression_list']
+                row_reference = row[3]
+                if row_reference in impress:
+                    ref_idx = impress.index(row_reference)
+                    price_list = clickout_rows.at[ckidx, 'price_list']
+                    ref_price = price_list[ref_idx]
+                    price_series[k] = ref_price
+                    # update min and max
+                    min_price = min(min_price, min(price_list))
+                    max_price = max(max_price, max(price_list))
+                    
+            k += 1
         
+        # mask not available prices
+        mask_na = price_series != -1
+        
+        # log and scaling
+        price_series[mask_na] = np.log(price_series[mask_na] +1)
+        min_price = np.log(min_price +1)
+        max_price = np.log(max_price +1)
+        # scale min-max
+        price_series[mask_na] = (price_series[mask_na] - min_price) / (max_price - min_price)
+
+        # reset to 0 not available prices
+        price_series[~mask_na] = 0
+        
+        reference_rows['price'] = price_series
         return reference_rows.drop(['user_id','session_id','reference'], axis=1).set_index('index')
 
 
@@ -75,7 +104,7 @@ class ReferencePriceInLastClickout(FeatureBase):
         """ Join this feature to the specified dataframe """
         feature_df = self.read_feature()
         res_df = df.merge(feature_df, how='left', left_index=True, right_index=True)
-        res_df['price'] = res_df.price.fillna(0).astype('int')
+        res_df['price'] = res_df.price.fillna(0) #.astype('int')
         return res_df
 
 
