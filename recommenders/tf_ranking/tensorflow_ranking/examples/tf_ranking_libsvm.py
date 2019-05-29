@@ -475,7 +475,7 @@ if __name__ == "__main__":
         print(f'num_features is: {num_features}')
     flags.DEFINE_integer("num_features", num_features, "Number of features per document.")
     flags.DEFINE_integer("list_size", 25, "List size used for training.")
-    flags.DEFINE_integer('save_checkpoints_steps', 100,
+    flags.DEFINE_integer('save_checkpoints_steps', 5000,
                          "number of steps after which save the checkpoint")
 
     print('1) random validation\n'
