@@ -66,8 +66,13 @@ class PlatformFeaturesSimilarity(FeatureBase):
             df_clicks_properties_per_plat = df_clicks_properties[df_clicks_properties.platform == p]
             df_clicks_properties_per_plat = df_clicks_properties_per_plat.drop(['item_id','platform'], axis=1)
             df_sum = df_clicks_properties_per_plat.sum()
-            df_sum = df_sum.apply(lambda x: x/df_clicks_properties_per_plat.shape[0])
-            plat_feature = df_sum.values
+            # questo if serve perché ci sono plat che non compaiono nei clickout
+            # per quelle metto un vettore di 0
+            if df_clicks_properties_per_plat.shape[0] !=0:
+                df_sum = df_sum.apply(lambda x: x/df_clicks_properties_per_plat.shape[0])
+                plat_feature = df_sum.values
+            else:
+                plat_feature = np.asarray([0]*df_clicks_properties_per_plat.shape[1])
             new_col.append(plat_feature)
         df_plat_feature['properties_array'] = new_col
 
