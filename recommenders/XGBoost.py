@@ -216,8 +216,9 @@ def callbak(obj):
     global _best_so_far
     if -obj[6][1][1] > _best_so_far:
         _best_so_far = -obj[6][1][1]
-        HERA.send_message('xgboost iteration {} mrr is {}'. format(
-            obj.iteration, _best_so_far))
+        if _best_so_far > 0.67:
+            HERA.send_message('xgboost iteration {} mrr is {}'. format(
+                obj.iteration, _best_so_far))
         print('xgboost iteration {} mrr is {}'. format(obj.iteration, _best_so_far))
 
 

@@ -32,19 +32,20 @@ class XGBoostWrapperClassifier(RecommenderBase):
         self.fixed_params_dict = {
             'mode': mode,
             'cluster': cluster,
-            'min_child_weight': 1,
-            'subsample': 1,
-            'colsample_bytree': 1,
-            'scale_pos_weight': 1.2
+            'scale_pos_weight': 1.2,
+            'reg_alpha': 0,
+            'reg_lambda': 0,
         }
 
         # create hyperparameters dictionary
-        self.hyperparameters_dict = {'learning_rate': (0.001, 0.5),
-                                     'max_depth': (2, 8),
-                                     'n_estimators': (200, 800),
-                                     'reg_lambda': (0, 1),
-                                     'reg_alpha': (0, 1),
-                                     }
+        self.hyperparameters_dict = {
+                                    'min_child_weight' : (1, 10),
+                                    'learning_rate': (0.001, 0.5),
+                                    'max_depth': (3, 5),
+                                     'n_estimators': (500, 800),
+                                    'colsample_bytree': (0.6, 1),
+                                    'subsample':(0.6, 1)
+        }
 
     def fit(self):
         train_df = data.dataset_xgboost_classifier_train(self.mode, self.cluster)
