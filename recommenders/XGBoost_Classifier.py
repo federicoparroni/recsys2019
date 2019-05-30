@@ -15,7 +15,7 @@ tqdm.pandas()
 
 class XGBoostWrapperClassifier(RecommenderBase):
 
-    def __init__(self, mode, cluster='no_cluster', learning_rate=1, min_child_weight=1, n_estimators=100, max_depth=3,
+    def __init__(self, mode, cluster='no_cluster', learning_rate=0.1, min_child_weight=1, n_estimators=600, max_depth=5,
                  subsample=1, colsample_bytree=1, reg_lambda=1, reg_alpha=0, scale_pos_weight=1):
         name = 'xgboost_classifier'
         super(XGBoostWrapperClassifier, self).__init__(
