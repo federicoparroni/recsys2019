@@ -1,5 +1,6 @@
 import math
 import xgboost as xgb
+from matplotlib import pyplot
 from sklearn.metrics import classification_report
 from sklearn.model_selection import train_test_split
 import utils.telegram_bot as HERA
@@ -76,12 +77,16 @@ class XGBoostWrapperClassifier(RecommenderBase):
         Y_test, Y_pred = self.recommend_batch()
         report = classification_report(Y_test , Y_pred)
         print(report)
+
         if send_MRR_on_telegram:
             HERA.send_message('evaluating classifier {} on {}.\n Classification report is: \n {}\n\n'.format(self.name, self.mode, report))
 
         return report
 
     def extract_feature(self):
+        self.fit()
+        xgb.plot_importance(self.xgb, max_num_features=30)
+        pyplot.savefig('feature_importance.png')
         test_df = data.dataset_xgboost_classifier_test(self.mode, self.cluster)
         train_df = data.dataset_xgboost_classifier_train(self.mode, self.cluster)
         temp = pd.concat([train_df, test_df])
@@ -105,5 +110,6 @@ if __name__ == '__main__':
     from utils.menu import mode_selection
     mode = mode_selection()
     model = XGBoostWrapperClassifier(mode=mode, cluster='no_cluster')
-    model.evaluate(send_MRR_on_telegram=True)
+    #model.evaluate(send_MRR_on_telegram=True)
+    model.extract_feature()
     #model.run()
