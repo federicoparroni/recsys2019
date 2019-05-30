@@ -110,6 +110,6 @@ if __name__ == '__main__':
     from utils.menu import mode_selection
     mode = mode_selection()
     model = XGBoostWrapperClassifier(mode=mode, cluster='no_cluster')
-    #model.evaluate(send_MRR_on_telegram=True)
-    model.extract_feature()
+    model.evaluate(send_MRR_on_telegram=True)
+    #model.extract_feature()
     #model.run()
