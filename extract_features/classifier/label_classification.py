@@ -35,7 +35,7 @@ class LabelClassification(FeatureBase):
             print('reinserting clickout')
             test = test.groupby(['session_id', 'user_id']).progress_apply(_reinsert_clickout)
         df = pd.concat([train, test])
-        df = df[(df.action_type == "clickout item")]
+        df = df[(df.action_type == "clickout item") & (df.reference.notnull())]
         df = df.drop_duplicates("session_id", keep="last")
         labels = list()
 
