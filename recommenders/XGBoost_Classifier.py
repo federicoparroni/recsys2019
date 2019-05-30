@@ -98,6 +98,7 @@ class XGBoostWrapperClassifier(RecommenderBase):
         temp["positive_score"] = pos
         temp["negative_score"] = neg
         temp = temp[["user_id", "session_id", "positive_score", "negative_score"]]
+        temp.to_csv("classifier_output.csv")
         return temp
 
 if __name__ == '__main__':
