@@ -45,9 +45,6 @@ class ReferencePriceInLastClickout(FeatureBase):
         # store the resulting series of prices
         price_series = np.ones(reference_rows.shape[0], dtype=float) * (-1)
 
-        min_price = 999999
-        max_price = -999999
-
         # iterate over the sorted reference_rows and clickout_rows
         j = 0
         clickout_indices = clickout_rows.index.values
@@ -78,18 +75,21 @@ class ReferencePriceInLastClickout(FeatureBase):
                     ref_price = price_list[ref_idx]
                     price_series[k] = ref_price
                     # update min and max
-                    min_price = min(min_price, min(price_list))
-                    max_price = max(max_price, max(price_list))
-                    
+                    # min_price = min(min_price, min(price_list))
+                    # max_price = max(max_price, max(price_list))  
             k += 1
+
+        # find max and min prices, expanding the prices as vector and then find max and min
+        temp = df['prices'].dropna().str.split('|', expand=True).astype('float')
+        max_price = temp.max().max()
+        min_price = temp.min().min()
         
         # mask not available prices
-        mask_na = price_series != -1
-        
+        mask_na = price_series > 0
         # log and scaling
-        price_series[mask_na] = np.log(price_series[mask_na] +1)
-        min_price = np.log(min_price +1)
-        max_price = np.log(max_price +1)
+        price_series[mask_na] = np.log(price_series[mask_na])
+        min_price = np.log(min_price)
+        max_price = np.log(max_price)
         # scale min-max
         price_series[mask_na] = (price_series[mask_na] - min_price) / (max_price - min_price)
 
