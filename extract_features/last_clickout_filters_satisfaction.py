@@ -28,8 +28,8 @@ class LastClickoutFiltersSatisfaction(FeatureBase):
     def extract_feature(self):
         tqdm.pandas()
 
-        tr = data.train_df('small')
-        te = data.test_df('small')
+        tr = data.train_df(self.mode)
+        te = data.test_df(self.mode)
         df = pd.concat([tr, te])
         accom_df = data.accomodations_one_hot()
 
