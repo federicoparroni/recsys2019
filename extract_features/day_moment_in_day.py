@@ -2,6 +2,7 @@ import pandas as pd
 from tqdm.auto import tqdm
 tqdm.pandas()
 from extract_features.feature_base import FeatureBase
+from preprocess_utils.last_clickout_indices import find
 import data
 import numpy as np
 import pytz
@@ -10,11 +11,19 @@ import pytz
 class DayOfWeekAndMomentInDay(FeatureBase):
 
     """
-    for every user_id and session_id iteration the day of the week and the moment in the day.
-    the timestamp is shifted in the timezone of the platform and SDT has been considered for Austral Emisphere platforms
-    since all timestamps are in November.
+    for every user_id and session_id the day of the week and the moment in the day of last clickout .
+    the timestamp is shifted in the timezone of the platform.
+    SDT has been considered for Austral Emisphere platforms since all timestamps are in November.
 
     user_id | session_id | day | moment
+
+    decisions:
+        RU --> take Moscow timezone
+        AU --> take Adelaide timezone
+        CA --> take Winnipeg timezone
+        US --> take Oklahoma City timezone
+        BR --> take Rio de Janeiro timezone
+
 
     day : The day of the week with Monday=0, Sunday=6
     moment: [00.00 : 8:00) --> N  (night)
@@ -92,7 +101,8 @@ class DayOfWeekAndMomentInDay(FeatureBase):
 
         train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)
-        df = pd.concat([train, test])
+        df_indices = find(pd.concat([train, test]))
+        df = pd.concat([train, test]).loc[df_indices]
 
         df['day'] = func(df)
         df['moment'] = df['day'].progress_apply(lambda x: get_moment_in_the_day(x))
