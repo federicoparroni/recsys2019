@@ -6,13 +6,11 @@ from extract_features.feature_base import FeatureBase
 import data
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import MinMaxScaler
 
 class GlobalClickoutPopularity(FeatureBase):
 
     """
-    Compute the popularity of a reference by means of the number of times it has been interacted (in whatever action).
-    The popularity is calculated in the train df.
+    Compute the popularity of a reference by means of the number of times it has been interacted (in clickouts).
     | item_id | glob_clickout_popularity
     popularity is a positive number
     """
@@ -25,23 +23,22 @@ class GlobalClickoutPopularity(FeatureBase):
 
 
     def extract_feature(self):
-        # train = data.train_df(mode=self.mode, cluster=self.cluster)
-        # test = data.test_df(mode=self.mode, cluster=self.cluster)
-        # df = pd.concat([train, test])
-        # del train
-        # del test
         df = data.full_df()
 
         # count the numeric references (skipping NaN in the test)
         res_df = df[(df.action_type == 'clickout item') & (df.reference.str.isnumeric() == True)]
-        res_df = res_df.astype({'reference':'int'})
-        res_df = res_df[['reference','frequence']].groupby('reference').sum()
+        res_df = res_df[['reference','frequence']].astype('int').groupby('reference').sum()
         res_df['frequence'] -= 1
-        res_df['frequence'].clip(lower=0, inplace=True)
+        res_df = res_df[res_df['frequence'] > 0]
 
         # scale log and min-max
-        scaler = MinMaxScaler()
-        res_df['frequence'] = scaler.fit_transform( np.log(res_df['frequence'].values+1).reshape((-1,1)) ).flatten()
+        min_pop = res_df['frequence'].values.min()
+        max_pop = res_df['frequence'].values.max()
+
+        min_pop = np.log(min_pop +1)
+        max_pop = np.log(max_pop +1)
+
+        res_df['frequence'] = (np.log(res_df['frequence'].values +1) - min_pop) / (max_pop - min_pop)
 
         res_df = res_df.reset_index()
         return res_df.rename(columns={'reference': 'item_id', 'frequence': 'glob_clickout_popularity'})

@@ -23,7 +23,6 @@ class ReferencePricePositionInLastClickout(FeatureBase):
         columns_to_onehot = [('price_pos', 'single')]
 
         super().__init__(name=name, mode='full', columns_to_onehot=columns_to_onehot, save_index=True)
-        self.one_hot_prefix = 'pricepos'
 
 
     def extract_feature(self):

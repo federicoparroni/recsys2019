@@ -39,7 +39,6 @@ class FeatureBase(ABC):
         self.name = name
         self.columns_to_onehot = columns_to_onehot
         self.save_index = save_index
-        self.one_hot_prefix = self.name
 
     @abstractmethod
     def extract_feature(self):
@@ -109,7 +108,8 @@ class FeatureBase(ABC):
             for t in self.columns_to_onehot:
                 col = df[t[0]]
                 if t[1] == 'single':
-                    oh = pd.get_dummies(col, prefix=t[0])
+                    one_hot_prefix = t[2] if len(t) == 3 else t[0]
+                    oh = pd.get_dummies(col, prefix=one_hot_prefix)
                 elif t[1] == 'binary':
                     ce = BinaryEncoder(cols=t[0])
                     oh = ce.fit_transform(col)
@@ -120,7 +120,7 @@ class FeatureBase(ABC):
                     oh = mlb.fit_transform(mid)
                     oh = pd.DataFrame(oh, columns=mlb.classes_)
                     oh = oh.astype(np.uint8)
-                    oh = oh.add_prefix(t[0])
+                    oh = oh.add_prefix(one_hot_prefix)
 
                 df = df.drop([t[0]], axis=1)
                 df = pd.concat([df, oh], axis=1)
