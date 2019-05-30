@@ -47,6 +47,9 @@ from extract_features.platform_reference_percentage_of_interactions import Platf
 from extract_features.platform_session import PlatformSession
 from extract_features.time_per_impression import TimeImpressionLabel
 from extract_features.user_2_item import User2Item
+from extract_features.platform_features_similarty import PlatformFeaturesSimilarity
+from extract_features.day_moment_in_day import DayOfWeekAndMomentInDay
+from extract_features.last_clickout_filters_satisfaction import LastClickoutFiltersSatisfaction
 from utils.menu import single_choice
 from preprocess_utils.merge_features import merge_features
 from os.path import join
@@ -85,7 +88,8 @@ def create_dataset(mode, cluster, class_weights=False):
     # training
     kind = single_choice(['1', '2'], ['kind1', 'kind2'])
     if kind == 'kind1':
-        features_array = [FrenzyFactorSession, ChangeImpressionOrderPositionInSession, 
+        features_array = [DayOfWeekAndMomentInDay, LastClickoutFiltersSatisfaction,
+                          FrenzyFactorSession, ChangeImpressionOrderPositionInSession, 
                           User2Item, PlatformSession, PlatformReferencePercentageOfInteractions, 
                           PercClickPerImpressions, PlatformReferencePercentageOfClickouts,
                           NumImpressionsInClickout, NumTimesItemImpressed,
