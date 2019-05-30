@@ -45,8 +45,12 @@ from extract_features.city_session import CitySession
 from extract_features.perc_click_per_impressions import PercClickPerImpressions
 from extract_features.platform_session import PlatformSession
 from extract_features.past_future_session_features import PastFutureSessionFeatures
-
-
+from extract_features.user_2_item import User2Item
+from extract_features.num_impressions_in_clickout import NumImpressionsInClickout
+from extract_features.num_times_item_impressed import NumTimesItemImpressed
+from extract_features.last_steps_before_clickout import StepsBeforeLastClickout
+from extract_features.impression_stars_numeric import ImpressionStarsNumeric
+from extract_features.classifier.last_action_before_clickout import LastActionBeforeClickout
 
 
 def dump_svmlight(df, save_path, save_num_features_path):
@@ -156,14 +160,19 @@ def create_dataset(mode, cluster, features_array, dataset_name):
 
 
 if __name__ == '__main__':
-    features_array = [ChangeImpressionOrderPositionInSession, TopPopPerImpression, TopPopInteractionClickoutPerImpression,
-                      LocationReferencePercentageOfClickouts, LocationReferencePercentageOfInteractions, PlatformReferencePercentageOfInteractions,
-                      PlatformReferencePercentageOfClickouts, CitySession,
-                      PlatformSession, FrenzyFactorSession, ImpressionRatingNumeric, ActionsInvolvingImpressionSession, ImpressionLabel,
-                      ImpressionPriceInfoSession, SessionActionNumRefDiffFromImpressions,TimingFromLastInteractionImpression,
-                      TimesUserInteractedWithImpression, ImpressionPositionSession, LastInteractionInvolvingImpression, SessionDevice,
-                      SessionSortOrderWhenClickout, MeanPriceClickout, PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
-                      TimesImpressionAppearedInClickoutsSession]
+    features_array = [
+        User2Item, PlatformSession, PlatformReferencePercentageOfInteractions,
+        PercClickPerImpressions, PlatformReferencePercentageOfClickouts,
+        NumImpressionsInClickout, NumTimesItemImpressed,
+        LocationReferencePercentageOfClickouts, LocationReferencePercentageOfInteractions,
+        StepsBeforeLastClickout, ImpressionStarsNumeric, LastActionBeforeClickout,
+        TopPopPerImpression, TopPopInteractionClickoutPerImpression,
+        ImpressionRatingNumeric, ImpressionLabel, ImpressionPriceInfoSession,
+        TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
+        ImpressionPositionSession, LastInteractionInvolvingImpression,
+        SessionDevice, SessionSortOrderWhenClickout, MeanPriceClickout,
+        PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
+        TimesImpressionAppearedInClickoutsSession]
 
     """
     features_array = [ActionsInvolvingImpressionSession, ImpressionLabel, ImpressionPriceInfoSession,

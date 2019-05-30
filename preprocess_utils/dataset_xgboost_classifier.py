@@ -56,7 +56,6 @@ def create_dataset(mode, cluster):
                       NumInteractionsWithFirstImpression,
                       FirstImpressionPrice,
                       LastActionInvolvingFirstImpressions,
-                      NumInteractionsWithFirstImpression,
                       NumImpressionsInClickout,
                       #Platform,
                       RNNOutput,
@@ -70,8 +69,8 @@ def create_dataset(mode, cluster):
                       StarsRatingsFirstImpression,
                       ActionsCountClassifier,
                       FirstImpressionPriceInfo,
-                      #SessionActionNumRefDiffFromImpressions,
-                      #TimingFromLastInteractionFirstImpression,
+                      SessionActionNumRefDiffFromImpressions,
+                      TimingFromLastInteractionFirstImpression,
                       #DayOfWeekAndMomentInDay
                       ]
 
