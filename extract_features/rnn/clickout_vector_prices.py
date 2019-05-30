@@ -37,15 +37,19 @@ class ClickoutVectorPrices(FeatureBase):
         expanded_prices = res_df.prices.str.split('|', expand=True).fillna(0).astype('int')
 
         # scale log
-        log_prices = np.log(expanded_prices.values + 1)
-        # scale min-max
-        max_price = np.max(log_prices)
-        min_price = np.min(log_prices)
-        log_prices = (log_prices - min_price) / (max_price - min_price)
+        mask_non_zero = expanded_prices > 0
+        max_price = max(np.max(expanded_prices[mask_non_zero]))
+        min_price = min(np.min(expanded_prices[mask_non_zero]))
+
+        max_price = np.log(max_price)
+        min_price = np.log(min_price)
+
+        log_prices = np.log(expanded_prices[mask_non_zero])
+        log_prices = ((log_prices - min_price) / (max_price - min_price)).fillna(0)
 
         # add the prices to the resulting df
         for i in range(25):
-            res_df['price_{}'.format(i)] = log_prices[:,i]
+            res_df['price_{}'.format(i)] = log_prices.loc[:, i]
         
         return res_df.drop(['user_id','session_id','prices'], axis=1)
 

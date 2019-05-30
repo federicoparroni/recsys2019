@@ -76,6 +76,6 @@ class RandomValidator:
 
 if __name__ == "__main__":
     m = XGBoostWrapperSmartValidation(mode='local', ask_to_load=False)
-    a = XGBoostWrapper(mode='local')
+    a = XGBoostWrapper(mode='full')
     v = RandomValidator(m, automatic_export=True, reference_object_for_sub_exporter=a)
     v.validate(100)

@@ -27,7 +27,6 @@ from extract_features.timing_from_last_interaction_impression import TimingFromL
 from extract_features.weights_class import WeightsClass
 from extract_features.impression_rating import ImpressionRating
 from extract_features.time_per_impression import TimeImpressionLabel
-from extract_features.session_impression_count_numeric import SessionsImpressionsCountNumeric
 from extract_features.change_impression_order_position_in_session import ChangeImpressionOrderPositionInSession
 from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
 from extract_features.top_pop_per_impression import TopPopPerImpression
@@ -48,6 +47,9 @@ from extract_features.platform_reference_percentage_of_interactions import Platf
 from extract_features.platform_session import PlatformSession
 from extract_features.time_per_impression import TimeImpressionLabel
 from extract_features.user_2_item import User2Item
+from extract_features.platform_features_similarty import PlatformFeaturesSimilarity
+from extract_features.day_moment_in_day import DayOfWeekAndMomentInDay
+from extract_features.last_clickout_filters_satisfaction import LastClickoutFiltersSatisfaction
 from utils.menu import single_choice
 from preprocess_utils.merge_features import merge_features
 from os.path import join
@@ -86,9 +88,11 @@ def create_dataset(mode, cluster, class_weights=False):
     # training
     kind = single_choice(['1', '2'], ['kind1', 'kind2'])
     if kind == 'kind1':
-        features_array = [User2Item, TimeImpressionLabel, PlatformSession, PlatformReferencePercentageOfInteractions, 
+        features_array = [DayOfWeekAndMomentInDay, LastClickoutFiltersSatisfaction,
+                          FrenzyFactorSession, ChangeImpressionOrderPositionInSession, 
+                          User2Item, PlatformSession, PlatformReferencePercentageOfInteractions, 
                           PercClickPerImpressions, PlatformReferencePercentageOfClickouts,
-                          NumImpressionsInClickout, NumTimesItemImpressed, PastFutureSessionFeatures,
+                          NumImpressionsInClickout, NumTimesItemImpressed,
                           LocationReferencePercentageOfClickouts, LocationReferencePercentageOfInteractions,
                           StepsBeforeLastClickout, ImpressionStarsNumeric, LastActionBeforeClickout,
                           TopPopPerImpression, TopPopInteractionClickoutPerImpression, 

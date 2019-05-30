@@ -23,35 +23,43 @@ class FrenzyFactorSession(FeatureBase):
 
     def extract_feature(self):
 
-        train = data.train_df(mode=self.mode)
-        test = data.test_df(mode=self.mode)
-        df_full = pd.concat([train, test])[['user_id', 'session_id', 'timestamp', 'step', 'action_type','reference']]
-        last_clickout_indices = sorted(find(df_full), reverse=True)
-        df = df_full[['user_id', 'session_id', 'timestamp']]
-        cuid = df.at[last_clickout_indices[0], 'user_id']
-        csid = df.at[last_clickout_indices[0], 'session_id']
-        i = last_clickout_indices[0]
+        tr = data.train_df(mode=self.mode, cluster=self.cluster)
+        te = data.test_df(mode=self.mode, cluster=self.cluster)
+        df = pd.concat([tr, te])
+        idxs = sorted(find(df))
         means = []
-        variances = [] 
-        for idx in tqdm(last_clickout_indices):
-            
-            cuid = df.at[idx, 'user_id']
-            csid = df.at[idx, 'session_id']
-            time_differences = np.array([])
-            i = idx - 1
-            while df.at[i, 'user_id'] == cuid and df.at[i, 'session_id'] == csid:
-                time_differences = np.append(time_differences, [df.at[i+1, 'timestamp'] - df.at[i, 'timestamp']])
-                i -= 1
-                if i == -1:
-                    break
-            means.append(np.mean(time_differences))
-            variances.append(np.std(time_differences))
-        final = df.loc[last_clickout_indices].drop(['timestamp'], axis=1)
-        final['mean_time_per_step'] = means
-        final['frenzy_factor'] = variances
-        final.mean_time_per_step.fillna(final.mean_time_per_step.mean(), inplace=True)
-        final.frenzy_factor.fillna(final.frenzy_factor.mean(), inplace=True)
-        return final.reset_index(drop=True)
+        stds = []
+        for i in tqdm(idxs):
+            a_user = df.at[i, 'user_id']
+            a_sess = df.at[i, 'session_id']
+            a_time = df.at[i, 'timestamp']
+            j = i-1
+            diffs = []
+            while j >= 0:
+                try:
+                    new_user = df.at[j, 'user_id']
+                    new_sess = df.at[j, 'session_id']
+                    new_time = df.at[j, 'timestamp']
+                    if new_user == a_user and new_sess == a_sess:
+                        diffs.append(a_time - new_time)
+                    else:
+                        break
+                    j -= 1
+                    a_time = new_time
+                except:
+                    j -= 1
+            if len(diffs) > 0:
+                np_diffs = np.array(diffs)
+                means.append(np.mean(np_diffs))
+                stds.append(np.std(np_diffs))
+            else:
+                means.append(-1)
+                stds.append(-1)
+
+        total = df.loc[idxs, ['user_id', 'session_id']]
+        total['mean_time_per_step'] = means
+        total['frenzy_factor'] = stds
+        return total.reset_index(drop=True)
 
 
 if __name__ == '__main__':

@@ -183,8 +183,10 @@ class XGBoostWrapperSmartValidation(XGBoostWrapper):
                                      }
         global _best_so_far
         global _group_t
+        global _kind
         _best_so_far = 0
         _group_t = []
+        _kind = kind
 
     def fit(self):
         global _group_t
@@ -211,13 +213,15 @@ class XGBoostWrapperSmartValidation(XGBoostWrapper):
 
 _best_so_far = 0
 _group_t = []
+_kind = ''
 
 def callbak(obj):
     global _best_so_far
     if -obj[6][1][1] > _best_so_far:
         _best_so_far = -obj[6][1][1]
-        HERA.send_message('xgboost iteration {} mrr is {}'. format(
-            obj.iteration, _best_so_far))
+        if _best_so_far > 0.67:
+            HERA.send_message('xgboost {} iteration {} mrr is {}'. format(
+                _kind, obj.iteration, _best_so_far))
         print('xgboost iteration {} mrr is {}'. format(obj.iteration, _best_so_far))
 
 
