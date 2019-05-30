@@ -46,20 +46,20 @@ class FrenzyFactorSession(FeatureBase):
                         break
                     j -= 1
                     a_time = new_time
-                    except:
-                        j -= 1
-                if len(diffs) > 0:
-                    np_diffs = np.array(diffs)
-                    means.append(np.mean(np_diffs))
-                    stds.append(np.std(np_diffs))
-                else:
-                    means.append(-1)
-                    stds.append(-1)
+                except:
+                    j -= 1
+            if len(diffs) > 0:
+                np_diffs = np.array(diffs)
+                means.append(np.mean(np_diffs))
+                stds.append(np.std(np_diffs))
+            else:
+                means.append(-1)
+                stds.append(-1)
 
-            total = df.loc[idxs, ['user_id', 'session_id']]
-            total['mean_time_per_step'] = means
-            total['frenzy_factor'] = stds
-            return total.reset_index(drop=True)
+        total = df.loc[idxs, ['user_id', 'session_id']]
+        total['mean_time_per_step'] = means
+        total['frenzy_factor'] = stds
+        return total.reset_index(drop=True)
 
 
 if __name__ == '__main__':

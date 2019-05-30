@@ -85,9 +85,10 @@ def create_dataset(mode, cluster, class_weights=False):
     # training
     kind = single_choice(['1', '2'], ['kind1', 'kind2'])
     if kind == 'kind1':
-        features_array = [User2Item, TimeImpressionLabel, PlatformSession, PlatformReferencePercentageOfInteractions, 
+        features_array = [FrenzyFactorSession, ChangeImpressionOrderPositionInSession, 
+                          User2Item, PlatformSession, PlatformReferencePercentageOfInteractions, 
                           PercClickPerImpressions, PlatformReferencePercentageOfClickouts,
-                          NumImpressionsInClickout, NumTimesItemImpressed, PastFutureSessionFeatures,
+                          NumImpressionsInClickout, NumTimesItemImpressed,
                           LocationReferencePercentageOfClickouts, LocationReferencePercentageOfInteractions,
                           StepsBeforeLastClickout, ImpressionStarsNumeric, LastActionBeforeClickout,
                           TopPopPerImpression, TopPopInteractionClickoutPerImpression, 
