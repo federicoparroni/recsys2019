@@ -26,7 +26,6 @@ from extract_features.times_user_interacted_with_impression import TimesUserInte
 from extract_features.timing_from_last_interaction_impression import TimingFromLastInteractionImpression
 from extract_features.weights_class import WeightsClass
 from extract_features.impression_rating import ImpressionRating
-from extract_features.time_per_impression import TimeImpressionLabel
 from extract_features.change_impression_order_position_in_session import ChangeImpressionOrderPositionInSession
 from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
 from extract_features.top_pop_per_impression import TopPopPerImpression
@@ -45,11 +44,14 @@ from extract_features.perc_click_per_impressions import PercClickPerImpressions
 from extract_features.platform_reference_percentage_of_clickouts import PlatformReferencePercentageOfClickouts
 from extract_features.platform_reference_percentage_of_interactions import PlatformReferencePercentageOfInteractions
 from extract_features.platform_session import PlatformSession
-from extract_features.time_per_impression import TimeImpressionLabel
 from extract_features.user_2_item import User2Item
 from extract_features.platform_features_similarty import PlatformFeaturesSimilarity
 from extract_features.day_moment_in_day import DayOfWeekAndMomentInDay
 from extract_features.last_clickout_filters_satisfaction import LastClickoutFiltersSatisfaction
+from extract_features.max_position_interacted_reference import MaxPositionInteractedReference
+from extract_features.time_per_impression import TimePerImpression
+from extract_features.classifier_piccio import ClassifierPiccio
+from extract_features.personalized_top_pop import PersonalizedTopPop
 from utils.menu import single_choice
 from preprocess_utils.merge_features import merge_features
 from os.path import join
@@ -88,7 +90,8 @@ def create_dataset(mode, cluster, class_weights=False):
     # training
     kind = single_choice(['1', '2'], ['kind1', 'kind2'])
     if kind == 'kind1':
-        features_array = [DayOfWeekAndMomentInDay, LastClickoutFiltersSatisfaction,
+        features_array = [PersonalizedTopPop, TimePerImpression, ClassifierPiccio,
+                          MaxPositionInteractedReference, DayOfWeekAndMomentInDay, LastClickoutFiltersSatisfaction,
                           FrenzyFactorSession, ChangeImpressionOrderPositionInSession, 
                           User2Item, PlatformSession, PlatformReferencePercentageOfInteractions, 
                           PercClickPerImpressions, PlatformReferencePercentageOfClickouts,
