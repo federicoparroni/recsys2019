@@ -28,7 +28,10 @@ class SessionLabel(FeatureBase):
     def extract_feature(self):
         tqdm.pandas()
 
-        df = pd.concat([data.train_df(self.mode), data.test_df(self.mode)])
+        if mode != 'full':
+            df = pd.concat([data.train_df(self.mode), data.test_df(self.mode)])
+        else:
+            df = data.train_df(self.mode)
         
         # find the last clickout rows
         idxs = find_last_clickout_indices(df)
