@@ -196,7 +196,7 @@ if __name__ == "__main__":
         print('Lr: {}'.format(lr))
 
     def create_feature():
-        mode = 'local'
+        mode = 'full'
         model = interactive_model(mode)
 
         model_checkpoints = os.listdir('saved_models')
