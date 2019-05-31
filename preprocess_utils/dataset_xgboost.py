@@ -90,7 +90,7 @@ def create_dataset(mode, cluster, class_weights=False):
     # training
     kind = single_choice(['1', '2'], ['kind1', 'kind2'])
     if kind == 'kind1':
-        features_array = [PersonalizedTopPop, TimePerImpression, ClassifierPiccio,
+        features_array = [PersonalizedTopPop, TimePerImpression, PastFutureSessionFeatures,
                           MaxPositionInteractedReference, DayOfWeekAndMomentInDay, LastClickoutFiltersSatisfaction,
                           FrenzyFactorSession, ChangeImpressionOrderPositionInSession, 
                           User2Item, PlatformSession, PlatformReferencePercentageOfInteractions, 
