@@ -38,23 +38,23 @@ class LabelClassification(FeatureBase):
         df = df[(df.action_type == "clickout item") & (df.reference.notnull())]
         df = df.drop_duplicates("session_id", keep="last")
         labels = list()
-        for index, row in tqdm(df.iterrows(), desc="Scanning df to generate labels"):
-            reference = int(row.reference)
-            impressions = list(map(int, row.impressions.split("|")))
+        for t in tqdm(zip(df.reference, df.impressions)):
+            reference = int(t[0])
+            impressions = list(map(int, t[1].split("|")))
             if reference in impressions and impressions.index(reference) == 0:
                 labels.append(1)
             else:
                 labels.append(0)
 
         df = df[["user_id", "session_id"]]
+        df["label"] = labels
 
         #add label for prediction on full_df
         if self.mode == "full":
             print("Adding full test rows")
             test = test[test.action_type == "clickout item"].drop_duplicates("session_id", keep="last")
             test = test[["user_id", "session_id"]]
-            df = pd.concat([df, test])
-        df["label"] = labels
+            df = pd.concat([df, test], sort=False)
         return df
 
 if __name__ == '__main__':
