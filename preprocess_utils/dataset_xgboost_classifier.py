@@ -58,7 +58,7 @@ def create_dataset(mode, cluster):
                       LastActionInvolvingFirstImpressions,
                       NumImpressionsInClickout,
                       #Platform,
-                      #RNNOutput,
+                      RNNOutput,
                       PriceStats,
                       PopularityFirstImpression,
                       AvgInteractedPrice,
@@ -71,7 +71,7 @@ def create_dataset(mode, cluster):
                       FirstImpressionPriceInfo,
                       SessionActionNumRefDiffFromImpressions,
                       TimingFromLastInteractionFirstImpression,
-                      #DayOfWeekAndMomentInDay
+                      DayOfWeekAndMomentInDay
                       ]
 
     train_df, test_df = merge_features_classifier(mode, cluster, features_array, LabelClassification)
