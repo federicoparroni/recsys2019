@@ -52,9 +52,10 @@ class LabelClassification(FeatureBase):
         #add label for prediction on full_df
         if self.mode == "full":
             print("Adding full test rows")
-            test = test[test.action_type == "clickout item"].drop_duplicates("session_id", keep="last")
+            test = test[(test.action_type == "clickout item") & (test.reference.isnull())]
             test = test[["user_id", "session_id"]]
             df = pd.concat([df, test], sort=False)
+        print(len(df))
         return df
 
 if __name__ == '__main__':
