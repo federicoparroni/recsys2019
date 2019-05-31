@@ -133,9 +133,8 @@ class CatboostRanker(RecommenderBase):
             features = list(train_features.columns.values)
             self.categorical_features = []
             for f in features:
-                print(f)
-                print(train_features.head(1)[f].values[0])
                 if isinstance(train_features.head(1)[f].values[0], str):
+                    print(train_features.head(1)[f].values[0])
                     self.categorical_features.append(features.index(f))
                     print(f + ' is categorical!')
 

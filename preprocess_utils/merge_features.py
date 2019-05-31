@@ -10,7 +10,7 @@ from preprocess_utils.last_clickout_indices import expand_impressions
     a train and test df. the test df contains just the target sessions, identified by the target indices 
     in that mode and cluster, in the order in which the target indices are
 """
-def merge_features(mode, cluster, features_array):
+def merge_features(mode, cluster, features_array, onehot=True):
 
     # load the full_df
     train_df = data.train_df(mode, cluster)
@@ -56,7 +56,7 @@ def merge_features(mode, cluster, features_array):
     print('join with the features')
     print(f'train_shape: {train_df.shape}\n vali_test_shape: {validation_test_df.shape}')
     for f in features_array:
-        feature = f(mode=mode, cluster='no_cluster').read_feature(one_hot=True)
+        feature = f(mode=mode, cluster='no_cluster').read_feature(one_hot=onehot)
         print(f'len of feature:{len(feature)}')
         train_df = train_df.merge(feature)
         validation_test_df = validation_test_df.merge(feature)

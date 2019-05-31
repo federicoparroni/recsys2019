@@ -18,10 +18,9 @@ class ReferencePositionInNextClickoutImpressions(FeatureBase):
 
     def __init__(self, mode, cluster):
         name = 'reference_position_in_next_clickout_impressions'
-        columns_to_onehot = [('ref_pos', 'single')]
+        columns_to_onehot = [('ref_pos', 'single', 'rp')]
 
         super().__init__(name=name, mode='full', columns_to_onehot=columns_to_onehot, save_index=True)
-        self.one_hot_prefix = 'rp'
 
 
     def extract_feature(self):

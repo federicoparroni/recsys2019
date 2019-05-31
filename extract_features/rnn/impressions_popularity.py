@@ -7,7 +7,6 @@ import data
 import pandas as pd
 import numpy as np
 from collections import Counter
-from sklearn.preprocessing import MinMaxScaler
 from tqdm.auto import tqdm
 
 class ImpressionsPopularity(FeatureBase):
@@ -24,7 +23,6 @@ class ImpressionsPopularity(FeatureBase):
         columns_to_onehot = []
 
         super().__init__(name=name, mode='full', columns_to_onehot=columns_to_onehot, save_index=True)
-        #self.one_hot_prefix = 'rp'
 
 
     def extract_feature(self):
@@ -33,7 +31,10 @@ class ImpressionsPopularity(FeatureBase):
         df = data.full_df()
 
         # count the popularity
-        cnt = Counter(df[(df.action_type == 'clickout item') & (df.reference.str.isnumeric() == True)].reference.values.astype(int))
+        #cnt = Counter(df[(df.action_type == 'clickout item') & (df.reference.str.isnumeric() == True)].reference.values.astype(int))
+        pop_df = df[(df.action_type == 'clickout item') & (df.reference.str.isnumeric() == True)] \
+                    [['reference','frequence']].astype('int').groupby('reference').sum()
+        cnt = pop_df.to_dict()['frequence']
         
         # find the clickout rows
         clickout_rows = df[df.action_type == 'clickout item'][['reference','impressions']]
@@ -57,9 +58,10 @@ class ImpressionsPopularity(FeatureBase):
             i += 1
         
         # scale log and min-max
-        matrix = np.log(matrix + 1)
-        scaler = MinMaxScaler()
-        matrix = scaler.fit_transform(matrix)
+        min_pop = np.log((pop_df['frequence'] -1).clip(0).min() +1)
+        max_pop = np.log((pop_df['frequence'] -1).clip(0).max() +1)
+        
+        matrix = (np.log(matrix + 1) - min_pop) / (max_pop - min_pop)
 
         # add the columns to the resulting dataframe
         for i in range(25):

@@ -89,7 +89,7 @@ class LastClickoutFiltersSatisfaction(FeatureBase):
 
         expanded = pd.DataFrame({col: np.repeat(clickouts[col].values, clickouts.satisfaction_percentage.str.len()) \
                                 for col in clickouts.columns.drop(['impress_list', 'satisfaction_percentage'])}).\
-                                assign(**{'impress_list': np.concatenate(clickouts.impress_list.values), \
+                                assign(**{'item_id': np.concatenate(clickouts.impress_list.values), \
                                         'satisfaction_percentage': np.concatenate(clickouts.satisfaction_percentage.values)})
 
         return expanded

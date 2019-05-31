@@ -161,7 +161,7 @@ if __name__ == "__main__":
 
         weights = dataset.get_class_weights()
         
-        model = RNNBinaryClassificator(dataset, input_shape=(dataset.rows_per_sample, 170), cell_type='gru', 
+        model = RNNBinaryClassificator(dataset, input_shape=(dataset.rows_per_sample, 169), cell_type='gru', 
                                     num_recurrent_layers=2, num_recurrent_units=64, num_dense_layers=2,
                                     class_weights=weights, optimizer=optim)
 
@@ -181,7 +181,7 @@ if __name__ == "__main__":
         model = interactive_model(mode, optim=optim)
 
         # fit the model
-        model.fit(epochs=1)
+        model.fit(epochs=10000)
         print('\nFit completed!')
 
         best_accuracy = np.max(model.history.history['val_acc'])
