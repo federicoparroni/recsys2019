@@ -26,8 +26,8 @@ class MaxPositionInteractedReference(FeatureBase):
             return False
 
     def extract_feature(self):
-        tr = data.train_df('small')
-        te = data.test_df('small')
+        tr = data.train_df(self.mode, self.cluster)
+        te = data.test_df(self.mode, self.cluster)
         df = pd.concat([tr, te])
         clk_indices = sorted(find(df))
         last_pos_interacted = []
