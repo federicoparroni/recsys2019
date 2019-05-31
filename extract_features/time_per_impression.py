@@ -25,7 +25,7 @@ class TimePerImpression(FeatureBase):
             df['index'] = df.index
             df = pd.merge(df_t, df, how='left', on=['index', 'user_id', 'session_id','action_type'], suffixes=('', '_y'))
             df = df.drop('time_per_impression_y', axis=1)
-            df['item_pos'] = df.progress_apply(lambda x: (x['impression_list'].index(str(x['item_id']))) + 1, axis=1)
+            df['item_pos'] = df.apply(lambda x: (x['impression_list'].index(str(x['item_id']))) + 1, axis=1)
             df = df.drop(['impression_list', 'index'], axis=1)
             return df
 
