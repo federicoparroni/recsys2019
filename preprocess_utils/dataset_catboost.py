@@ -4,7 +4,6 @@ from extract_features.city_session_populars_only import CitySessionPopularsOnly
 from extract_features.country_searched_session import CountrySearchedSession
 from extract_features.day_moment_in_day import DayOfWeekAndMomentInDay
 from extract_features.last_clickout_filters_satisfaction import LastClickoutFiltersSatisfaction
-from extract_features.platform_features_similarty import PlatformFeaturesSimilarity
 from extract_features.user_2_item import User2Item
 from preprocess_utils.merge_features import merge_features
 from utils.check_folder import check_folder
@@ -29,7 +28,7 @@ from extract_features.times_user_interacted_with_impression import TimesUserInte
 from extract_features.timing_from_last_interaction_impression import TimingFromLastInteractionImpression
 from extract_features.weights_class import WeightsClass
 from extract_features.impression_rating import ImpressionRating
-from extract_features.time_per_impression import TimeImpressionLabel
+from extract_features.time_per_impression import TimePerImpression
 from extract_features.change_impression_order_position_in_session import ChangeImpressionOrderPositionInSession
 from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
 from extract_features.top_pop_per_impression import TopPopPerImpression
@@ -66,7 +65,7 @@ def to_pool_dataset(dataset, save_dataset=True, path=''):
 
 def create_dataset(mode, cluster):
     # training
-    features_array = [ClassifierParro, ClassifierPiccio, PlatformFeaturesSimilarity, PastFutureSessionFeatures,
+    features_array = [ClassifierParro, ClassifierPiccio, TimePerImpression, PastFutureSessionFeatures,
                       SessionFilterActiveWhenClickout, SessionActionNumRefDiffFromImpressions, DayOfWeekAndMomentInDay,
                       LastClickoutFiltersSatisfaction, CitySession, CountrySearchedSession,
                       FrenzyFactorSession, ChangeImpressionOrderPositionInSession,
