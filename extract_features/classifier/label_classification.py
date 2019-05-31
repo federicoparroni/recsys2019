@@ -29,16 +29,15 @@ class LabelClassification(FeatureBase):
 
     def extract_feature(self):
 
-        train = data.train_df(mode=self.mode, cluster=self.cluster)
+        df = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)
         if self.mode in ['small', 'local']:
             print('reinserting clickout')
             test = test.groupby(['session_id', 'user_id']).progress_apply(_reinsert_clickout)
-        df = pd.concat([train, test])
+            df = pd.concat([df, test])
         df = df[(df.action_type == "clickout item") & (df.reference.notnull())]
         df = df.drop_duplicates("session_id", keep="last")
         labels = list()
-
         for index, row in tqdm(df.iterrows(), desc="Scanning df to generate labels"):
             reference = int(row.reference)
             impressions = list(map(int, row.impressions.split("|")))
@@ -48,6 +47,13 @@ class LabelClassification(FeatureBase):
                 labels.append(0)
 
         df = df[["user_id", "session_id"]]
+
+        #add label for prediction on full_df
+        if self.mode == "full":
+            print("Adding full test rows")
+            test = test[test.action_type == "clickout item"].drop_duplicates("session_id", keep="last")
+            test = test[["user_id", "session_id"]]
+            df = pd.concat([df, test])
         df["label"] = labels
         return df
 
