@@ -181,7 +181,7 @@ if __name__ == "__main__":
         model = interactive_model(mode, optim=optim)
 
         # fit the model
-        model.fit(epochs=1)
+        model.fit(epochs=10000)
         print('\nFit completed!')
 
         best_accuracy = np.max(model.history.history['val_acc'])
