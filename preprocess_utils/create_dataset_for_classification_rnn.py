@@ -24,6 +24,7 @@ from extract_features.rnn.clickout_vector_prices import ClickoutVectorPrices
 from extract_features.rnn.interaction_duration import InteractionDuration
 from extract_features.rnn.clickout_filters_satisfaction import ClickoutFiltersSatisfaction
 from extract_features.rnn.impressions_popularity import ImpressionsPopularity
+from extract_features.rnn.change_sort_order_filters import ChangeSortOrderFilters
 
 import preprocess_utils.session2vec as sess2vec
 
@@ -202,6 +203,8 @@ if __name__ == "__main__":
 
         ClickoutFiltersSatisfaction,
         ImpressionsPopularity,
+
+        ChangeSortOrderFilters
     ]
     features = []
     # create the features to join
