@@ -123,7 +123,7 @@ class XGBoostWrapper(RecommenderBase):
         :return: MRR computed on just the sessions where the clickout is not on the first impression
         """
         assert (self.mode == 'local' or self.mode == 'small')
-        train_df = pd.read_csv('dataset/preprocessed/{}/full/train.csv'.format(
+        train_df = pd.read_csv('dataset/preprocessed/no_cluster/full/train.csv'.format(
             self.cluster), usecols=['reference', 'impressions'])
 
         target_indices, recs = zip(*predictions)
@@ -246,9 +246,10 @@ if __name__ == '__main__':
     if modality == 'normal recommender':
         kind = single_choice('pick the kind', ['kind1', 'kind2'])
         mode = mode_selection()
+        cluster = cluster_selection()
         sel = options(['evaluate', 'export the sub', 'export the scores'], ['evaluate', 'export the sub',
                                                                             'export the scores'], 'what do you want to do after model fitting and the recommendations?')
-        model = XGBoostWrapper(mode=mode, cluster='no_cluster', kind=kind)
+        model = XGBoostWrapper(mode=mode, cluster=cluster, kind=kind)
         if 'evaluate' in sel:
             model.evaluate(True)
         if 'export the sub' in sel and 'export the scores' in sel:

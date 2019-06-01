@@ -91,26 +91,22 @@ def create_dataset(mode, cluster, class_weights=False):
     # training
     kind = single_choice(['1', '2'], ['kind1', 'kind2'])
     if cluster == 'no_cluster':
-        if kind == 'kind1':
-            features_array = [ClassifierPiccio, PersonalizedTopPop, TimePerImpression,
-                            MaxPositionInteractedReference, DayOfWeekAndMomentInDay, LastClickoutFiltersSatisfaction,
-                            FrenzyFactorSession, ChangeImpressionOrderPositionInSession, 
-                            User2Item, PlatformSession, PlatformReferencePercentageOfInteractions, 
-                            PercClickPerImpressions, PlatformReferencePercentageOfClickouts,
-                            NumImpressionsInClickout, NumTimesItemImpressed,
-                            LocationReferencePercentageOfClickouts, LocationReferencePercentageOfInteractions,
-                            StepsBeforeLastClickout, ImpressionStarsNumeric, LastActionBeforeClickout,
-                            TopPopPerImpression, TopPopInteractionClickoutPerImpression, 
-                            ImpressionRatingNumeric, ActionsInvolvingImpressionSession,
-                            ImpressionLabel, ImpressionPriceInfoSession,
-                            TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
-                            ImpressionPositionSession, LastInteractionInvolvingImpression,
-                            SessionDevice, SessionSortOrderWhenClickout, MeanPriceClickout,
-                            PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
-                            TimesImpressionAppearedInClickoutsSession]
-
-        elif kind == 'kind2':
-            features_array = [ImpressionLabel, ImpressionFeature]
+        features_array = [ClassifierPiccio, PersonalizedTopPop, TimePerImpression,
+                        MaxPositionInteractedReference, DayOfWeekAndMomentInDay, LastClickoutFiltersSatisfaction,
+                        FrenzyFactorSession, ChangeImpressionOrderPositionInSession, 
+                        User2Item, PlatformSession, PlatformReferencePercentageOfInteractions, 
+                        PercClickPerImpressions, PlatformReferencePercentageOfClickouts,
+                        NumImpressionsInClickout, NumTimesItemImpressed,
+                        LocationReferencePercentageOfClickouts, LocationReferencePercentageOfInteractions,
+                        StepsBeforeLastClickout, ImpressionStarsNumeric, LastActionBeforeClickout,
+                        TopPopPerImpression, TopPopInteractionClickoutPerImpression, 
+                        ImpressionRatingNumeric, ActionsInvolvingImpressionSession,
+                        ImpressionLabel, ImpressionPriceInfoSession,
+                        TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
+                        ImpressionPositionSession, LastInteractionInvolvingImpression,
+                        SessionDevice, SessionSortOrderWhenClickout, MeanPriceClickout,
+                        PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
+                        TimesImpressionAppearedInClickoutsSession]
 
     if cluster == 'no_numeric_reference_no_one_step':
         features_array = [ChangeImpressionOrderPositionInSession, ChangeOfSortOrderBeforeCurrent, ImpressionLabel, 
@@ -124,8 +120,10 @@ def create_dataset(mode, cluster, class_weights=False):
                           TopPopPerImpression]
 
     train_df, test_df = merge_features(mode, cluster, features_array)
-    # train_df = train_df.replace(-1, np.nan)
-    # test_df = test_df.replace(-1, np.nan)
+
+    if kind=='kind2':
+        train_df = train_df.replace(-1, np.nan)
+        test_df = test_df.replace(-1, np.nan)
 
     bp = 'dataset/preprocessed/{}/{}/xgboost/{}/'.format(cluster, mode, kind)
     check_folder(bp)
