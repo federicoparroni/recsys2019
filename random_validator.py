@@ -34,9 +34,9 @@ class RandomValidator:
         self.automatic_export = None
         if automatic_export:
             if reference_object_for_sub_exporter is None:
-                self.automatic_export = AutomaticSubExporter(reference_object, )
+                self.automatic_export = AutomaticSubExporter(reference_object, self.user)
             else:
-                self.automatic_export = AutomaticSubExporter(reference_object_for_sub_exporter)
+                self.automatic_export = AutomaticSubExporter(reference_object_for_sub_exporter, self.user)
 
     def sample(self, obj):
         if type(obj) == tuple:
