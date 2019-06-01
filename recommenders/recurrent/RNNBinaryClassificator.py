@@ -196,7 +196,7 @@ if __name__ == "__main__":
         print('Lr: {}'.format(lr))
 
     def create_feature():
-        mode = 'local'
+        mode = 'full'
         model = interactive_model(mode)
 
         model_checkpoints = os.listdir('saved_models')
@@ -207,7 +207,7 @@ if __name__ == "__main__":
         model.load(checkpoint_path)
         print('Done!',  flush=True)
 
-        print('Creating feature for local...')
+        print('Creating feature for {}...'.format(mode))
         model.create_feature()
 
     activity = menu.single_choice('What do you want to do?', ['Train', 'Create feature'], [train, create_feature])
