@@ -127,7 +127,7 @@ if __name__ == "__main__":
             weights = dataset.get_class_weights()
         
         model = RNNClassificationRecommender(dataset, use_generator=False, cell_type=cell_type,
-                                            input_shape=(dataset.rows_per_sample, 169),
+                                            input_shape=(dataset.rows_per_sample, 168),
                                             num_recurrent_layers=rec_layers, num_recurrent_units=units, optimizer='adam',
                                             num_dense_layers=dense_layers, class_weights=weights)
 
