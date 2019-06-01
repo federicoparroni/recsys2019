@@ -52,6 +52,7 @@ from extract_features.max_position_interacted_reference import MaxPositionIntera
 from extract_features.time_per_impression import TimePerImpression
 from extract_features.classifier_piccio import ClassifierPiccio
 from extract_features.personalized_top_pop import PersonalizedTopPop
+from extract_features.changes_of_sort_order_before_current import ChangeOfSortOrderBeforeCurrent
 from utils.menu import single_choice
 from preprocess_utils.merge_features import merge_features
 from os.path import join
@@ -89,26 +90,38 @@ def create_weights(df):
 def create_dataset(mode, cluster, class_weights=False):
     # training
     kind = single_choice(['1', '2'], ['kind1', 'kind2'])
-    if kind == 'kind1':
-        features_array = [ClassifierPiccio, PersonalizedTopPop, TimePerImpression,
-                          MaxPositionInteractedReference, DayOfWeekAndMomentInDay, LastClickoutFiltersSatisfaction,
-                          FrenzyFactorSession, ChangeImpressionOrderPositionInSession, 
-                          User2Item, PlatformSession, PlatformReferencePercentageOfInteractions, 
-                          PercClickPerImpressions, PlatformReferencePercentageOfClickouts,
-                          NumImpressionsInClickout, NumTimesItemImpressed,
-                          LocationReferencePercentageOfClickouts, LocationReferencePercentageOfInteractions,
-                          StepsBeforeLastClickout, ImpressionStarsNumeric, LastActionBeforeClickout,
-                          TopPopPerImpression, TopPopInteractionClickoutPerImpression, 
-                          ImpressionRatingNumeric, ActionsInvolvingImpressionSession,
-                          ImpressionLabel, ImpressionPriceInfoSession,
-                          TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
-                          ImpressionPositionSession, LastInteractionInvolvingImpression,
-                          SessionDevice, SessionSortOrderWhenClickout, MeanPriceClickout,
-                          PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
-                          TimesImpressionAppearedInClickoutsSession]
+    if cluster == 'no_cluster':
+        if kind == 'kind1':
+            features_array = [ClassifierPiccio, PersonalizedTopPop, TimePerImpression,
+                            MaxPositionInteractedReference, DayOfWeekAndMomentInDay, LastClickoutFiltersSatisfaction,
+                            FrenzyFactorSession, ChangeImpressionOrderPositionInSession, 
+                            User2Item, PlatformSession, PlatformReferencePercentageOfInteractions, 
+                            PercClickPerImpressions, PlatformReferencePercentageOfClickouts,
+                            NumImpressionsInClickout, NumTimesItemImpressed,
+                            LocationReferencePercentageOfClickouts, LocationReferencePercentageOfInteractions,
+                            StepsBeforeLastClickout, ImpressionStarsNumeric, LastActionBeforeClickout,
+                            TopPopPerImpression, TopPopInteractionClickoutPerImpression, 
+                            ImpressionRatingNumeric, ActionsInvolvingImpressionSession,
+                            ImpressionLabel, ImpressionPriceInfoSession,
+                            TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
+                            ImpressionPositionSession, LastInteractionInvolvingImpression,
+                            SessionDevice, SessionSortOrderWhenClickout, MeanPriceClickout,
+                            PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
+                            TimesImpressionAppearedInClickoutsSession]
 
-    elif kind == 'kind2':
-        features_array = [ImpressionLabel, ImpressionFeature]
+        elif kind == 'kind2':
+            features_array = [ImpressionLabel, ImpressionFeature]
+
+    if cluster == 'no_numeric_reference_no_one_step':
+        features_array = [ChangeImpressionOrderPositionInSession, ChangeOfSortOrderBeforeCurrent, ImpressionLabel, 
+                          DayOfWeekAndMomentInDay, FrenzyFactorSession, ImpressionPositionSession, 
+                          ImpressionPriceInfoSession, ImpressionRatingNumeric, ImpressionStarsNumeric,
+                          LastClickoutFiltersSatisfaction, StepsBeforeLastClickout, LocationReferencePercentageOfClickouts,
+                          LocationReferencePercentageOfInteractions, MeanPriceClickout, NumImpressionsInClickout,
+                          PercClickPerImpressions, PersonalizedTopPop, PlatformReferencePercentageOfClickouts,
+                          PlatformReferencePercentageOfInteractions, PlatformSession, SessionDevice, 
+                          SessionLength, TimeFromLastActionBeforeClk, TopPopInteractionClickoutPerImpression, 
+                          TopPopPerImpression]
 
     train_df, test_df = merge_features(mode, cluster, features_array)
     # train_df = train_df.replace(-1, np.nan)

@@ -236,6 +236,7 @@ def _mrr(y_true, y_pred):
 
 if __name__ == '__main__':
     from utils.menu import mode_selection
+    from utils.menu import cluster_selection
     from utils.menu import single_choice
     from utils.menu import options
 
@@ -258,6 +259,8 @@ if __name__ == '__main__':
             model.run(export_sub=False, export_scores=True)
 
     else:
-        model = XGBoostWrapperSmartValidation(mode='local')
+        mode = mode_selection()
+        cluster = cluster_selection()
+        model = XGBoostWrapperSmartValidation(mode=mode, cluster=cluster)
         model.fit()
         print(model.evaluate())

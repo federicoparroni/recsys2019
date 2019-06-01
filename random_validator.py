@@ -75,7 +75,11 @@ class RandomValidator:
             print('name: {} params: {}\n MRR is: {}\n\n'.format(model.name, params_dict, score))
 
 if __name__ == "__main__":
-    m = XGBoostWrapperSmartValidation(mode='local', ask_to_load=False)
-    a = XGBoostWrapper(mode='full')
+    from utils.menu import cluster_selection
+    from utils.menu import mode_selection
+    mode = mode_selection()
+    cluster = cluster_selection()
+    m = XGBoostWrapperSmartValidation(mode=mode, cluster=cluster, ask_to_load=False)
+    a = XGBoostWrapper(mode='full', cluster=cluster)
     v = RandomValidator(m, automatic_export=True, reference_object_for_sub_exporter=a)
     v.validate(100)
