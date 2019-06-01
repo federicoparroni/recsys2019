@@ -14,16 +14,7 @@ from clusterize.cluster_recurrent import ClusterRecurrent
 from clusterize.cluster_up_to_len6 import ClusterUpToLen6
 from clusterize.cluster_over_len6 import ClusterOverLen6
 
-from extract_features.rnn.reference_position_in_last_clickout_impressions import ReferencePositionInLastClickoutImpressions
-from extract_features.rnn.reference_price_in_last_clickout import ReferencePriceInLastClickout
-from extract_features.rnn.reference_price_position_in_last_clickout import ReferencePricePositionInLastClickout
-#from extract_features.rnn.global_interactions_popularity import GlobalInteractionsPopularity
-from extract_features.rnn.global_clickout_popularity import GlobalClickoutPopularity
-from extract_features.rnn.session_impressions_count import SessionsImpressionsCount
-from extract_features.rnn.clickout_vector_prices import ClickoutVectorPrices
-from extract_features.rnn.interaction_duration import InteractionDuration
-from extract_features.rnn.clickout_filters_satisfaction import ClickoutFiltersSatisfaction
-from extract_features.rnn.impressions_popularity import ImpressionsPopularity
+from extract_features.rnn import *
 
 import preprocess_utils.session2vec as sess2vec
 
@@ -51,9 +42,9 @@ def create_dataset_for_binary_classification(mode, cluster, pad_sessions_length,
 
         ds_type = 'train' if for_train else 'test'
         devices_classes = ['mobile', 'desktop', 'tablet']
-        actions_classes = ['show_impression', 'clickout item', 'interaction item rating', 'interaction item info',
-                'interaction item image', 'interaction item deals', 'change of sort order', 'filter selection',
-                'search for item', 'search for destination', 'search for poi']
+        actions_classes = ['clickout item', 'interaction item rating', 'interaction item info',
+                'interaction item image', 'interaction item deals', 'search for item', 'search for destination',
+                'search for poi'] #, 'change of sort order', 'filter selection', 'show_impression', ]
         
         # merge the features
         print('Merging the features...')
@@ -203,6 +194,8 @@ if __name__ == "__main__":
 
         ClickoutFiltersSatisfaction,
         ImpressionsPopularity,
+
+        ChangeSortOrderFilters
     ]
     features = []
     # create the features to join
