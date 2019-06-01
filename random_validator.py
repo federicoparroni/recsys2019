@@ -19,9 +19,10 @@ class RandomValidator:
                 range in list  -> consider just the values in the list
     """
 
-    def __init__(self, reference_object, reference_object_for_sub_exporter=None, granularity=100, automatic_export=True):
+    def __init__(self, reference_object, reference_object_for_sub_exporter=None, granularity=100, automatic_export=True, user='default'):
         self.reference_object = reference_object
         self.granularity = granularity
+        self.user = user
 
         # used to know where to store the validation result
         self.file_base_path = 'validation_result'
@@ -33,9 +34,9 @@ class RandomValidator:
         self.automatic_export = None
         if automatic_export:
             if reference_object_for_sub_exporter is None:
-                self.automatic_export = AutomaticSubExporter(reference_object)
+                self.automatic_export = AutomaticSubExporter(reference_object, self.user)
             else:
-                self.automatic_export = AutomaticSubExporter(reference_object_for_sub_exporter)
+                self.automatic_export = AutomaticSubExporter(reference_object_for_sub_exporter, self.user)
 
     def sample(self, obj):
         if type(obj) == tuple:
@@ -71,15 +72,17 @@ class RandomValidator:
 
             # sending a message on the telegram channel
             HERA.send_message(
-               'name: {} params: {}\n MRR is: {}\n\n'.format(model.name, params_dict, score))
+               'name: {} params: {}\n MRR is: {}\n\n'.format(model.name, params_dict, score), self.user)
             print('name: {} params: {}\n MRR is: {}\n\n'.format(model.name, params_dict, score))
 
 if __name__ == "__main__":
     from utils.menu import cluster_selection
     from utils.menu import mode_selection
+    from utils.menu import single_choice
     mode = mode_selection()
     cluster = cluster_selection()
-    m = XGBoostWrapperSmartValidation(mode=mode, cluster=cluster, ask_to_load=False)
-    a = XGBoostWrapper(mode='full', cluster=cluster)
-    v = RandomValidator(m, automatic_export=True, reference_object_for_sub_exporter=a)
+    kind = single_choice('pick the kind', ['kind1', 'kind2'])
+    m = XGBoostWrapperSmartValidation(mode=mode, cluster=cluster, kind=kind, ask_to_load=False)
+    a = XGBoostWrapper(mode='full', cluster=cluster, kind=kind)
+    v = RandomValidator(m, automatic_export=True, reference_object_for_sub_exporter=a, user='gabbo')
     v.validate(100)
