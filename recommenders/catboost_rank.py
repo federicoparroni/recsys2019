@@ -12,6 +12,8 @@ from copy import deepcopy
 import pickle
 import pandas as pd
 
+from utils import check_folder
+
 tqdm.pandas()
 
 
@@ -27,7 +29,7 @@ class CatboostRanker(RecommenderBase):
                  colsample_bylevel=1, algo='catboost', one_hot_max_size=255,
                  custom_metric='AverageGain:top=1', include_test=False,
                  file_to_load=None,
-                 file_to_store=None, limit_trees=False, features_to_one_hot=None):
+                 file_to_store='catboost_2000.sav', limit_trees=False, features_to_one_hot=None):
         """
         :param mode:
         :param cluster:
@@ -49,6 +51,7 @@ class CatboostRanker(RecommenderBase):
         self.target_indices = data.target_indices(mode=mode, cluster=cluster)
         self.features_to_drop = []
         self.include_test = include_test
+        self.dataset_name = 'catboost_rank'
 
         self.default_parameters = {
             'iterations': math.ceil(iterations),
@@ -67,11 +70,11 @@ class CatboostRanker(RecommenderBase):
         }
 
         # create hyperparameters dictionary
-        self.hyperparameters_dict = {'iterations': (200, 200),
-                                     'max_depth': (9, 11),
-                                     'learning_rate': (0.25, 0.25),
+        self.hyperparameters_dict = {'iterations': (2000, 2000),
+                                     'max_depth': (11, 11),
+                                     'learning_rate': (0.05, 0.05),
                                      'reg_lambda': (7.2, 8.7),
-                                     'one_hot_max_size': (255, 511)
+                                     'one_hot_max_size': (511, 511)
                                      }
 
         self.fixed_params_dict = {
@@ -193,11 +196,22 @@ class CatboostRanker(RecommenderBase):
         if self.file_to_store is not None:
             pickle.dump(self.ctb, open(self.file_to_store, 'wb'))  # pickling
 
-    def get_scores_batch(self):
+    def get_scores_batch(self, save=False):
         if self.scores_batch is None:
             self.fit()
             self.recommend_batch()
-        return self.scores_batch[1:]
+
+        base_path = f'dataset/preprocessed/{self.cluster}/{self.mode}/predictions/{self.dataset_name}.pickle'
+        check_folder.check_folder(base_path)
+        if save:
+            with open(base_path, 'wb') as f:
+                pickle.dump(self.scores_batch, f)
+            print(f'saved at: {base_path}')
+        else:
+            return self.scores_batch
+
+        return self.scores_batch
+
     def recommend_batch(self):
         dataset_test = self.get_preprocessed_dataset(mode='test')
 
@@ -233,6 +247,10 @@ class CatboostRanker(RecommenderBase):
 
             self.predictions.append((index, list(sorted_impr)))
             self.scores_batch.append((index, list(sorted_impr), scores_impr))
+
+
+        if self.file_to_store is not None:
+            self.get_scores_batch(save=True)
 
         return self.predictions
 
