@@ -191,10 +191,10 @@ if __name__ == "__main__":
         check_folder(scores_folder)
 
         for st in ['train', 'test']:
-            print('Building scores for {}...'.format(st))
+            print('Building scores for {} {}...'.format(st, mode))
             scores = model.get_scores_batch(scores_type=st)
             
-            print('Saving scores for {}...'.format(st))
+            print('Saving scores for {} {}...'.format(st, mode))
             scores_filename = '{}_scores_{}'.format(model.name, st)
             np.save(os.path.join(scores_folder, scores_filename), np.array(scores))
             
