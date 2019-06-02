@@ -200,5 +200,5 @@ if __name__ == "__main__":
             
 
     
-    activity = menu.single_choice('What do you want to do?', ['Train', 'Submission'], [train, submission])
+    activity = menu.single_choice('What do you want to do?', ['Train', 'Submission', 'Scores'], [train, submission, scores])
         
