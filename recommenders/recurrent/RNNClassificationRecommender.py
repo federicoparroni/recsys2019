@@ -73,8 +73,13 @@ class RNNClassificationRecommender(RecurrentRecommender):
 
         return result_predictions
 
-    def get_scores_batch(self):
-        X, indices = self.dataset.load_Xtest()
+    def get_scores_batch(self, scores_type='test'):
+        assert scores_type in ['train','test']
+
+        if scores_type == 'test':
+            X, indices = self.dataset.load_Xtest()
+        else:
+            X, indices = self.dataset.load_Xtrain(return_indices=True)
 
         predictions = self.model.predict(X)
 
@@ -85,7 +90,7 @@ class RNNClassificationRecommender(RecurrentRecommender):
             # get the impressions of the clickout to predict
             impr = list(map(int, full_df.loc[index]['impressions'].split('|')))
             scores = predictions[i]
-            # append the couple (index, reranked impressions)
+            # append the triple (index, impressions, scores)
             result_predictions.append( (index, impr, scores) )
 
         return result_predictions
@@ -154,9 +159,7 @@ if __name__ == "__main__":
         model = interactive_model(mode)
         sub_suffix = input('Insert submission suffix: ')
 
-        model_checkpoints = os.listdir('saved_models')
-        checkpoint_path = menu.single_choice('Choose the model checkpoint:', model_checkpoints)
-        checkpoint_path = os.path.join('saved_models', checkpoint_path)
+        checkpoint_path = menu.checkpoint_selection(checkpoints_dir='saved_models')
 
         print('Loading {}...'.format(checkpoint_path), end='\r', flush=True)
         model.load(checkpoint_path)
@@ -172,6 +175,29 @@ if __name__ == "__main__":
         sub_path = out.create_sub(recommendations, submission_name=sub_name)
         print('Done')
         sub.send(sub_path, username='federico.parroni@live.it', password='siamoi3piùcarichi')
+
+    def scores():
+        mode = 'full'
+        model = interactive_model(mode)
+
+        checkpoint_path = menu.checkpoint_selection(checkpoints_dir='saved_models')
+
+        print('Loading {}...'.format(checkpoint_path), end='\r', flush=True)
+        model.load(checkpoint_path)
+        print('Done!',  flush=True)
+
+        # get scores for train and test and save them
+        scores_folder = 'scores'
+        check_folder(scores_folder)
+
+        for st in ['train', 'test']:
+            print('Building scores for {}...'.format(st))
+            scores = model.get_scores_batch(scores_type=st)
+            
+            print('Saving scores for {}...'.format(st))
+            scores_filename = '{}_scores_{}'.format(model.name, st)
+            np.save(os.path.join(scores_folder, scores_filename), np.array(scores))
+            
 
     
     activity = menu.single_choice('What do you want to do?', ['Train', 'Submission'], [train, submission])

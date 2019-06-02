@@ -135,3 +135,9 @@ def cluster_selection(exitable=False):
     dir = 'dataset/preprocessed'
     folders = [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]
     return single_choice('Choose a cluster:', folders, exitable=exitable)
+
+def checkpoint_selection(checkpoints_dir='saved_models'):
+    model_checkpoints = os.listdir(checkpoints_dir)
+    checkpoint_path = single_choice('Choose the model checkpoint:', model_checkpoints)
+
+    return os.path.join('saved_models', checkpoint_path)
