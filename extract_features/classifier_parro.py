@@ -26,11 +26,6 @@ class ClassifierParro(FeatureBase):
                    \'mode/feature/classifier_parro/' )
 
         df = pd.read_csv(path, index_col=0).reset_index(drop=True)
-
+        df = df.groupby(['user_id','session_id'], as_index=False).last()
         print('{} feature read'.format(self.name))
         return df
-
-    def post_loading(self, df):
-        """ Fix for scores of splitted sessions (between train and test) """
-        return df.groupby(['user_id','session_id'], as_index=False).last()
-
