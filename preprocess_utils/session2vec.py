@@ -55,6 +55,60 @@ def one_hot_df_column(df, column_label, classes, sparse=False):
             df[col] = pd.Series(res[:,i], dtype='int8', index=df.index)
     return df.drop(column_label, axis=1)
 
+def add_actions_custom_encoding(df):
+    """
+    Custom encoding for the interactions type:
+                            ck,inter,search, rating,pop,price
+    'clickout item':           [1, 0, 0, 0, 0, 0],
+    'interaction item info':   [0, 1, 0, 0, 0, 0],
+    'interaction item rating': [0, 1, 0, 1, 0, 0],
+    'interaction item image':  [0, 1, 0, 0, 0, 0],
+    'interaction item deals':  [0, 1, 0, 0, 0, 1],
+    'search for item':         [0, 1, 1, 0, 0, 0],
+    'search for destination':  [0, 0, 1, 0, 0, 0],
+    'search for poi':          [0, 0, 1, 0, 0, 0]
+    Return the dataframe with the additional encoding columns:  'act_clickout','act_interaction','act_search', 
+                                                                'focus_rating','focus_pop','focus_price'
+    """
+    action_classes = ['act_clickout', 'act_interaction', 'act_search']
+    focus_classes = ['focus_rating', 'focus_pop', 'focus_price']
+    encoding_classes = action_classes + focus_classes
+    # maps every action type to the corresponding encoding
+    mapping = {
+        'clickout item':           [1, 0, 0, 0, 0, 0],
+        'interaction item info':   [0, 1, 0, 0, 0, 0],
+        'interaction item rating': [0, 1, 0, 1, 0, 0],
+        'interaction item image':  [0, 1, 0, 0, 0, 0],
+        'interaction item deals':  [0, 1, 0, 0, 0, 1],
+        'search for item':         [0, 1, 1, 0, 0, 0],
+        'search for destination':  [0, 0, 1, 0, 0, 0],
+        'search for poi':          [0, 0, 1, 0, 0, 0],
+        0:                         [0, 0, 0, 0, 0, 0]
+    }
+
+    res_matrix = np.zeros( (df.shape[0], len(encoding_classes)), dtype='int8')
+    # iterate over the action_type column
+    i = 0
+    for a in tqdm(df['action_type']):
+        res_matrix[i, :] = mapping[a]
+        i += 1
+    # add the resulting columns
+    for j,col_name in enumerate(encoding_classes):
+        df[col_name] = res_matrix[:,j]
+    
+    return df
+
+def aggregate_action_type_and_sof(df):
+    """ Aggregate interaction focus classes and change of sort-order-filters features in 3 columns:
+        1) focus_rating |= sort_rating
+        2) focus_pop |= sort_pop
+        3) focus_price |= sort_price
+    """
+    df['focus_rating'] |= df['sort_rating']
+    df['focus_pop'] |= df['sort_pop']
+    df['focus_price'] |= df['sort_price']
+    return df.drop(['sort_rating', 'sort_pop', 'sort_price'], axis=1)
+
 def add_accomodations_features(df, path_to_save, logic='skip', row_indices=[]):
     """
     Add the features (one-hot) to the dataframe that match the 'reference' and save the resulting dataframe.
@@ -125,49 +179,6 @@ def merge_reference_features(df, pad_sessions_length):
     res_df.iloc[np.arange(-1,len(res_df),pad_sessions_length)[1:], col_start:col_end] = 0
     return res_df
 
-"""
-def add_reference_labels_old(df, actiontype_col='clickout item', action_equals=1, classes_prefix='ref_',
-                            num_classes=25, only_clickouts=False):
-    res_df = df.copy()
-    tqdm.pandas()
-    if only_clickouts:
-        def set_class(row):
-            if row[actiontype_col] == action_equals:
-                try:
-                    ref_class = row.impressions.split('|').index(row.reference)
-                except ValueError:
-                    ref_class = 0
-                return ref_class
-            else:
-                return -1
-    else:
-        def set_class(group):
-            clickouts = group[group[actiontype_col] == action_equals]
-            if len(clickouts) > 0:
-                last_clickout = clickouts.iloc[-1]
-                try:
-                    ref_class = last_clickout.impressions.split('|').index(last_clickout.reference)
-                except ValueError:
-                    ref_class = 0
-                    #print(clickouts.iloc[[-1]].index)      # reference not in the impressions
-                group['temp_ref_class'] = ref_class
-            return group
-
-    res_df['temp_ref_class'] = -1
-    if only_clickouts:
-        res_df['temp_ref_class'] = res_df.progress_apply(set_class, axis=1)
-    else:
-        res_df = res_df.groupby('session_id').progress_apply(set_class)
-    # one-hot encode the classes
-    ref_classes = ['{}nan'.format(classes_prefix)] + ['{}{}'.format(classes_prefix, i) for i in range(num_classes)]
-    encoding = to_categorical(res_df['temp_ref_class']+1, num_classes=len(ref_classes), dtype='int8')
-    # add the encoding columns, skipping the first one (ref_nan column)
-    ref_classes = ref_classes[1:]
-    for i,c in enumerate(ref_classes):
-        res_df[c] = encoding[:,i+1]
-
-    return res_df.drop('temp_ref_class', axis=1), ref_classes
-"""
 
 def add_reference_labels(df, mode, classes_prefix='ref_'):
     """ Add the reference index in the impressions list as a new column for each clickout in the dataframe.
