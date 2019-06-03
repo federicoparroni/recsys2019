@@ -192,6 +192,9 @@ class RecurrentRecommender(RecommenderBase):
     def load(self, path):
         """ Load the full state of a model """
         self.model = load_model(path, custom_objects={"mrr": mrr})
+        # reset the name to the one of the checkpoint
+        self.name = ''.join(os.path.basename(path).split('.')[0:-1])
+
 
     def load_from_checkpoint(self, filename):
         self.model.load_weights(filename)

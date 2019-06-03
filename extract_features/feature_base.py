@@ -107,8 +107,8 @@ class FeatureBase(ABC):
         if one_hot:
             for t in self.columns_to_onehot:
                 col = df[t[0]]
+                one_hot_prefix = t[2] if len(t) == 3 else t[0]
                 if t[1] == 'single':
-                    one_hot_prefix = t[2] if len(t) == 3 else t[0]
                     oh = pd.get_dummies(col, prefix=one_hot_prefix)
                 elif t[1] == 'binary':
                     ce = BinaryEncoder(cols=t[0])
