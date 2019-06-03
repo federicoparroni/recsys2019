@@ -7,7 +7,7 @@ import data
 import numpy as np
 import time
 from preprocess_utils.last_clickout_indices import find
-os.chdir("/Users/Albo/Documents/GitHub/keyblade95/recsys2019")
+#os.chdir("/Users/Albo/Documents/GitHub/keyblade95/recsys2019")
 
 
 class TopPopSortingFilters(FeatureBase):
@@ -66,7 +66,7 @@ class TopPopSortingFilters(FeatureBase):
         _time = time.time() - start
         elapsed = time.strftime('%Mm %Ss', time.gmtime(_time))
         print(f"elapsed in: {elapsed}")
-        return df_feature.astype(int).reset_index().rename(index=str, columns={"index": "clk_ref"})
+        return df_feature.astype(int).reset_index().rename(index=str, columns={"index": "item_id"})
 
 
 if __name__ == '__main__':

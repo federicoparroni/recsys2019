@@ -53,6 +53,8 @@ from extract_features.time_per_impression import TimePerImpression
 from extract_features.classifier_piccio import ClassifierPiccio
 from extract_features.personalized_top_pop import PersonalizedTopPop
 from extract_features.changes_of_sort_order_before_current import ChangeOfSortOrderBeforeCurrent
+from extract_features.top_pop_sorting_filters import TopPopSortingFilters
+from extract_features.price_quality import PriceQuality
 from utils.menu import single_choice
 from preprocess_utils.merge_features import merge_features
 from os.path import join
@@ -91,7 +93,8 @@ def create_dataset(mode, cluster, class_weights=False):
     # training
     kind = single_choice(['1', '2'], ['kind1', 'kind2'])
     if cluster == 'no_cluster':
-        features_array = [ClassifierPiccio, PersonalizedTopPop, TimePerImpression,
+        features_array = [PriceQuality, PlatformFeaturesSimilarity, ClassifierParro,
+                        ClassifierPiccio, PersonalizedTopPop, TimePerImpression,
                         MaxPositionInteractedReference, DayOfWeekAndMomentInDay, LastClickoutFiltersSatisfaction,
                         FrenzyFactorSession, ChangeImpressionOrderPositionInSession, 
                         User2Item, PlatformSession, PlatformReferencePercentageOfInteractions, 
