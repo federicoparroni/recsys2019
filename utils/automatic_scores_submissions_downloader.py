@@ -54,8 +54,21 @@ def download_scores_and_sub(pattern, user_name='ubuntu'):
         sftp.get(filename, join(downloads_folder, pattern,
                                 filename.split('/')[-1]), progress)
 
+    print("transferring models")
+    bp = '~/recsys2019/models/'
+    command = 'find {} -name "*{}*.model"'.format(bp, pattern)
+    stdin, stdout, stderr = ssh.exec_command(command)
+    filelist = stdout.read().splitlines()
+    sftp = ssh.open_sftp()
+    for afile in filelist:
+        filename = afile.decode("utf-8")
+        print('transferring {}'.format(filename))
+        check_folder(join(downloads_folder, pattern)+'/')
+        sftp.get(filename, join(downloads_folder, pattern,
+                                filename.split('/')[-1]), progress)
+
     sftp.close()
 
 
 if __name__ == '__main__':
-    download_scores_and_sub('a pattern')
+    download_scores_and_sub('cluster=no_cluster_kind=kind1_class_weights=False_learning_rate=0.039_min_child_weight=1_n_estimators=2917_max_depth=7_subsample=1_colsample_bytree=1_reg_lambda=0.425_reg_alpha=0.135')
