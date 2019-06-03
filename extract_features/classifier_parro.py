@@ -35,3 +35,7 @@ class ClassifierParro(FeatureBase):
         print('{} feature read'.format(self.name))
         return df
 
+    def post_loading(self, df):
+        """ Fix for scores of splitted sessions (between train and test) """
+        return df.groupby(['user_id','session_id'], as_index=False).last()
+
