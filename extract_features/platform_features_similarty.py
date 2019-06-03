@@ -52,6 +52,8 @@ class PlatformFeaturesSimilarity(FeatureBase):
         # get the item metadata in one hot
         o = ImpressionFeature(mode=self.mode)
         df_accomodations = o.read_feature(True)
+        df_accomodations = df_accomodations.drop(['properties1 Star', 'properties2 Star',
+            'properties3 Star', 'properties4 Star', 'properties5 Star'],1)
         # merge clickouts dataframe with the metadata
         df_clicks_properties = pd.merge(df_clickout, df_accomodations, how='left', on=['item_id'])
         # extract the one hot econded feature into a 1-dim numpy array
