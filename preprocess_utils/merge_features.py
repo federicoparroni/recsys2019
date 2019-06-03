@@ -71,4 +71,4 @@ def merge_features(mode, cluster, features_array, onehot=True):
     validation_test_df.drop('dummy_step', axis=1, inplace=True)
 
     print('after join')
-    return train_df, validation_test_df
+    return train_df, validation_test_df, train_idxs, vali_test_idxs

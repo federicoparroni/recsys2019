@@ -61,10 +61,10 @@ class XGBoostWrapper(RecommenderBase):
                     return
 
         if self.class_weights:
-            X_train, y_train, group, weights = data.dataset_xgboost_train(
+            X_train, y_train, group, _, weights = data.dataset_xgboost_train(
                 mode=self.mode, cluster=self.cluster, class_weights=self.class_weights, kind=self.kind)
         else:
-            X_train, y_train, group = data.dataset_xgboost_train(
+            X_train, y_train, group, _ = data.dataset_xgboost_train(
                 mode=self.mode, cluster=self.cluster, class_weights=self.class_weights, kind=self.kind)
         print('data for train ready')
 
@@ -101,9 +101,9 @@ class XGBoostWrapper(RecommenderBase):
             mode=self.mode, cluster=self.cluster, kind=self.kind)
         target_indices = data.target_indices(self.mode, self.cluster)
         full_impressions = data.full_df()
-        print('data for test ready')
+        print('data for scores test ready')
         scores = list(self.xg.predict(X_test))
-        final_predictions_with_scores = []
+        final_predictions_with_scores_test = []
         count = 0
         for index in tqdm(target_indices):
             impressions = list(
@@ -112,10 +112,29 @@ class XGBoostWrapper(RecommenderBase):
             couples = list(zip(predictions, impressions))
             couples.sort(key=lambda x: x[0], reverse=True)
             sorted_scores, sorted_impr = zip(*couples)
-            final_predictions_with_scores.append(
+            final_predictions_with_scores_test.append(
                 (index, list(sorted_impr), list(sorted_scores)))
             count = count + len(impressions)
-        return final_predictions_with_scores
+
+        X_train, _, _, train_indices = data.dataset_xgboost_train(
+            mode=self.mode, cluster=self.cluster, kind=self.kind)
+        full_impressions = data.full_df()
+        print('data for scores train ready')
+        scores = list(self.xg.predict(X_train))
+        final_predictions_with_scores_train = []
+        count = 0
+        for index in tqdm(train_indices):
+            impressions = list(
+                map(int, full_impressions.loc[index]['impressions'].split('|')))
+            predictions = scores[count:count + len(impressions)]
+            couples = list(zip(predictions, impressions))
+            couples.sort(key=lambda x: x[0], reverse=True)
+            sorted_scores, sorted_impr = zip(*couples)
+            final_predictions_with_scores_train.append(
+                (index, list(sorted_impr), list(sorted_scores)))
+            count = count + len(impressions)
+
+        return final_predictions_with_scores_train, final_predictions_with_scores_test
 
     def compute_MRR(self, predictions):
         """
@@ -190,7 +209,7 @@ class XGBoostWrapperSmartValidation(XGBoostWrapper):
 
     def fit(self):
         global _group_t
-        X_train, y_train, group = data.dataset_xgboost_train(
+        X_train, y_train, group, _ = data.dataset_xgboost_train(
             mode=self.mode, cluster=self.cluster, class_weights=self.class_weights, kind=self.kind)
         print('data for train ready')
 

@@ -122,7 +122,7 @@ def create_dataset(mode, cluster, class_weights=False):
                           SessionLength, TimeFromLastActionBeforeClk, TopPopInteractionClickoutPerImpression, 
                           TopPopPerImpression]
 
-    train_df, test_df = merge_features(mode, cluster, features_array)
+    train_df, test_df, train_idxs, _ = merge_features(mode, cluster, features_array)
 
     if kind=='kind2':
         train_df = train_df.replace(-1, np.nan)
@@ -158,6 +158,8 @@ def create_dataset(mode, cluster, class_weights=False):
     print(len(group))
     np.save(join(bp, 'group_train'), group)
     print('train groups saved')
+
+    np.save(join(bp, 'train_indices'), train_idxs)
 
     print('train data completed')
 
