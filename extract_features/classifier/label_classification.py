@@ -34,9 +34,11 @@ class LabelClassification(FeatureBase):
         if self.mode in ['small', 'local']:
             print('reinserting clickout')
             test = test.groupby(['session_id', 'user_id']).progress_apply(_reinsert_clickout)
-            df = pd.concat([df, test])
-        df = df[(df.action_type == "clickout item") & (df.reference.notnull())]
+        df = pd.concat([df, test])
+        df = df[(df.action_type == "clickout item")]
+        #& (df.reference.notnull())]
         df = df.drop_duplicates("session_id", keep="last")
+        df = df[df.reference.notnull()]
         labels = list()
         for t in tqdm(zip(df.reference, df.impressions)):
             reference = int(t[0])
@@ -45,6 +47,7 @@ class LabelClassification(FeatureBase):
                 labels.append(1)
             else:
                 labels.append(0)
+
 
         df = df[["user_id", "session_id"]]
         df["label"] = labels
