@@ -82,7 +82,8 @@ def add_actions_custom_encoding(df):
         'interaction item deals':  [0, 1, 0, 0, 0, 1],
         'search for item':         [0, 1, 1, 0, 0, 0],
         'search for destination':  [0, 0, 1, 0, 0, 0],
-        'search for poi':          [0, 0, 1, 0, 0, 0]
+        'search for poi':          [0, 0, 1, 0, 0, 0],
+        0:                         [0, 0, 0, 0, 0, 0]
     }
 
     res_matrix = np.zeros( (df.shape[0], len(encoding_classes)), dtype='int8')
