@@ -176,7 +176,7 @@ class XGBoostWrapper(RecommenderBase):
 class XGBoostWrapperSmartValidation(XGBoostWrapper):
 
     def __init__(self, mode, cluster='no_cluster', kind='kind1', ask_to_load=True, class_weights=False, learning_rate=0.3, min_child_weight=1, n_estimators=100, max_depth=3, subsample=1, colsample_bytree=1, reg_lambda=1, reg_alpha=0):
-        super(XGBoostWrapperSmartValidation, self).__init__(mode, cluster=cluster, kind='kind1', ask_to_load=False, class_weights=False,
+        super(XGBoostWrapperSmartValidation, self).__init__(mode, cluster=cluster, kind=kind, ask_to_load=False, class_weights=False,
                                                             learning_rate=learning_rate, min_child_weight=min_child_weight,
                                                             n_estimators=n_estimators, max_depth=max_depth, subsample=subsample,
                                                             colsample_bytree=colsample_bytree, reg_lambda=reg_lambda, reg_alpha=reg_alpha)
@@ -195,10 +195,10 @@ class XGBoostWrapperSmartValidation(XGBoostWrapper):
         }
 
         # create hyperparameters dictionary
-        self.hyperparameters_dict = {'learning_rate': (0.01, 0.3),
-                                     'max_depth': (3, 7),
-                                     'reg_lambda': (0, 0.5),
-                                     'reg_alpha': (0, 0.5)
+        self.hyperparameters_dict = {'learning_rate': (0.1, 0.2),
+                                     'max_depth': (6, 9),
+                                     'reg_lambda': (2, 4),
+                                     'reg_alpha': (7, 10)
                                      }
         global _best_so_far
         global _group_t
