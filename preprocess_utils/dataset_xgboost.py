@@ -122,11 +122,13 @@ def create_dataset(mode, cluster, class_weights=False):
                           SessionLength, TimeFromLastActionBeforeClk, TopPopInteractionClickoutPerImpression, 
                           TopPopPerImpression]
 
-    train_df, test_df, train_idxs, _ = merge_features(mode, cluster, features_array)
-
     if kind=='kind2':
-        train_df = train_df.replace(-1, np.nan)
-        test_df = test_df.replace(-1, np.nan)
+        train_df, test_df, train_idxs, _ = merge_features(mode, cluster, features_array, merge_kind='inner')
+    elif kind=='kind1':
+        train_df, test_df, train_idxs, _ = merge_features(mode, cluster, features_array, merge_kind='left')
+
+    train_df = train_df.replace(-1, np.nan)
+    test_df = test_df.replace(-1, np.nan)
 
     bp = 'dataset/preprocessed/{}/{}/xgboost/{}/'.format(cluster, mode, kind)
     check_folder(bp)
