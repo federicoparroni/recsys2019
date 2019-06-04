@@ -32,21 +32,6 @@ class ImpressionLabel(FeatureBase):
 
     def extract_feature(self):
 
-        def func(x):
-            r = []
-            y = x[x['action_type'] == 'clickout item']
-            if len(y) > 0:
-                clk = y.tail(1)
-                head_index = x.head(1).index
-                impr = clk.impressions.values[0].split('|')
-                clicked_impr = clk.reference.values[0]
-                for i in impr:
-                    if i == clicked_impr:
-                        r.append((i,1))
-                    else:
-                        r.append((i,0))
-            return r
-
         train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)
         if self.mode in ['small', 'local']:
