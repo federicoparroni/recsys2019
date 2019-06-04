@@ -17,7 +17,7 @@ class PriceQuality(FeatureBase):
         ___________________
               price
 
-    user_id | session_id | item_id | feature
+    user_id | session_id | item_id | price_quality
     """
 
     def __init__(self, mode, metric='cosine', cluster='no_cluster'):
@@ -136,8 +136,8 @@ class PriceQuality(FeatureBase):
         for t in tqdm(zip(df_clk_rat_star_rat_filled.rating, df_clk_rat_star_rat_filled.stars,
                           df_clk_rat_star_rat_filled.price)):
             new_col.append((1.5*t[0]+t[1])/t[2])
-        df_clk_rat_star_rat_filled['feature'] = new_col
-        final_feature = df_clk_rat_star_rat_filled[['user_id','session_id','item_id','feature']]
+        df_clk_rat_star_rat_filled['price_quality'] = new_col
+        final_feature = df_clk_rat_star_rat_filled[['user_id','session_id','item_id','price_quality']]
 
         return final_feature
 
