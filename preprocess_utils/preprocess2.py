@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append(os.getcwd())
+
 import data
 from utils.check_folder import check_folder
 import os
