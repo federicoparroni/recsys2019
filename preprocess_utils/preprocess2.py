@@ -390,5 +390,5 @@ def merge_multiple_user_sessions():
 
 
 if __name__ == '__main__':
-    #merge_multiple_user_sessions()
+    merge_multiple_user_sessions()
     _create_csvs()
