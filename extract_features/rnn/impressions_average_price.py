@@ -7,16 +7,16 @@ import data
 import pandas as pd
 import numpy as np
 
-class GlobalClickoutPopularity(FeatureBase):
+class ImpressionsAveragePrice(FeatureBase):
 
     """
-    Compute the popularity of a reference by means of the number of times it has been interacted (in clickouts).
-    | item_id | glob_clickout_popularity
-    popularity is a positive number
+    Compute the average price and standard deviation of the impressions.
+    | item_id | prices_mean | prices_std
+    
     """
 
     def __init__(self, mode='full', cluster='no_cluster'):
-        name = 'global_clickout_popularity'
+        name = 'impressions_average_price'
         columns_to_onehot = []
 
         super().__init__(name=name, mode='full', cluster='no_cluster', columns_to_onehot=columns_to_onehot)
@@ -25,23 +25,21 @@ class GlobalClickoutPopularity(FeatureBase):
     def extract_feature(self):
         df = data.full_df()
 
-        # count the numeric references (skipping NaN in the test)
-        res_df = df[(df.action_type == 'clickout item') & (df.reference.str.isnumeric() == True)]
-        res_df = res_df[['reference','frequence']].astype('int').groupby('reference').sum()
-        res_df['frequence'] -= 1
-        res_df = res_df[res_df['frequence'] > 0]
+        # find the clickout rows
+        clickout_rows = df[df.prices.notnull()][['impressions','prices']]
+        # cast the impressions and the prices to lists
+        clickout_rows['impressions'] = clickout_rows.impressions.str.split('|')
+        clickout_rows['prices'] = clickout_rows.prices.str.split('|')
 
-        # scale log and min-max
-        min_pop = res_df['frequence'].values.min()
-        max_pop = res_df['frequence'].values.max()
-
-        min_pop = np.log(min_pop +1)
-        max_pop = np.log(max_pop +1)
-
-        res_df['frequence'] = (np.log(res_df['frequence'].values +1) - min_pop) / (max_pop - min_pop)
-
-        res_df = res_df.reset_index()
-        return res_df.rename(columns={'reference': 'item_id', 'frequence': 'glob_clickout_popularity'})
+        clickout_rows = pd.DataFrame({col:np.concatenate(clickout_rows[col].values) \
+                                    for col in clickout_rows.columns }).astype('int')
+        # compute mean and standard deviation
+        res_df = clickout_rows.groupby('impressions').agg(['mean','std']).reset_index()
+        res_df.columns = ['_'.join(x) for x in res_df.columns.ravel()]
+        res_df = res_df.rename(columns={'impressions_': 'item_id'})
+        res_df['prices_std'] = res_df['prices_std'].fillna(0)
+        
+        return res_df
 
     
     def join_to(self, df):
@@ -54,13 +52,13 @@ class GlobalClickoutPopularity(FeatureBase):
         res_df = res_df.merge(feature_df, how='left', left_on='reference', right_on='item_id').set_index('index')
         res_df = res_df.drop('item_id', axis=1)
         res_df['reference'] = df['reference']
-        return res_df.fillna(0) #.astype({'glob_clickout_popularity': 'int'})
+        return res_df.fillna(0)
 
 
 if __name__ == '__main__':
     import utils.menu as menu
 
-    c = GlobalClickoutPopularity()
+    c = ImpressionsAveragePrice()
     
     print('Creating {} for {} {}'.format(c.name, c.mode, c.cluster))
     c.save_feature()

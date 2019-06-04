@@ -61,10 +61,10 @@ class XGBoostWrapper(RecommenderBase):
                     return
 
         if self.class_weights:
-            X_train, y_train, group, weights = data.dataset_xgboost_train(
+            X_train, y_train, group, _, weights = data.dataset_xgboost_train(
                 mode=self.mode, cluster=self.cluster, class_weights=self.class_weights, kind=self.kind)
         else:
-            X_train, y_train, group = data.dataset_xgboost_train(
+            X_train, y_train, group, _ = data.dataset_xgboost_train(
                 mode=self.mode, cluster=self.cluster, class_weights=self.class_weights, kind=self.kind)
         print('data for train ready')
 
@@ -101,9 +101,9 @@ class XGBoostWrapper(RecommenderBase):
             mode=self.mode, cluster=self.cluster, kind=self.kind)
         target_indices = data.target_indices(self.mode, self.cluster)
         full_impressions = data.full_df()
-        print('data for test ready')
+        print('data for scores test ready')
         scores = list(self.xg.predict(X_test))
-        final_predictions_with_scores = []
+        final_predictions_with_scores_test = []
         count = 0
         for index in tqdm(target_indices):
             impressions = list(
@@ -112,10 +112,29 @@ class XGBoostWrapper(RecommenderBase):
             couples = list(zip(predictions, impressions))
             couples.sort(key=lambda x: x[0], reverse=True)
             sorted_scores, sorted_impr = zip(*couples)
-            final_predictions_with_scores.append(
+            final_predictions_with_scores_test.append(
                 (index, list(sorted_impr), list(sorted_scores)))
             count = count + len(impressions)
-        return final_predictions_with_scores
+
+        X_train, _, _, train_indices = data.dataset_xgboost_train(
+            mode=self.mode, cluster=self.cluster, kind=self.kind)
+        full_impressions = data.full_df()
+        print('data for scores train ready')
+        scores = list(self.xg.predict(X_train))
+        final_predictions_with_scores_train = []
+        count = 0
+        for index in tqdm(train_indices):
+            impressions = list(
+                map(int, full_impressions.loc[index]['impressions'].split('|')))
+            predictions = scores[count:count + len(impressions)]
+            couples = list(zip(predictions, impressions))
+            couples.sort(key=lambda x: x[0], reverse=True)
+            sorted_scores, sorted_impr = zip(*couples)
+            final_predictions_with_scores_train.append(
+                (index, list(sorted_impr), list(sorted_scores)))
+            count = count + len(impressions)
+
+        return final_predictions_with_scores_train, final_predictions_with_scores_test
 
     def compute_MRR(self, predictions):
         """
@@ -123,7 +142,7 @@ class XGBoostWrapper(RecommenderBase):
         :return: MRR computed on just the sessions where the clickout is not on the first impression
         """
         assert (self.mode == 'local' or self.mode == 'small')
-        train_df = pd.read_csv('dataset/preprocessed/{}/full/train.csv'.format(
+        train_df = pd.read_csv('dataset/preprocessed/no_cluster/full/train.csv'.format(
             self.cluster), usecols=['reference', 'impressions'])
 
         target_indices, recs = zip(*predictions)
@@ -157,7 +176,7 @@ class XGBoostWrapper(RecommenderBase):
 class XGBoostWrapperSmartValidation(XGBoostWrapper):
 
     def __init__(self, mode, cluster='no_cluster', kind='kind1', ask_to_load=True, class_weights=False, learning_rate=0.3, min_child_weight=1, n_estimators=100, max_depth=3, subsample=1, colsample_bytree=1, reg_lambda=1, reg_alpha=0):
-        super(XGBoostWrapperSmartValidation, self).__init__(mode, cluster=cluster, kind='kind1', ask_to_load=False, class_weights=False,
+        super(XGBoostWrapperSmartValidation, self).__init__(mode, cluster=cluster, kind=kind, ask_to_load=False, class_weights=False,
                                                             learning_rate=learning_rate, min_child_weight=min_child_weight,
                                                             n_estimators=n_estimators, max_depth=max_depth, subsample=subsample,
                                                             colsample_bytree=colsample_bytree, reg_lambda=reg_lambda, reg_alpha=reg_alpha)
@@ -176,19 +195,21 @@ class XGBoostWrapperSmartValidation(XGBoostWrapper):
         }
 
         # create hyperparameters dictionary
-        self.hyperparameters_dict = {'learning_rate': (0.01, 0.3),
-                                     'max_depth': (3, 7),
-                                     'reg_lambda': (0, 0.5),
-                                     'reg_alpha': (0, 0.5)
+        self.hyperparameters_dict = {'learning_rate': (0.1, 0.2),
+                                     'max_depth': (6, 9),
+                                     'reg_lambda': (2, 4),
+                                     'reg_alpha': (7, 10)
                                      }
         global _best_so_far
         global _group_t
+        global _kind
         _best_so_far = 0
         _group_t = []
+        _kind = kind
 
     def fit(self):
         global _group_t
-        X_train, y_train, group = data.dataset_xgboost_train(
+        X_train, y_train, group, _ = data.dataset_xgboost_train(
             mode=self.mode, cluster=self.cluster, class_weights=self.class_weights, kind=self.kind)
         print('data for train ready')
 
@@ -211,14 +232,15 @@ class XGBoostWrapperSmartValidation(XGBoostWrapper):
 
 _best_so_far = 0
 _group_t = []
+_kind = ''
 
 def callbak(obj):
     global _best_so_far
     if -obj[6][1][1] > _best_so_far:
         _best_so_far = -obj[6][1][1]
         if _best_so_far > 0.67:
-            HERA.send_message('xgboost iteration {} mrr is {}'. format(
-                obj.iteration, _best_so_far))
+            HERA.send_message('xgboost {} iteration {} mrr is {}'. format(
+                _kind, obj.iteration, _best_so_far), 'gabbo')
         print('xgboost iteration {} mrr is {}'. format(obj.iteration, _best_so_far))
 
 
@@ -233,6 +255,7 @@ def _mrr(y_true, y_pred):
 
 if __name__ == '__main__':
     from utils.menu import mode_selection
+    from utils.menu import cluster_selection
     from utils.menu import single_choice
     from utils.menu import options
 
@@ -242,9 +265,10 @@ if __name__ == '__main__':
     if modality == 'normal recommender':
         kind = single_choice('pick the kind', ['kind1', 'kind2'])
         mode = mode_selection()
+        cluster = cluster_selection()
         sel = options(['evaluate', 'export the sub', 'export the scores'], ['evaluate', 'export the sub',
                                                                             'export the scores'], 'what do you want to do after model fitting and the recommendations?')
-        model = XGBoostWrapper(mode=mode, cluster='no_cluster', kind=kind)
+        model = XGBoostWrapper(mode=mode, cluster=cluster, kind=kind)
         if 'evaluate' in sel:
             model.evaluate(True)
         if 'export the sub' in sel and 'export the scores' in sel:
@@ -255,6 +279,8 @@ if __name__ == '__main__':
             model.run(export_sub=False, export_scores=True)
 
     else:
-        model = XGBoostWrapperSmartValidation(mode='local')
+        mode = mode_selection()
+        cluster = cluster_selection()
+        model = XGBoostWrapperSmartValidation(mode=mode, cluster=cluster)
         model.fit()
         print(model.evaluate())

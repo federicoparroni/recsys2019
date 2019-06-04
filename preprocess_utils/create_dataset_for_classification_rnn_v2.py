@@ -16,11 +16,11 @@ from clusterize.cluster_over_len6 import ClusterOverLen6
 
 from extract_features.rnn.reference_position_in_last_clickout_impressions import ReferencePositionInLastClickoutImpressions
 from extract_features.rnn.reference_price_in_last_clickout import ReferencePriceInLastClickout
+from extract_features.rnn.clickout_vector_prices import ClickoutVectorPrices
 from extract_features.rnn.reference_price_position_in_last_clickout import ReferencePricePositionInLastClickout
 #from extract_features.rnn.global_interactions_popularity import GlobalInteractionsPopularity
 from extract_features.rnn.global_clickout_popularity import GlobalClickoutPopularity
 from extract_features.rnn.session_impressions_count import SessionsImpressionsCount
-from extract_features.rnn.clickout_vector_prices import ClickoutVectorPrices
 from extract_features.rnn.interaction_duration import InteractionDuration
 from extract_features.rnn.clickout_filters_satisfaction import ClickoutFiltersSatisfaction
 from extract_features.rnn.impressions_popularity import ImpressionsPopularity
@@ -29,7 +29,7 @@ from extract_features.rnn.change_sort_order_filters import ChangeSortOrderFilter
 import preprocess_utils.session2vec as sess2vec
 
 
-def create_dataset_for_classification(mode, cluster, binary_class, pad_sessions_length, add_item_features, add_dummy_actions=False,
+def create_dataset_for_classification(mode, cluster, pad_sessions_length, add_item_features, add_dummy_actions=False,
                                     features=[], only_test=False, resample=False, one_target_per_session=True):
     """
     pad_sessions_length (int): final length of sessions after padding/truncating
@@ -37,16 +37,12 @@ def create_dataset_for_classification(mode, cluster, binary_class, pad_sessions_
     add_dummy_actions (bool): whether to add dummy interactions representing the impressions before each clickout
     features (list): list of classes (inheriting from FeatureBase) that will provide additional features to be joined
     only_test (bool): whether to create only the test dataset (useful to make predictions with a pre-trained model)
-    resample (bool): whether to resample to reduce the unbalance between classes
     """
     
-    if binary_class:
-        path = f'dataset/preprocessed/{cluster}/{mode}/dataset_binary_classification_p{pad_sessions_length}'
-    else:
-        path = f'dataset/preprocessed/{cluster}/{mode}/dataset_classification_p{pad_sessions_length}'
+    path = f'dataset/preprocessed/{cluster}/{mode}/dataset_classification_v2_p{pad_sessions_length}'
     check_folder(path)
 
-    def create_ds_class(df, path, for_train, binary_class, add_dummy_actions=add_dummy_actions, pad_sessions_length=pad_sessions_length, 
+    def create_ds_class(df, path, for_train, add_dummy_actions=add_dummy_actions, pad_sessions_length=pad_sessions_length, 
                         add_item_features=add_item_features, resample=resample, one_target_per_session=one_target_per_session,
                         new_row_index=99000000):
         """ Create X and Y dataframes if for_train, else only X dataframe.
@@ -55,9 +51,9 @@ def create_dataset_for_classification(mode, cluster, binary_class, pad_sessions_
 
         ds_type = 'train' if for_train else 'test'
         devices_classes = ['mobile', 'desktop', 'tablet']
-        actions_classes = ['clickout item', 'interaction item rating', 'interaction item info',
-                'interaction item image', 'interaction item deals', 'search for item', 'search for destination',
-                'search for poi'] #, 'change of sort order', 'filter selection', 'show_impression', ]
+        # actions_classes = ['clickout item', 'interaction item rating', 'interaction item info',
+        #         'interaction item image', 'interaction item deals', 'search for item', 'search for destination',
+        #         'search for poi'] #, 'change of sort order', 'filter selection', 'show_impression', ]
         
         # merge the features
         print('Merging the features...')
@@ -88,10 +84,14 @@ def create_dataset_for_classification(mode, cluster, binary_class, pad_sessions_
         df = sess2vec.one_hot_df_column(df, 'device', classes=devices_classes)
         print('Done!\n')
 
-        # add the one-hot of the action-type
-        print('Adding one-hot columns of action_type...', end=' ', flush=True)
-        df = sess2vec.one_hot_df_column(df, 'action_type', classes=actions_classes)
+        # add the encoding of the action-type
+        print('Adding encoding of action_type...', end=' ', flush=True)
+        df = sess2vec.add_actions_custom_encoding(df)
+        df = df.drop('action_type', axis=1)
         print('Done!\n')
+
+        # merge interaction focus and change-of-sort-order filters 
+        df = sess2vec.aggregate_action_type_and_sof(df)
 
         # remove the impressions column
         df = df.drop('impressions', axis=1)
@@ -126,10 +126,7 @@ def create_dataset_for_classification(mode, cluster, binary_class, pad_sessions_
             
             # add the reference classes
             print('Adding references classes...')
-            if binary_class:
-                df = sess2vec.add_reference_binary_labels(df, mode=mode)
-            else:
-                df = sess2vec.add_reference_labels(df, mode=mode)
+            df = sess2vec.add_reference_labels(df, mode=mode)
             print('Done!\n')
 
             # save the Y dataframe
@@ -153,13 +150,11 @@ def create_dataset_for_classification(mode, cluster, binary_class, pad_sessions_
         ## ======== TRAIN ======== ##
         train_df = data.train_df(mode, cluster)
         train_df = train_df.append(sessions_not_to_predict).sort_values(['user_id','session_id','timestamp','step'])
-        TRAIN_LEN, final_new_index = create_ds_class(train_df, path, binary_class=binary_class,
-                                                    for_train=True, new_row_index=final_new_index)
+        TRAIN_LEN, final_new_index = create_ds_class(train_df, path, for_train=True, new_row_index=final_new_index)
         del train_df
 
     ## ======== TEST ======== ##
-    TEST_LEN, _ = create_ds_class(test_df, path, binary_class=binary_class, for_train=False,
-                                    new_row_index=final_new_index)
+    TEST_LEN, _ = create_ds_class(test_df, path, for_train=False, new_row_index=final_new_index)
     del test_df
 
     ## ======== CONFIG ======== ##
@@ -189,8 +184,6 @@ if __name__ == "__main__":
     if mode != 'small':
         only_test = menu.yesno_choice('Do you want to create only the test dataset?', lambda: True, lambda: False)
     
-    binary_dataset = menu.single_choice('Which dataset?', ['Standard','Binary'], [False,True])
-
     sess_length = int(input('Insert the desired sessions length, -1 to not to pad/truncate the sessions: '))
 
     features_to_join = [
@@ -202,12 +195,12 @@ if __name__ == "__main__":
         
         #ReferencePriceInNextClickout,
         ReferencePriceInLastClickout,
+        ClickoutVectorPrices,
 
         #ReferencePricePositionInNextClickout,
         ReferencePricePositionInLastClickout,
 
         SessionsImpressionsCount,
-        ClickoutVectorPrices,
 
         InteractionDuration,
 
@@ -225,7 +218,7 @@ if __name__ == "__main__":
 
     # create the tensors dataset
     print('Creating the dataset ({})...'.format(mode))
-    create_dataset_for_classification(mode, c.name, binary_class=binary_dataset, pad_sessions_length=sess_length, resample=False,
+    create_dataset_for_classification(mode, c.name, pad_sessions_length=sess_length, resample=False,
                                         add_item_features=False, features=features, only_test=only_test)
 
 

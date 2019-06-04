@@ -161,7 +161,8 @@ if __name__ == "__main__":
 
         weights = dataset.get_class_weights()
         
-        model = RNNBinaryClassificator(dataset, input_shape=(dataset.rows_per_sample, 170), cell_type='gru', 
+        model = RNNBinaryClassificator(dataset, input_shape=(dataset.rows_per_sample, 168),
+                                    cell_type='gru', 
                                     num_recurrent_layers=2, num_recurrent_units=64, num_dense_layers=2,
                                     class_weights=weights, optimizer=optim)
 
@@ -181,7 +182,7 @@ if __name__ == "__main__":
         model = interactive_model(mode, optim=optim)
 
         # fit the model
-        model.fit(epochs=1)
+        model.fit(epochs=10000)
         print('\nFit completed!')
 
         best_accuracy = np.max(model.history.history['val_acc'])
@@ -196,7 +197,7 @@ if __name__ == "__main__":
         print('Lr: {}'.format(lr))
 
     def create_feature():
-        mode = 'local'
+        mode = 'full'
         model = interactive_model(mode)
 
         model_checkpoints = os.listdir('saved_models')
@@ -207,7 +208,7 @@ if __name__ == "__main__":
         model.load(checkpoint_path)
         print('Done!',  flush=True)
 
-        print('Creating feature for local...')
+        print('Creating feature for {}...'.format(mode))
         model.create_feature()
 
     activity = menu.single_choice('What do you want to do?', ['Train', 'Create feature'], [train, create_feature])

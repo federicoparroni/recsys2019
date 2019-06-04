@@ -12,6 +12,8 @@ from copy import deepcopy
 import pickle
 import pandas as pd
 
+from utils import check_folder
+
 tqdm.pandas()
 
 
@@ -24,10 +26,10 @@ class CatboostRanker(RecommenderBase):
     """
 
     def __init__(self, mode, cluster='no_cluster', learning_rate=0.15, iterations=10, max_depth=10, reg_lambda=6.0,
-                 colsample_bylevel=1, algo='xgboost',
+                 colsample_bylevel=1, algo='catboost', one_hot_max_size=255,
                  custom_metric='AverageGain:top=1', include_test=False,
                  file_to_load=None,
-                 file_to_store=None, limit_trees=False, features_to_one_hot=None):
+                 file_to_store='catboost_2000.sav', limit_trees=False, features_to_one_hot=None):
         """
         :param mode:
         :param cluster:
@@ -49,6 +51,7 @@ class CatboostRanker(RecommenderBase):
         self.target_indices = data.target_indices(mode=mode, cluster=cluster)
         self.features_to_drop = []
         self.include_test = include_test
+        self.dataset_name = 'catboost_rank'
 
         self.default_parameters = {
             'iterations': math.ceil(iterations),
@@ -63,13 +66,15 @@ class CatboostRanker(RecommenderBase):
             'loss_function': 'QuerySoftMax',
             'train_dir': 'QuerySoftMax',
             'logging_level': 'Verbose',
+            'one_hot_max_size': math.ceil(one_hot_max_size),
         }
 
         # create hyperparameters dictionary
-        self.hyperparameters_dict = {'iterations': (50, 50),
-                                     'max_depth': (10.5, 11),
-                                     'learning_rate': (0.15, 0.15),
-                                     'reg_lambda': (6.5, 6.75),
+        self.hyperparameters_dict = {'iterations': (2000, 2000),
+                                     'max_depth': (11, 11),
+                                     'learning_rate': (0.05, 0.05),
+                                     'reg_lambda': (7.2, 8.7),
+                                     'one_hot_max_size': (511, 511)
                                      }
 
         self.fixed_params_dict = {
@@ -83,7 +88,6 @@ class CatboostRanker(RecommenderBase):
         self.file_to_store = file_to_store
         self.features_to_one_hot = features_to_one_hot
         self.algo = algo
-
         self.ctb = None
         self.categorical_features = None
         self.train_features = None
@@ -125,19 +129,17 @@ class CatboostRanker(RecommenderBase):
             return
 
         train_df = self.get_preprocessed_dataset(mode='train')
-        train_features = train_df.drop(['user_id', 'session_id', 'label'], axis=1)
+        train_features = train_df.drop(['user_id', 'session_id', 'item_id', 'label', 'id'], axis=1)
 
         if self.algo == 'catboost':
             print('Entered')
             features = list(train_features.columns.values)
             self.categorical_features = []
             for f in features:
-                print(f)
-                print(train_features.head(1)[f].values[0])
                 if isinstance(train_features.head(1)[f].values[0], str):
+                    print(train_features.head(1)[f].values[0])
                     self.categorical_features.append(features.index(f))
                     print(f + ' is categorical!')
-                    train_features.drop(f, axis=1, inplace=True)
 
             if len(self.categorical_features) == 0:
                 self.categorical_features = None
@@ -147,8 +149,9 @@ class CatboostRanker(RecommenderBase):
         X_train = train_features.values
         y_train = train_df['label'].values
         _path = self.data_dir.joinpath('catboost_train.txt.npy')
-        queries_train = np.load(_path)
+        queries_train = train_df['id'].values
 
+        print(len(X_train))
         # Creating pool for training data
         train_with_weights = Pool(
             data=X_train,
@@ -172,6 +175,7 @@ class CatboostRanker(RecommenderBase):
             queries_test = test_df['id'].values
 
             print("pooling")
+
             test_with_weights = Pool(
                 data=X_test,
                 label=y_test,
@@ -192,26 +196,34 @@ class CatboostRanker(RecommenderBase):
         if self.file_to_store is not None:
             pickle.dump(self.ctb, open(self.file_to_store, 'wb'))  # pickling
 
-    def get_scores_batch(self):
+    def get_scores_batch(self, save=False):
         if self.scores_batch is None:
             self.fit()
             self.recommend_batch()
-        return self.scores_batch[1:]
 
-    def func(self, x):
-        """
-        Func given to progress_apply to create recommendations given a dataset for catboost
-        :param x: groupd df containing same trg_idx (which is the index to return in the tuples)
-        :return: tuple (trg_idx, list of recs)
-        """
+        base_path = f'dataset/preprocessed/{self.cluster}/{self.mode}/predictions/{self.dataset_name}.pickle'
+        check_folder.check_folder(base_path)
+        if save:
+            with open(base_path, 'wb') as f:
+                pickle.dump(self.scores_batch, f)
+            print(f'saved at: {base_path}')
+        else:
+            return self.scores_batch
 
-        target_idx = x.trg_idx.values[0]
-        x = x.sort_values(by=['impression_position'])
-        X_test = x.drop(['label', 'trg_idx'], axis=1).values
+        return self.scores_batch
 
-        # useless
-        # y_test = x['label'].values
-        group_id = x.trg_idx.values
+    def recommend_batch(self):
+        dataset_test = self.get_preprocessed_dataset(mode='test')
+
+        target_indices = data.target_indices(self.mode, self.cluster)
+        target_indices.sort()
+
+        test = data.test_df(self.mode, self.cluster)
+        print('data for test ready')
+
+        X_test = dataset_test.drop(['user_id', 'session_id', 'item_id', 'label', 'trg_idx'], axis=1).values
+
+        group_id = dataset_test.trg_idx.values
 
         test_with_weights = Pool(
             data=X_test,
@@ -220,51 +232,32 @@ class CatboostRanker(RecommenderBase):
             cat_features=self.categorical_features
         )
 
-        if self.limit_trees and self.limit_trees > 0:
-            scores = self.ctb.predict(test_with_weights, ntree_end=self.limit_trees)
-        else:
-            scores = self.ctb.predict(test_with_weights)
-
-        impr = list(map(int, self.test_df.at[target_idx, 'impressions'].split('|')))
-
-        min_len = len(scores)
-        if len(scores) != len(impr):
-            print("At session" + self.test_df.at[target_idx, 'session_id'] + 'found different len of scores wrt len '
-                                                                             'of impressions')
-            print(x.impression_position)
-            print(impr)
-            print(scores)
-
-        if len(scores) > len(impr):
-            min_len = len(impr)
-
-        scores_impr = [[scores[i], impr[i]] for i in range(min_len)]
-
-        # Order by max score
-        scores_impr.sort(key=lambda x: x[0], reverse=True)
-
-        preds = [x[1] for x in scores_impr]
-        scores = [x[0] for x in scores_impr]
-
-        self.predictions.append((target_idx, preds))
-        self.scores_batch.append((target_idx, preds, scores))
-
-    def recommend_batch(self):
-
-        test_df = self.get_preprocessed_dataset(mode='test')
-
-        test_df.drop(['user_id', 'session_id'], inplace=True, axis=1)
+        scores = self.ctb.predict(test_with_weights)
 
         self.predictions = []
         self.scores_batch = []
+        count = 0
+        for index in tqdm(target_indices):
+            impressions = list(map(int, test.loc[index]['impressions'].split('|')))
+            predictions = scores[count:count + len(impressions)]
+            couples = list(zip(predictions, impressions))
+            couples.sort(key=lambda x: x[0], reverse=True)
+            scores_impr, sorted_impr = zip(*couples)
+            count = count + len(impressions)
 
-        test_df.groupby('trg_idx', as_index=False).progress_apply(self.func)
+            self.predictions.append((index, list(sorted_impr)))
+            self.scores_batch.append((index, list(sorted_impr), scores_impr))
 
-        return self.predictions[1:]
+
+        if self.file_to_store is not None:
+            self.get_scores_batch(save=True)
+
+        return self.predictions
 
     def set_limit_trees(self, n):
         if n > 0:
             self.limit_trees = n
+
 
     def get_feature_importance_results(self):
         if self.ctb is None:
@@ -291,11 +284,10 @@ class CatboostRanker(RecommenderBase):
 
         test_df = self.get_preprocessed_dataset(mode='test')
 
-        test_df.drop(['user_id', 'session_id'], inplace=True, axis=1)
+        test_df.drop(['user_id', 'session_id', 'item_id'], inplace=True, axis=1)
 
         if mode == 'auto':
             list_num_trees = [max_trees - i * range_step for i in range(max_trees)]
-
             for trees in list_num_trees:
                 self.set_limit_trees(trees)
 
@@ -325,7 +317,8 @@ class CatboostRanker(RecommenderBase):
 
                 MRR = self.compute_MRR(self.predictions[1:])
                 HERA.send_message(
-                    'evaluating recommender {} on {}. Iterations used {}\n MRR is: {}\n\n'.format(self.name, self.cluster,
+                    'evaluating recommender {} on {}. Iterations used {}\n MRR is: {}\n\n'.format(self.name,
+                                                                                                  self.cluster,
                                                                                                   trees, MRR))
 
     def get_preprocessed_dataset(self, mode):
@@ -373,5 +366,9 @@ class CatboostRanker(RecommenderBase):
 
 
 if __name__ == '__main__':
-    model = CatboostRanker(mode='small', cluster='no_cluster', iterations=50, learning_rate=0.15, algo='catboost')
+    from utils.menu import mode_selection
+    mode = mode_selection()
+    model = CatboostRanker(mode=mode, cluster='no_cluster', iterations=10, learning_rate=0.5, algo='catboost')
     model.evaluate(send_MRR_on_telegram=True)
+
+

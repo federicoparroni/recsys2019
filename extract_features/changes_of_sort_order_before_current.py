@@ -37,7 +37,7 @@ class ChangeOfSortOrderBeforeCurrent(FeatureBase):
     def __init__(self, mode, cluster='no_cluster'):
         name = 'changes_of_sort_order_before_current'
         super(ChangeOfSortOrderBeforeCurrent, self).__init__(
-            name=name, mode=mode, cluster=cluster)
+            name=name, mode=mode, cluster=cluster, columns_to_onehot=[('current_sort_order', 'single')])
 
     def extract_feature(self):
 

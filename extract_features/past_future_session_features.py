@@ -4,6 +4,7 @@ from extract_features.feature_base import FeatureBase
 import data
 import pandas as pd
 from tqdm.auto import tqdm
+import random
 
 from preprocess_utils.create_user_features_from_full import extract_features_from_full
 from preprocess_utils.last_clickout_indices import expand_impressions
@@ -62,7 +63,8 @@ class PastFutureSessionFeatures(FeatureBase):
 
     def __init__(self, mode, cluster='no_cluster'):
         name = 'past_future_session_features'
-        columns_to_onehot = [('past_closest_action_involving_impression', 'single'), ('future_closest_action_involving_impression', 'single')]
+        columns_to_onehot = [('past_closest_action_involving_impression', 'single'),
+                             ('future_closest_action_involving_impression', 'single')]
 
         super(PastFutureSessionFeatures, self).__init__(
             name=name, mode=mode, cluster=cluster, columns_to_onehot=columns_to_onehot)
@@ -103,10 +105,14 @@ class PastFutureSessionFeatures(FeatureBase):
         Must distinsuish between past sessions and future sessions, and for each compute same features.
         This will help understand the moves of the user through the impressions
         """
-        train_df = data.train_df(mode=mode, cluster=self.cluster)
-        test_df = data.test_df(mode=mode, cluster=self.cluster)
-        test_df = test_df.fillna(0)
-        df = pd.concat([train_df, test_df])
+        if self.mode == 'full':
+            df = data.full_df()
+        else:
+            train_df = data.train_df(mode=self.mode, cluster=self.cluster)
+            test_df = data.test_df(mode=self.mode, cluster=self.cluster)
+            test_df = test_df.fillna(0)
+            df = pd.concat([train_df, test_df])
+
         df.sort_values(by=['user_id', 'session_id', 'timestamp'], inplace=True)
         df = df.reset_index(drop=True)
 
@@ -135,7 +141,7 @@ class PastFutureSessionFeatures(FeatureBase):
             # Now i start creating the features for every session
 
             sessions_user_idxs = []
-            while len(idx_to_compute)>0 and idx_to_compute[0] < i:
+            while len(idx_to_compute) > 0 and idx_to_compute[0] < i:
                 sessions_user_idxs += [idx_to_compute.pop(0)]
             sessions_count = len(sessions_user_idxs)
 
@@ -215,10 +221,10 @@ class PastFutureSessionFeatures(FeatureBase):
 
         if mode == 'past' or mode == 'both':
             for key in past_features:
-                self.features[key] += [0] * len(impr)
+                self.features[key] += [-1] * len(impr)
         if mode == 'future' or mode == 'both':
             for key in future_features:
-                self.features[key] += [0] * len(impr)
+                self.features[key] += [-1] * len(impr)
 
     def compute_past_sessions_feat(self, df, impressions, closest_tm):
 
@@ -226,7 +232,8 @@ class PastFutureSessionFeatures(FeatureBase):
 
         self.features['past_session_num'] += [len(set(df.session_id.values))] * len(impressions)
 
-        self.features['past_closest_action_involving_impression'] += get_closest_actions_impressions(df, impressions, mode='past')
+        self.features['past_closest_action_involving_impression'] += get_closest_actions_impressions(df, impressions,
+                                                                                                     mode='past')
 
         self.features['past_times_user_interacted_impression'] += get_times_interacted_impression(df, impressions)
 
@@ -253,7 +260,8 @@ class PastFutureSessionFeatures(FeatureBase):
 
         self.features['future_session_num'] += [len(set(df.session_id.values))] * len(impressions)
 
-        self.features['future_closest_action_involving_impression'] += get_closest_actions_impressions(df, impressions, mode='future')
+        self.features['future_closest_action_involving_impression'] += get_closest_actions_impressions(df, impressions,
+                                                                                                       mode='future')
 
         self.features['future_times_user_interacted_impression'] += get_times_interacted_impression(df, impressions)
 

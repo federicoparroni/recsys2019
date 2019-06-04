@@ -21,7 +21,6 @@ class ImpressionsCountInNextClickout(FeatureBase):
         columns_to_onehot = []
 
         super().__init__(name=name, mode='full', columns_to_onehot=columns_to_onehot, save_index=True)
-        #self.one_hot_prefix = 'rp'
 
 
     def extract_feature(self):

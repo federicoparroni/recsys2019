@@ -26,7 +26,6 @@ from extract_features.times_user_interacted_with_impression import TimesUserInte
 from extract_features.timing_from_last_interaction_impression import TimingFromLastInteractionImpression
 from extract_features.weights_class import WeightsClass
 from extract_features.impression_rating import ImpressionRating
-from extract_features.time_per_impression import TimeImpressionLabel
 from extract_features.change_impression_order_position_in_session import ChangeImpressionOrderPositionInSession
 from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
 from extract_features.top_pop_per_impression import TopPopPerImpression
@@ -45,8 +44,17 @@ from extract_features.perc_click_per_impressions import PercClickPerImpressions
 from extract_features.platform_reference_percentage_of_clickouts import PlatformReferencePercentageOfClickouts
 from extract_features.platform_reference_percentage_of_interactions import PlatformReferencePercentageOfInteractions
 from extract_features.platform_session import PlatformSession
-from extract_features.time_per_impression import TimeImpressionLabel
 from extract_features.user_2_item import User2Item
+from extract_features.platform_features_similarty import PlatformFeaturesSimilarity
+from extract_features.day_moment_in_day import DayOfWeekAndMomentInDay
+from extract_features.last_clickout_filters_satisfaction import LastClickoutFiltersSatisfaction
+from extract_features.max_position_interacted_reference import MaxPositionInteractedReference
+from extract_features.time_per_impression import TimePerImpression
+from extract_features.classifier_piccio import ClassifierPiccio
+from extract_features.personalized_top_pop import PersonalizedTopPop
+from extract_features.changes_of_sort_order_before_current import ChangeOfSortOrderBeforeCurrent
+from extract_features.top_pop_sorting_filters import TopPopSortingFilters
+from extract_features.price_quality import PriceQuality
 from utils.menu import single_choice
 from preprocess_utils.merge_features import merge_features
 from os.path import join
@@ -84,28 +92,41 @@ def create_weights(df):
 def create_dataset(mode, cluster, class_weights=False):
     # training
     kind = single_choice(['1', '2'], ['kind1', 'kind2'])
-    if kind == 'kind1':
-        features_array = [FrenzyFactorSession, ChangeImpressionOrderPositionInSession, 
-                          User2Item, PlatformSession, PlatformReferencePercentageOfInteractions, 
-                          PercClickPerImpressions, PlatformReferencePercentageOfClickouts,
-                          NumImpressionsInClickout, NumTimesItemImpressed,
-                          LocationReferencePercentageOfClickouts, LocationReferencePercentageOfInteractions,
-                          StepsBeforeLastClickout, ImpressionStarsNumeric, LastActionBeforeClickout,
-                          TopPopPerImpression, TopPopInteractionClickoutPerImpression, 
-                          ImpressionRatingNumeric, ActionsInvolvingImpressionSession,
-                          ImpressionLabel, ImpressionPriceInfoSession,
-                          TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
-                          ImpressionPositionSession, LastInteractionInvolvingImpression,
-                          SessionDevice, SessionSortOrderWhenClickout, MeanPriceClickout,
-                          PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
-                          TimesImpressionAppearedInClickoutsSession]
+    if cluster == 'no_cluster':
+        features_array = [PriceQuality, PlatformFeaturesSimilarity, ClassifierParro,
+                        ClassifierPiccio, PersonalizedTopPop, TimePerImpression,
+                        MaxPositionInteractedReference, DayOfWeekAndMomentInDay, LastClickoutFiltersSatisfaction,
+                        FrenzyFactorSession, ChangeImpressionOrderPositionInSession, 
+                        User2Item, PlatformSession, PlatformReferencePercentageOfInteractions, 
+                        PercClickPerImpressions, PlatformReferencePercentageOfClickouts,
+                        NumImpressionsInClickout, NumTimesItemImpressed,
+                        LocationReferencePercentageOfClickouts, LocationReferencePercentageOfInteractions,
+                        StepsBeforeLastClickout, ImpressionStarsNumeric, LastActionBeforeClickout,
+                        TopPopPerImpression, TopPopInteractionClickoutPerImpression, 
+                        ImpressionRatingNumeric, ActionsInvolvingImpressionSession,
+                        ImpressionLabel, ImpressionPriceInfoSession,
+                        TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
+                        ImpressionPositionSession, LastInteractionInvolvingImpression,
+                        SessionDevice, SessionSortOrderWhenClickout, MeanPriceClickout,
+                        PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
+                        TimesImpressionAppearedInClickoutsSession]
 
-    elif kind == 'kind2':
-        features_array = [ImpressionLabel, ImpressionFeature]
+    if cluster == 'no_numeric_reference_no_one_step':
+        features_array = [ChangeImpressionOrderPositionInSession, ChangeOfSortOrderBeforeCurrent, ImpressionLabel, 
+                          DayOfWeekAndMomentInDay, FrenzyFactorSession, ImpressionPositionSession, 
+                          ImpressionPriceInfoSession, ImpressionRatingNumeric, ImpressionStarsNumeric,
+                          LastClickoutFiltersSatisfaction, StepsBeforeLastClickout, LocationReferencePercentageOfClickouts,
+                          LocationReferencePercentageOfInteractions, MeanPriceClickout, NumImpressionsInClickout,
+                          PercClickPerImpressions, PersonalizedTopPop, PlatformReferencePercentageOfClickouts,
+                          PlatformReferencePercentageOfInteractions, PlatformSession, SessionDevice, 
+                          SessionLength, TimeFromLastActionBeforeClk, TopPopInteractionClickoutPerImpression, 
+                          TopPopPerImpression]
 
-    train_df, test_df = merge_features(mode, cluster, features_array)
-    # train_df = train_df.replace(-1, np.nan)
-    # test_df = test_df.replace(-1, np.nan)
+    train_df, test_df, train_idxs, _ = merge_features(mode, cluster, features_array)
+
+    if kind=='kind2':
+        train_df = train_df.replace(-1, np.nan)
+        test_df = test_df.replace(-1, np.nan)
 
     bp = 'dataset/preprocessed/{}/{}/xgboost/{}/'.format(cluster, mode, kind)
     check_folder(bp)
@@ -137,6 +158,8 @@ def create_dataset(mode, cluster, class_weights=False):
     print(len(group))
     np.save(join(bp, 'group_train'), group)
     print('train groups saved')
+
+    np.save(join(bp, 'train_indices'), train_idxs)
 
     print('train data completed')
 
@@ -171,6 +194,7 @@ def create_dataset(mode, cluster, class_weights=False):
 
 if __name__ == "__main__":
     from utils.menu import mode_selection
+    from utils.menu import cluster_selection
     mode = mode_selection()
-    cluster = 'no_cluster'
+    cluster = cluster_selection()
     create_dataset(mode, cluster)
