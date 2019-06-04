@@ -1,6 +1,7 @@
 from extract_features.feature_base import FeatureBase
 import data
 import pandas as pd
+from preprocess_utils.last_clickout_indices import find as find_last_clickout_indices
 from tqdm.auto import tqdm
 tqdm.pandas()
 
@@ -20,16 +21,17 @@ class SessionDevice(FeatureBase):
             name=name, mode=mode, cluster=cluster, columns_to_onehot=columns_to_onehot)
 
     def extract_feature(self):
-
-        def func(x):
-            h = x.head(1)
-            return h.device.values[0]
-
         train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)
         df = pd.concat([train, test])
-        s = df.groupby(['user_id', 'session_id']).progress_apply(func)
-        return pd.DataFrame({'user_id':[x[0] for x in s.index.values], 'session_id':[x[1] for x in s.index.values], 'session_device':[x[0] for x in s.values]})
+        idxs_click = find_last_clickout_indices(df)
+        tuple_list = []
+        for i in idxs_click:
+            user = df.at[i, 'user_id']
+            sess = df.at[i, 'session_id']
+            device = df.at[i, 'device']
+            tuple_list.append((user, sess, device))
+        return pd.DataFrame(tuple_list, columns=['user_id', 'session_id', 'device'])
 
 if __name__ == '__main__':
     from utils.menu import mode_selection
