@@ -22,7 +22,7 @@ class TimingFromLastInteractionImpression(FeatureBase):
     def __init__(self, mode, cluster='no_cluster'):
         name = 'timing_from_last_interaction_impression'
         super(TimingFromLastInteractionImpression, self).__init__(
-            name=name, mode=mode, cluster=cluster)
+            name=name, mode=mode, cluster=cluster, columns_to_onehot=[('single', 'last_action_type_with_impr')])
 
     def extract_feature(self):
 
