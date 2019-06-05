@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append(os.getcwd())
+
 import data
 from utils.check_folder import check_folder
 import os
@@ -390,5 +394,5 @@ def merge_multiple_user_sessions():
 
 
 if __name__ == '__main__':
-    #merge_multiple_user_sessions()
+    merge_multiple_user_sessions()
     _create_csvs()

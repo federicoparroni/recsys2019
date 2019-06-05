@@ -10,7 +10,7 @@ class TimePerImpression(FeatureBase):
 
     """
     say for each impression of a clickout the total time spent on it
-    | user_id | session_id | item_id | time_per_impression
+    | user_id | session_id | item_id | impression_time
     """
 
     def __init__(self, mode, cluster='no_cluster'):
