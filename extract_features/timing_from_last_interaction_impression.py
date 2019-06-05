@@ -31,7 +31,7 @@ class TimingFromLastInteractionImpression(FeatureBase):
         df = pd.concat([train, test])
 
         temp = df.fillna('0')
-        idxs_click = find_last_clickout_indices(temp)
+        idxs_click = sorted(find_last_clickout_indices(temp))
         idxs_numeric_reference = temp[temp['reference'].str.isnumeric() == True].index
 
         count = 0
@@ -72,9 +72,11 @@ class TimingFromLastInteractionImpression(FeatureBase):
                                       'last_action_type_with_impr': df.at[i, 'action_type']}
 
         final_df = expand_impressions(temp[['user_id', 'session_id', 'impressions']].loc[idxs_click])
+        print(len(final_df))
+        print(len(impr_feature))
         final_df['dict'] = impr_feature
 
-        features_df = pd.DataFrame(final_df.apply(lambda x: tuple(x['dict'].values()), axis=1).tolist(),
+        features_df = pd.DataFrame(final_df.progress_apply(lambda x: tuple(x['dict'].values()), axis=1).tolist(),
                                    columns=list(final_df.iloc[0].dict.keys()))
         final_df_ = pd.concat([final_df, features_df], axis=1).drop('dict', axis=1)
         return final_df_
