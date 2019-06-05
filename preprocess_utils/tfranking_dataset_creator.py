@@ -167,7 +167,7 @@ def create_dataset(mode, cluster, features_array, dataset_name):
 
 if __name__ == '__main__':
     features_array = [
-        ActionsInvolvingImpressionSession,
+        #ActionsInvolvingImpressionSession,
         # ChangeImpressionOrderPositionInSession,
         # ChangeOfSortOrderBeforeCurrent,
         # CitySession,
