@@ -146,5 +146,3 @@ if __name__ == '__main__':
 
     print('Creating {} for {} {}'.format(c.name, c.mode, c.cluster))
     c.save_feature()
-
-    print(c.read_feature())
