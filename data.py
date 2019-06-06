@@ -131,6 +131,8 @@ def dataset_xgboost_train(mode, cluster='no_cluster', kind='kind1', class_weight
             os.path.join(bp, 'y_train.csv'))['label'].to_dense()
         _dataset_xgboost_train[bp+'c'] = np.load(
             os.path.join(bp, 'group_train.npy'))
+        _dataset_xgboost_train[bp+'e'] = np.load(
+            os.path.join(bp, 'train_indices.npy'))
         if class_weights:
             _dataset_xgboost_train[bp+'d'] = np.load(
             os.path.join(bp, 'class_weights.npy'))
@@ -138,11 +140,13 @@ def dataset_xgboost_train(mode, cluster='no_cluster', kind='kind1', class_weight
         return _dataset_xgboost_train[bp+'a'], \
             _dataset_xgboost_train[bp+'b'], \
             _dataset_xgboost_train[bp+'c'], \
+            _dataset_xgboost_train[bp+'e'], \
             _dataset_xgboost_train[bp + 'd']
     else:
         return _dataset_xgboost_train[bp + 'a'], \
                _dataset_xgboost_train[bp + 'b'], \
-               _dataset_xgboost_train[bp + 'c']
+               _dataset_xgboost_train[bp + 'c'], \
+               _dataset_xgboost_train[bp + 'e']
 
 def dataset_xgboost_test(mode, cluster='no_cluster', kind='kind1'):
     global _dataset_xgboost_test

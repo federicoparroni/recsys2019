@@ -413,7 +413,7 @@ def train_and_test():
         model_fn=tfr.model.make_groupwise_ranking_fn(
             group_score_fn=make_score_fn(),
             group_size=FLAGS.group_size,
-            transform_fn=None,
+            transform_fn=tfr.feature.make_identity_transform_fn(FLAGS.train_context_features_id),
             ranking_head=ranking_head))
 
     estimator.train(train_input_fn, hooks=[train_hook], steps=FLAGS.num_train_steps)
@@ -460,8 +460,6 @@ if __name__ == "__main__":
     # load context features id
     flags.DEFINE_list("context_features_id", list(np.load(f'{_BASE_PATH}/context_features_id.npy')), "id of the context features of the dataset")
 
-
-
     flags.DEFINE_float("min_mrr_start", min_mrr, "min_mrr_from_which_save_model")
     flags.DEFINE_string("save_path", _BASE_PATH, "path used for save the predictions")
     flags.DEFINE_string("train_path", _TRAIN_PATH, "Input file path used for training.")
@@ -475,7 +473,7 @@ if __name__ == "__main__":
         print(f'num_features is: {num_features}')
     flags.DEFINE_integer("num_features", num_features, "Number of features per document.")
     flags.DEFINE_integer("list_size", 25, "List size used for training.")
-    flags.DEFINE_integer('save_checkpoints_steps', 5000,
+    flags.DEFINE_integer('save_checkpoints_steps', 1000,
                          "number of steps after which save the checkpoint")
 
     print('1) random validation\n'

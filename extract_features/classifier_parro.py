@@ -19,19 +19,13 @@ class ClassifierParro(FeatureBase):
                \'mode/feature/classifier_parro/' )
 
     def read_feature(self, one_hot=False):
-        if self.mode == 'full':
-            path = 'dataset/preprocessed/{}/{}/feature/{}/features.csv'.format(
+        path = 'dataset/preprocessed/{}/{}/feature/{}/features.csv'.format(
                 self.cluster, 'full', self.name)
-        else:
-            path = 'dataset/preprocessed/{}/{}/feature/{}/features.csv'.format(
-                self.cluster, 'local', self.name)
         if not os.path.exists(path):
             print('cannot find feature, just move the file feature.csv from drive to the folder \
                    \'mode/feature/classifier_parro/' )
 
-
         df = pd.read_csv(path, index_col=0).reset_index(drop=True)
-
+        df = df.groupby(['user_id','session_id'], as_index=False).last()
         print('{} feature read'.format(self.name))
         return df
-

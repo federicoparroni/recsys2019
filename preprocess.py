@@ -8,6 +8,7 @@ from tqdm.auto import tqdm
 import pandas as pd
 from preprocess_utils import create_icm, create_urm
 import numpy as np
+from utils.reduce_memory_usage_df import reduce_mem_usage
 
 # def remove_clickout_after_missing_clickout_test():
 #     test = data.test_df('full')
@@ -28,13 +29,13 @@ def reset_step_for_duplicated_sessions(df):
         .reset_index(name='count')
     df_dup = df_dup[df_dup["count"] > 1]
     df_dup = df_dup[['user_id','session_id']]
-    
+
     # reset the steps for the duplicated-steps sessions
     for _,row in tqdm(df_dup.iterrows()):
         mask = (df.user_id == row.user_id) & (df.session_id == row.session_id)
         sess_length = sum(mask *1)
         res_df.loc[mask, 'step'] = np.arange(1, sess_length+1, dtype='int')
-    
+
     return res_df
 
 def merge_duplicates(df):
@@ -65,25 +66,25 @@ def merge_duplicates(df):
             # check next interactions
             while j < totlen:
                 next_index = indices[j]
-                
+
                 # iterate while the interactions are duplicated
                 if curr_actiontype != 'clickout item' and \
                     df.at[index, 'user_id'] == df.at[next_index, 'user_id'] and \
                     df.at[index, 'session_id'] == df.at[next_index, 'session_id'] and \
                     df.at[index, 'reference'] == df.at[next_index, 'reference'] and \
                     curr_actiontype == df.at[next_index, 'action_type']:
-                    
+
                     # current interaction can be merged
                     j += 1
                     duplicates_indices.append(next_index)
                     count += 1
                 else:
                     break
-            
+
             # different interaction reached
             df.at[index, 'frequence'] = count
         i += 1
-    
+
     # drop the duplicated indices
     return df.drop(duplicates_indices)
 
@@ -183,7 +184,9 @@ def split(df, save_path, perc_train=80):
     """
     print('Splitting...', end=' ', flush=True)
     # train-test split
+    print('sorting')
     sorted_session_ids = df.groupby('session_id').first().sort_values('timestamp').reset_index()['session_id']
+    print('slicing')
     slice_sorted_session_ids = sorted_session_ids.head(int(len(sorted_session_ids) * (perc_train / 100)))
     df_train = df.loc[df['session_id'].isin(slice_sorted_session_ids)]
     df_test = df.loc[~df['session_id'].isin(slice_sorted_session_ids)]
@@ -193,11 +196,11 @@ def split(df, save_path, perc_train=80):
     groups = df_test[df_test['action_type'] == 'clickout item'].groupby('user_id', as_index=False)
     remove_reference_tuples = groups.apply(lambda x: x.sort_values(by=['timestamp'], ascending=True).tail(1))
 
-    for index, row in remove_reference_tuples.iterrows():
+    for index, row in tqdm(remove_reference_tuples.iterrows()):
         if int(row['reference']) not in list(map(int, row['impressions'].split('|'))):
             remove_reference_tuples.drop(index, inplace=True)
 
-    for e in remove_reference_tuples.index.tolist():
+    for e in tqdm(remove_reference_tuples.index.tolist()):
         df_test.at[e[1], 'reference'] = np.nan
 
     # save them all
@@ -229,7 +232,7 @@ def append_missing_accomodations(mode):
     imprs = imprs[imprs.notnull()].values
     for i in tqdm(imprs):
         found_ids.extend(list(map(int, i.split('|'))))
-    
+
     found_ids = set(found_ids)
     acs = data.accomodations_ids()
     accomod_known = set(map(int, acs))
@@ -242,7 +245,7 @@ def append_missing_accomodations(mode):
     # add those at the end of the dataframe
     if missing_count > 0:
         new_acc_df = pd.DataFrame({ 'item_id': list(missing) }, columns=['item_id', 'properties'] )
-    
+
         new_acs = data.accomodations_df().append(new_acc_df, ignore_index=True)
         new_acs.to_csv(data.ITEMS_PATH, index=False)
         print('{} successfully updated'.format(data.ITEMS_PATH))
@@ -255,7 +258,7 @@ def preprocess_accomodations_df(preprocessing_fns):
     should return a tuple (that will be treated as the new row columns).
     """
     assert isinstance(preprocessing_fns, list)
-    
+
     print('Processing accomodations dataframe...')
     # load and preprocess the original item_metadata.csv
     accomodations_df = data.accomodations_original_df()
@@ -326,7 +329,7 @@ def preprocess():
         pre_processing_f = [ remove_from_stars_features ]
         menu_title = 'Choose the preprocessing function(s) to apply to the accomodations.\nPress numbers to enable/disable the options, press X to confirm.'
         activated_prefns = menu.options(pre_processing_f, labels, title=menu_title, custom_exit_label='Confirm')
-       
+
         # preprocess accomodations dataframe
         preprocess_accomodations_df(activated_prefns)
 
@@ -388,7 +391,7 @@ def preprocess():
     lbls = ['Create URM from LOCAL dataset', 'Create URM from FULL dataset', 'Create URM from SMALL dataset', 'Skip URM creation' ]
     callbacks = [lambda: 'local', lambda:'full', lambda: 'small', lambda: 0]
     res = menu.single_choice(title='What do you want to do?', labels=lbls, callbacks=callbacks)
-    
+
     if res is None:
         exit(0)
 
@@ -401,9 +404,9 @@ def preprocess():
         cluster = input()
         callbacks = [_create_urm_session_aware, _create_urm_clickout]
         menu.single_choice(title='Which URM do you want create buddy?', labels=['Sequence-aware URM', 'Clickout URM'], callbacks=callbacks)
-    
+
     return
-    
+
 
 if __name__ == '__main__':
     """

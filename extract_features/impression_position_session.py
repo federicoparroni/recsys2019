@@ -2,6 +2,8 @@ from extract_features.feature_base import FeatureBase
 import data
 import pandas as pd
 from tqdm.auto import tqdm
+from preprocess_utils.last_clickout_indices import find as find_last_clickout_indices
+from preprocess_utils.last_clickout_indices import expand_impressions
 tqdm.pandas()
 
 
@@ -19,27 +21,28 @@ class ImpressionPositionSession(FeatureBase):
 
     def extract_feature(self):
 
-        def func(x):
-            r = []
-            y = x[x['action_type'] == 'clickout item']
-            if len(y) > 0:
-                clk = y.tail(1)
-                impr = clk.impressions.values[0].split('|')
-                count = 1
-                for i in impr:
-                    r.append((i, count))
-                    count += 1
-            return r
-
         train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)
         df = pd.concat([train, test])
-        s = df.groupby(['user_id', 'session_id']).progress_apply(func)
-        s = s.apply(pd.Series).reset_index().melt(id_vars = ['user_id', 'session_id'], value_name = 'tuple').sort_values(by=['user_id', 'session_id']).dropna()
-        s[['item_id', 'impression_position']] = pd.DataFrame(s['tuple'].tolist(), index=s.index)
-        s = s.drop(['variable', 'tuple'], axis=1)
-        s = s.reset_index(drop=True)
-        return s
+        idxs_click = find_last_clickout_indices(df)
+        df = df.loc[idxs_click][['user_id', 'session_id', 'impressions']]
+        df = expand_impressions(df)
+        # initialize the session id
+        session_id = ''
+        count = 1
+        impression_position = []
+        for i in tqdm(df.index):
+            c_session = df.at[i, 'session_id']
+            if c_session != session_id:
+                session_id = c_session
+                count = 1
+            impression_position.append(count)
+            count += 1
+        df['impression_position'] = impression_position
+        df['impression_position']=pd.to_numeric(df['impression_position'])
+        df.drop('index', axis=1, inplace=True)
+
+        return df
 
 if __name__ == '__main__':
     from utils.menu import mode_selection

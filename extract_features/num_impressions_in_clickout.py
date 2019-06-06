@@ -5,8 +5,6 @@ import data
 import pandas as pd
 from tqdm.auto import tqdm
 
-from extract_features.last_action_involving_impression import LastInteractionInvolvingImpression
-from extract_features.times_user_interacted_with_impression import TimesUserInteractedWithImpression
 
 tqdm.pandas()
 

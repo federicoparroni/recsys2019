@@ -12,6 +12,9 @@ from extract_features.impression_features import ImpressionFeature
 # SCIPY COSINE ---> 17k it/s   :P
 from cython_files.cosine_similarity import cosine_similarity
 
+# TODO: usare tutti i clickout tranne quello della sessione?
+# TODO: usare tutte le interazioni e dare peso doppio ai clickout
+
 class PlatformFeaturesSimilarity(FeatureBase):
 
     """
