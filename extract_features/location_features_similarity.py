@@ -82,7 +82,7 @@ class LocationFeaturesSimilarity(FeatureBase):
         new_col =[]
         if self.metric == 'cosine':
             for t in tqdm(zip(final_feature.properties_array, final_feature.features_array)):
-                new_col.append(cosine_similarity(t[0].astype(np.double), t[1].astype(np.double)))
+                new_col.append(cosine_similarity(t[0].astype(np.double), t[1].astype(np.double),0))
         if self.metric == 'euclidean':
             for t in tqdm(zip(final_feature.properties_array, final_feature.features_array)):
                 new_col.append(np.linalg.norm(t[0]-t[1]))
