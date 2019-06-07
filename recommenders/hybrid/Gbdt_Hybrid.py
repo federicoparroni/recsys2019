@@ -8,25 +8,26 @@ from pathlib import Path
 import os
 import data
 import xgboost as xgb
-from preprocess_utils.dataset_xgboost import create_groups
-
-"""
-0.667092866498346 learning rate = 0.3
-"""
+import utils.telegram_bot as HERA
 
 class Gbdt_Hybrid(RecommenderBase):
 
     """To create dataset, put submissions on submissions
                                                 |__local
 
-        At the moment, it takes the position in the recommended impressions of each submission for each item such as:
-        user_id | session_id | item_id | item_pos_catboost | item_pos_xgboost | ...
+        It takes the scores  of each submission for each item such as:
+        user_id | session_id | item_id | item_score_catboost | item_score_xgboost | ...
         Then Xgboost is used to train and recommend. Since only local submissions can be used (thus the dataset size is like the local test size),
         in order to train the model and optimize hyperparameters, we need to cross-validate the dataset
     """
 
-    def __init__(self, mode='local', learning_rate=0.01, min_child_weight=1, n_estimators=500, max_depth=6,
-                 subsample=1, colsample_bytree=1, reg_lambda=0.0, reg_alpha=0):
+    """
+    learning_rate=0.3, min_child_weight=1, n_estimators=300, max_depth=3,
+                 subsample=1, colsample_bytree=1, reg_lambda=1.0, reg_alpha=0"""
+
+
+    def __init__(self, mode='local', learning_rate=0.3, min_child_weight=1, n_estimators=300, max_depth=3,
+                 subsample=1, colsample_bytree=1, reg_lambda=1.0, reg_alpha=0):
         name = 'gbdt_hybrid'
         cluster = 'no_cluster'
         super(Gbdt_Hybrid, self).__init__(mode, cluster, name)
@@ -37,7 +38,12 @@ class Gbdt_Hybrid(RecommenderBase):
         self.mode = mode
         self.full = data.full_df()
 
-        directory = self.data_directory.joinpath(self.mode)
+        self.local_target_indices = data.target_indices(mode='local', cluster='no_cluster')
+        self.full_target_indices = data.target_indices(mode='full', cluster='no_cluster')
+
+        directory = self.data_directory.joinpath('local')
+
+        full_dir = self.data_directory.joinpath('full')
 
         self.xg = xgb.XGBRanker(
             learning_rate=learning_rate, min_child_weight=min_child_weight, max_depth=math.ceil(
@@ -45,32 +51,47 @@ class Gbdt_Hybrid(RecommenderBase):
             n_estimators=math.ceil(
                 n_estimators),
             subsample=subsample, colsample_bytree=colsample_bytree, reg_lambda=reg_lambda, reg_alpha=reg_alpha,
-            n_jobs=-1, objective='rank:pairwise')
+            n_jobs=-1, objective='rank:ndcg')
+
 
         self.cv_path = self.data_directory.joinpath('cross_validation')
 
-        if os.path.isfile(str(directory.joinpath('..', '..', 'gbdt_train.csv'))):
-            for root, dirs, files in os.walk(directory):
-                if str(files[0]) == '.DS_Store':
-                    file = files[1]
-                else:
-                    file = files[0]
+        # if not os.path.isfile(str(directory.joinpath('..', '..', 'gbdt_test.csv'))):
+        #     self.test_full = self.create_dataset(full_dir, indices=self.full_target_indices, mode='full',
+        #                                          name='test')  # directory per il full--> dataset per il test
 
-                if file.endswith(".npy"):
-                    f = np.load(directory.joinpath(file))
-                    f = pd.DataFrame(f, columns=['index', 'item_recommendations', 'scores'])
-                else:
-                    f = pd.read_csv(directory.joinpath(file))
-                self.get_groups(f)
-                self.train = pd.read_csv(str(directory.joinpath('..', '..', 'gbdt_train.csv')))
-            return
+        # Get the group for the cross validation and load the train previously saved
 
-        self.create_dataset(directory)  #dataset per il train
+        # if os.path.isfile(str(directory.joinpath('..', '..', 'gbdt_train.csv'))):
+        #     for root, dirs, files in os.walk(directory):
+        #         if str(files[0]) == '.DS_Store':
+        #             file = files[1]
+        #         else:
+        #             file = files[0]
+        #
+        #         if file.endswith(".npy"):
+        #             f = np.load(directory.joinpath(file))
+        #             f = pd.DataFrame(f, columns=['index', 'item_recommendations', 'scores'])
+        #             f = f[f['index'].isin(self.local_target_indices)]
+        #
+        #         elif file.endswith(".pickle"):
+        #             f = pd.read_pickle(directory.joinpath(file))
+        #             f = pd.DataFrame(f, columns=['index', 'item_recommendations', 'scores'])
+        #             f = f[f['index'].isin(self.local_target_indices)]
+        #
+        #         else:
+        #             f = pd.read_csv(directory.joinpath(file))
+        #         self.get_groups(f)
+        #         self.train = pd.read_csv(str(directory.joinpath('..', '..', 'gbdt_train.csv')))
+        #     return
+        #
+        #
+        # self.train = self.create_dataset(directory, self.local_target_indices)  #dataset per il train (local test)
+        #
+        # self.test_full = self.create_dataset(full_dir, indices=self.full_target_indices, mode='full', name='test') # directory per il full--> dataset per il test
 
-        #self.create_dataset(#Directory del full, mode='full, name='test') # directory per il full--> dataset per il test
 
-
-    def create_dataset(self, directory, mode='local', name='train'):
+    def create_dataset(self, directory, indices, mode='local', name='train'):
         print('Creating gbdt-like dataset...')
 
         num_file = 0
@@ -78,6 +99,9 @@ class Gbdt_Hybrid(RecommenderBase):
         for root, dirs, files in os.walk(directory):
             for file in files:
                 print(f'Reading {str(file)}')
+
+                if str(file) == '.DS_Store':
+                    continue
 
                 if file.endswith(".csv"):
 
@@ -99,36 +123,57 @@ class Gbdt_Hybrid(RecommenderBase):
                     print(f'file read: {num_file}')
                     print(self.train.shape)
 
-                elif file.endswith(".npy"):
+                else:
+                    if file.endswith(".npy"):
 
-                    f = np.load(directory.joinpath(file))
-                    f = pd.DataFrame(f, columns=['index', 'item_recommendations', 'scores'])
+                        f = np.load(directory.joinpath(file))
+                        f = pd.DataFrame(f, columns=['index', 'item_recommendations', 'scores'])
+                        f = f[f['index'].isin(indices)]
+                        f = f.astype({'index' : int})
+
+                    elif file.endswith(".pickle"):
+                        f = pd.read_pickle(directory.joinpath(file))
+                        f = pd.DataFrame(f, columns=['index', 'item_recommendations', 'scores'])
+                        f = f[f['index'].isin(indices)]
 
                     print(file)
                     if num_file == 0:
+                        if mode=='local':
+                            self.get_groups(f)
 
-                        self.get_groups(f)
-                        t = self.convert_and_add_labels(f, str(file), mode)
-                        self.train = t
+                        #TODO da togliere quando rnn avrà gli indice per bene
+                        if (mode=='full') & (file == 'xgboost.npy'):
+                            f = f[~f['index'].isin([16727760, 18888288])]
+                        elif (mode=='full') & (file == 'rnn.npy'):
+                            f = f[~f['index'].isin([16727762, 18888282])]
+
+                        t = self.convert_and_add_labels(f, name=str(file), target_indices=indices, mode=mode)
+                        df = t
                     else:
+                        #TODO da togliere quando rnn avrà gli indice per bene
+                        if (mode == 'full') & (file == 'xgboost.npy'):
+                            f = f[~f['index'].isin([16727760, 18888288])]
+                        elif (mode == 'full') & (file == 'rnn.npy'):
+                            f = f[~f['index'].isin([16727762, 18888282])]
+
                         t = self.convert_and_assign_score(f, str(file))
 
                         print(t.columns)
-                        self.train = pd.merge(self.train, t,
-                                              on=['index', 'item_id'])
+                        df = pd.merge(df, t, on=['index', 'item_id'])
 
                     print(f'file read: {num_file}')
-                    print(self.train.shape)
+                    print(df.shape)
 
 
                 num_file += 1
                 if str(file) == '.DS_Store':
                     num_file -= 1
 
-        self.train = self.train.sort_values(by=['index', 'impression_position'])
-        self.train.to_csv(str(directory.joinpath('..', '..', 'gbdt_' + name + '.csv')), index=False)
+        df = df.sort_values(by=['index', 'impression_position'])
+        df.to_csv(str(directory.joinpath('..', '..', 'gbdt_' + name + '.csv')), index=False)
         print('Dataset created!')
-        print(self.train.columns)
+        print(df.columns)
+        return df
 
 
     """  ------------- Second step re-ranking per scores ------------------ """
@@ -213,10 +258,10 @@ class Gbdt_Hybrid(RecommenderBase):
         return res_df[['index', 'item_id']]
 
 
-    def convert_and_add_labels(self, df, name='', perScore=True, mode='local'):
+    def convert_and_add_labels(self, df, target_indices, name='', mode='local'):
         #full = data.full_df()
         full = self.full
-        target_indices = data.target_indices(mode=mode, cluster='no_cluster')
+        #target_indices = data.target_indices(mode=mode, cluster='no_cluster')
 
         full = full.loc[target_indices]
         full['index'] = list(full.index)
@@ -232,6 +277,7 @@ class Gbdt_Hybrid(RecommenderBase):
         print(df.columns)
 
         # df['label'] = df.progress_apply(lambda x: 1 if str(x['reference']) == str(x['item_id']) else 0, axis=1)
+
         df['label'] = np.where(df['reference'].astype(str) == df['item_id'].astype(str), 1, 0)
 
         df['impression_position'] = self.get_pos(df['item_id'].values, df['impressions'].values)
@@ -259,6 +305,7 @@ class Gbdt_Hybrid(RecommenderBase):
         res = np.empty(item.shape)
         for i in range(len(item)):
             res[i] = rec[i].index(str(item[i])) + 1
+
         return res.astype(int)
 
     def get_groups(self, df):
@@ -289,13 +336,16 @@ class Gbdt_Hybrid(RecommenderBase):
             self.sess_groups.append(sess_group)
         print('Done!')
 
+
+    """-----------------------------    CROSS-VALIDATION --------------------------------"""
+
     def create_groups_cv(self,df):
         df = df[['index', 'item_id']]
         group = df.groupby('index',
                            sort=False).apply(lambda x: len(x)).values
         return group
 
-    def fit_cv(self, train):
+    def fit_cv(self, train, test):
         #X_train = train.drop(['user_id', 'session_id', 'item_id', 'label', 'timestamp', 'step', 'trg_idx'], axis=1)
         X_train = train.drop(['item_id', 'label', 'index'], axis=1)
 
@@ -304,8 +354,20 @@ class Gbdt_Hybrid(RecommenderBase):
         X_train = X_train.astype(np.float64)
         group = self.create_groups_cv(train)
 
+        """
+        # validation test
+        X_test = test.sort_values(by=['index', 'impression_position'])
+        X_test = X_test.drop(['item_id', 'label', 'index'], axis=1)
+        X_test = X_test.astype(np.float64)
+        y_test = list(test['label'].values)
+        test_group = self.create_groups_cv(test)
+        """
+
         print('Training XGBOOST..')
         self.xg.fit(X_train, y_train, group)
+
+        #self.xg.fit(X_train, y_train, group, eval_set=[
+        #            (X_test, y_test)], eval_group=[test_group], eval_metric='ndcg', verbose=True, early_stopping_rounds=50)
         print('Training done!')
 
     def recommend_batch_cv(self, test, target_indices):
@@ -313,7 +375,7 @@ class Gbdt_Hybrid(RecommenderBase):
         X_test = test.sort_values(by=['index', 'impression_position'])
         X_test = X_test.drop(['item_id', 'label', 'index'], axis=1)
         X_test = X_test.astype(np.float64)
-        full_impressions = data.full_df()
+        full_impressions = self.full
         print('data for test ready')
         scores = list(self.xg.predict(X_test))
         final_predictions = []
@@ -331,13 +393,20 @@ class Gbdt_Hybrid(RecommenderBase):
 
     def cross_validation(self):
         self.mrrs = []
+        self.folds = []
         for i in range(len(self.sess_groups)):
             if os.path.isfile(str(self.cv_path) + '/train' + str(i) + '.csv'):
                 print(f'Getting train and test number: {i}')
                 path = str(self.cv_path) + '/train' + str(i) + '.csv'
-                print(path)
                 train_df = pd.read_csv(str(self.cv_path) + '/train' + str(i) + '.csv')
                 test_df = pd.read_csv(str(self.cv_path) + '/test' + str(i) + '.csv')
+
+
+                """Create folds: five tuples (in, out) where in is a list of indices to be used as the training samples for the n th fold
+                 and out is a list of indices to be used as the testing samples for the n th fold. """
+                #in_idx = list(train_df.index)
+                #out_idx = list(test_df.index)
+                #self.folds.append((in_idx, out_idx))
             else:
                 if 'session_id' in self.train.columns:
                     mask = self.train['session_id'].isin(self.sess_groups[i])
@@ -349,12 +418,13 @@ class Gbdt_Hybrid(RecommenderBase):
                 train_df.to_csv(str(self.cv_path) + '/train' + str(i) + '.csv', index=False)
                 test_df.to_csv(str(self.cv_path) + '/test' + str(i) + '.csv', index=False)
 
+
             #target_indices = list(set(test_df['trg_idx'].values))
             target_indices = list(set(test_df['index'].values))
 
             target_indices.sort()
 
-            self.fit_cv(train_df)
+            self.fit_cv(train_df, test_df)
             recs = self.recommend_batch_cv(test_df, target_indices)
             mrr = self.compute_MRR(recs)
             self.mrrs.append(mrr)
@@ -362,8 +432,11 @@ class Gbdt_Hybrid(RecommenderBase):
         print(f'Averaged MRR: {sum(self.mrrs)/len(self.mrrs)}')
         return sum(self.mrrs)/len(self.mrrs)
 
+    """----------------------------------------------------------------------------------------------------------"""
+
+
     def fit(self):
-        train = pd.read_csv('/Users/claudiorussointroito/Documents/GitHub/recsysTrivago2019/submissions/gbdt_train.csv')
+        train = pd.read_csv(str(self.data_directory.joinpath('..','gbdt_train.csv')))
         X_train = train.drop(
             ['item_id', 'label', 'index'], axis=1)
         print(f'Train columns: {list(X_train.columns)}')
@@ -377,13 +450,24 @@ class Gbdt_Hybrid(RecommenderBase):
         print('Training done!')
 
     def recommend_batch(self):
-        test = pd.read_csv('/Users/claudiorussointroito/Documents/GitHub/recsysTrivago2019/submissions/gbdt_test.csv')
+        test = pd.read_csv(str(self.data_directory.joinpath('..','gbdt_test.csv')))
         target_indices = data.target_indices(mode='full')
+        #target_indices = sorted(target_indices)
+
+        # Take indices in common between test and target_indices
+        test_idx = set(list(test['index'].values))
+        print(f'Length test_idx : {len(test_idx)}')
+        print(f'Length target_indices : {len(target_indices)}')
+        target_indices = set(target_indices) & test_idx
+        print(f'Length indices in common: {len(target_indices)}')
+        target_indices = sorted(target_indices)
+        #target_indices = sorted(test_idx)
 
         X_test = test.sort_values(by=['index', 'impression_position'])
-        X_test = X_test.drop(['item_id', 'label', 'trg_idx'], axis=1)
+        X_test = X_test.drop(['item_id', 'label', 'index'], axis=1)
         X_test = X_test.astype(np.float64)
-        full_impressions = data.full_df()
+        # full_impressions = data.full_df()
+        full_impressions = self.full
         print('data for test ready')
         scores = list(self.xg.predict(X_test))
         final_predictions = []
@@ -402,6 +486,8 @@ class Gbdt_Hybrid(RecommenderBase):
     def get_scores_batch(self):
         pass
 
+
 if __name__=='__main__':
     model = Gbdt_Hybrid(mode='local')
-    model.cross_validation()
+    #model.evaluate()
+    model.run()
