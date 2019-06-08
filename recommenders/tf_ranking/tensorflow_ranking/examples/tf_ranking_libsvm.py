@@ -331,6 +331,8 @@ def train_and_eval():
       dataset_name=FLAGS.dataset_name,
       save_path=f'{FLAGS.save_path}',
       #save_path=f'dataset/preprocessed/tf_ranking/{_CLUSTER}/full/{_DATASET_NAME}/predictions',
+      x=_features,
+      y=_labels,
       test_x=_features_vali,
       test_y=_labels_vali,
       mode=FLAGS.mode,
@@ -418,18 +420,25 @@ def train_and_test():
 
     estimator.train(train_input_fn, hooks=[train_hook], steps=FLAGS.num_train_steps)
 
+    # predict also for the train to get the scores for the staking
+    pred_train = np.array(list(estimator.predict(lambda: batch_inputs(features, labels, 128))))
     pred = np.array(list(estimator.predict(lambda: batch_inputs(features_test, labels_test, 128))))
 
+
+    pred_name_train=f'train_predictions_{FLAGS.loss}_learning_rate_{FLAGS.learning_rate}_train_batch_size_{FLAGS.train_batch_size}_' \
+        f'hidden_layers_dim_{FLAGS.hidden_layer_dims}_num_train_steps_{FLAGS.num_train_steps}_dropout_{FLAGS.dropout_rate}_{FLAGS.grup_size}'
     pred_name=f'predictions_{FLAGS.loss}_learning_rate_{FLAGS.learning_rate}_train_batch_size_{FLAGS.train_batch_size}_' \
         f'hidden_layers_dim_{FLAGS.hidden_layer_dims}_num_train_steps_{FLAGS.num_train_steps}_dropout_{FLAGS.dropout_rate}_{FLAGS.grup_size}'
     np.save(f'{FLAGS.save_path}/{pred_name}', pred)
+    np.save(f'{FLAGS.save_path}/{pred_name_train}', pred_train)
 
-    HERA.send_message(f'EXPORTING A SUB... mode:{FLAGS.mode}')
-    model = TensorflowRankig(mode=FLAGS.mode, cluster='no_cluster', dataset_name=FLAGS.dataset_name,
-                             pred_name=pred_name)
-    model.name = f'tf_ranking_{pred_name}'
-    model.run()
-    HERA.send_message(f'EXPORTED... mode:{FLAGS.mode}')
+    for name in [pred_name, pred_name_train]:
+        HERA.send_message(f'EXPORTING A SUB... mode:{FLAGS.mode}, name:{name}')
+        model = TensorflowRankig(mode=FLAGS.mode, cluster='no_cluster', dataset_name=FLAGS.dataset_name,
+                                 pred_name=name)
+        model.name = f'tf_ranking_{name}'
+        model.run()
+        HERA.send_message(f'EXPORTED... mode:{FLAGS.mode}, name:{name}')
 
 
 def main(_):
