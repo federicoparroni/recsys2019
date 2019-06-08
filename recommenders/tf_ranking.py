@@ -4,11 +4,12 @@ import numpy as np
 from tqdm import tqdm
 import data
 import utils.check_folder as cf
+from preprocess_utils.last_clickout_indices import find as find_last_clickouts
 
 
 class TensorflowRankig(RecommenderBase):
 
-    def __init__(self, mode, cluster, dataset_name, pred_name):
+    def __init__(self, mode, cluster, dataset_name, pred_name, predict_train = False):
         """
         the dataset name is used to load the prediction created by the tensorflow ranking class
 
@@ -35,7 +36,10 @@ class TensorflowRankig(RecommenderBase):
 
         self.predictions = np.load(_PREDICTION_PATH)
         print('predictions loaded')
-        self.target_indices = data.target_indices(mode, cluster)
+        if not predict_train:
+            self.target_indices = data.target_indices(mode, cluster)
+        else:
+            self.target_indices = sorted(find_last_clickouts(data.full_df()))
 
     def fit(self):
         pass

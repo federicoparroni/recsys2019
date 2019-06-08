@@ -28,7 +28,7 @@ class BestCheckpointCopier(tf.estimator.Exporter):
   sort_key_fn = None
   sort_reverse = None
 
-  def __init__(self, min_mrr_start, loss, dataset_name, save_path, test_x, test_y, params,
+  def __init__(self, min_mrr_start, loss, dataset_name, save_path, x, y, test_x, test_y, params,
                mode, name='best_checkpoints', checkpoints_to_keep=1, score_metric='Loss/total_loss',
                compare_fn=lambda x,y: x.score > y.score, sort_key_fn=lambda x: x.score, sort_reverse=False):
     self.checkpoints = []
@@ -41,7 +41,8 @@ class BestCheckpointCopier(tf.estimator.Exporter):
 
     self.mode = mode
 
-
+    self.x = x
+    self.y = y
     self.test_x = test_x
     self.test_y = test_y
     self.save_path = save_path
@@ -110,16 +111,27 @@ class BestCheckpointCopier(tf.estimator.Exporter):
 
           # predict the test...
           pred = np.array(list(estimator.predict(lambda: batch_inputs(self.test_x, self.test_y, batch_size))))
+          pred_train = np.array(list(estimator.predict(lambda: batch_inputs(self.x, self.y, batch_size))))
+
+
+          pred_name_train = f'train_predictions_{self.params.loss}_learning_rate_{self.params.learning_rate}_train_batch_size_{self.params.train_batch_size}_' \
+            f'hidden_layers_dim_{self.params.hidden_layer_dims}_num_train_steps_{self.params.num_train_steps}' \
+            f'_dropout_{self.params.dropout_rate}_global_steps_{global_step}_{self.params.group_size}_mrr_{eval_result_f}'
           pred_name = f'predictions_{self.params.loss}_learning_rate_{self.params.learning_rate}_train_batch_size_{self.params.train_batch_size}_' \
             f'hidden_layers_dim_{self.params.hidden_layer_dims}_num_train_steps_{self.params.num_train_steps}' \
             f'_dropout_{self.params.dropout_rate}_global_steps_{global_step}_{self.params.group_size}_mrr_{eval_result_f}'
+
+
+          np.save(f'{self.save_path}/{pred_name_train}', pred_train)
           np.save(f'{self.save_path}/{pred_name}', pred)
-          HERA.send_message(f'EXPORTING A SUB... {eval_result_f} mode:{self.mode}')
-          model = TensorflowRankig(mode=self.mode, cluster='no_cluster', dataset_name=self.dataset_name,
-                                   pred_name=pred_name)
-          model.name = f'tf_ranking_{pred_name}'
-          model.run()
-          HERA.send_message(f'EXPORTED... {eval_result_f} mode:{self.mode}')
+
+          for name in [pred_name, pred_name_train]:
+            HERA.send_message(f'EXPORTING A SUB... {eval_result_f} mode:{self.mode}, name:{name}')
+            model = TensorflowRankig(mode=self.mode, cluster='no_cluster', dataset_name=self.dataset_name,
+                                     pred_name=name)
+            model.name = f'tf_ranking_{pred_name}'
+            model.run()
+            HERA.send_message(f'EXPORTED... {eval_result_f} mode:{self.mode}, name:{name}')
 
     self._log('export checkpoint {}'.format(checkpoint_path))
     step = eval_result['global_step']
