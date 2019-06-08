@@ -11,6 +11,8 @@ from preprocess_utils.last_clickout_indices import expand_impressions
     in that mode and cluster, in the order in which the target indices are
 """
 def merge_features(mode, cluster, features_array, onehot=True, merge_kind='inner'):
+    n_nans_train = 0
+    n_nans_validation = 0
 
     # load the full_df
     train_df = data.train_df(mode, cluster)
@@ -61,6 +63,14 @@ def merge_features(mode, cluster, features_array, onehot=True, merge_kind='inner
         train_df = train_df.merge(feature, how=merge_kind)
         validation_test_df = validation_test_df.merge(feature, how=merge_kind)
         print(f'train_shape: {train_df.shape}\n vali_shape: {validation_test_df.shape}')
+        if merge_kind == 'left':
+            delta_nan_train = train_df.isnull().sum().sum() - n_nans_train
+            print('train: num columns of feature: {}. nans introduced: {}'.format(len(feature.columns), delta_nan_train))
+            n_nans_train += delta_nan_train
+            delta_nan_validation = validation_test_df.isnull().sum().sum() - n_nans_validation
+            print('validation: num columns of feature: {}. nans introduced: {}'.format(len(feature.columns), delta_nan_validation))
+            n_nans_validation += delta_nan_validation
+        print('\n')
 
     print('sorting by index and step...')
     # sort the dataframes
