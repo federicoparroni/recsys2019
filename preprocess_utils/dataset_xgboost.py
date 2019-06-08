@@ -163,23 +163,6 @@ def create_dataset(mode, cluster, class_weights=False):
                               User2Item,
                               UserFeature,
                             ]
-                              
-            PriceQuality, PlatformFeaturesSimilarity, PersonalizedTopPop, TimePerImpression,
-                            DayOfWeekAndMomentInDay, LastClickoutFiltersSatisfaction,
-                            FrenzyFactorSession, ChangeImpressionOrderPositionInSession, 
-                            User2Item, PlatformSession, PlatformReferencePercentageOfInteractions, 
-                            PercClickPerImpressions, PlatformReferencePercentageOfClickouts,
-                            NumImpressionsInClickout, NumTimesItemImpressed,
-                            LocationReferencePercentageOfClickouts, LocationReferencePercentageOfInteractions,
-                            StepsBeforeLastClickout, ImpressionStarsNumeric,
-                            TopPopPerImpression, TopPopInteractionClickoutPerImpression, 
-                            ImpressionRatingNumeric, ActionsInvolvingImpressionSession,
-                            ImpressionLabel, ImpressionPriceInfoSession,
-                            TimingFromLastInteractionImpression,
-                            ImpressionPositionSession, LastInteractionInvolvingImpression,
-                            SessionDevice, SessionSortOrderWhenClickout,
-                            PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
-                            TimesImpressionAppearedInClickoutsSession]
         elif kind == 'kind3':
             features_array = [
             #ActionsInvolvingImpressionSession,
