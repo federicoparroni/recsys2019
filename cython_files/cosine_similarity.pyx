@@ -2,7 +2,7 @@ from libc.math cimport sqrt
 import numpy as np
 cimport numpy as np
 
-def cosine_similarity(double[:] x, double[:] y):
+def cosine_similarity(double[:] x, double[:] y, int shrink):
     cdef double xx=0.0
     cdef double yy=0.0
     cdef double xy=0.0
@@ -12,6 +12,6 @@ def cosine_similarity(double[:] x, double[:] y):
         yy+=y[i]*y[i]
         xy+=x[i]*y[i]
     if xx != 0.0 and yy !=0.0:
-      return 1-xy/sqrt(xx*yy)
+      return 1-xy/(sqrt(xx*yy)+shrink)
     else:
       return 0

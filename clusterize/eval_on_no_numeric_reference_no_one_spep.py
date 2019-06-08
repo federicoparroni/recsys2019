@@ -13,9 +13,10 @@ class NoNumericReferenceNoOneStep(ClusterizeBase):
 
     def _fit(self, mode):
         """
-        train, test and target indices are just sessions which have:
+        has target indices equal to the 10% of the session with:
         - no num ref
         - more than 1 step
+        but anyway we train on all of them ;)
         """
 
         def RepresentsInt(s):
@@ -26,18 +27,16 @@ class NoNumericReferenceNoOneStep(ClusterizeBase):
                 return False
 
         train = data.train_df(mode)
-        train_index = train.index.values
+        self.train_indices = train.index.values
+
         test = data.test_df(mode)
         test_index = test.index.values
         tgt_indices = data.target_indices(mode)
-        df = pd.concat([train, test])
-        del train
-        del test
-        lst_clk_indices = sorted(find(df))
 
-        to_return = []
-        for idx in lst_clk_indices:
+        real_test_to_drop = []
+        for idx in tgt_indices:
             usr_sess_indices = []
+            theres_int = False
             try:
                 a_user = df.at[idx, 'user_id']
                 a_sess = df.at[idx, 'session_id']
@@ -53,11 +52,12 @@ class NoNumericReferenceNoOneStep(ClusterizeBase):
                         usr_sess_indices.append(j)
                         reference = df.at[j, 'reference']
                         if RepresentsInt(reference):
-                            break
+                            theres_int = True
                         j -= 1
                     else:
-                        if idx-j >= 2:
-                            to_return += usr_sess_indices
+                        # add indices 
+                        if not (idx-j >= 2 and not theres_int):
+                            real_test_to_drop += usr_sess_indices
                         break
                 except:
                     j -= 1
