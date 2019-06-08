@@ -13,7 +13,7 @@ class NoNumericReferenceNoOneStep(ClusterizeBase):
 
     def _fit(self, mode):
         """
-        has target indices equal to the 10% of the session with:
+        train, test and target indices are just sessions which have:
         - no num ref
         - more than 1 step
         """
