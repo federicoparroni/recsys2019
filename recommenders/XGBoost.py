@@ -263,7 +263,7 @@ if __name__ == '__main__':
                              'smart evaluate', 'normal recommender'])
 
     if modality == 'normal recommender':
-        kind = single_choice('pick the kind', ['kind1', 'kind2'])
+        kind = single_choice('pick the kind', ['kind1', 'kind2', 'kind3'])
         mode = mode_selection()
         cluster = cluster_selection()
         sel = options(['evaluate', 'export the sub', 'export the scores'], ['evaluate', 'export the sub',

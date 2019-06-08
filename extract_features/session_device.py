@@ -16,7 +16,7 @@ class SessionDevice(FeatureBase):
 
     def __init__(self, mode, cluster='no_cluster'):
         name = 'session_device'
-        columns_to_onehot = [('session_device', 'single')]
+        columns_to_onehot = [('device', 'single')]
         super(SessionDevice, self).__init__(
             name=name, mode=mode, cluster=cluster, columns_to_onehot=columns_to_onehot)
 
