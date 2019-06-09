@@ -81,8 +81,8 @@ if __name__ == "__main__":
     from utils.menu import single_choice
     mode = mode_selection()
     cluster = cluster_selection()
-    kind = single_choice('pick the kind', ['kind1', 'kind2'])
+    kind = single_choice('pick the kind', ['kind1', 'kind2', 'kind3'])
     m = XGBoostWrapperSmartValidation(mode=mode, cluster=cluster, kind=kind, ask_to_load=False)
     a = XGBoostWrapper(mode='full', cluster=cluster, kind=kind)
-    v = RandomValidator(m, automatic_export=True, reference_object_for_sub_exporter=a, user='gabbo')
+    v = RandomValidator(m, automatic_export=True, reference_object_for_sub_exporter=False, user='gabbo')
     v.validate(100)

@@ -7,12 +7,6 @@ from preprocess_utils.last_clickout_indices import find
 from preprocess_utils.last_clickout_indices import expand_impressions
 
 class UserFeature(FeatureBase):
-
-    """
-
-
-    """
-
     def __init__(self, mode, cluster='no_cluster'):
         name = 'user_feature'
         super(UserFeature, self).__init__(

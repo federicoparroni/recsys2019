@@ -37,7 +37,6 @@ from extract_features.platform_reference_percentage_of_clickouts import Platform
 from extract_features.platform_reference_percentage_of_interactions import PlatformReferencePercentageOfInteractions
 from extract_features.platform_session import PlatformSession
 from extract_features.price_info_session import PriceInfoSession
-from extract_features.price_position_info_interactions import PricePositionInfoInteractedReferences
 from extract_features.price_quality import PriceQuality
 from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
 from extract_features.session_device import SessionDevice
@@ -52,6 +51,16 @@ from extract_features.top_pop_interaction_clickout_per_impression import TopPopI
 from extract_features.top_pop_per_impression import TopPopPerImpression
 from extract_features.top_pop_sorting_filters import TopPopSortingFilters
 from extract_features.user_2_item import User2Item
+from extract_features.adjusted_location_reference_percentage_of_clickouts import AdjustedLocationReferencePercentageOfClickouts
+from extract_features.adjusted_location_reference_percentage_of_interactions import AdjustedLocationReferencePercentageOfInteractions
+from extract_features.adjusted_perc_click_per_impressions import AdjustedPercClickPerImpressions
+from extract_features.adjusted_platform_reference_percentage_of_clickouts import AdjustedPlatformReferencePercentageOfClickouts
+from extract_features.adjusted_platform_reference_percentage_of_interactions import AdjustedPlatformReferencePercentageOfInteractions
+from extract_features.location_features_similarity import LocationFeaturesSimilarity
+from extract_features.normalized_platform_features_similarity import NormalizedPlatformFeaturesSimilarity
+from extract_features.ref_pop_after_first_position import RefPopAfterFirstPosition
+from extract_features.user_feature import UserFeature
+from extract_features.perc_click_per_pos import PercClickPerPos
 from utils.menu import single_choice
 from preprocess_utils.merge_features import merge_features
 from os.path import join
@@ -109,22 +118,50 @@ def create_dataset(mode, cluster, class_weights=False):
                             PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
                             TimesImpressionAppearedInClickoutsSession]
         elif kind == 'kind2':
-            features_array = [PriceQuality, PlatformFeaturesSimilarity, PersonalizedTopPop, TimePerImpression,
-                            DayOfWeekAndMomentInDay, LastClickoutFiltersSatisfaction,
-                            FrenzyFactorSession, ChangeImpressionOrderPositionInSession, 
-                            User2Item, PlatformSession, PlatformReferencePercentageOfInteractions, 
-                            PercClickPerImpressions, PlatformReferencePercentageOfClickouts,
-                            NumImpressionsInClickout, NumTimesItemImpressed,
-                            LocationReferencePercentageOfClickouts, LocationReferencePercentageOfInteractions,
-                            StepsBeforeLastClickout, ImpressionStarsNumeric,
-                            TopPopPerImpression, TopPopInteractionClickoutPerImpression, 
-                            ImpressionRatingNumeric, ActionsInvolvingImpressionSession,
-                            ImpressionLabel, ImpressionPriceInfoSession,
-                            TimingFromLastInteractionImpression,
-                            ImpressionPositionSession, LastInteractionInvolvingImpression,
-                            SessionDevice, SessionSortOrderWhenClickout,
-                            PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
-                            TimesImpressionAppearedInClickoutsSession]
+            features_array = [ActionsInvolvingImpressionSession,
+                              AdjustedLocationReferencePercentageOfClickouts,
+                              AdjustedLocationReferencePercentageOfInteractions,
+                              AdjustedPercClickPerImpressions,
+                              AdjustedPlatformReferencePercentageOfClickouts,
+                              AdjustedPlatformReferencePercentageOfInteractions,
+                              ChangeImpressionOrderPositionInSession,
+                              DayOfWeekAndMomentInDay,
+                              FrenzyFactorSession,
+                              ImpressionPositionSession,
+                              ImpressionPriceInfoSession,
+                              ImpressionRatingNumeric,
+                              ImpressionStarsNumeric,
+                              ImpressionLabel,
+                              LastClickoutFiltersSatisfaction,
+                              StepsBeforeLastClickout,
+                              LazyUser,
+                              LocationFeaturesSimilarity,
+                              LocationReferencePercentageOfClickouts,
+                              LocationReferencePercentageOfInteractions,
+                              NormalizedPlatformFeaturesSimilarity,
+                              NumTimesItemImpressed,
+                              PercClickPerImpressions,
+                              PercClickPerPos,
+                              PersonalizedTopPop,
+                              PlatformFeaturesSimilarity,
+                              PlatformReferencePercentageOfClickouts,
+                              PlatformReferencePercentageOfInteractions,
+                              PlatformSession,
+                              PriceInfoSession,
+                              PriceQuality,
+                              RefPopAfterFirstPosition,
+                              SessionDevice,
+                              SessionLength,
+                              TimeFromLastActionBeforeClk,
+                              TimePerImpression,
+                              TimesImpressionAppearedInClickoutsSession,
+                              TimingFromLastInteractionImpression,
+                              TopPopInteractionClickoutPerImpression,
+                              TopPopPerImpression,
+                              TopPopSortingFilters,
+                              User2Item,
+                              UserFeature,
+                            ]
         elif kind == 'kind3':
             features_array = [
             #ActionsInvolvingImpressionSession,

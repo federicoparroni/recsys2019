@@ -219,7 +219,8 @@ class XGBoostWrapperSmartValidation(XGBoostWrapper):
         print('data for evaluation ready')
 
         self.xg.fit(X_train, y_train, group, eval_set=[
-                    (X_test, y_test)], eval_group=[groups_test], eval_metric=_mrr, verbose=False, callbacks=[callbak], early_stopping_rounds=200)
+                    (X_test, y_test)], eval_group=[groups_test], eval_metric=_mrr, verbose=False, callbacks=[callbak],
+                    early_stopping_rounds=200)
 
     def evaluate(self):
         self.fit()
