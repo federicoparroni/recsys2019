@@ -84,5 +84,5 @@ if __name__ == "__main__":
     kind = single_choice('pick the kind', ['kind1', 'kind2', 'kind3'])
     m = XGBoostWrapperSmartValidation(mode=mode, cluster=cluster, kind=kind, ask_to_load=False)
     a = XGBoostWrapper(mode='full', cluster=cluster, kind=kind)
-    v = RandomValidator(m, automatic_export=True, reference_object_for_sub_exporter=False, user='edo')
+    v = RandomValidator(m, automatic_export=True, reference_object_for_sub_exporter=False, user='gabbo')
     v.validate(100)

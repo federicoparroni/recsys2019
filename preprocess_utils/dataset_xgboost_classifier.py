@@ -14,6 +14,7 @@ from extract_features.classifier.rnn_output import RNNOutput
 from extract_features.classifier.label_classification import LabelClassification
 from extract_features.classifier.last_action_before_clickout import LastActionBeforeClickout
 from extract_features.classifier.last_action_involving_first_impression import LastActionInvolvingFirstImpressions
+from extract_features.classifier.user_feature_first_impression import UserFeatureFirstImpression
 from extract_features.num_impressions_in_clickout import NumImpressionsInClickout
 from extract_features.classifier.num_interactions_with_first_impression import NumInteractionsWithFirstImpression
 from extract_features.price_position_info_interactions import PricePositionInfoInteractedReferences
@@ -71,7 +72,8 @@ def create_dataset(mode, cluster):
                       FirstImpressionPriceInfo,
                       SessionActionNumRefDiffFromImpressions,
                       TimingFromLastInteractionFirstImpression,
-                      DayOfWeekAndMomentInDay
+                      DayOfWeekAndMomentInDay,
+                      UserFeatureFirstImpression
                       ]
 
     train_df, test_df = merge_features_classifier(mode, cluster, features_array, LabelClassification)
