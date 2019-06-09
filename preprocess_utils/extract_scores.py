@@ -53,6 +53,3 @@ def train_indices(mode='local', cluster='no_cluster'):
     idx = find_last_clickout_indices(df)
     train_idx = set(idx) - set(target_indices)
     return train_idx
-
-
-#TODO add item rec position in recommendations
