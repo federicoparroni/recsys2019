@@ -99,7 +99,7 @@ class PlatformFeaturesSimilarity(FeatureBase):
                 new_col.append(np.linalg.norm(t[0]-t[1]))
 
         final_feature = final_feature[['user_id','session_id','item_id']]
-        final_feature['platform_similarity'] = new_col
+        final_feature['platform_features_similarity'] = new_col
         return final_feature
 
 if __name__ == '__main__':
