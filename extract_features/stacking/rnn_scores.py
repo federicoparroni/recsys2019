@@ -50,7 +50,7 @@ class ScoresRNN(FeatureBase):
         df['index'] = df.index.values
         df = df[['user_id', 'session_id', 'index']]
         df = pd.merge(t, df, how='left', on=['index'])
-        num_idx = len(set(df.index.values))
+        num_idx = len(set(df['index'].values))
         print(num_idx)
         return df[['user_id', 'session_id', 'item_id', 'score_rnn']]
 
