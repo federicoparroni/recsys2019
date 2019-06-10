@@ -6,15 +6,13 @@ import numpy as np
 from preprocess_utils.last_clickout_indices import find
 from preprocess_utils.last_clickout_indices import expand_impressions
 
-from collections import Counter
 
 class SessionNumClickouts(FeatureBase):
 
     """
-    This feature does the same as PercClickPerImpressions, but computes the
-    popularity on the whole df (like PersonalizedTopPop)
+    This feature says for each session the number of clickouts
 
-    user_id | session_id | item_id | adj_perc_click_appeared
+    user_id | session_id | num_clickouts
 
     """
 
