@@ -127,6 +127,8 @@ def merge_features_tf(mode, cluster, features_array):
         feature = f(mode=mode, cluster='no_cluster').read_feature(one_hot=True)
         print(f'columns of the feature:\n {feature.columns}')
         print(f'NaN values are: {feature.isnull().values.sum()}')
+        # if there are none fill it with -1
+        feature.fillna(-1, inplace=True)
         # check if it is a feature of the impression
         if 'item_id' not in feature.columns:
             for i in range(train_df.shape[1]-6+1, train_df.shape[1]-6+1+feature.shape[1]-2, 1):
