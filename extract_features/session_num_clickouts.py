@@ -12,7 +12,7 @@ class SessionNumClickouts(FeatureBase):
     """
     This feature says for each session the number of clickouts
 
-    user_id | session_id | num_clickouts
+    user_id | session_id | item_id | num_clickouts
 
     """
 
@@ -33,7 +33,12 @@ class SessionNumClickouts(FeatureBase):
             .reset_index(name='num_clickouts')
         )
 
-        return feature
+        clickout_rows = df.loc[find(df), ['user_id','session_id','action_type','impressions']][df.action_type == 'clickout item']
+        clk_expanded = expand_impressions(clickout_rows).drop(['index','action_type'],1)
+
+        final_feature = pd.merge(clk_expanded, feature, how='left', on=['user_id','session_id']).fillna(0)
+        final_feature.num_clickouts = final_feature.num_clickouts.astype(int)
+        return final_feature
 
 if __name__ == '__main__':
     import utils.menu as menu
