@@ -216,7 +216,7 @@ class lightGBM(RecommenderBase):
 if __name__ == '__main__':
     params_dict = {
         'boosting_type':'gbdt',
-        'num_leaves': 30,
+        'num_leaves': 21,
         'max_depth': -1,
         'learning_rate': 0.01,
         'n_estimators': 10000,
@@ -237,7 +237,7 @@ if __name__ == '__main__':
         'metric': 'None',
         'print_every': 100,
     }
-    model = lightGBM(mode='small', cluster='no_cluster', dataset_name='prova', params_dict=params_dict)
+    model = lightGBM(mode='local', cluster='no_cluster', dataset_name='prova', params_dict=params_dict)
     model.validate()
     model.plot_features_importance()
 

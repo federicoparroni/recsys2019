@@ -187,11 +187,33 @@ if __name__ == '__main__':
             LazyUser,
             ImpressionLabel,
             ImpressionPriceInfoSession,
-            ImpressionPositionSession,
+            #ImpressionPositionSession,
             User2Item,
             SessionLength,
-        ]
+            TimePerImpression,
+            FrenzyFactorSession,
+            DayOfWeekAndMomentInDay,
+            PriceQuality,
+            ImpressionRatingNumeric,
+            ActionsInvolvingImpressionSession,
+            ImpressionStarsNumeric,
+            ChangeImpressionOrderPositionInSession,
+            PercClickPerImpressions,
+            ChangeOfSortOrderBeforeCurrent,
+            LastClickoutFiltersSatisfaction,
+            TimingFromLastInteractionImpression,
+            TopPopPerImpression,
 
+            #TopPopInteractionClickoutPerImpression,
+            #TimesImpressionAppearedInClickoutsSession,
+            #SessionSortOrderWhenClickout,
+            #PlatformReferencePercentageOfInteractions,
+            #PersonalizedTopPop,
+            #NumTimesItemImpressed,
+            #NumImpressionsInClickout,
+            #LocationReferencePercentageOfInteractions
+            #CountrySearchedSession
+        ]
 
 #PlatformSession, CitySession
 

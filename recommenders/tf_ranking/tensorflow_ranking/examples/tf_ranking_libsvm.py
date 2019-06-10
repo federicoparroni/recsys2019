@@ -426,9 +426,9 @@ def train_and_test():
 
 
     pred_name_train=f'train_predictions_{FLAGS.loss}_learning_rate_{FLAGS.learning_rate}_train_batch_size_{FLAGS.train_batch_size}_' \
-        f'hidden_layers_dim_{FLAGS.hidden_layer_dims}_num_train_steps_{FLAGS.num_train_steps}_dropout_{FLAGS.dropout_rate}_{FLAGS.grup_size}'
+        f'hidden_layers_dim_{FLAGS.hidden_layer_dims}_num_train_steps_{FLAGS.num_train_steps}_dropout_{FLAGS.dropout_rate}_{FLAGS.group_size}'
     pred_name=f'predictions_{FLAGS.loss}_learning_rate_{FLAGS.learning_rate}_train_batch_size_{FLAGS.train_batch_size}_' \
-        f'hidden_layers_dim_{FLAGS.hidden_layer_dims}_num_train_steps_{FLAGS.num_train_steps}_dropout_{FLAGS.dropout_rate}_{FLAGS.grup_size}'
+        f'hidden_layers_dim_{FLAGS.hidden_layer_dims}_num_train_steps_{FLAGS.num_train_steps}_dropout_{FLAGS.dropout_rate}_{FLAGS.group_size}'
     np.save(f'{FLAGS.save_path}/{pred_name}', pred)
     np.save(f'{FLAGS.save_path}/{pred_name_train}', pred_train)
 
