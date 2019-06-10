@@ -317,7 +317,7 @@ def train_and_eval():
         loss=loss,
         global_step=tf.train.get_global_step(),
         learning_rate=FLAGS.learning_rate,
-        optimizer="Adagrad")
+        optimizer="Adam")
   #Adagrad
 
   best_copier = BestCheckpointCopier(

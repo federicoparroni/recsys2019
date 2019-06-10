@@ -169,6 +169,18 @@ def create_dataset(mode, cluster, features_array, dataset_name):
 
 
 if __name__ == '__main__':
+
+    features_array = [
+            LazyUser,
+            ImpressionLabel,
+            ImpressionPriceInfoSession,
+            ImpressionPositionSession,
+            User2Item,
+            SessionLength,
+            ImpressionStarsNumeric,
+        ]
+
+    """
     features_array = [
         #ActionsInvolvingImpressionSession,
         # ChangeImpressionOrderPositionInSession,
@@ -217,7 +229,7 @@ if __name__ == '__main__':
         # TopPopSortingFilters,
         User2Item,
     ]
-
+    """
 
     mode = menu.mode_selection()
     cluster = menu.cluster_selection()

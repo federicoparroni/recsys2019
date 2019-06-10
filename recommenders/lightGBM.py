@@ -218,16 +218,16 @@ if __name__ == '__main__':
         'boosting_type':'gbdt',
         'num_leaves': 30,
         'max_depth': -1,
-        'learning_rate': 0.1,
-        'n_estimators': 1000,
+        'learning_rate': 0.01,
+        'n_estimators': 10000,
         'subsample_for_bin': 200000,
         'class_weights': None,
         'min_split_gain': 0.0,
-        'min_child_weight': 0.0,#0.01
-        'min_child_samples': 10000,#20
+        'min_child_weight': 0.01,
+        'min_child_samples': 20,
         'subsample':1.0,
         'subsample_freq': 0,
-        'colsample_bytree':1,#1
+        'colsample_bytree': 1,
         'reg_alpha': 0.0,
         'reg_lambda': 0.0,
         'random_state': None,
