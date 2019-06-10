@@ -1,13 +1,12 @@
 import pandas as pd
 from tqdm.auto import tqdm
 tqdm.pandas()
-import os
 from extract_features.feature_base import FeatureBase
 import data
 import numpy as np
 import time
 from preprocess_utils.last_clickout_indices import find
-#os.chdir("/Users/Albo/Documents/GitHub/keyblade95/recsys2019")
+
 
 
 class TopPopSortingFilters(FeatureBase):
@@ -20,6 +19,8 @@ class TopPopSortingFilters(FeatureBase):
 
     Assumes that if nan is present in current_filters column or none of the sorting filters is active,
     Sort by Popularity is active.
+
+    Added item_ids not clicked :for those a row of zeros is joined
 
     """
 
@@ -42,7 +43,6 @@ class TopPopSortingFilters(FeatureBase):
             else:
                 return ['Sort by Popularity']
 
-
         start = time.time()
         train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)
@@ -62,11 +62,17 @@ class TopPopSortingFilters(FeatureBase):
                 if i in list_of_sorting_filters:
                     dict_ref_to_filters[row.reference][i] += 1
         df_feature = pd.DataFrame.from_dict(dict_ref_to_filters, orient='index')
+        df_feature = df_feature.astype(int).reset_index().rename(index=str, columns={"index": "item_id"})
+        set_of_not_clicked_items = set(data.accomodations_df().item_id) - set(df_feature.item_id)
+        extension = pd.DataFrame(data=sorted([i for i in set_of_not_clicked_items]), columns=['item_id'])
+        extd = df_feature.append(extension, ignore_index=True, sort=True)
+        f = extd.fillna(0).reset_index().drop(columns=['index'])
+        feature = f[np.insert(f.columns[:-1].values, 0, f.columns[-1])].astype(int)
 
         _time = time.time() - start
         elapsed = time.strftime('%Mm %Ss', time.gmtime(_time))
         print(f"elapsed in: {elapsed}")
-        return df_feature.astype(int).reset_index().rename(index=str, columns={"index": "item_id"})
+        return feature
 
 
 if __name__ == '__main__':
@@ -80,4 +86,4 @@ if __name__ == '__main__':
     print('Creating {} for {} {}'.format(c.name, c.mode, c.cluster))
     c.save_feature()
 
-    print(c.read_feature())
+    print(c.read_feature().sort_values(by='item_id'))
