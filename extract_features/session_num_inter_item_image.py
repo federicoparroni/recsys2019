@@ -25,9 +25,9 @@ class SessionNumInterItemImage(FeatureBase):
         test = data.test_df(mode=self.mode, cluster=self.cluster)
         df = pd.concat([train, test])
 
-        df_clk = df[df.action_type=='interaction item image'][['user_id','session_id','timestamp','step','action_type']]
+        df_int = df[df.action_type=='interaction item image'][['user_id','session_id','timestamp','step','action_type']]
         feature = (
-            df_clk.groupby(['user_id','session_id'])
+            df_int.groupby(['user_id','session_id'])
             .size()
             .reset_index(name='num_inter_item_image')
         )
