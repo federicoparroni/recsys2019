@@ -74,3 +74,4 @@ if __name__ == '__main__':
     mode = mode_selection()
     c = LabelClassification(mode=mode, cluster='no_cluster')
     c.save_feature()
+

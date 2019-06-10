@@ -96,13 +96,16 @@ class XGBoostWrapperClassifier(RecommenderBase):
         test_df = test_df.drop(["user_id", "session_id"], axis=1)
         X_test = test_df.drop("label", axis=1)
 
-
         Y_pred = self.xgb.predict_proba(self.X_train)
         pos = [b for a,b in Y_pred]
         neg = [a for a, b in Y_pred]
         Y_pred = self.xgb.predict_proba(X_test)
         pos += [b for a, b in Y_pred]
         neg += [a for a, b in Y_pred]
+
+        #add extra training sessions
+
+
         temp["positive_score"] = pos
         temp["negative_score"] = neg
         temp = temp[["user_id", "session_id", "positive_score", "negative_score"]]

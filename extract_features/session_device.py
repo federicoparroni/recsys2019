@@ -16,7 +16,7 @@ class SessionDevice(FeatureBase):
 
     def __init__(self, mode, cluster='no_cluster'):
         name = 'session_device'
-        columns_to_onehot = [('device', 'single')]
+        columns_to_onehot = [('session_device', 'single')]
         super(SessionDevice, self).__init__(
             name=name, mode=mode, cluster=cluster, columns_to_onehot=columns_to_onehot)
 
@@ -31,7 +31,7 @@ class SessionDevice(FeatureBase):
             sess = df.at[i, 'session_id']
             device = df.at[i, 'device']
             tuple_list.append((user, sess, device))
-        return pd.DataFrame(tuple_list, columns=['user_id', 'session_id', 'device'])
+        return pd.DataFrame(tuple_list, columns=['user_id', 'session_id', 'session_device'])
 
 if __name__ == '__main__':
     from utils.menu import mode_selection
