@@ -26,6 +26,8 @@ class LastActionInvolvingImpressionFAST(FeatureBase):
     def extract_feature(self):
         def remove_last_part_of_clk_sessions(df):
             """
+            TODO: CHECK + ADD IN THE UTILS
+
             This function takes a dataframe and removes the interactions that
             occur after the last clickout of each session.
             """
