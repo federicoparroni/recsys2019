@@ -97,7 +97,7 @@ class lightGBM(RecommenderBase):
         self.model = lgb.LGBMRanker(**self.params_dict)
 
         self.model.fit(self.x_train, self.y_train, group=self.groups_train, eval_set=[(self.x_vali, self.y_vali)],
-                  eval_group=[self.groups_vali], eval_metric=_mrr, eval_names='validation_set',
+                  eval_group=[self.groups_vali], eval_metric=_mrr, eval_names=['validation_set'],
                   early_stopping_rounds=200, verbose=1, callbacks=[eval_callback, _hera_callback])
         # save the model parameters
         time = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M")
@@ -199,7 +199,7 @@ class lightGBM(RecommenderBase):
                 'silent': False,
                 'importance_type': 'split',
                 'metric': 'None',
-                'print_every': 100,
+                'print_every': 10000,
             }
             model=lightGBM(mode=mode, cluster=cluster, dataset_name='prova', params_dict=params_dict)
             mrr = model.validate()
@@ -215,7 +215,7 @@ class lightGBM(RecommenderBase):
 
 if __name__ == '__main__':
     params_dict = {
-        'boosting_type':'gbdt',
+        'boosting_type':'goss',
         'num_leaves': 21,
         'max_depth': -1,
         'learning_rate': 0.01,
@@ -235,9 +235,10 @@ if __name__ == '__main__':
         'silent': False,
         'importance_type': 'split',
         'metric': 'None',
-        'print_every': 100,
+        'print_every': 1000,
+        'first_only':True
     }
-    model = lightGBM(mode='local', cluster='no_cluster', dataset_name='prova', params_dict=params_dict)
+    model = lightGBM(mode='small', cluster='no_cluster', dataset_name='prova', params_dict=params_dict)
     model.validate()
     model.plot_features_importance()
 
