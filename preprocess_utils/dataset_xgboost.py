@@ -261,6 +261,7 @@ def create_dataset(mode, cluster, class_weights=False):
     else:
         X_train = train_df.drop(
             ['index', 'user_id', 'session_id', 'item_id', 'label'], axis=1)
+    print(','.join(X_train.columns.values))
     X_train = X_train.to_sparse(fill_value=0)
     X_train = X_train.astype(np.float64)
     X_train = X_train.to_coo().tocsr()

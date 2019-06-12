@@ -5,26 +5,20 @@ import numpy as np
 from tqdm.auto import tqdm
 from preprocess_utils.last_clickout_indices import find as find_last_clickout_indices
 tqdm.pandas()
-
 import os
-#os.chdir("../")
-#print(os.getcwd())
 
-class ImpressionPriceInfoSession(FeatureBase):
+class FractionPosPrice(FeatureBase):
 
     """
-    absolute price of impression as it appears in the last clickut of a session and
-    the position in price
-    | user_id | session_id | item_id | impression_price | impression_position_in_price
+    | user_id | session_id | item_id | fraction_pos_price
     """
 
     def __init__(self, mode, cluster='no_cluster'):
-        name = 'impression_price_info_session'
-        super(ImpressionPriceInfoSession, self).__init__(
+        name = 'fraction_pos_price'
+        super(FractionPosPrice, self).__init__(
             name=name, mode=mode, cluster=cluster)
 
     def extract_feature(self):
-
         train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)
         df = pd.concat([train, test])
@@ -50,19 +44,19 @@ class ImpressionPriceInfoSession(FeatureBase):
 
             fraction_pos_price_list.append(np.array(fraction_pos_price))
             impression_price_position_list.append(np.array(price_pos))
-        df['impression_pos_price'] = impression_price_position_list
+        df['fraction_pos_price'] = fraction_pos_price_list
 
         df['impressions'] = df['impressions'].str.split('|')
         df['prices'] = df['prices'].str.split('|')
 
         final_df = pd.DataFrame({col: np.repeat(df[col], df['impressions'].str.len())
                                  for col in df.columns.drop(['impressions', 'prices'])}).assign(
-            **{'item_id': np.concatenate(df['impressions'].values), 'price': np.concatenate(df['prices'].values),
-               'impression_pos_price': np.concatenate(df['impression_pos_price'].values)})
+            **{'item_id': np.concatenate(df['impressions'].values),
+               'fraction_pos_price': np.concatenate(df['fraction_pos_price'].values),
+               'price_log': np.concatenate(df['prices'].values)})
 
         final_df['item_id'] = pd.to_numeric(final_df['item_id'])
-        final_df['impression_pos_price'] = pd.to_numeric(final_df['impression_pos_price'])
-        final_df['price'] = pd.to_numeric(final_df['price'])
+        final_df['fraction_pos_price'] = pd.to_numeric(final_df['fraction_pos_price'])
 
         return final_df
 
@@ -70,5 +64,5 @@ if __name__ == '__main__':
     from utils.menu import mode_selection
 
     mode = mode_selection()
-    c = ImpressionPriceInfoSession(mode=mode, cluster='no_cluster')
+    c = FractionPosPrice(mode=mode, cluster='no_cluster')
     c.save_feature()

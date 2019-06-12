@@ -9,8 +9,8 @@ from preprocess_utils.last_clickout_indices import expand_impressions
 class LazyUser(FeatureBase):
 
     """
-    | user_id | session_id |min_pos_interacted|max_pos_interacted|first_pos_interacted|last_pos_interacted
-    |num_interacted_impressions|percentage_interacted_impressions
+    | user_id | session_id | min_pos_interacted | max_pos_interacted | first_pos_interacted | pos_last_reference | mean_pos_interacted |
+    | num_interacted_impressions | percentage_interacted_impressions
     """
 
     def __init__(self, mode, cluster='no_cluster'):
@@ -35,23 +35,28 @@ class LazyUser(FeatureBase):
         sess_feature = []
 
         for i in tqdm(sorted(idxs_numeric_reference)):
+            n_user = df.at[last_click, 'user_id']
+            n_sess = df.at[last_click, 'session_id']
             if i == last_click:
                 impressions = list(map(int, temp.at[i, 'impressions'].split('|')))
 
                 impressions_len = len(impressions)
 
                 num_interacted_impressions = 0
+                impression_interacted = set()
+                positions_interacted = []
 
-                tuples = sorted(list(sess_features_dict.items()), key=lambda t: t[1])
+                tuples = sorted(list(sess_features_dict.items()), key=lambda t: t[0])
 
                 min_pos = 26
                 max_pos = -1
                 first_pos = None
                 last_pos = None
+                mean_pos_interacted = -1
 
                 for t in tuples:
                     try:
-                        index = impressions.index(t[0])
+                        index = impressions.index(t[1]) + 1
                         if first_pos is None:
                             first_pos = index
                         last_pos = index
@@ -60,10 +65,12 @@ class LazyUser(FeatureBase):
                         if index > max_pos:
                             max_pos = index
                         num_interacted_impressions += 1
+                        impression_interacted.add(t[1])
+                        positions_interacted.append(index)
                     except ValueError:
                         pass
                 if impressions_len > 0:
-                    percentage_interacted_impression = num_interacted_impressions / impressions_len
+                    percentage_interacted_impression = len(impression_interacted) / impressions_len
                 else:
                     percentage_interacted_impression = 1
 
@@ -73,7 +80,11 @@ class LazyUser(FeatureBase):
                     first_pos = -1
                     last_pos = -1
 
+                if num_interacted_impressions > 0:
+                    mean_pos_interacted = sum(positions_interacted)/len(positions_interacted)
+
                 f_d = {
+                    'mean_pos_interacted': mean_pos_interacted,
                     'min_pos_interacted': min_pos,
                     'max_pos_interacted': max_pos,
                     'first_pos_interacted': first_pos,
@@ -87,9 +98,13 @@ class LazyUser(FeatureBase):
                 if count < len(idxs_click):
                     last_click = idxs_click[count]
                 continue
-            ref = int(temp.at[i, 'reference'])
-            step_interaction = temp.at[i, 'step']
-            sess_features_dict[ref] = step_interaction
+            
+            if (temp.at[i, 'user_id'] == n_user) and (temp.at[i, 'session_id'] == n_sess):
+                if n_user == '0Q3605EUBZG3':
+                    a = 1
+                ref = int(temp.at[i, 'reference'])
+                step_interaction = temp.at[i, 'step']
+                sess_features_dict[step_interaction] = ref
 
         final_df = temp[['user_id', 'session_id']].loc[idxs_click]
         final_df['dict'] = sess_feature
