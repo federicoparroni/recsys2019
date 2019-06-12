@@ -98,7 +98,6 @@ class PriceInfoSession(FeatureBase):
                     distance_max_price_clickout_from_mean = max_price_clickout_interacted - mean_price_click
 
                 features_dict = {
-                    'mean_price_click': mean_price_click,
                     'max_price_click': max_price_click,
                     'min_price_click': min_price_click,
                     'var_prices_click': var_prices_click,

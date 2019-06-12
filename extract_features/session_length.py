@@ -11,7 +11,7 @@ class SessionLength(FeatureBase):
 
     """
     length of a session:
-    user_id|session_id|length_step|length_timestamp|mean_time_action|elapsed_last_action_click|elapsed_last_action_click_log
+    user_id|session_id|length_step|length_timestamp|elapsed_last_action_click|elapsed_last_action_click_log
     |variance_last_action|std_last_action
     """
 
@@ -63,7 +63,7 @@ class SessionLength(FeatureBase):
 
         final_df['std_last_action'] = abs(final_df['elapsed_last_action_click'] - final_df['mean_time_action'])
 
-        final_df.drop(['timestamp_last_action', 'final_timestamp'], axis=1, inplace=True)
+        final_df.drop(['timestamp_last_action', 'final_timestamp', 'mean_time_action'], axis=1, inplace=True)
         return final_df
 
 

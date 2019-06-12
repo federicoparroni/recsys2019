@@ -4,12 +4,13 @@ from clusterize.clusterize_base import ClusterizeBase
 from tqdm.auto import tqdm
 tqdm.pandas()
 from preprocess_utils.last_clickout_indices import find
+from preprocess_utils.retrieve_real_test_indices import retrieve_real_test_indices
 
-class NoNumericReferenceNoOneStep(ClusterizeBase):
+class EvalOnNoNumericReferenceNoOneStep(ClusterizeBase):
 
     def __init__(self):
-        super(NoNumericReferenceNoOneStep, self).__init__()
-        self.name = 'no_numeric_reference_no_one_step'
+        super(EvalOnNoNumericReferenceNoOneStep, self).__init__()
+        self.name = 'eval_on_no_numeric_reference_no_one_step'
 
     def _fit(self, mode):
         """
@@ -26,51 +27,54 @@ class NoNumericReferenceNoOneStep(ClusterizeBase):
             except ValueError:
                 return False
 
-        train = data.train_df(mode)
-        self.train_indices = train.index.values
+        train = data.train_df('small')
 
-        test = data.test_df(mode)
-        test_index = test.index.values
-        tgt_indices = data.target_indices(mode)
+        test = data.test_df('small')
+        tgt_indices = data.target_indices('small')
 
-        real_test_to_drop = []
+        real_test_to_keep = []
         for idx in tgt_indices:
             usr_sess_indices = []
             theres_int = False
-            try:
-                a_user = df.at[idx, 'user_id']
-                a_sess = df.at[idx, 'session_id']
-                usr_sess_indices.append(idx)
-            except:
-                continue
+            a_user = test.at[idx, 'user_id']
+            a_sess = test.at[idx, 'session_id']
+            usr_sess_indices.append(idx)
             j = idx-1
+            pos_moved = 0
             while j >= 0:
                 try:
-                    new_user = df.at[j, 'user_id']
-                    new_sess = df.at[j, 'session_id']
+                    new_user = test.at[j, 'user_id']
+                    new_sess = test.at[j, 'session_id']
                     if new_user == a_user and new_sess == a_sess:
                         usr_sess_indices.append(j)
-                        reference = df.at[j, 'reference']
+                        reference = test.at[j, 'reference']
                         if RepresentsInt(reference):
                             theres_int = True
                         j -= 1
+                        pos_moved += 1
                     else:
-                        # add indices 
-                        if not (idx-j >= 2 and not theres_int):
-                            real_test_to_drop += usr_sess_indices
+                        if not (pos_moved == 0 or theres_int):
+                            real_test_to_keep += sorted(usr_sess_indices)
                         break
                 except:
-                    j -= 1
+                    if j < test.index.values[0]:
+                        if not (pos_moved == 0 or theres_int):
+                            real_test_to_keep += sorted(usr_sess_indices)
+                        break
+                    else:
+                        j -= 1
         
-        self.train_indices = sorted(list(set(train_index) & set(to_return)))
-        self.test_indices = sorted(list(set(test_index) & set(to_return)))
-        self.target_indices =  sorted(list(set(tgt_indices) & set(to_return)))
+        self.train_indices = train.index.values
+        real_test_indices = retrieve_real_test_indices(mode, 'no_cluster')
+        all_test_indices = data.test_df(mode).index.values
+        self.test_indices = sorted(list(set(all_test_indices) - set(real_test_indices)) + real_test_to_keep)
+        self.target_indices = sorted(list(set(self.test_indices) & set(tgt_indices)))
 
 
 if __name__ == '__main__':
     import utils.menu as menu
 
-    obj = NoNumericReferenceNoOneStep()
+    obj = EvalOnNoNumericReferenceNoOneStep()
 
     mode = menu.mode_selection()
 

@@ -41,6 +41,7 @@ class ImpressionStarsNumeric(FeatureBase):
         feature_stars_restricted = feature_stars[['item_id', 'stars']]
         final_feature = pd.merge(clk_expanded, feature_stars_restricted, how='left', on=['item_id']).fillna(1)
         final_feature['stars'] = final_feature['stars'].astype(int)
+        final_feature['stars'] = final_feature['stars'].replace(0, -1)
         return final_feature[['user_id','session_id','item_id','stars']]
 
 if __name__ == '__main__':
