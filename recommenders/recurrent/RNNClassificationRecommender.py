@@ -95,6 +95,33 @@ class RNNClassificationRecommender(RecurrentRecommender):
 
         return result_predictions
 
+    def get_scores_cv(self, x_val):
+        """ Return scores for a fold """
+        indices = x_val[:,:,0][:,self.dataset.rows_per_sample-1]
+
+        predictions = self.model.predict(x_val[:,:,1:])
+
+        # take the target rows
+        res_df = data.full_df()[['user_id','session_id','impressions']].loc[indices].copy()
+        res_df['impressions'] = res_df['impressions'].str.split('|')
+        # add the scores as a new column
+        res_df['scores'] = list(predictions)
+        # trim the scores to the real number of impressions
+        # (otherwise all rows have the fixed number of scores (25) )
+        res_df['length'] = res_df['impressions'].str.len()
+        res_df['scores'] = res_df.apply(lambda x: x['scores'][:x['length']], axis=1)
+        res_df.drop('length', axis=1, inplace=True)
+
+        # expand the df to have a row for each item_id - score
+        res_df = pd.DataFrame({ col:np.repeat(res_df[col], res_df['scores'].str.len())
+                    for col in res_df.columns.drop(['impressions','scores'])
+        }).assign(**{
+            'item_id': np.concatenate(res_df['impressions'].values),
+            'score': np.concatenate(res_df['scores'].values),
+        })
+
+        return res_df
+
 
 if __name__ == "__main__":
     import utils.menu as menu
