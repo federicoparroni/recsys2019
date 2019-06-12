@@ -176,7 +176,25 @@ class RecurrentRecommender(RecommenderBase):
             self.history = self.model.fit(self.X, self.Y, epochs=epochs, batch_size=self.batch_size,
                                             validation_split=self.validation_split,
                                             callbacks=callbacks, class_weight=self.class_weights)
+
+    def fit_cv(self, x, y, x_val, y_val, epochs, early_stopping_patience=10, early_stopping_on='val_loss', mode='min'):
+        callbacks = [ TelegramBotKerasCallback(log_every_epochs=1, account='parro') ]
+        # early stopping callback
+        if isinstance(early_stopping_patience, int):
+            assert early_stopping_patience > 0
+            callbacks.append( EarlyStopping(monitor=early_stopping_on, patience=early_stopping_patience, mode=mode,
+                                            verbose=1, restore_best_weights=True) )
         
+        # tensorboard callback
+        if isinstance(self.tensorboard_path, str):
+            check_folder(self.tensorboard_path)
+            callbacks.append( TensorBoard(log_dir=self.tensorboard_path, histogram_freq=0, write_graph=False) )
+        
+        # fit on the data, dropping the index
+        self.model.fit(x[:,:,1:], y, epochs=epochs, batch_size=self.batch_size,
+                        validation_data=(x_val[:,:,1:], y_val),
+                        callbacks=callbacks, class_weight=self.class_weights)
+
     def save(self, folderpath, suffix=''):
         """ Save the full state of the model, including:
         - the architecture
