@@ -138,6 +138,7 @@ def create_dataset(mode, cluster, class_weights=False):
                               PlatformReferencePercentageOfInteractions,
                               PlatformSession,
                               User2Item,
+                              (LazyUser, False)
                               ]
 
     train_df, test_df, train_idxs, _ = merge_features(mode, cluster, features_array, merge_kind='left')

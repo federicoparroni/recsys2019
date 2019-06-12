@@ -40,8 +40,6 @@ class TimesUserInteractedWithImpression(FeatureBase):
         impr_feature = []
         for i in tqdm(sorted(idxs_numeric_reference)):
             if i == last_click:
-                if i == 122:
-                    a = 1
                 impressions = list(map(int, temp.at[i, 'impressions'].split('|')))
                 click_timestamp = temp.at[i, 'timestamp']
                 click_step = temp.at[i, 'step']
