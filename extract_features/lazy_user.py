@@ -103,8 +103,6 @@ class LazyUser(FeatureBase):
                 continue
             
             if (temp.at[i, 'user_id'] == n_user) and (temp.at[i, 'session_id'] == n_sess):
-                if n_user == '0Q3605EUBZG3':
-                    a = 1
                 ref = int(temp.at[i, 'reference'])
                 step_interaction = temp.at[i, 'step']
                 sess_features_dict[step_interaction] = ref
