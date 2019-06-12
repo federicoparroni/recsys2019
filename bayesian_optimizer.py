@@ -20,4 +20,4 @@ if __name__ == '__main__':
     mode=single_choice('insert mode:', ['local', 'small'])
     cluster = single_choice('insert cluster', ['no_cluster'])
     opt = OptimizerWrapper(lightGBM, mode=mode, cluster=cluster)
-    opt.optimize_random()
+    opt.optimize_bayesian()

@@ -169,6 +169,44 @@ def create_dataset(mode, cluster, features_array, dataset_name):
 
 
 if __name__ == '__main__':
+
+    features_array = [
+            LazyUser,
+            ImpressionLabel,
+            ImpressionPriceInfoSession,
+            #ImpressionPositionSession,
+            User2Item,
+            SessionLength,
+            TimePerImpression,
+            FrenzyFactorSession,
+            DayOfWeekAndMomentInDay,
+            PriceQuality,
+            ImpressionRatingNumeric,PersonalizedTopPop,
+            ActionsInvolvingImpressionSession,
+            ImpressionStarsNumeric,
+            ChangeImpressionOrderPositionInSession,
+            PercClickPerImpressions,
+            LastClickoutFiltersSatisfaction,
+            TimingFromLastInteractionImpression,
+            TopPopPerImpression,
+            PersonalizedTopPop,
+
+            NumTimesItemImpressed,
+            TopPopInteractionClickoutPerImpression,
+            TopPopInteractionClickoutPerImpression,
+            TimesImpressionAppearedInClickoutsSession,
+            TopPopInteractionClickoutPerImpression,
+            TimesImpressionAppearedInClickoutsSession,
+            ChangeOfSortOrderBeforeCurrent,
+            NumImpressionsInClickout,
+            SessionSortOrderWhenClickout,
+            CountrySearchedSession,
+            PlatformReferencePercentageOfInteractions,
+            LocationReferencePercentageOfInteractions,
+            PlatformSession,
+        ]
+
+    """
     features_array = [
         #ActionsInvolvingImpressionSession,
         # ChangeImpressionOrderPositionInSession,
@@ -217,7 +255,7 @@ if __name__ == '__main__':
         # TopPopSortingFilters,
         User2Item,
     ]
-
+    """
 
     mode = menu.mode_selection()
     cluster = menu.cluster_selection()

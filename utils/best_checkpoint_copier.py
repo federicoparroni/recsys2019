@@ -129,7 +129,7 @@ class BestCheckpointCopier(tf.estimator.Exporter):
             HERA.send_message(f'EXPORTING A SUB... {eval_result_f} mode:{self.mode}, name:{name}')
             model = TensorflowRankig(mode=self.mode, cluster='no_cluster', dataset_name=self.dataset_name,
                                      pred_name=name)
-            model.name = f'tf_ranking_{pred_name}'
+            model.name = f'tf_ranking_{name}'
             model.run()
             HERA.send_message(f'EXPORTED... {eval_result_f} mode:{self.mode}, name:{name}')
 

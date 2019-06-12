@@ -39,3 +39,4 @@ if __name__ == '__main__':
     mode = mode_selection()
     c = SessionDevice(mode=mode, cluster='no_cluster')
     c.save_feature()
+    c.read_feature(one_hot=True)
