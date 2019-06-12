@@ -71,4 +71,4 @@ def download_scores_and_sub(pattern, user_name='ubuntu'):
 
 
 if __name__ == '__main__':
-    download_scores_and_sub('cluster=no_cluster_kind=kind1_class_weights=False_learning_rate=0.039_min_child_weight=1_n_estimators=2917_max_depth=7_subsample=1_colsample_bytree=1_reg_lambda=0.425_reg_alpha=0.135')
+    download_scores_and_sub('tf_ranking_predictions_pairwise_hinge_loss_learning_rate_0.05_train_batch_size_32_hidden_layers_dim_256_128_128_num_train_steps_')

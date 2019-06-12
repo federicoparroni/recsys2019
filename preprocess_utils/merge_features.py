@@ -58,7 +58,10 @@ def merge_features(mode, cluster, features_array, onehot=True, merge_kind='inner
     print('join with the features')
     print(f'train_shape: {train_df.shape}\n vali_test_shape: {validation_test_df.shape}')
     for f in features_array:
-        feature = f(mode=mode, cluster='no_cluster').read_feature(one_hot=onehot)
+        if type(f) == tuple:
+            feature = f[0](mode=mode, cluster='no_cluster').read_feature(one_hot=f[1])
+        else:
+            feature = f(mode=mode, cluster='no_cluster').read_feature(one_hot=onehot)
         print(f'len of feature:{len(feature)}')
         train_df = train_df.merge(feature, how=merge_kind)
         validation_test_df = validation_test_df.merge(feature, how=merge_kind)

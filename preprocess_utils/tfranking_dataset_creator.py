@@ -127,6 +127,8 @@ def merge_features_tf(mode, cluster, features_array):
         feature = f(mode=mode, cluster='no_cluster').read_feature(one_hot=True)
         print(f'columns of the feature:\n {feature.columns}')
         print(f'NaN values are: {feature.isnull().values.sum()}')
+        # if there are none fill it with -1
+        feature.fillna(-1, inplace=True)
         # check if it is a feature of the impression
         if 'item_id' not in feature.columns:
             for i in range(train_df.shape[1]-6+1, train_df.shape[1]-6+1+feature.shape[1]-2, 1):
@@ -167,6 +169,44 @@ def create_dataset(mode, cluster, features_array, dataset_name):
 
 
 if __name__ == '__main__':
+
+    features_array = [
+            LazyUser,
+            ImpressionLabel,
+            ImpressionPriceInfoSession,
+            #ImpressionPositionSession,
+            User2Item,
+            SessionLength,
+            TimePerImpression,
+            FrenzyFactorSession,
+            DayOfWeekAndMomentInDay,
+            PriceQuality,
+            ImpressionRatingNumeric,PersonalizedTopPop,
+            ActionsInvolvingImpressionSession,
+            ImpressionStarsNumeric,
+            ChangeImpressionOrderPositionInSession,
+            PercClickPerImpressions,
+            LastClickoutFiltersSatisfaction,
+            TimingFromLastInteractionImpression,
+            TopPopPerImpression,
+            PersonalizedTopPop,
+
+            NumTimesItemImpressed,
+            TopPopInteractionClickoutPerImpression,
+            TopPopInteractionClickoutPerImpression,
+            TimesImpressionAppearedInClickoutsSession,
+            TopPopInteractionClickoutPerImpression,
+            TimesImpressionAppearedInClickoutsSession,
+            ChangeOfSortOrderBeforeCurrent,
+            NumImpressionsInClickout,
+            SessionSortOrderWhenClickout,
+            CountrySearchedSession,
+            PlatformReferencePercentageOfInteractions,
+            LocationReferencePercentageOfInteractions,
+            PlatformSession,
+        ]
+
+    """
     features_array = [
         #ActionsInvolvingImpressionSession,
         # ChangeImpressionOrderPositionInSession,
@@ -215,7 +255,7 @@ if __name__ == '__main__':
         # TopPopSortingFilters,
         User2Item,
     ]
-
+    """
 
     mode = menu.mode_selection()
     cluster = menu.cluster_selection()

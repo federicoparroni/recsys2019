@@ -20,7 +20,7 @@ class ImpressionStarsNumeric(FeatureBase):
     def __init__(self, mode, cluster='no_cluster'):
         name = 'impression_stars_numeric'
         super(ImpressionStarsNumeric, self).__init__(
-            name=name, mode=mode, cluster=cluster)
+            name=name, mode=mode, cluster=cluster, columns_to_onehot=[('stars', 'single')])
 
     def extract_feature(self):
         train = data.train_df(mode=self.mode, cluster='no_cluster')

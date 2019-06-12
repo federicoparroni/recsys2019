@@ -97,7 +97,7 @@ class lightGBM(RecommenderBase):
         self.model = lgb.LGBMRanker(**self.params_dict)
 
         self.model.fit(self.x_train, self.y_train, group=self.groups_train, eval_set=[(self.x_vali, self.y_vali)],
-                  eval_group=[self.groups_vali], eval_metric=_mrr, eval_names='validation_set',
+                  eval_group=[self.groups_vali], eval_metric=_mrr, eval_names=['validation_set'],
                   early_stopping_rounds=200, verbose=1, callbacks=[eval_callback, _hera_callback])
         # save the model parameters
         time = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M")
@@ -199,7 +199,7 @@ class lightGBM(RecommenderBase):
                 'silent': False,
                 'importance_type': 'split',
                 'metric': 'None',
-                'print_every': 100,
+                'print_every': 10000,
             }
             model=lightGBM(mode=mode, cluster=cluster, dataset_name='prova', params_dict=params_dict)
             mrr = model.validate()
@@ -215,19 +215,19 @@ class lightGBM(RecommenderBase):
 
 if __name__ == '__main__':
     params_dict = {
-        'boosting_type':'gbdt',
-        'num_leaves': 30,
+        'boosting_type':'goss',
+        'num_leaves': 21,
         'max_depth': -1,
-        'learning_rate': 0.1,
-        'n_estimators': 1000,
+        'learning_rate': 0.01,
+        'n_estimators': 10000,
         'subsample_for_bin': 200000,
         'class_weights': None,
         'min_split_gain': 0.0,
-        'min_child_weight': 0.0,#0.01
-        'min_child_samples': 10000,#20
+        'min_child_weight': 0.01,
+        'min_child_samples': 20,
         'subsample':1.0,
         'subsample_freq': 0,
-        'colsample_bytree':1,#1
+        'colsample_bytree': 1,
         'reg_alpha': 0.0,
         'reg_lambda': 0.0,
         'random_state': None,
@@ -235,7 +235,8 @@ if __name__ == '__main__':
         'silent': False,
         'importance_type': 'split',
         'metric': 'None',
-        'print_every': 100,
+        'print_every': 1000,
+        'first_only':True
     }
     model = lightGBM(mode='small', cluster='no_cluster', dataset_name='prova', params_dict=params_dict)
     model.validate()
