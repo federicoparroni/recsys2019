@@ -4,6 +4,7 @@ from tqdm import tqdm
 from preprocess_utils.last_clickout_indices import find as find_last_clickout_indices
 from preprocess_utils.last_clickout_indices import expand_impressions
 from utils.reduce_memory_usage_df import reduce_mem_usage
+import multiprocessing
 
 from scipy.sparse import save_npz
 import data
@@ -59,6 +60,7 @@ from extract_features.top_pop_per_impression import TopPopPerImpression
 from extract_features.top_pop_sorting_filters import TopPopSortingFilters
 from extract_features.user_2_item import User2Item
 import utils.menu as menu
+from time import time
 
 from utils.menu import single_choice
 from preprocess_utils.merge_features import merge_features
@@ -109,20 +111,22 @@ def merge_features_lgb(mode, cluster, features_array):
     # do the join
     print('join with the features')
     print(f'train_shape: {train_df.shape}\n vali_test_shape: {validation_test_df.shape}')
+    time_joins = 0
     for f in features_array:
         _feature = f(mode=mode, cluster='no_cluster')
         feature = _feature.read_feature(one_hot=False)
 
-        """
-        if len(_feature.columns_to_onehot) > 0:
-            cols_onehot = {cols[0]:'category' for cols in _feature.columns_to_onehot}
-            feature = feature.astype(cols_onehot)
-        """
         print(f'shape of feature: {feature.shape}\n')
         print(f'len of feature:{len(feature)}\n')
+
+        start = time()
         train_df = train_df.merge(feature)
         validation_test_df = validation_test_df.merge(feature)
+        print(f'time to do the join: {time()-start}')
+        time_joins += time()-start
         print(f'train_shape: {train_df.shape}\n vali_shape: {validation_test_df.shape}')
+
+    print(f'total time to do joins: {time_joins}')
 
     print('sorting by index and step...')
     # sort the dataframes
@@ -187,14 +191,14 @@ if __name__ == '__main__':
             LazyUser,
             ImpressionLabel,
             ImpressionPriceInfoSession,
-            #ImpressionPositionSession,
+            ImpressionPositionSession,
             User2Item,
             SessionLength,
             TimePerImpression,
             FrenzyFactorSession,
             DayOfWeekAndMomentInDay,
             PriceQuality,
-            ImpressionRatingNumeric,PersonalizedTopPop,
+            ImpressionRatingNumeric,
             ActionsInvolvingImpressionSession,
             ImpressionStarsNumeric,
             ChangeImpressionOrderPositionInSession,
@@ -208,21 +212,20 @@ if __name__ == '__main__':
             TopPopInteractionClickoutPerImpression,
             TopPopInteractionClickoutPerImpression,
             TimesImpressionAppearedInClickoutsSession,
-            TopPopInteractionClickoutPerImpression,
-            TimesImpressionAppearedInClickoutsSession,
-            ChangeOfSortOrderBeforeCurrent,
+            #ChangeOfSortOrderBeforeCurrent,
             NumImpressionsInClickout,
             SessionSortOrderWhenClickout,
-            CountrySearchedSession,
-            PlatformReferencePercentageOfInteractions,
-            LocationReferencePercentageOfInteractions,
-            PlatformSession,
+            #CountrySearchedSession,
+            #PlatformReferencePercentageOfInteractions,
+            #LocationReferencePercentageOfInteractions,
+            #PlatformSession,
         ]
 
 #PlatformSession, CitySession
 
     mode=single_choice('select mode:', ['full', 'local', 'small'])
     cluster=single_choice('select cluster:', ['no_cluster'])
-    dataset_name=single_choice('select dataset name:',['prova', 'dataset1', 'dataset2', 'old'])
+    #dataset_name=single_choice('select dataset name:',['prova', 'dataset1', 'dataset2', 'old'])
+    dataset_name = input('insert the dataset name:\n')
     create_lightGBM_dataset(mode=mode, cluster=cluster, features_array=features_array,
                             dataset_name=dataset_name)

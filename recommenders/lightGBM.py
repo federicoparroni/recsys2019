@@ -1,4 +1,5 @@
 import lightgbm as lgb
+import out
 import data
 from tqdm import tqdm
 import pandas as pd
@@ -23,6 +24,7 @@ import datetime
 from skopt.space import Real, Integer, Categorical
 from utils.reduce_memory_usage_df import reduce_mem_usage
 from cython_files.mrr import mrr as mrr_cython
+from evaluate.SubEvaluator import SubEvaluator
 
 _x_train = None
 _y_train = None
@@ -67,14 +69,13 @@ class lightGBM(RecommenderBase):
         self._load_data()
         self.params_dict = params_dict
         self.eval_res = {}
-        self.model = None
+        self.model = lgb.LGBMRanker(**self.params_dict)
 
     def fit(self):
         # initialize the model
-        self.model = lgb.LGBMRanker(**self.params_dict)
         self.model.fit(self.x_train, self.y_train, group=self.groups_train, verbose=False)
 
-    def validate(self):
+    def validate(self, min_mrr_to_export=0.668, export_sub=True):
         def _mrr(y_true, y_pred, weight, group):
             l = memoryview(np.array(y_true, dtype=np.int32))
             p = memoryview(np.array(y_pred, dtype=np.float32))
@@ -94,24 +95,48 @@ class lightGBM(RecommenderBase):
         eval_callback = lgb.record_evaluation(self.eval_res)
 
         # initialize the model
-        self.model = lgb.LGBMRanker(**self.params_dict)
-
         self.model.fit(self.x_train, self.y_train, group=self.groups_train, eval_set=[(self.x_vali, self.y_vali)],
                   eval_group=[self.groups_vali], eval_metric=_mrr, eval_names=['validation_set'],
-                  early_stopping_rounds=200, verbose=1, callbacks=[eval_callback, _hera_callback])
-        # save the model parameters
-        time = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M")
-        check_folder(f'{self._BASE_PATH}/{time}')
-        with open(f"{self._BASE_PATH}/{time}/Parameters.txt", "w+") as text_file:
-            text_file.write(str(self.params_dict))
-        self.model.booster_.save_model(f'{self._BASE_PATH}/{time}/{self.name}')
-        # return negative mrr
-        return self.eval_res['validation_set']['MRR'][self.model.booster_.best_iteration - 1]
+                  early_stopping_rounds=200, verbose=50, callbacks=[eval_callback])
 
-    def plot_features_importance(self):
+        mrr = self.eval_res['validation_set']['MRR'][self.model.booster_.best_iteration - 1]
+
+        if mrr > min_mrr_to_export:
+            # set the path where to save
+            time = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M")
+            base_path = f'{self._BASE_PATH}/{time}_{round(mrr,4)}'
+
+            # save the parameters of the model
+            check_folder(base_path, point_allowed_path=True)
+            print(base_path)
+            with open(f"{base_path}/Parameters.txt", "w+") as text_file:
+                text_file.write(str(self.params_dict))
+
+            # save the features of the model
+            with open(f"{base_path}/used_features.txt", "w+") as text_file:
+                text_file.write(str(self.x_train.columns))
+
+            # save the model
+            self.model.booster_.save_model(f'{base_path}/{self.name}')
+
+            # save the feature importance of the moodel
+            self.plot_features_importance(path=f'{base_path}/feature_importance.png', save=True)
+
+            if export_sub:
+                # save the local submission
+                recommendations = self.recommend_batch()
+                out.create_sub(recommendations, submission_name=self.name, directory=base_path, timestamp_on_name=False)
+
+            #TODO: SAVE ALSO THE SCORES OF THE ALGORITHM
+
+        return mrr
+
+    def plot_features_importance(self, path, save=False):
         plot = lgb.plot_importance(self.model.booster_)
         plt.subplot(plot)
         plt.show()
+        if save:
+            plt.savefig(path)
 
     def get_scores_batch(self):
         print('loading target indices')
@@ -158,26 +183,22 @@ class lightGBM(RecommenderBase):
         return final_predictions
 
     @staticmethod
-    def get_optimize_params(mode, cluster):
+    def get_optimize_params(mode, cluster, dataset_name):
         space = [
-            Real(0.01, 0.2, name='learning_rate'),
-            Integer(6, 80, name='num_leaves'),
-            Real(0, 0.5, name='reg_lambda'),
-            Real(0, 0.5, name='reg_alpha'),
+            Real(0.01, 0.15, name='learning_rate'),
+            Integer(6, 256, name='num_leaves'),
+            Real(0, 10, name='reg_lambda'),
+            Real(0, 10, name='reg_alpha'),
             Real(0, 0.1, name='min_split_gain'),
             Real(0, 0.1, name='min_child_weight'),
-            Integer(10, 30000, name='min_child_samples'),
+            Integer(2, 45, name='min_child_samples'),
         ]
 
         def get_mrr(arg_list):
 
             learning_rate, num_leaves, reg_lambda, reg_alpha, min_split_gain,\
                 min_child_weight, min_child_samples = arg_list
-            Hera.send_message(f'Starting a train of bayesyan search with following params:\n '
-                              f'learning_rate:{learning_rate}, num_leaves:{num_leaves}, '
-                              f'reg_lambda{reg_lambda}, reg_alpha:{reg_alpha}, min_split_gain:{min_split_gain}'
-                              f'min_child_weight:{min_child_weight}, min_child_samples:{min_child_samples},'
-                              , account='edo')
+
             params_dict = {
                 'boosting_type': 'gbdt',
                 'num_leaves': num_leaves,
@@ -201,11 +222,12 @@ class lightGBM(RecommenderBase):
                 'metric': 'None',
                 'print_every': 10000,
             }
-            model=lightGBM(mode=mode, cluster=cluster, dataset_name='prova', params_dict=params_dict)
-            mrr = model.validate()
+            lgb=lightGBM(mode=mode, cluster=cluster, dataset_name=dataset_name, params_dict=params_dict)
+            mrr = lgb.validate()
+            best_it = lgb.model._Booster.best_iteration
             Hera.send_message(f'MRR: {mrr}\n'
                               f'params:\n'
-                              f'learning_rate:{learning_rate}, num_leaves:{num_leaves}, '
+                              f'num_iteration:{best_it}, learning_rate:{learning_rate}, num_leaves:{num_leaves}, '
                               f'reg_lambda{reg_lambda}, reg_alpha:{reg_alpha} , min_split_gain:{min_split_gain}'
                               f'min_child_weight:{min_child_weight}, min_child_samples:{min_child_samples}', account='edo')
             return -mrr
@@ -215,32 +237,32 @@ class lightGBM(RecommenderBase):
 
 if __name__ == '__main__':
     params_dict = {
-        'boosting_type':'goss',
-        'num_leaves': 21,
+        'boosting_type':'gbdt',
+        'num_leaves': 80,
         'max_depth': -1,
-        'learning_rate': 0.01,
-        'n_estimators': 10000,
+        'learning_rate': 0.1,
+        'n_estimators': 100,
         'subsample_for_bin': 200000,
         'class_weights': None,
         'min_split_gain': 0.0,
-        'min_child_weight': 0.01,
+        'min_child_weight': 0.0,
         'min_child_samples': 20,
         'subsample':1.0,
         'subsample_freq': 0,
         'colsample_bytree': 1,
-        'reg_alpha': 0.0,
-        'reg_lambda': 0.0,
+        'reg_alpha': 0.5,
+        'reg_lambda': 0.5,
         'random_state': None,
         'n_jobs': -1,
         'silent': False,
         'importance_type': 'split',
         'metric': 'None',
         'print_every': 1000,
-        'first_only':True
+        'first_only': True
     }
-    model = lightGBM(mode='small', cluster='no_cluster', dataset_name='prova', params_dict=params_dict)
+    model = lightGBM(mode='local', cluster='no_cluster', dataset_name='prova', params_dict=params_dict)
     model.validate()
-    model.plot_features_importance()
+    #model.plot_features_importance()
 
 
 

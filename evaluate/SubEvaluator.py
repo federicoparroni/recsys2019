@@ -58,7 +58,7 @@ class SubEvaluator():
             print('\033[1;40m Score: '+ f'\033[1;32;40m {mrr}'+ '\033[0;37;40m')
         return mrr
 
-    def run(self):
+    def run(self, save_path=None):
         self.generate_clusters()
         print(f'\033[33;40m {cool_string}'+'\033[0;37;40m')
         gt_list = [
@@ -104,6 +104,13 @@ class SubEvaluator():
             else:
                 x.add_row([k, f'{dict_scores[k]}', f'{dict_cluster_dim[k]}%'])
         print(x)
+        if save_path is not None:
+            with open(f"{save_path}", "w+") as text_file:
+                array_strings = [f'\033[33;40m {cool_string}'+'\033[0;37;40m\n', '\n===========================================\n',
+                                 '\033[1;40m RECAP:' + '\033[0;37;40m', f'\033[1;40m OVERALL SCORE: {total_score}'+'\033[0;37;40m', x]
+                text_file.writelines(array_strings)
+
+
 
     def generate_clusters(self):
         df_test = data.test_df('local')
@@ -241,5 +248,5 @@ class SubEvaluator():
             new_gt.to_csv(self.data_directory.joinpath('gt_clusters/gt_no_num_reference_sessions.csv'), encoding='utf-8', index=False)
 
 if __name__=='__main__':
-    sub_evaluator = SubEvaluator('xgboostlocal.csv')
+    sub_evaluator = SubEvaluator('/home/edoardo/Downloads/2019-06-13_06:30_0.668/lightGBM_prova_06-31-42.csv')
     sub_evaluator.run()
