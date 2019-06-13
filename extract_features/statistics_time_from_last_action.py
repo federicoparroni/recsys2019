@@ -7,17 +7,16 @@ from preprocess_utils.last_clickout_indices import find as find_last_clickout_in
 tqdm.pandas()
 
 
-class SessionLength(FeatureBase):
+class StatisticsTimeFromLastAction(FeatureBase):
 
     """
     length of a session:
-    user_id|session_id|length_step|length_timestamp|elapsed_last_action_click|elapsed_last_action_click_log
-    |variance_last_action|std_last_action
+    user_id | session_id | elapsed_last_action_click_log | variance_last_action | std_last_action
     """
 
     def __init__(self, mode, cluster='no_cluster'):
-        name = 'session_length'
-        super(SessionLength, self).__init__(
+        name = 'statistics_time_from_last_action'
+        super(StatisticsTimeFromLastAction, self).__init__(
             name=name, mode=mode, cluster=cluster)
 
     def extract_feature(self):
@@ -64,12 +63,12 @@ class SessionLength(FeatureBase):
         final_df['std_last_action'] = abs(final_df['elapsed_last_action_click'] - final_df['mean_time_action'])
 
         final_df.drop(['timestamp_last_action', 'final_timestamp', 'mean_time_action', \
-                       'elapsed_last_action_click_log', 'variance_last_action', 'std_last_action'], axis=1, inplace=True)
+                       'length_step', 'length_timestamp', 'elapsed_last_action_click'], axis=1, inplace=True)
         return final_df
 
 
 if __name__ == '__main__':
     from utils.menu import mode_selection
     mode = mode_selection()
-    c = SessionLength(mode=mode, cluster='no_cluster')
+    c = StatisticsTimeFromLastAction(mode=mode, cluster='no_cluster')
     c.save_feature()

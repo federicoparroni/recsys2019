@@ -133,9 +133,9 @@ class PriceInfoSession(FeatureBase):
             ref = int(temp.at[i, 'reference'])
 
             action_type = temp.at[i, 'action_type']
-            if action_type == 'clickout_item':
-                prices = list(map(int, temp.at[i, 'prices'].str.split('|')))
-                impressions = list(map(int, temp.at[i, 'impressions'].str.split('|')))
+            if action_type == 'clickout item':
+                prices = list(map(int, temp.at[i, 'prices'].split('|')))
+                impressions = list(map(int, temp.at[i, 'impressions'].split('|')))
                 idx = impressions.index(ref)
                 prices_clickout_interacted.append(prices[idx])
                 if ref not in impression_interacted:
