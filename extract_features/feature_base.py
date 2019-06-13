@@ -82,7 +82,7 @@ class FeatureBase(ABC):
         feature_df = self.read_feature(one_hot=one_hot)
         return df.merge(feature_df, how='left')
 
-    def read_feature(self, one_hot=False, create_if_not_exist=True):
+    def read_feature(self, one_hot=False, create_not_existing_features=True):
         """
         it reads a feature from disk and returns it.
         if one_hot = False, it returns it as was saved.
@@ -92,7 +92,7 @@ class FeatureBase(ABC):
             self.cluster, self.mode, self.name)
         if not os.path.exists(path):
 
-            if create_if_not_exist:
+            if create_not_existing_features:
                 choice = 'y'
                 print('Missing feature: creating')
             else:
