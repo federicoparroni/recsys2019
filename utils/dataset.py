@@ -43,7 +43,7 @@ class Dataset(DatasetBase):
     """ Base class containing all info about a dataset """
 
     def __init__(self, dataset_path):
-        super.__init__()
+        super(Dataset, self).__init__()
         # load the dataset config file
         data = datasetconfig.load_config(dataset_path)
         if data is None:

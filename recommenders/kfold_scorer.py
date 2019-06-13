@@ -54,8 +54,8 @@ class KFoldScorer(object):
         # fit in each fold
         self.scores = Parallel(backend='multiprocessing', n_jobs=n_jobs)(delayed(self._fit_model)
                                 (
-                                    X_train[train_indices], Y_train[train_indices], 
-                                    X_train[test_indices], Y_train[test_indices], 
+                                    X_train[train_indices,:], Y_train[train_indices,:], 
+                                    X_train[test_indices,:], Y_train[test_indices,:], 
                                     fit_params, idx
                                 ) for idx,(train_indices,test_indices) in enumerate(kf.split(X_train)) )
         
