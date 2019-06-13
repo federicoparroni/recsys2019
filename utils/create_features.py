@@ -58,7 +58,7 @@ from extract_features.session_num_inter_item_image import SessionNumInterItemIma
 from extract_features.session_num_not_numeric import SessionNumNotNumeric
 from extract_features.session_sort_order_when_clickout import SessionSortOrderWhenClickout
 
-from extract_features.statistics_pos_interacted import
+from extract_features.statistics_pos_interacted import StatisticsPosInteracted
 
 from extract_features.statistics_time_from_last_action import StatisticsTimeFromLastAction
 from extract_features.time_per_impression import TimePerImpression
@@ -84,7 +84,73 @@ if __name__ == '__main__':
     cluster = menu.cluster_selection()
 
     features_array = [
-
+        StatisticsPosInteracted,
+        ActionsInvolvingImpressionSession,
+        AdjustedLocationReferencePercentageOfClickouts,
+        AdjustedLocationReferencePercentageOfInteractions,
+        AdjustedPercClickPerImpressions,
+        PlatformFeaturesSimilarity,
+        AdjustedPlatformReferencePercentageOfClickouts,
+        AdjustedPlatformReferencePercentageOfInteractions,
+        AvgPriceInteractions,
+        ChangeImpressionOrderPositionInSession,
+        ChangeOfSortOrderBeforeCurrent,
+        CitySession,
+        CitySessionPopularsOnly,
+        ClassifierParro,
+        ClassifierPiccio,
+        CountrySearchedSession,
+        DayOfWeekAndMomentInDay,
+        FractionPosPrice,
+        FrenzyFactorSession,
+        ImpressionFeature,
+        ImpressionPositionInPercentage,
+        ImpressionPositionSession,
+        ImpressionPriceInfoSession,
+        ImpressionRating,
+        ImpressionRatingNumeric,
+        ImpressionStarsNumeric,
+        ImpressionLabel,
+        LastInteractionInvolvingImpression,
+        LastClickoutFiltersSatisfaction,
+        StepsBeforeLastClickout,
+        LazyUser,
+        LocationFeaturesSimilarity,
+        LocationReferencePercentageOfClickouts,
+        LocationReferencePercentageOfInteractions,
+        MeanPriceClickout,
+        NormalizedPlatformFeaturesSimilarity,
+        NumImpressionsInClickout,
+        NumTimesItemImpressed,
+        PercClickPerImpressions,
+        PercClickPerPos,
+        PersonalizedTopPop,
+        PlatformFeaturesSimilarity,
+        PlatformReferencePercentageOfClickouts,
+        PlatformReferencePercentageOfInteractions,
+        PlatformSession,
+        PriceQuality,
+        RefPopAfterFirstPosition,
+        SessionActionNumRefDiffFromImpressions,
+        SessionDevice,
+        SessionFilterActiveWhenClickout,
+        SessionLength,
+        SessionNumClickouts,
+        SessionNumFilterSel,
+        SessionNumInterItemImage,
+        SessionNumNotNumeric,
+        SessionSortOrderWhenClickout,
+        StatisticsTimeFromLastAction,
+        TimePerImpression,
+        TimesImpressionAppearedInClickoutsSession,
+        TimesUserInteractedWithImpression,
+        TimingFromLastInteractionImpression,
+        TopPopInteractionClickoutPerImpression,
+        TopPopInteractionFilters,
+        TopPopPerImpression,
+        TopPopSortingFilters,
+        User2Item,
+        UserFeature
     ]
 
     # Parallelizing using Pool.apply()
@@ -100,4 +166,5 @@ if __name__ == '__main__':
 
 
 
-    
+
+
