@@ -9,16 +9,13 @@ from preprocess_utils.last_clickout_indices import expand_impressions
 class LazyUser(FeatureBase):
 
     """
-    | user_id | session_id | min_pos_interacted | max_pos_interacted | first_pos_interacted | pos_last_reference | mean_pos_interacted |
-    | num_interacted_impressions | percentage_interacted_impressions
+    | user_id | session_id | max_pos_interacted | pos_last_reference | mean_pos_interacted |
     """
 
     def __init__(self, mode, cluster='no_cluster'):
         name = 'lazy_user'
         super(LazyUser, self).__init__(
-            name=name, mode=mode, cluster=cluster, columns_to_onehot=[('min_pos_interacted', 'single'),
-                                                                      ('max_pos_interacted', 'single'),
-                                                                      ('first_pos_interacted', 'single'),
+            name=name, mode=mode, cluster=cluster, columns_to_onehot=[('max_pos_interacted', 'single'),
                                                                       ('last_pos_interacted', 'single')])
 
     def extract_feature(self):
