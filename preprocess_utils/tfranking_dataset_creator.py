@@ -124,7 +124,10 @@ def merge_features_tf(mode, cluster, features_array):
     print(f'train_shape: {train_df.shape}\n vali_test_shape: {validation_test_df.shape}')
     context_features_id = []
     for f in features_array:
-        feature = f(mode=mode, cluster='no_cluster').read_feature(one_hot=True)
+        if type(f) == tuple:
+            feature = f[0](mode=mode, cluster='no_cluster').read_feature(one_hot=f[1])
+        else:
+            feature = f(mode=mode, cluster='no_cluster').read_feature(one_hot=True)
         print(f'columns of the feature:\n {feature.columns}')
         print(f'NaN values are: {feature.isnull().values.sum()}')
         # if there are none fill it with -1
@@ -171,91 +174,38 @@ def create_dataset(mode, cluster, features_array, dataset_name):
 if __name__ == '__main__':
 
     features_array = [
-            LazyUser,
+            (LazyUser, False),
             ImpressionLabel,
-            ImpressionPriceInfoSession,
-            #ImpressionPositionSession,
+            (ImpressionPriceInfoSession, False),
+            (ImpressionPositionSession, False),
             User2Item,
             SessionLength,
             TimePerImpression,
-            FrenzyFactorSession,
-            DayOfWeekAndMomentInDay,
+            #FrenzyFactorSession,
+            #DayOfWeekAndMomentInDay,
             PriceQuality,
-            ImpressionRatingNumeric,PersonalizedTopPop,
-            ActionsInvolvingImpressionSession,
+            ImpressionRatingNumeric,
+            #ActionsInvolvingImpressionSession,
             ImpressionStarsNumeric,
-            ChangeImpressionOrderPositionInSession,
-            PercClickPerImpressions,
+            #ChangeImpressionOrderPositionInSession,
+            #PercClickPerImpressions,
             LastClickoutFiltersSatisfaction,
             TimingFromLastInteractionImpression,
             TopPopPerImpression,
             PersonalizedTopPop,
 
             NumTimesItemImpressed,
-            TopPopInteractionClickoutPerImpression,
-            TopPopInteractionClickoutPerImpression,
-            TimesImpressionAppearedInClickoutsSession,
-            TopPopInteractionClickoutPerImpression,
-            TimesImpressionAppearedInClickoutsSession,
-            ChangeOfSortOrderBeforeCurrent,
+            #TopPopInteractionClickoutPerImpression,
+            #TopPopInteractionClickoutPerImpression,
+            #TimesImpressionAppearedInClickoutsSession,
+            #ChangeOfSortOrderBeforeCurrent,
             NumImpressionsInClickout,
-            SessionSortOrderWhenClickout,
-            CountrySearchedSession,
-            PlatformReferencePercentageOfInteractions,
-            LocationReferencePercentageOfInteractions,
-            PlatformSession,
+            #SessionSortOrderWhenClickout,
+            #CountrySearchedSession,
+            #PlatformReferencePercentageOfInteractions,
+            #LocationReferencePercentageOfInteractions,
+            #PlatformSession,
         ]
-
-    """
-    features_array = [
-        #ActionsInvolvingImpressionSession,
-        # ChangeImpressionOrderPositionInSession,
-        # ChangeOfSortOrderBeforeCurrent,
-        # CitySession,
-        CitySessionPopularsOnly,
-        # ClassifierParro,
-        # ClassifierPiccio,
-        # CountrySearchedSession,
-        # DayOfWeekAndMomentInDay,
-        FrenzyFactorSession,
-        # ImpressionFeature,
-        ImpressionPositionSession,
-        ImpressionPriceInfoSession,
-        # ImpressionRating,
-        ImpressionRatingNumeric,
-        ImpressionStarsNumeric,
-        ImpressionLabel,
-        # LastInteractionInvolvingImpression,
-        # LastClickoutFiltersSatisfaction,
-        # StepsBeforeLastClickout,
-        LazyUser,
-        LocationReferencePercentageOfClickouts,
-        LocationReferencePercentageOfInteractions,
-        NumImpressionsInClickout,
-        NumTimesItemImpressed,
-        PercClickPerImpressions,
-        PersonalizedTopPop,
-        # PlatformFeaturesSimilarity,
-        PlatformReferencePercentageOfClickouts,
-        PlatformReferencePercentageOfInteractions,
-        PlatformSession,
-        PriceInfoSession,
-        PriceQuality,
-        SessionActionNumRefDiffFromImpressions,
-        SessionDevice,
-        SessionFilterActiveWhenClickout,
-        SessionLength,
-        # SessionSortOrderWhenClickout,
-        # TimeFromLastActionBeforeClk,
-        TimePerImpression,
-        TimesImpressionAppearedInClickoutsSession,
-        # TimingFromLastInteractionImpression,
-        TopPopInteractionClickoutPerImpression,
-        TopPopPerImpression,
-        # TopPopSortingFilters,
-        User2Item,
-    ]
-    """
 
     mode = menu.mode_selection()
     cluster = menu.cluster_selection()

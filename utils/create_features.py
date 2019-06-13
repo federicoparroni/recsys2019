@@ -30,7 +30,6 @@ from extract_features.platform_reference_percentage_of_clickouts import Platform
 from extract_features.platform_reference_percentage_of_interactions import PlatformReferencePercentageOfInteractions
 from extract_features.platform_session import PlatformSession
 from extract_features.price_info_session import PriceInfoSession
-from extract_features.price_position_info_interactions import PricePositionInfoInteractedReferences
 from extract_features.price_quality import PriceQuality
 from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
 from extract_features.session_device import SessionDevice
@@ -83,7 +82,6 @@ if __name__ == '__main__':
         PlatformReferencePercentageOfInteractions,
         PlatformSession,
         PriceInfoSession,
-        PricePositionInfoInteractedReferences,
         PriceQuality,
         SessionActionNumRefDiffFromImpressions,
         SessionDevice,

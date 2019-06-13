@@ -7,8 +7,8 @@ import data
 from utils.menu import single_choice
 
 class OptimizerWrapper:
-    def __init__(self, recommender_class, mode, cluster):
-        self.space, self.objective = recommender_class.get_optimize_params(mode, cluster)
+    def __init__(self, recommender_class, mode, cluster, dataset_name):
+        self.space, self.objective = recommender_class.get_optimize_params(mode, cluster, dataset_name)
     def optimize_bayesian(self):
         best_param = gp_minimize(self.objective, self.space, n_random_starts=10, n_calls=100)
         print(best_param)
@@ -19,5 +19,6 @@ class OptimizerWrapper:
 if __name__ == '__main__':
     mode=single_choice('insert mode:', ['local', 'small'])
     cluster = single_choice('insert cluster', ['no_cluster'])
-    opt = OptimizerWrapper(lightGBM, mode=mode, cluster=cluster)
-    opt.optimize_bayesian()
+    dataset_name = input('insert_the_dataset_name')
+    opt = OptimizerWrapper(lightGBM, mode=mode, cluster=cluster, dataset_name=dataset_name)
+    opt.optimize_random()
