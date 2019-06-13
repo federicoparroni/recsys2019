@@ -112,6 +112,24 @@ class XGBoostWrapperClassifier(RecommenderBase):
         temp.to_csv("classifier_output.csv")
         return temp
 
+    def full_scores(self):
+        self.mode = "local"
+        self.fit()
+        full_test = data.dataset_xgboost_classifier_test("full", self.cluster)
+        full_test = full_test.drop(["user_id", "session_id"], axis=1)
+        temp = full_test.copy()
+        X_test = full_test.drop("label", axis=1)
+        Y_pred = self.xgb.predict_proba(X_test)
+        pos = [b for a, b in Y_pred]
+        neg = [a for a, b in Y_pred]
+        temp["positive_score"] = pos
+        temp["negative_score"] = neg
+        temp = temp[["user_id", "session_id", "positive_score", "negative_score"]]
+        print(temp.shape)
+        temp.to_csv("classifier_output.csv")
+
+
+
 def callback(obj):
     print(obj)
 

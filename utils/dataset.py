@@ -15,10 +15,35 @@ import utils.scaling as scale
 
 ## ======= Datasets - Base class ======= ##
 
-class Dataset(object):
+class DatasetBase(object):
+    """ Base class to load a dataset """
+
+    def __init__(self):
+        # cache
+        self._xtrain = None
+        self._ytrain = None
+        self._xtest = None
+       
+    # load data
+    def load_Xtrain(self):
+        """ Load the X_train dataframe """
+        pass
+
+    def load_Ytrain(self):
+        """ Load the Y_train dataframe """
+        pass
+
+    def load_Xtest(self):
+        """ Load the X_test dataframe """
+        pass
+
+
+
+class Dataset(DatasetBase):
     """ Base class containing all info about a dataset """
 
     def __init__(self, dataset_path):
+        super(Dataset, self).__init__()
         # load the dataset config file
         data = datasetconfig.load_config(dataset_path)
         if data is None:
@@ -47,9 +72,6 @@ class Dataset(object):
         self.X_test_path = os.path.join(self.dataset_path, self.Xtest_name)
 
         # cache
-        self._xtrain = None
-        self._ytrain = None
-        self._xtest = None
         self._xtestindices = None
         self._xtrainindices = None
     
@@ -389,4 +411,59 @@ class SequenceDatasetForBinaryClassification(SequenceDatasetForClassification):
         return Xchunk_df
 
     def get_class_weights(self, num_classes=2):
+        return super().get_class_weights(num_classes)
+
+
+class DatasetScoresClassification(Dataset):
+
+    def _preprocess_x_df(self, X_df, fillNaN=0):
+        """ Preprocess the loaded data (X) """
+        #X_df.reset_index(inplace=True)
+        X_df = X_df.fillna(fillNaN)
+
+        cols_to_drop_in_X = ['user_id','session_id','timestamp','reference','step','platform','city','current_filters']
+
+        """ trick """
+        impr_count_cols = ['impr_c{}'.format(i) for i in range(25)]
+        X_df.loc[:, impr_count_cols] = 1 - X_df.loc[:, impr_count_cols]
+
+        """ scaling """
+        X_df.frequence = np.log(X_df.frequence.values +1)
+
+        X_df = X_df.drop(cols_to_drop_in_X, axis=1)
+
+        # return dataset with indices
+        return X_df.values.reshape((-1, self.rows_per_sample, len(X_df.columns)))
+    
+    def _preprocess_y_df(self, Y_df, fillNaN=0):
+        """ Preprocess the loaded data (Y) """
+        Y_df = Y_df.fillna(fillNaN)
+        cols_to_drop_in_Y = ['session_id','user_id','timestamp','step']
+        return Y_df.drop(cols_to_drop_in_Y, axis=1).values
+
+    def load_Xtrain(self):
+        """ Load the entire X_train dataframe """
+        if self._xtrain is None:
+            self._xtrain = self._preprocess_x_df(pd.read_csv(self.X_train_path))
+            print('X_train:', self._xtrain.shape)
+
+        return self._xtrain
+        
+    def load_Ytrain(self):
+        """ Load the entire Y_train dataframe """
+        if self._ytrain is None:
+            self._ytrain = self._preprocess_y_df(pd.read_csv(self.Y_train_path, index_col=0))
+            print('Y_train:', self._ytrain.shape)
+
+        return self._ytrain
+
+    def load_Xtest(self):
+        """ Load the entire X_test dataframe """
+        if self._xtest is None:
+            self._xtest = self._preprocess_x_df(pd.read_csv(self.X_test_path))
+            print('X_test:', self._xtest.shape)
+
+        return self._xtest
+
+    def get_class_weights(self, num_classes=25):
         return super().get_class_weights(num_classes)

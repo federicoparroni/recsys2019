@@ -10,17 +10,17 @@ import os
 #os.chdir("../")
 #print(os.getcwd())
 
-class TimingFromLastInteractionImpression(FeatureBase):
+class TimesUserInteractedWithImpression(FeatureBase):
 
     """
-    how much time is elapsed and how many steps are passed from the last time a user
+    how many times the user interacted with any single impression
     interacted with an impression
-    | user_id | session_id | item_id |step_from_last_interaction|timestamp_from_last_interaction
+    | user_id | session_id | item_id | num_interactions_impr
     """
 
     def __init__(self, mode, cluster='no_cluster'):
-        name = 'timing_from_last_interaction_impression'
-        super(TimingFromLastInteractionImpression, self).__init__(
+        name = 'times_user_interacted_with_impression'
+        super(TimesUserInteractedWithImpression, self).__init__(
             name=name, mode=mode, cluster=cluster)
 
     def extract_feature(self):
@@ -78,12 +78,12 @@ class TimingFromLastInteractionImpression(FeatureBase):
         features_df = pd.DataFrame(final_df.progress_apply(lambda x: tuple(x['dict'].values()), axis=1).tolist(),
                                    columns=list(final_df.iloc[0].dict.keys()))
         final_df_ = pd.concat([final_df, features_df], axis=1).drop('dict', axis=1)
-        final_df_ = final_df_.drop(['num_interactions_impr', 'last_action_type_with_impr'], axis=1)
+        final_df_ = final_df_.drop(['step_from_last_interaction', 'timestamp_from_last_interaction', 'last_action_type_with_impr'],axis=1)
         return final_df_
 
 if __name__ == '__main__':
     from utils.menu import mode_selection
     mode = mode_selection()
-    c = TimingFromLastInteractionImpression(mode=mode, cluster='no_cluster')
+    c = TimesUserInteractedWithImpression(mode=mode, cluster='no_cluster')
     c.save_feature()
 

@@ -114,11 +114,11 @@ class LazyUser(FeatureBase):
                                    columns=list(final_df.iloc[0].dict.keys()))
         final_df_ = pd.merge(final_df.drop('dict', axis=1).reset_index(drop=True).reset_index(),
                              features_df.reset_index()).drop('index', axis=1)
-        return final_df_.drop(['min_pos_interacted', 'first_pos_interacted', \
-                               'num_interacted_impressions', 'percentage_interacted_impressions'], axis=1)
+        return final_df_.drop(['mean_pos_interacted', 'max_pos_interacted', 'last_pos_interacted'], axis=1)
 
 if __name__ == '__main__':
     from utils.menu import mode_selection
     mode = mode_selection()
     c = LazyUser(mode=mode, cluster='no_cluster')
     c.save_feature()
+
