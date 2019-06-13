@@ -82,7 +82,7 @@ class FeatureBase(ABC):
         feature_df = self.read_feature(one_hot=one_hot)
         return df.merge(feature_df, how='left')
 
-    def read_feature(self, one_hot=False):
+    def read_feature(self, one_hot=False, create_if_not_exist=True):
         """
         it reads a feature from disk and returns it.
         if one_hot = False, it returns it as was saved.
@@ -91,7 +91,12 @@ class FeatureBase(ABC):
         path = 'dataset/preprocessed/{}/{}/feature/{}/features.csv'.format(
             self.cluster, self.mode, self.name)
         if not os.path.exists(path):
-            choice = yesno_choice('feature \'{}\' does not exist. want to create?'.format(self.name))
+
+            if create_if_not_exist:
+                choice = 'y'
+                print('Missing feature: creating')
+            else:
+                choice = yesno_choice('feature \'{}\' does not exist. want to create?'.format(self.name))
             if choice == 'y':
                 self.save_feature()
             else:
