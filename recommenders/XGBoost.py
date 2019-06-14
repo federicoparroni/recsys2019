@@ -172,7 +172,20 @@ class XGBoostWrapper(RecommenderBase):
 
         return MRR
 
+    def fit_cv(self, x, y, groups, train_indices, test_indices, **fit_params):
+        X_train = x[train_indices, :]
+        y_train = y.loc[train_indices]
+        _, group = np.unique(groups[train_indices], return_counts=True)
+        self.xg.fit(X_train, y_train, group)
 
+    def get_scores_cv(self, x, groups, test_indices):
+        X_test = x[test_indices, :]
+        preds = list(self.xg.predict(X_test))
+        _, _, _, _, user_session_item = data.dataset_xgboost_train(mode=self.mode, cluster='no_cluster', kind=self.kind)
+        user_session_item = user_session_item.loc[test_indices]
+        user_session_item['score_xgboost'] = preds
+        return user_session_item
+ 
 class XGBoostWrapperSmartValidation(XGBoostWrapper):
 
     def __init__(self, mode, cluster='no_cluster', kind='kind1', ask_to_load=True, class_weights=False, learning_rate=0.3, min_child_weight=1, n_estimators=100, max_depth=3, subsample=1, colsample_bytree=1, reg_lambda=1, reg_alpha=0):

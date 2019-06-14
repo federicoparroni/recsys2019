@@ -3,7 +3,6 @@ import math
 import pandas as pd
 import numpy as np
 from abc import abstractmethod
-
 import utils.datasetconfig as datasetconfig
 from generator import DataGenerator
 import preprocess_utils.session2vec as sess2vec
@@ -11,7 +10,8 @@ import preprocess_utils.session2vec as sess2vec
 from sklearn.externals import joblib
 from sklearn.utils.class_weight import compute_class_weight
 import utils.scaling as scale
-
+import data
+from utils.menu import single_choice
 
 ## ======= Datasets - Base class ======= ##
 
@@ -37,7 +37,17 @@ class DatasetBase(object):
         """ Load the X_test dataframe """
         pass
 
-
+    def load_group_train(self):
+        """ 
+            Loads the group array in train
+            an example of the format is:
+            [1, 1, 1, 1, 2, 2, 2, 3, 3]
+            in the case:
+            first group is composed by 4 elems
+            second group is composed by 3 elems
+            third group is composed by 2 elems
+        """
+        pass
 
 class Dataset(DatasetBase):
     """ Base class containing all info about a dataset """
@@ -467,3 +477,30 @@ class DatasetScoresClassification(Dataset):
 
     def get_class_weights(self, num_classes=25):
         return super().get_class_weights(num_classes)
+
+
+class DatasetXGBoost(DatasetBase):
+
+    def __init__(self, mode, cluster, kind):
+        super(DatasetXGBoost, self).__init__()
+        self.mode = mode
+        self.cluster = cluster
+        self.kind = kind
+
+    def load_Xtrain(self):
+        X_train, _, _, _, _ = data.dataset_xgboost_train(mode=self.mode, cluster=self.cluster, kind=self.kind)
+        return X_train
+
+    def load_Ytrain(self):
+        _, y_train, _, _, _ = data.dataset_xgboost_train(mode=self.mode, cluster=self.cluster, kind=self.kind)
+        return y_train
+
+    def load_Xtest(self):
+        X_test, _, _ = data.dataset_xgboost_test(mode=self.mode, cluster=self.cluster, kind=self.kind)
+        return X_test
+
+    def load_group_train(self):
+        _, _, groups, _, _ = data.dataset_xgboost_train(mode=self.mode, cluster=self.cluster, kind=self.kind)
+        g = [list(np.ones(groups[i], dtype=np.int)*i) for i in range(len(groups))]
+        g = [item for sublist in g for item in sublist]
+        return np.array(g)
