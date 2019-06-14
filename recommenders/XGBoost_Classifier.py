@@ -128,8 +128,6 @@ class XGBoostWrapperClassifier(RecommenderBase):
         print(temp.shape)
         temp.to_csv("classifier_output.csv")
 
-
-
 def callback(obj):
     print(obj)
 

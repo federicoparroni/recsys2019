@@ -1,5 +1,9 @@
 import math
 
+from extract_features.adjusted_platform_reference_percentage_of_clickouts import \
+    AdjustedPlatformReferencePercentageOfClickouts
+from extract_features.adjusted_platform_reference_percentage_of_interactions import \
+    AdjustedPlatformReferencePercentageOfInteractions
 from extract_features.feature_base import FeatureBase
 import data
 import pandas as pd
@@ -25,11 +29,11 @@ class PlatformReferenceFirstImpression(FeatureBase):
 
     def extract_feature(self):
 
-        feature = PlatformReferencePercentageOfClickouts(mode=self.mode, cluster=self.cluster).read_feature()
+        feature = AdjustedPlatformReferencePercentageOfClickouts(mode=self.mode, cluster=self.cluster).read_feature()
         feature = feature.drop_duplicates("session_id", keep="first")
         feature = feature.drop(["item_id"], axis=1)
 
-        f2 = PlatformReferencePercentageOfInteractions(mode=self.mode, cluster=self.cluster).read_feature()
+        f2 = AdjustedPlatformReferencePercentageOfInteractions(mode=self.mode, cluster=self.cluster).read_feature()
         f2 = f2.drop_duplicates("session_id", keep="first")
         f2 = f2.drop(["item_id"], axis=1)
 
