@@ -43,7 +43,6 @@ from extract_features.session_device import SessionDevice
 from extract_features.session_filters_active_when_clickout import SessionFilterActiveWhenClickout
 from extract_features.session_length import SessionLength
 from extract_features.session_sort_order_when_clickout import SessionSortOrderWhenClickout
-from extract_features.time_from_last_action_before_clk import TimeFromLastActionBeforeClk
 from extract_features.time_per_impression import TimePerImpression
 from extract_features.times_impression_appeared_in_clickouts_session import TimesImpressionAppearedInClickoutsSession
 from extract_features.timing_from_last_interaction_impression import TimingFromLastInteractionImpression
@@ -61,6 +60,10 @@ from extract_features.normalized_platform_features_similarity import NormalizedP
 from extract_features.ref_pop_after_first_position import RefPopAfterFirstPosition
 from extract_features.user_feature import UserFeature
 from extract_features.perc_click_per_pos import PercClickPerPos
+from extract_features.mean_price_clickout import MeanPriceClickout
+from extract_features.avg_price_interactions import AvgPriceInteractions
+from extract_features.times_user_interacted_with_impression import TimesUserInteractedWithImpression
+from extract_features.classifier.last_action_before_clickout import LastActionBeforeClickout
 from utils.menu import single_choice
 from preprocess_utils.merge_features import merge_features
 from os.path import join
@@ -101,126 +104,42 @@ def create_dataset(mode, cluster, class_weights=False):
     if cluster == 'no_cluster':
         if kind == 'kind1':
             features_array = [ActionsInvolvingImpressionSession,
-                              ChangeImpressionOrderPositionInSession,
-                              DayOfWeekAndMomentInDay,
-                              FrenzyFactorSession,
-                              ImpressionPositionSession,
-                              ImpressionPriceInfoSession,
+                              (ImpressionPositionSession, False),
+                              (ImpressionPriceInfoSession, False),
                               ImpressionRatingNumeric,
-                              ImpressionStarsNumeric,
                               ImpressionLabel,
+                              LastInteractionInvolvingImpression,
+                              MeanPriceClickout,
+                              AvgPriceInteractions,
+                              SessionDevice,
+                              NumImpressionsInClickout,
+                              SessionLength,
+                              TimesImpressionAppearedInClickoutsSession,
+                              TimesUserInteractedWithImpression,
+                              TimingFromLastInteractionImpression,
+                              TopPopPerImpression,
+                              TopPopInteractionClickoutPerImpression,
+                              ChangeImpressionOrderPositionInSession,
+                              FrenzyFactorSession,
+                              DayOfWeekAndMomentInDay,
                               LastClickoutFiltersSatisfaction,
+                              TimePerImpression,
+                              PersonalizedTopPop,
+                              PriceQuality,
+                              PlatformFeaturesSimilarity,
+                              LastActionBeforeClickout,
+                              (ImpressionStarsNumeric, False),
                               StepsBeforeLastClickout,
-                              LazyUser,
                               LocationReferencePercentageOfClickouts,
                               LocationReferencePercentageOfInteractions,
-                              NormalizedPlatformFeaturesSimilarity,
                               NumTimesItemImpressed,
                               PercClickPerImpressions,
-                              PersonalizedTopPop,
-                              PlatformFeaturesSimilarity,
                               PlatformReferencePercentageOfClickouts,
                               PlatformReferencePercentageOfInteractions,
                               PlatformSession,
-                              PriceInfoSession,
-                              PriceQuality,
-                              SessionDevice,
-                              SessionLength,
-                              TimeFromLastActionBeforeClk,
-                              TimePerImpression,
-                              TimesImpressionAppearedInClickoutsSession,
-                              TimingFromLastInteractionImpression,
-                              TopPopInteractionClickoutPerImpression,
-                              TopPopPerImpression,
                               User2Item,
-                            ]
-        elif kind == 'kind2':
-            features_array = [ActionsInvolvingImpressionSession,
-                              AdjustedLocationReferencePercentageOfClickouts,
-                              AdjustedLocationReferencePercentageOfInteractions,
-                              AdjustedPercClickPerImpressions,
-                              AdjustedPlatformReferencePercentageOfClickouts,
-                              AdjustedPlatformReferencePercentageOfInteractions,
-                              ChangeImpressionOrderPositionInSession,
-                              DayOfWeekAndMomentInDay,
-                              FrenzyFactorSession,
-                              ImpressionPositionSession,
-                              ImpressionPriceInfoSession,
-                              ImpressionRatingNumeric,
-                              ImpressionStarsNumeric,
-                              ImpressionLabel,
-                              LastClickoutFiltersSatisfaction,
-                              StepsBeforeLastClickout,
-                              LazyUser,
-                              LocationFeaturesSimilarity,
-                              LocationReferencePercentageOfClickouts,
-                              LocationReferencePercentageOfInteractions,
-                              NormalizedPlatformFeaturesSimilarity,
-                              NumTimesItemImpressed,
-                              PercClickPerImpressions,
-                              PercClickPerPos,
-                              PersonalizedTopPop,
-                              PlatformFeaturesSimilarity,
-                              PlatformReferencePercentageOfClickouts,
-                              PlatformReferencePercentageOfInteractions,
-                              PlatformSession,
-                              PriceInfoSession,
-                              PriceQuality,
-                              RefPopAfterFirstPosition,
-                              SessionDevice,
-                              SessionLength,
-                              TimeFromLastActionBeforeClk,
-                              TimePerImpression,
-                              TimesImpressionAppearedInClickoutsSession,
-                              TimingFromLastInteractionImpression,
-                              TopPopInteractionClickoutPerImpression,
-                              TopPopPerImpression,
-                              TopPopSortingFilters,
-                              User2Item,
-                              UserFeature,
-                            ]
-        elif kind == 'kind3':
-            features_array = [
-                (LazyUser,False),
-                ImpressionLabel,
-                (ImpressionPriceInfoSession,False),
-                # ImpressionPositionSession,
-                User2Item,
-                SessionLength,
-                TimePerImpression,
-                FrenzyFactorSession,
-                DayOfWeekAndMomentInDay,
-                PriceQuality,
-                ImpressionRatingNumeric,
-                ActionsInvolvingImpressionSession,
-                ImpressionStarsNumeric,
-                ChangeImpressionOrderPositionInSession,
-                PercClickPerImpressions,
-                ChangeOfSortOrderBeforeCurrent,
-                LastClickoutFiltersSatisfaction,
-                TimingFromLastInteractionImpression,
-                TopPopPerImpression,
-
-                TopPopInteractionClickoutPerImpression,
-                TimesImpressionAppearedInClickoutsSession,
-                SessionSortOrderWhenClickout,
-                PlatformReferencePercentageOfInteractions,
-                PersonalizedTopPop,
-                NumTimesItemImpressed,
-                NumImpressionsInClickout,
-                LocationReferencePercentageOfInteractions,
-                CountrySearchedSession
-            ]
-    if cluster == 'no_numeric_reference_no_one_step':
-        features_array = [ChangeImpressionOrderPositionInSession, ChangeOfSortOrderBeforeCurrent, ImpressionLabel, 
-                          DayOfWeekAndMomentInDay, FrenzyFactorSession, ImpressionPositionSession, 
-                          ImpressionPriceInfoSession, ImpressionRatingNumeric, ImpressionStarsNumeric,
-                          LastClickoutFiltersSatisfaction, StepsBeforeLastClickout, LocationReferencePercentageOfClickouts,
-                          LocationReferencePercentageOfInteractions, NumImpressionsInClickout,
-                          PercClickPerImpressions, PersonalizedTopPop, PlatformReferencePercentageOfClickouts,
-                          PlatformReferencePercentageOfInteractions, PlatformSession, SessionDevice, 
-                          SessionLength, TimeFromLastActionBeforeClk, TopPopInteractionClickoutPerImpression, 
-                          TopPopPerImpression]
+                              (LazyUser, False)
+                              ]
 
     train_df, test_df, train_idxs, _ = merge_features(mode, cluster, features_array, merge_kind='left')
 
@@ -243,11 +162,15 @@ def create_dataset(mode, cluster, class_weights=False):
     else:
         X_train = train_df.drop(
             ['index', 'user_id', 'session_id', 'item_id', 'label'], axis=1)
+    print(','.join(X_train.columns.values))
     X_train = X_train.to_sparse(fill_value=0)
     X_train = X_train.astype(np.float64)
     X_train = X_train.to_coo().tocsr()
     save_npz(join(bp, 'X_train'), X_train)
     print('X_train saved')
+
+    user_session_item = train_df[['user_id', 'session_id', 'item_id']]
+    user_session_item.to_csv(join(bp, 'user_session_item.csv'), index=False)
 
     y_train = train_df[['label']]
     y_train.to_csv(join(bp, 'y_train.csv'))
@@ -269,14 +192,12 @@ def create_dataset(mode, cluster, class_weights=False):
         X_test = test_df.drop(
             ['index', 'user_id', 'session_id', 'item_id', 'label'], axis=1)
 
-    #if mode == 'full':
     X_test = X_test.to_sparse(fill_value=0)
     X_test = X_test.astype(np.float64)
     X_test = X_test.to_coo().tocsr()
     save_npz(join(bp, 'X_test'), X_test)
-    #else:
-    #    X_test.to_csv(join(bp, 'X_test.csv'))
     print('X_test saved')
+
 
     y_test = test_df[['label']]
     y_test.to_csv(join(bp, 'y_test.csv'))

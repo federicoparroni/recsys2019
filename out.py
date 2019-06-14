@@ -4,7 +4,7 @@ import time
 import data
 from tqdm import tqdm
 
-def create_sub(predictions, submission_name, directory='submissions'):
+def create_sub(predictions, submission_name, directory='submissions', timestamp_on_name=True):
     """
 
     :param predictions: [(session_idx_0, [acc_1, acc2, acc3, ...]),(session_idx_1, [acc_1, acc2, acc3, ...]), ...]
@@ -17,7 +17,10 @@ def create_sub(predictions, submission_name, directory='submissions'):
       os.mkdir(directory)
 
     tm = time.strftime('%H-%M-%S')
-    path_time = f'{directory}/{submission_name}_{tm}.csv'
+    if timestamp_on_name:
+        path_time = f'{directory}/{submission_name}_{tm}.csv'
+    else:
+        path_time = f'{directory}/{submission_name}.csv'
     print(f'Exporting the sub to {path_time}...')
     start = time.time()
 

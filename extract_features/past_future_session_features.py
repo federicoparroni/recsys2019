@@ -83,6 +83,9 @@ class PastFutureSessionFeatures(FeatureBase):
                          'past_actions_involving_impression_session_no_action': [],
                          'past_mean_price_interacted': [], 'past_mean_cheap_pos_interacted': [], 'past_mean_pos': [],
                          'past_pos_closest_reference': [], 'past_position_impression_same_closest_clickout': [],
+                         # 'past_impr_pos_num_clicked': [], 'past_sort_order_clicked': [],
+                         # 'past_item_appearing_in_impressions': [],
+                         
                          'future_times_interacted_impr': [], 'future_session_num': [],
                          'future_closest_action_involving_impression': [],
                          'future_time_from_closest_interaction_impression': [],
@@ -97,7 +100,13 @@ class PastFutureSessionFeatures(FeatureBase):
                          'future_mean_price_interacted': [], 'future_mean_cheap_pos_interacted': [],
                          'future_mean_pos': [],
                          'future_pos_closest_reference': [],
-                         'future_position_impression_same_closest_clickout': []}
+                         'future_position_impression_same_closest_clickout': [],
+                         # 'future_impr_pos_num_clicked': [], 'future_sort_order_clicked': [],
+                         # 'future_item_appearing_in_impressions': [],
+                         }
+        #TODO add pos_impr_clicked: times clicked the first, times clicked second, times third, ....
+        # also past_sort_order_clicked : one hot and num of occurrences
+        # also
 
     def extract_feature(self):
         """

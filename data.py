@@ -39,6 +39,9 @@ _target_indices = {}
 _df_classification_train = {}
 _df_classification_test = {}
 
+_df_catboost_train = {}
+_df_catboost_test = {}
+
 _dataset_xgboost_train = {}
 _dataset_xgboost_test = {}
 
@@ -133,6 +136,8 @@ def dataset_xgboost_train(mode, cluster='no_cluster', kind='kind1', class_weight
             os.path.join(bp, 'group_train.npy'))
         _dataset_xgboost_train[bp+'e'] = np.load(
             os.path.join(bp, 'train_indices.npy'))
+        _dataset_xgboost_train[bp+'f'] = pd.read_csv(
+            os.path.join(bp, 'user_session_item.csv'))
         if class_weights:
             _dataset_xgboost_train[bp+'d'] = np.load(
             os.path.join(bp, 'class_weights.npy'))
@@ -141,12 +146,14 @@ def dataset_xgboost_train(mode, cluster='no_cluster', kind='kind1', class_weight
             _dataset_xgboost_train[bp+'b'], \
             _dataset_xgboost_train[bp+'c'], \
             _dataset_xgboost_train[bp+'e'], \
+            _dataset_xgboost_train[bp+'f'], \
             _dataset_xgboost_train[bp + 'd']
     else:
         return _dataset_xgboost_train[bp + 'a'], \
                _dataset_xgboost_train[bp + 'b'], \
                _dataset_xgboost_train[bp + 'c'], \
-               _dataset_xgboost_train[bp + 'e']
+               _dataset_xgboost_train[bp + 'e'], \
+               _dataset_xgboost_train[bp + 'f']
 
 def dataset_xgboost_test(mode, cluster='no_cluster', kind='kind1'):
     global _dataset_xgboost_test
@@ -239,27 +246,24 @@ def classification_test_df(mode, sparse=True, cluster='no_cluster', algo='xgboos
     return _df_classification_test[tot_path]
 
 
-def user_prop_df(mode, sparse=True, cluster='no_cluster'):
-    global _user_prop
-    path = 'dataset/preprocessed/{}/{}/user_properties.csv'.format(cluster, mode)
 
-    if sparse:
-        tot_path = path + 'dense'
-    else:
-        tot_path = path + 'sparse'
+def dataset_catboost_train(mode, cluster='no_cluster'):
+    global _df_catboost_train
+    path = 'dataset/preprocessed/{}/{}/{}/train.csv'.format(cluster, mode, 'catboost')
 
-    if tot_path not in _user_prop:
-        if sparse:
-            data = ddf.read_csv(path)
-            data = data.map_partitions(lambda part: part.to_sparse(fill_value=0))
-            data = data.compute().reset_index(drop=True)
-            data = data.drop(['Unnamed: 0'], axis=1)
-            _user_prop[tot_path] = data
-        else:
-            _user_prop[tot_path] = pd.read_csv(path, index_col=0)
+    if path not in _df_catboost_train:
+        _df_catboost_train[path] = pd.read_csv(path)
 
-    return _user_prop[tot_path]
+    return _df_catboost_train[path]
 
+def dataset_catboost_test(mode, cluster='no_cluster'):
+    global _df_catboost_test
+    path = 'dataset/preprocessed/{}/{}/{}/test.csv'.format(cluster, mode, 'catboost')
+
+    if path not in _df_catboost_test:
+        _df_catboost_test[path] = pd.read_csv(path)
+
+    return _df_catboost_test[path]
 
 def train_indices(mode):
     global _full_train_indices
