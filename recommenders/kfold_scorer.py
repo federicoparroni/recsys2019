@@ -55,7 +55,7 @@ class KFoldScorer(object):
         # fit in each fold
         self.scores = Parallel(backend='multiprocessing', n_jobs=n_jobs)(delayed(self._fit_model)
                                 (
-                                    X_train, Y_train, group_train, 
+                                    X_train, Y_train, group_train,
                                     train_indices, test_indices,
                                     fit_params, idx
                                 ) for idx,(train_indices,test_indices) in enumerate(kf.split(X_train, group_train)) )
@@ -76,7 +76,7 @@ class KFoldScorer(object):
             filepath = os.path.join(save_folder, model.name + '.csv')
             print('Saving scores to', filepath, end=' ', flush=True)
             self.scores.to_csv(filepath, index=False)
-            print('Done!', end=' ', flush=True)
+            print('Done!', flush=True)
         
         return self.scores
         
@@ -93,11 +93,12 @@ if __name__ == "__main__":
         'cell_type': 'gru',
         'num_recurrent_layers': 2,
         'num_recurrent_units': 64,
-        'num_dense_layers': 2
+        'num_dense_layers': 2,
+        'class_weights': dataset.get_class_weights(),
     }
-    fit_params = {'epochs': 1, 'early_stopping_patience': 4}
+    fit_params = {'epochs': 1}
 
-    kfscorer = KFoldScorer(model_class=RNNClassificationRecommender, init_params=init_params, k=2)
+    kfscorer = KFoldScorer(model_class=RNNClassificationRecommender, init_params=init_params, k=5)
 
     kfscorer.fit_predict(dataset, fit_params=fit_params)
 
