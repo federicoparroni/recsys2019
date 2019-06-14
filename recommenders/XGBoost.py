@@ -61,10 +61,10 @@ class XGBoostWrapper(RecommenderBase):
                     return
 
         if self.class_weights:
-            X_train, y_train, group, _, weights = data.dataset_xgboost_train(
+            X_train, y_train, group, _, weights, _ = data.dataset_xgboost_train(
                 mode=self.mode, cluster=self.cluster, class_weights=self.class_weights, kind=self.kind)
         else:
-            X_train, y_train, group, _ = data.dataset_xgboost_train(
+            X_train, y_train, group, _, _ = data.dataset_xgboost_train(
                 mode=self.mode, cluster=self.cluster, class_weights=self.class_weights, kind=self.kind)
         print('data for train ready')
 
@@ -116,7 +116,7 @@ class XGBoostWrapper(RecommenderBase):
                 (index, list(sorted_impr), list(sorted_scores)))
             count = count + len(impressions)
 
-        X_train, _, _, train_indices = data.dataset_xgboost_train(
+        X_train, _, _, train_indices, _ = data.dataset_xgboost_train(
             mode=self.mode, cluster=self.cluster, kind=self.kind)
         full_impressions = data.full_df()
         print('data for scores train ready')
@@ -222,7 +222,7 @@ class XGBoostWrapperSmartValidation(XGBoostWrapper):
 
     def fit(self):
         global _group_t
-        X_train, y_train, group, _ = data.dataset_xgboost_train(
+        X_train, y_train, group, _, _ = data.dataset_xgboost_train(
             mode=self.mode, cluster=self.cluster, class_weights=self.class_weights, kind=self.kind)
         print('data for train ready')
 

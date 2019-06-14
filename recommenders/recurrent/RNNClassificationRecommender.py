@@ -95,8 +95,9 @@ class RNNClassificationRecommender(RecurrentRecommender):
 
         return result_predictions
 
-    def get_scores_cv(self, x_val):
+    def get_scores_cv(self, x, groups, test_indices):
         """ Return scores for a fold """
+        x_val = x[test_indices]
         indices = x_val[:,:,0][:,self.dataset.rows_per_sample-1]
 
         predictions = self.model.predict(x_val[:,:,1:])
