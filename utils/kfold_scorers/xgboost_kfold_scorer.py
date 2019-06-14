@@ -19,7 +19,7 @@ if __name__ == "__main__":
         'class_weights': False,
         #'learning_rate': 0.3, 
         #'min_child_weight': 1, 
-        'n_estimators': 10,
+        #'n_estimators': 10,
         #'max_depth': 3, 
         #'subsample': 1, 
         #'colsample_bytree': 1, 
