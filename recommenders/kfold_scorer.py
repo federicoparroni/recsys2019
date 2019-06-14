@@ -96,7 +96,7 @@ if __name__ == "__main__":
         'num_dense_layers': 2,
         'class_weights': dataset.get_class_weights(),
     }
-    fit_params = {'epochs': 1}
+    fit_params = {'epochs': 100}
 
     kfscorer = KFoldScorer(model_class=RNNClassificationRecommender, init_params=init_params, k=5)
 
