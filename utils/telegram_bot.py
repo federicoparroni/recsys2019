@@ -65,10 +65,23 @@ class TelegramBotKerasCallback(keras.callbacks.Callback):
         if epoch % self.log_every == 0:
             lines = []
             lines.append('Epoch: {}'.format(epoch))
-            lines.append('acc: {} - val_acc: {}'.format( round(logs['acc'],4), round(logs['val_acc'],4) ))
-            lines.append('loss: {} - val_loss: {}'.format( round(logs['loss'],4), round(logs['val_loss'],4) ))
+            if 'val_acc' in logs:
+                lines.append('acc: {} - val_acc: {}'.format( round(logs['acc'],4), round(logs['val_acc'],4) ))
+            else:
+                lines.append('acc: {}'.format( round(logs['acc'],4) ))
+            
+            if 'val_loss' in logs:
+                lines.append('loss: {} - val_loss: {}'.format( round(logs['loss'],4), round(logs['val_loss'],4) ))
+            else:
+                lines.append('loss: {}'.format( round(logs['loss'],4) ))
+            
+            optional_line = ''
             if 'mrr' in logs:
-                lines.append('mrr: {} - val_mrr: {}'.format( round(logs['mrr'],4), round(logs['val_mrr'],4) ))
+                optional_line = 'mrr: {}'.format( round(logs['mrr'],4) )
+                if 'val_mrr' in logs:
+                    optional_line += ' - val_mrr: {}'.format( round(logs['val_mrr'],4) )
+            if optional_line != '':
+                lines.append(optional_line)
             
             try:
                 send_message( '\n'.join(lines), account=self.account)
