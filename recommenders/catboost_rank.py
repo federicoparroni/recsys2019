@@ -26,8 +26,8 @@ class CatboostRanker(RecommenderBase):
     """
 
     def __init__(self, mode, cluster='no_cluster', learning_rate=0.15, iterations=10, max_depth=10, reg_lambda=7.0,
-                 colsample_bylevel=1, algo='catboost', one_hot_max_size=46,
-                 custom_metric='AverageGain:top=1', include_test=False,
+                 colsample_bylevel=1, algo='catboost', one_hot_max_size=511,
+                 custom_metric='AverageGain:top=1', include_test=True,
                  file_to_load=None,
                  file_to_store='catboost_2000.sav', limit_trees=False, features_to_one_hot=None):
         """
@@ -103,6 +103,37 @@ class CatboostRanker(RecommenderBase):
         model.fit(train_pool, eval_set=test_pool, plot=False)
         return model
 
+    def fit_cv(self, x, y, groups, train_indices, test_indices, **fit_params):
+        parameters = deepcopy(self.default_parameters)
+
+        if fit_params is not None:
+            parameters.update(fit_params)
+
+        self.ctb = CatBoost(parameters)
+
+        train_values = x.drop(['label', 'id'], axis=1)
+
+        features = list(train_values.columns.values)
+        self.categorical_features = []
+        for f in features:
+            if isinstance(train_values.head(1)[f].values[0], str) or f == 'day' or f == 'past_closest_action_involving_impression' or f =='future_closest_action_involving_impression':
+                self.categorical_features.append(features.index(f))
+                print(f + ' is categorical!')
+
+        if len(self.categorical_features) == 0:
+            self.categorical_features = None
+
+        train_with_weights = Pool(
+            data=train_values.values[train_indices, :],
+            label=x['label'].values[train_indices],
+            group_id=x['id'].values[train_indices],
+            cat_features=self.categorical_features
+        )
+
+        self.ctb.fit(train_with_weights, plot=False)
+
+        return self.ctb
+
     def get_feature_importance(self, additional_params=None, train_pool=None):
         parameters = deepcopy(self.default_parameters)
 
@@ -131,7 +162,7 @@ class CatboostRanker(RecommenderBase):
             features = list(train_features.columns.values)
             self.categorical_features = []
             for f in features:
-                if isinstance(train_features.head(1)[f].values[0], str) or f == 'day':
+                if isinstance(train_features.head(1)[f].values[0], str) or f == 'day' or f == 'past_closest_action_involving_impression':
                     self.categorical_features.append(features.index(f))
                     print(f + ' is categorical!')
 
@@ -156,8 +187,31 @@ class CatboostRanker(RecommenderBase):
         test_with_weights = None
 
         if self.include_test:
-            # TODO OOO
-            pass
+            dataset_test = self.get_preprocessed_dataset(mode='test')
+            target_indices = data.target_indices(self.mode, self.cluster)
+            target_indices.sort()
+
+            print('data for test ready')
+
+            test_feat_df = dataset_test.drop(['user_id', 'session_id', 'item_id', 'label', 'id'], axis=1)
+
+            if list(test_feat_df.columns.values) != list(self.train_features):
+                print('Training columns are different from test columns! Check')
+                print(self.train_features)
+                print(test_feat_df.columns.values)
+                exit(0)
+
+            X_test = test_feat_df.values
+
+            group_id = dataset_test.id.values
+
+            test_with_weights = Pool(
+                data=X_test,
+                label=dataset_test.label.values,
+                group_id=group_id,
+                cat_features=self.categorical_features
+            )
+
 
         print('data for train ready')
 
@@ -207,7 +261,7 @@ class CatboostRanker(RecommenderBase):
 
         print('data for test ready')
 
-        test_feat_df = dataset_test.drop(['user_id', 'session_id', 'item_id', 'label', 'trg_idx'], axis=1)
+        test_feat_df = dataset_test.drop(['user_id', 'session_id', 'item_id', 'label', 'id'], axis=1)
 
         if list(test_feat_df.columns.values) != list(self.train_features):
             print('Training columns are different from test columns! Check')
@@ -217,7 +271,7 @@ class CatboostRanker(RecommenderBase):
 
         X_test = test_feat_df.values
 
-        group_id = dataset_test.trg_idx.values
+        group_id = dataset_test.id.values
 
         test_with_weights = Pool(
             data=X_test,
@@ -287,7 +341,7 @@ class CatboostRanker(RecommenderBase):
 
                 self.predictions = []
                 self.scores_batch = []
-                test_df.groupby('trg_idx', as_index=False).progress_apply(self.func)
+                test_df.groupby('id', as_index=False).progress_apply(self.func)
 
                 MRR = self.compute_MRR(self.predictions[1:])
                 HERA.send_message(
@@ -307,7 +361,7 @@ class CatboostRanker(RecommenderBase):
 
                 self.predictions = []
                 self.scores_batch = []
-                test_df.groupby('trg_idx', as_index=False).progress_apply(self.func)
+                test_df.groupby('id', as_index=False).progress_apply(self.func)
 
                 MRR = self.compute_MRR(self.predictions[1:])
                 HERA.send_message(
@@ -344,10 +398,10 @@ class CatboostRanker(RecommenderBase):
             self.test_df = data.test_df(self.mode, self.cluster)
 
             sessi_target = self.test_df.loc[target_indices].session_id.values
-            self.dict_session_trg_idx = dict(zip(sessi_target, target_indices))
+            self.dict_session_id = dict(zip(sessi_target, target_indices))
 
-            classification_df['trg_idx'] = classification_df.apply(
-                lambda row: self.dict_session_trg_idx.get(row.session_id), axis=1)
+            classification_df['id'] = classification_df.apply(
+                lambda row: self.dict_session_id.get(row.session_id), axis=1)
 
         else:
             # Creating univoque id for each user_id / session_id pair
@@ -363,6 +417,22 @@ class CatboostRanker(RecommenderBase):
 
         return classification_df
 
+    def get_scores_cv(self, x, groups, test_indices):
+
+        test_with_weights = Pool(
+            data=x.drop(['id', 'label'], axis=1).values[test_indices, :],
+            label=None,
+            group_id=x.id.values[test_indices],
+            cat_features=self.categorical_features
+        )
+
+        preds = list(self.ctb.predict(test_with_weights))
+
+        user_session_item = data.dataset_catboost_train(mode=self.mode, cluster='no_cluster')
+        user_session_item = user_session_item.iloc[test_indices, :]
+        user_session_item['score_catboost'] = preds
+
+        return user_session_item
 
 
 if __name__ == '__main__':

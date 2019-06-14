@@ -504,3 +504,49 @@ class DatasetXGBoost(DatasetBase):
         g = [list(np.ones(groups[i], dtype=np.int)*i) for i in range(len(groups))]
         g = [item for sublist in g for item in sublist]
         return np.array(g)
+
+
+class DatasetCatboost(DatasetBase):
+
+    def __init__(self, mode, cluster):
+        super(DatasetCatboost, self).__init__()
+        self.mode = mode
+        self.cluster = cluster
+
+    def load_Xtrain(self):
+        train_df = data.dataset_catboost_train(mode=self.mode, cluster=self.cluster)
+        # Creating univoque id for each user_id / session_id pair
+        train_df = train_df.sort_values(by=['user_id', 'session_id'])
+        train_df = train_df.assign(
+            id=(train_df['user_id'] + '_' + train_df['session_id']).astype('category').cat.codes)
+
+        train_features = train_df.drop(['user_id', 'session_id', 'item_id'], axis=1)
+
+        return train_features
+
+    def load_Ytrain(self):
+        return None
+
+    def load_Xtest(self):
+        test_df = data.dataset_catboost_test(mode=self.mode, cluster=self.cluster)
+
+        target_indices = data.target_indices(self.mode, self.cluster)
+        sessi_target = data.test_df(self.mode, self.cluster).loc[target_indices].session_id.values
+
+        dict_session_trg_idx = dict(zip(sessi_target, target_indices))
+
+        test_df['trg_idx'] = test_df.apply(
+            lambda row: dict_session_trg_idx.get(row.session_id), axis=1)
+
+        target_indices = data.target_indices(self.mode, self.cluster)
+        target_indices.sort()
+
+        print('data for test ready')
+
+        test_feat_df = test_df.drop(['user_id', 'session_id', 'item_id'], axis=1)
+
+        return test_feat_df
+
+
+    def load_group_train(self):
+        return None
