@@ -504,3 +504,28 @@ class DatasetXGBoost(DatasetBase):
         g = [list(np.ones(groups[i], dtype=np.int)*i) for i in range(len(groups))]
         g = [item for sublist in g for item in sublist]
         return np.array(g)
+
+
+class DatasetXGBoostClassifier(DatasetBase):
+
+    def __init__(self, mode, cluster):
+        super(DatasetXGBoostClassifier, self).__init__()
+        self.mode = mode
+        self.cluster = cluster
+
+    def load_Xtrain(self):
+        train = data.dataset_xgboost_classifier_train(mode=self.mode, cluster=self.cluster)
+        train = train.drop(["user_id", "session_id", "label"], axis=1)
+        return train.values.reshape((-1, len(train.columns)))
+
+    def load_Ytrain(self):
+        train = data.dataset_xgboost_classifier_train(mode=self.mode, cluster=self.cluster)
+        return train["label"].values
+
+    def load_Xtest(self):
+        test = data.dataset_xgboost_classifier_test(mode=self.mode, cluster=self.cluster)
+        test = test.drop(["user_id", "session_id", "label"], axis=1)
+        return test.values.reshape((-1, len(test.columns)))
+
+    def load_group_train(self):
+        return None
