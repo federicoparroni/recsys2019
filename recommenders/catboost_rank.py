@@ -25,11 +25,11 @@ class CatboostRanker(RecommenderBase):
     Custom_metric is @1 for maximizing first result as good
     """
 
-    def __init__(self, mode, cluster='no_cluster', learning_rate=0.15, iterations=10, max_depth=10, reg_lambda=7.0,
-                 colsample_bylevel=1, algo='catboost', one_hot_max_size=511,
+    def __init__(self, mode, cluster='no_cluster', learning_rate=0.25, iterations=100, max_depth=11, reg_lambda=7.23,
+                 colsample_bylevel=1, algo='catboost', one_hot_max_size=46,
                  custom_metric='AverageGain:top=1', include_test=True,
                  file_to_load=None,
-                 file_to_store='catboost_2000.sav', limit_trees=False, features_to_one_hot=None):
+                 file_to_store=None, limit_trees=False, features_to_one_hot=None):
         """
         :param mode:
         :param cluster:
@@ -428,8 +428,10 @@ class CatboostRanker(RecommenderBase):
 
         preds = list(self.ctb.predict(test_with_weights))
 
+        test_indices = list(test_indices)
         user_session_item = data.dataset_catboost_train(mode=self.mode, cluster='no_cluster')
-        user_session_item = user_session_item.iloc[test_indices, :]
+
+        user_session_item = user_session_item[user_session_item.index.isin(test_indices)]
         user_session_item['score_catboost'] = preds
 
         return user_session_item

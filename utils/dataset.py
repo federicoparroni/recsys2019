@@ -535,7 +535,7 @@ class DatasetCatboost(DatasetBase):
 
         dict_session_trg_idx = dict(zip(sessi_target, target_indices))
 
-        test_df['trg_idx'] = test_df.apply(
+        test_df['id'] = test_df.apply(
             lambda row: dict_session_trg_idx.get(row.session_id), axis=1)
 
         target_indices = data.target_indices(self.mode, self.cluster)
