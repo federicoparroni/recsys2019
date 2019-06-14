@@ -11,8 +11,8 @@ from catboost import CatBoost, Pool
 from copy import deepcopy
 import pickle
 import pandas as pd
-
-from utils import check_folder
+import os
+from utils.check_folder import check_folder
 
 tqdm.pandas()
 
@@ -25,8 +25,8 @@ class CatboostRanker(RecommenderBase):
     Custom_metric is @1 for maximizing first result as good
     """
 
-    def __init__(self, mode, cluster='no_cluster', learning_rate=0.15, iterations=10, max_depth=10, reg_lambda=6.0,
-                 colsample_bylevel=1, algo='catboost', one_hot_max_size=255,
+    def __init__(self, mode, cluster='no_cluster', learning_rate=0.15, iterations=10, max_depth=10, reg_lambda=7.0,
+                 colsample_bylevel=1, algo='catboost', one_hot_max_size=46,
                  custom_metric='AverageGain:top=1', include_test=False,
                  file_to_load=None,
                  file_to_store='catboost_2000.sav', limit_trees=False, features_to_one_hot=None):
@@ -100,13 +100,7 @@ class CatboostRanker(RecommenderBase):
             parameters.update(additional_params)
 
         model = CatBoost(parameters)
-        start = time.time()
-
         model.fit(train_pool, eval_set=test_pool, plot=False)
-
-        end = time.time()
-        print('With {} iteration, training took {} sec'.format(parameters['iterations'], end - start))
-
         return model
 
     def get_feature_importance(self, additional_params=None, train_pool=None):
@@ -124,7 +118,9 @@ class CatboostRanker(RecommenderBase):
 
         if self.file_to_load is not None:
             # --- To load model ---
-            self.ctb = pickle.load(open(self.file_to_load, 'rb'))
+            _path = 'dataset/preprocessed/{}/{}/catboost/model/{}'.format(self.cluster, self.mode, self.file_to_load)
+            check_folder(_path)
+            self.ctb = pickle.load(open(_path, 'rb'))
             print("Model loaded")
             return
 
@@ -132,12 +128,10 @@ class CatboostRanker(RecommenderBase):
         train_features = train_df.drop(['user_id', 'session_id', 'item_id', 'label', 'id'], axis=1)
 
         if self.algo == 'catboost':
-            print('Entered')
             features = list(train_features.columns.values)
             self.categorical_features = []
             for f in features:
-                if isinstance(train_features.head(1)[f].values[0], str):
-                    print(train_features.head(1)[f].values[0])
+                if isinstance(train_features.head(1)[f].values[0], str) or f == 'day':
                     self.categorical_features.append(features.index(f))
                     print(f + ' is categorical!')
 
@@ -151,7 +145,6 @@ class CatboostRanker(RecommenderBase):
         _path = self.data_dir.joinpath('catboost_train.txt.npy')
         queries_train = train_df['id'].values
 
-        print(len(X_train))
         # Creating pool for training data
         train_with_weights = Pool(
             data=X_train,
@@ -163,25 +156,8 @@ class CatboostRanker(RecommenderBase):
         test_with_weights = None
 
         if self.include_test:
-            test_df = data.classification_test_df(
-                mode=self.mode, sparse=False, cluster=self.cluster)
-
-            test_df = test_df.sort_values(by=['user_id', 'session_id'])
-
-            test_df['id'] = test_df.groupby(['user_id', 'session_id']).ngroup()
-
-            X_test = test_df.drop(['user_id', 'session_id', 'label', 'id'], axis=1).values
-            y_test = test_df['label'].values
-            queries_test = test_df['id'].values
-
-            print("pooling")
-
-            test_with_weights = Pool(
-                data=X_test,
-                label=y_test,
-                group_id=queries_test,
-                cat_features=self.categorical_features
-            )
+            # TODO OOO
+            pass
 
         print('data for train ready')
 
@@ -190,23 +166,33 @@ class CatboostRanker(RecommenderBase):
                                       test_pool=test_with_weights)
         else:
             self.ctb = self.get_feature_importance(train_pool=train_with_weights)
+
         print('fit done')
 
         # ----To store model----
         if self.file_to_store is not None:
-            pickle.dump(self.ctb, open(self.file_to_store, 'wb'))  # pickling
+            _path = 'dataset/preprocessed/{}/{}/catboost/model/{}'.format(self.cluster, self.mode, self.file_to_store)
+            check_folder(_path)
+            pickle.dump(self.ctb, open(_path, 'wb'))
+
+    # def fit_cv(self, x, y, x_val, y_val, ...params):
+    #
+    #     params = {....}
+    #
+    #     # fit on the data, dropping the index
+    #     self.ctb.fit_model(train_pool=x, additional_params=params)
 
     def get_scores_batch(self, save=False):
         if self.scores_batch is None:
             self.fit()
             self.recommend_batch()
 
-        base_path = f'dataset/preprocessed/{self.cluster}/{self.mode}/predictions/{self.dataset_name}.pickle'
-        check_folder.check_folder(base_path)
+        _path = f'dataset/preprocessed/{self.cluster}/{self.mode}/predictions/{self.dataset_name}.pickle'
+        check_folder(_path)
         if save:
-            with open(base_path, 'wb') as f:
+            with open(_path, 'wb') as f:
                 pickle.dump(self.scores_batch, f)
-            print(f'saved at: {base_path}')
+            print(f'saved at: {_path}')
         else:
             return self.scores_batch
 
@@ -217,11 +203,19 @@ class CatboostRanker(RecommenderBase):
 
         target_indices = data.target_indices(self.mode, self.cluster)
         target_indices.sort()
-
         test = data.test_df(self.mode, self.cluster)
+
         print('data for test ready')
 
-        X_test = dataset_test.drop(['user_id', 'session_id', 'item_id', 'label', 'trg_idx'], axis=1).values
+        test_feat_df = dataset_test.drop(['user_id', 'session_id', 'item_id', 'label', 'trg_idx'], axis=1)
+
+        if list(test_feat_df.columns.values) != list(self.train_features):
+            print('Training columns are different from test columns! Check')
+            print(self.train_features)
+            print(test_feat_df.columns.values)
+            exit(0)
+
+        X_test = test_feat_df.values
 
         group_id = dataset_test.trg_idx.values
 
@@ -331,13 +325,18 @@ class CatboostRanker(RecommenderBase):
         :return:
         """
 
-        _path = self.data_dir.joinpath('{}.csv'.format(mode))
-        classification_df = pd.read_csv(_path)
+        if mode == 'train':
+            classification_df = data.dataset_catboost_train(self.mode, self.cluster)
+        elif mode == 'test':
+            classification_df = data.dataset_catboost_test(self.mode, self.cluster)
+        else:
+            print('Wrong mode given in get_preprocessed_dataset!')
+            return
 
         if len(self.features_to_drop) > 0:
             classification_df.drop(self.features_to_drop, axis=1, inplace=True)
 
-        print('Lenght is {}, features are {}'.format(classification_df.shape[0], classification_df.shape[1]))
+        print('Lenght of dataset {} is {}, features numbers are {}'.format(mode, classification_df.shape[0], classification_df.shape[1]))
 
         target_indices = data.target_indices(mode=self.mode, cluster=self.cluster)
 
@@ -363,6 +362,7 @@ class CatboostRanker(RecommenderBase):
                 classification_df = classification_df.join(one_hot)
 
         return classification_df
+
 
 
 if __name__ == '__main__':
