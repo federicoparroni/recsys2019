@@ -516,7 +516,7 @@ class DatasetCatboost(DatasetBase):
     def load_Xtrain(self):
         train_df = data.dataset_catboost_train(mode=self.mode, cluster=self.cluster)
         # Creating univoque id for each user_id / session_id pair
-        train_df = train_df.sort_values(by=['user_id', 'session_id'])
+
         train_df = train_df.assign(
             id=(train_df['user_id'] + '_' + train_df['session_id']).astype('category').cat.codes)
 
@@ -537,9 +537,6 @@ class DatasetCatboost(DatasetBase):
 
         test_df['id'] = test_df.apply(
             lambda row: dict_session_trg_idx.get(row.session_id), axis=1)
-
-        target_indices = data.target_indices(self.mode, self.cluster)
-        target_indices.sort()
 
         print('data for test ready')
 
