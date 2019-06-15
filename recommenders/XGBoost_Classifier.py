@@ -58,11 +58,22 @@ class XGBoostWrapperClassifier(RecommenderBase):
         self.xgb.fit(X_train, Y_train)
 
 
+    def fit_cv(self, x, y, groups, train_indices, test_indices, **fit_params):
+        X_train = x[train_indices, :]
+        y_train = y[train_indices]
+        self.xgb.fit(X_train, y_train)
+
+    def get_scores_cv(self, x, groups, test_indices):
+        X_test = x[test_indices, :]
+        preds = self.xgb.predict_proba(X_test)
+        pos = [b for a, b in preds]
+        train = data.dataset_xgboost_classifier_train(mode=self.mode, cluster=self.cluster)
+        train = train.loc[test_indices, ["user_id", "session_id"]]
+        train['score_xgboost_classifier'] = pos
+        return train
 
     def get_scores_batch(self):
         pass
-
-
 
     def recommend_batch(self):
         test_df = data.dataset_xgboost_classifier_test(self.mode, self.cluster)
@@ -127,8 +138,6 @@ class XGBoostWrapperClassifier(RecommenderBase):
         temp = temp[["user_id", "session_id", "positive_score", "negative_score"]]
         print(temp.shape)
         temp.to_csv("classifier_output.csv")
-
-
 
 def callback(obj):
     print(obj)

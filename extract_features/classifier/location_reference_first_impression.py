@@ -1,5 +1,9 @@
 import math
 
+from extract_features.adjusted_location_reference_percentage_of_clickouts import \
+    AdjustedLocationReferencePercentageOfClickouts
+from extract_features.adjusted_location_reference_percentage_of_interactions import \
+    AdjustedLocationReferencePercentageOfInteractions
 from extract_features.feature_base import FeatureBase
 import data
 import pandas as pd
@@ -23,11 +27,11 @@ class LocationReferenceFirstImpression(FeatureBase):
 
     def extract_feature(self):
 
-        feature = LocationReferencePercentageOfClickouts(mode=self.mode, cluster=self.cluster).read_feature()
+        feature = AdjustedLocationReferencePercentageOfClickouts(mode=self.mode, cluster=self.cluster).read_feature()
         feature = feature.drop_duplicates("session_id", keep="first")
         feature = feature.drop(["item_id"], axis=1)
 
-        f2 = LocationReferencePercentageOfInteractions(mode=self.mode, cluster=self.cluster).read_feature()
+        f2 = AdjustedLocationReferencePercentageOfInteractions(mode=self.mode, cluster=self.cluster).read_feature()
         f2 = f2.drop_duplicates("session_id", keep="first")
         f2 = f2.drop(["item_id"], axis=1)
 

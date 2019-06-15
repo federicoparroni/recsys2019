@@ -34,6 +34,22 @@ def find(df):
     return indices[::-1]
 
 
+# def find(df):
+#     """
+#     Return the last clickouts of each session in df.
+#     """
+#     df = df.sort_values(['user_id','session_id','timestamp','step'])
+#     clickout_df = df[(df.action_type == "clickout item")]
+#     mask = clickout_df.reference.isnull()
+#     clickout_sessions = list(set(clickout_df[mask].session_id))
+#     clickout_indices = list(set(clickout_df[mask].index))
+#
+#     clickout_df = clickout_df.drop_duplicates("session_id", keep="last")
+#     clickout_df = clickout_df[~clickout_df.session_id.isin(clickout_sessions)]
+#     i = list(set(list(clickout_df.index) + clickout_indices))
+#     i.sort()
+#     return i
+
 def expand_impressions(df):
     res_df = df.copy()
     res_df.impressions = res_df.impressions.str.split('|')
