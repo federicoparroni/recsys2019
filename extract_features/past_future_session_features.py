@@ -39,6 +39,8 @@ class PastFutureSessionFeatures(FeatureBase):
     past_pos_closest_reference: the position of the closest element clicked in past session belonging
     (None if not belonging to the current session impression
     past_position_impression_same_closest_clickout:  1 if impressions remained the same wrt the clickout of current session, 0 else
+    past_impr_pos_clicked: the number of impression position clicked and how many times. Duplicates are removed
+    past_sort_order_clicked: the sort_order active in the past and how many times they appear overall
 
     # FUTURE SESSIONS #
     future_times_interacted_impr: the number of times user interacted with the session
@@ -59,6 +61,8 @@ class PastFutureSessionFeatures(FeatureBase):
     future_pos_closest_reference: the position of the closest element clicked in past session belonging
     (None if not belonging to the current session impression
     future_position_impression_same_closest_clickout: 1 if impressions remained the same wrt the clickout of current session, 0 else
+    future_impr_pos_clicked: the number of impression position clicked and how many times. Duplicates are removed
+    future_sort_order_clicked: the sort_order active in the past and how many times they appear overall
     """
 
     def __init__(self, mode, cluster='no_cluster'):
@@ -83,9 +87,13 @@ class PastFutureSessionFeatures(FeatureBase):
                          'past_actions_involving_impression_session_no_action': [],
                          'past_mean_price_interacted': [], 'past_mean_cheap_pos_interacted': [], 'past_mean_pos': [],
                          'past_pos_closest_reference': [], 'past_position_impression_same_closest_clickout': [],
-                         # 'past_impr_pos_num_clicked': [], 'past_sort_order_clicked': [],
-                         # 'past_item_appearing_in_impressions': [],
-                         
+                         'past_pos_clicked_1': [], 'past_pos_clicked_2': [], 'past_pos_clicked_3': [], 'past_pos_clicked_4_8': [],
+                         'past_pos_clicked_9_15': [], 'past_pos_clicked_16_25': [],
+                         'past_times_impr_appeared': [], 'past_mean_pos_impr_appeared': [],
+                         'past_sort_order_price_only': [], 'past_sort_order_price_and_recommended': [], 'past_sort_order_rating_only': [],
+                         'past_sort_order_rating_and_recommended': [], 'past_sort_order_distance_only': [], 'past_sort_order_distance_and_recommended': [],
+                         'past_sort_order_our_recommendations': [],
+
                          'future_times_interacted_impr': [], 'future_session_num': [],
                          'future_closest_action_involving_impression': [],
                          'future_time_from_closest_interaction_impression': [],
@@ -101,12 +109,15 @@ class PastFutureSessionFeatures(FeatureBase):
                          'future_mean_pos': [],
                          'future_pos_closest_reference': [],
                          'future_position_impression_same_closest_clickout': [],
-                         # 'future_impr_pos_num_clicked': [], 'future_sort_order_clicked': [],
-                         # 'future_item_appearing_in_impressions': [],
+                         'future_pos_clicked_1': [], 'future_pos_clicked_2': [], 'future_pos_clicked_3': [], 'future_pos_clicked_4_8': [],
+                         'future_pos_clicked_9_15': [], 'future_pos_clicked_16_25': [],
+                         'future_times_impr_appeared': [], 'future_mean_pos_impr_appeared': [],
+                         'future_sort_order_price_only': [], 'future_sort_order_price_and_recommended': [],
+                         'future_sort_order_rating_only': [],
+                         'future_sort_order_rating_and_recommended': [], 'future_sort_order_distance_only': [],
+                         'future_sort_order_distance_and_recommended': [],
+                         'future_sort_order_our_recommendations': [],
                          }
-        #TODO add pos_impr_clicked: times clicked the first, times clicked second, times third, ....
-        # also past_sort_order_clicked : one hot and num of occurrences
-        # also
 
     def extract_feature(self):
         """
@@ -261,7 +272,18 @@ class PastFutureSessionFeatures(FeatureBase):
 
         self.features['past_position_impression_same_closest_clickout'] += vectors_price[4]
 
+        self.features['past_pos_clicked_1'] += vectors_price[5]
+        self.features['past_pos_clicked_2'] += vectors_price[6]
+        self.features['past_pos_clicked_3'] += vectors_price[7]
+        self.features['past_pos_clicked_4_8'] += vectors_price[8]
+        self.features['past_pos_clicked_9_15'] += vectors_price[9]
+        self.features['past_pos_clicked_16_25'] += vectors_price[10]
+        self.features['past_times_impr_appeared'] += vectors_price[11]
+        self.features['past_mean_pos_impr_appeared'] += vectors_price[12]
+
         self.get_action_involving_impressions(df, impressions, prefix='past')
+
+        self.get_change_sort_order_frequency(df, impressions, prefix='past')
 
     def compute_future_sessions_feat(self, df, impressions, closest_tm):
 
@@ -289,7 +311,18 @@ class PastFutureSessionFeatures(FeatureBase):
 
         self.features['future_position_impression_same_closest_clickout'] += vectors_price[4]
 
-        self.get_action_involving_impressions(df, impressions, 'future')
+        self.features['future_pos_clicked_1'] += vectors_price[5]
+        self.features['future_pos_clicked_2'] += vectors_price[6]
+        self.features['future_pos_clicked_3'] += vectors_price[7]
+        self.features['future_pos_clicked_4_8'] += vectors_price[8]
+        self.features['future_pos_clicked_9_15'] += vectors_price[9]
+        self.features['future_pos_clicked_16_25'] += vectors_price[10]
+        self.features['future_times_impr_appeared'] += vectors_price[11]
+        self.features['future_mean_pos_impr_appeared'] += vectors_price[12]
+
+        self.get_action_involving_impressions(df, impressions, prefix='future')
+
+        self.get_change_sort_order_frequency(df, impressions, prefix='future')
 
     def get_action_involving_impressions(self, x, impr, prefix='future'):
         df_only_numeric = x[pd.to_numeric(x['reference'], errors='coerce').notnull()][[
@@ -339,6 +372,28 @@ class PastFutureSessionFeatures(FeatureBase):
             self.features[prefix + '_actions_involving_impression_session_no_action'] += [
                 actions_involving_impression_session_no_action]
             count += 1
+
+    def get_change_sort_order_frequency(self, df, imp, prefix='past'):
+        relevant_references = df.reference
+
+        poss_sort_order = ['price only', 'price and recommended', 'distance only', 'distance and recommended', 'rating only', 'rating and recommended',  'our recommendations']
+
+        dict_sort_orders = {}
+        for s in poss_sort_order:
+            dict_sort_orders[s] = 0
+        for ref in relevant_references:
+            if ref in poss_sort_order:
+                dict_sort_orders[ref] += 1
+
+        lenIm = len(imp)
+
+        self.features[prefix + '_sort_order_price_only'] += [dict_sort_orders['price only']] * lenIm
+        self.features[prefix + '_sort_order_price_and_recommended'] += [dict_sort_orders['price and recommended']] * lenIm
+        self.features[prefix + '_sort_order_distance_only'] += [dict_sort_orders['distance only']] * lenIm
+        self.features[prefix + '_sort_order_distance_and_recommended'] += [dict_sort_orders['distance and recommended']] * lenIm
+        self.features[prefix + '_sort_order_rating_only'] += [dict_sort_orders['rating only']] * lenIm
+        self.features[prefix + '_sort_order_rating_and_recommended'] += [dict_sort_orders['rating and recommended']] * lenIm
+        self.features[prefix + '_sort_order_our_recommendations'] += [dict_sort_orders['our recommendations']] * lenIm
 
 
 def get_closest_actions_impressions(df, impressions, mode='past'):
@@ -420,6 +475,17 @@ def get_mean_price_info(x, impressions, mode='past'):
     mean_cheap_position = 0
     mean_price_interacted = 0
 
+    pos_clicked_1 = 0
+    pos_clicked_2 = 0
+    pos_clicked_3 = 0
+    pos_clicked_4_8 = 0
+    pos_clicked_9_15 = 0
+    pos_clicked_16_25 = 0
+
+    times_impr_appeared = [0]*len(impressions)
+    mean_pos_impr_appeared = [-1]*len(impressions)
+
+
     # 0 if same, 1 if changed
     position_impression_same_closest_clickout = 0
 
@@ -473,15 +539,53 @@ def get_mean_price_info(x, impressions, mode='past'):
         sum_pos_impr = 0
         count_interacted_pos_impr = 0
         count_interacted = 0
+
+        dict_impr_appeared = {}
+        dict_impr_appeared_mean_pos = {}
+        for i in impressions:
+            dict_impr_appeared[i] = 0
+            dict_impr_appeared_mean_pos[i] = 0
+
+        for t in tuples_impr_pos:
+            if t[0] in impressions:
+                dict_impr_appeared[t[0]] += 1
+                dict_impr_appeared_mean_pos[t[0]] += t[1]
+
+        times_impr_appeared = []
+        mean_pos_impr_appeared = []
+        for i in impressions:
+            times_appeared = dict_impr_appeared[i]
+            times_impr_appeared += [times_appeared]
+            if times_appeared > 0:
+                mean_pos_impr_appeared += [round(dict_impr_appeared_mean_pos[i] / dict_impr_appeared[i], 2)]
+            else:
+                mean_pos_impr_appeared += [-1]
+
         for i in df_only_numeric.index:
             reference = df_only_numeric.at[i, 'reference']
 
             if reference in dict_impr_price.keys():
-                sum_pos_impr += int(dict_impr_pos[reference])
+                curr_pos = int(dict_impr_pos[reference])
+                sum_pos_impr += curr_pos
                 sum_price += int(dict_impr_price[reference])
                 sum_pos_price += int(dict_impr_price_pos[reference])
                 count_interacted_pos_impr += 1
                 count_interacted += 1
+
+                if curr_pos == 1:
+                    pos_clicked_1 += 1
+                elif curr_pos == 2:
+                    pos_clicked_2 += 1
+                elif curr_pos == 3:
+                    pos_clicked_3 += 1
+                elif curr_pos >= 4 and curr_pos <= 8:
+                    pos_clicked_4_8 += 1
+                elif curr_pos >= 9 and curr_pos <= 15:
+                    pos_clicked_9_15 += 1
+                elif curr_pos >= 16 and curr_pos <= 25:
+                    pos_clicked_16_25 += 1
+                else:
+                    print('Not existing pos: {}'.format(curr_pos))
 
         if count_interacted > 0:
             mean_cheap_position = round(sum_pos_price / count_interacted, 2)
@@ -501,7 +605,6 @@ def get_mean_price_info(x, impressions, mode='past'):
                             impressions_pos_available.tail(1).impressions.values[-1].split('|'):
                         position_impression_same_closest_clickout = 1
 
-
                 elif mode == 'future':
                     closest_reference = relevant_references[0]
 
@@ -515,9 +618,12 @@ def get_mean_price_info(x, impressions, mode='past'):
 
                 pos_last_reference = impressions.index(closest_reference) + 1
 
+
     lenIm = len(impressions)
     return ([mean_price_interacted] * lenIm, [mean_cheap_position] * lenIm,
-            [mean_pos] * lenIm, [pos_last_reference] * lenIm, [position_impression_same_closest_clickout] * lenIm)
+            [mean_pos] * lenIm, [pos_last_reference] * lenIm, [position_impression_same_closest_clickout] * lenIm,
+            [pos_clicked_1]*lenIm, [pos_clicked_2]*lenIm, [pos_clicked_3]*lenIm, [pos_clicked_4_8]*lenIm, [pos_clicked_9_15]*lenIm, [pos_clicked_16_25]*lenIm,
+            times_impr_appeared, mean_pos_impr_appeared)
 
 
 if __name__ == '__main__':

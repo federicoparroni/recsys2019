@@ -429,9 +429,13 @@ class CatboostRanker(RecommenderBase):
         preds = list(self.ctb.predict(test_with_weights))
 
         test_indices = list(test_indices)
-        user_session_item = data.dataset_catboost_train(mode=self.mode, cluster='no_cluster')
-
-        user_session_item = user_session_item[user_session_item.index.isin(test_indices)]
+        user_session_item = data.dataset_catboost_train(mode=self.mode, cluster=self.cluster)[['user_id', 'session_id', 'item_id']]
+        user_session_item = user_session_item.loc[test_indices]
+        print('Len of resulting df is {} \nLen of test indices list is {}'.format(len(user_session_item), len(test_indices)))
+        import time
+        time.sleep(1)
+        print(test_indices[:50])
+        print(list(user_session_item.index)[:50])
         user_session_item['score_catboost'] = preds
 
         return user_session_item
