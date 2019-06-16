@@ -16,6 +16,13 @@ import copy
         after userid and sessions
 """
 
+"""
+    thats the function to give to create_full_df in order to impose this
+    preprocessing
+"""
+def unroll_custom_preprocess_function(original_train, original_test):
+    return unroll(original_train), unroll(original_test)
+
 def unroll(t):
     # unroll
     idx = []
@@ -61,3 +68,4 @@ def unroll(t):
         count += 1
     t_new['user_id'] = user_with_suffix
     t_new['session_id'] = sess_with_suffix
+    return t_new

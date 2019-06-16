@@ -77,7 +77,7 @@ class XGBoostWrapper(RecommenderBase):
         print('model saved')
 
     def recommend_batch(self):
-        X_test, _, _ = data.dataset_xgboost_test(
+        X_test, _, _, _ = data.dataset_xgboost_test(
             mode=self.mode, cluster=self.cluster, kind=self.kind)
         target_indices = data.target_indices(self.mode, self.cluster)
         full_impressions = data.full_df()
@@ -97,7 +97,7 @@ class XGBoostWrapper(RecommenderBase):
         return final_predictions
 
     def get_scores_batch(self):
-        X_test, _, _ = data.dataset_xgboost_test(
+        X_test, _, _, _ = data.dataset_xgboost_test(
             mode=self.mode, cluster=self.cluster, kind=self.kind)
         target_indices = data.target_indices(self.mode, self.cluster)
         full_impressions = data.full_df()
@@ -179,9 +179,13 @@ class XGBoostWrapper(RecommenderBase):
         self.xg.fit(X_train, y_train, group)
 
     def get_scores_cv(self, x, groups, test_indices):
+        if x.shape[0] == len(test_indices):
+            _, _, _, user_session_item = data.dataset_xgboost_test(mode=self.mode, cluster='no_cluster', kind=self.kind)
+        else:
+            _, _, _, _, user_session_item = data.dataset_xgboost_train(mode=self.mode, cluster='no_cluster', kind=self.kind)
+        
         X_test = x[test_indices, :]
         preds = list(self.xg.predict(X_test))
-        _, _, _, _, user_session_item = data.dataset_xgboost_train(mode=self.mode, cluster='no_cluster', kind=self.kind)
         user_session_item = user_session_item.loc[test_indices]
         user_session_item['score_xgboost'] = preds
         return user_session_item
@@ -226,7 +230,7 @@ class XGBoostWrapperSmartValidation(XGBoostWrapper):
             mode=self.mode, cluster=self.cluster, class_weights=self.class_weights, kind=self.kind)
         print('data for train ready')
 
-        X_test, y_test, groups_test = data.dataset_xgboost_test(
+        X_test, y_test, groups_test, _ = data.dataset_xgboost_test(
             mode=self.mode, cluster=self.cluster, kind=self.kind)
         _group_t = groups_test
         print('data for evaluation ready')
