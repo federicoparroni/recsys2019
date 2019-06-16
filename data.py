@@ -137,7 +137,7 @@ def dataset_xgboost_train(mode, cluster='no_cluster', kind='kind1', class_weight
         _dataset_xgboost_train[bp+'e'] = np.load(
             os.path.join(bp, 'train_indices.npy'))
         _dataset_xgboost_train[bp+'f'] = pd.read_csv(
-            os.path.join(bp, 'user_session_item.csv'))
+            os.path.join(bp, 'user_session_item_train.csv'))
         if class_weights:
             _dataset_xgboost_train[bp+'d'] = np.load(
             os.path.join(bp, 'class_weights.npy'))
@@ -169,9 +169,12 @@ def dataset_xgboost_test(mode, cluster='no_cluster', kind='kind1'):
             os.path.join(bp, 'y_test.csv'))['label'].to_dense()
         _dataset_xgboost_test[bp+'c'] = np.load(
             os.path.join(bp, 'group_test.npy'))
+        _dataset_xgboost_test[bp+'d'] = pd.read_csv(
+            os.path.join(bp, 'user_session_item_test.csv'))
     return _dataset_xgboost_test[bp+'a'], \
            _dataset_xgboost_test[bp+'b'], \
-           _dataset_xgboost_test[bp+'c']
+           _dataset_xgboost_test[bp+'c'], \
+           _dataset_xgboost_test[bp+'d'],
 
 def dataset_xgboost_classifier_train(mode, cluster='no_cluster'):
     global _dataset_xgboost_classifier_train

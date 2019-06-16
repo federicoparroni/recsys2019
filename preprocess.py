@@ -9,6 +9,7 @@ import pandas as pd
 from preprocess_utils import create_icm, create_urm
 import numpy as np
 from utils.reduce_memory_usage_df import reduce_mem_usage
+from preprocess_utils.custom_preprocessing.preprocess_unroll import unroll_custom_preprocess_function
 
 # def remove_clickout_after_missing_clickout_test():
 #     test = data.test_df('full')
@@ -88,15 +89,23 @@ def merge_duplicates(df):
     # drop the duplicated indices
     return df.drop(duplicates_indices)
 
+def no_custom_preprocess_function(original_train, original_test):
+    return original_train, original_test
 
-def create_full_df():
+def create_full_df(custom_preprocess_function):
     """
     Save the dataframe containing train.csv and test.csv contiguosly with reset indexes. Also save the config file
     containing the number of rows in the original train.csv (max_train_idx). This is used to know which indices
     indicates train rows (idx < max_train_idx) and test rows (idx >= max_train_idx).
+
+    pass a custom preprocess function to personalize the original train and test df from which the creation
+    of the full df starts
     """
+
+    train_df, test_df = custom_preprocess_function(data.original_train_df().reset_index(drop=True), \
+                                                        data.original_test_df().reset_index(drop=True))
+
     # TEST
-    train_df = data.original_train_df().reset_index(drop=True)
     len_original_train = train_df.shape[0]
     compressed = menu.yesno_choice(title='Do you want the compressed version? (no for the original full)',
                                    callback_yes=lambda: True, callback_no=lambda: False)
@@ -105,7 +114,7 @@ def create_full_df():
     print('Fixing wrong duplicated steps in train...')
     train_df = reset_step_for_duplicated_sessions(train_df)
 
-    # TRAIN; MERGING DUPLICATES
+    # TRAIN; MERGING DUPLICATES 
     if compressed:
         train_df = merge_duplicates(train_df)
     else:
@@ -120,7 +129,6 @@ def create_full_df():
 
     # TEST
     with open(data.FULL_PATH, 'a', encoding='utf-8') as f:
-        test_df = data.original_test_df().reset_index(drop=True)
 
         # restore index summing the len of the original train (to be the same as without merging)
         test_df.index += len_original_train
@@ -366,12 +374,21 @@ def preprocess():
     print()
 
     # create full_df.csv
+    # pick your custom preprocessing function
+
+    # original
+    funct = no_custom_preprocess_function
+    
+    # unroll
+    # funct = unroll_custom_preprocess_function
+
     check_folder(data.FULL_PATH)
     if os.path.isfile(data.FULL_PATH):
-        menu.yesno_choice('An old full dataframe has been found. Do you want to delete it and create again?', callback_yes=create_full_df)
+        menu.yesno_choice('An old full dataframe has been found. Do you want to delete it and create again?', \
+            callback_yes=(lambda: create_full_df(funct)))
     else:
         print('The full dataframe (index master) is missing. Creating it...', end=' ', flush=True)
-        create_full_df()
+        create_full_df(funct)
         print('Done!')
 
 

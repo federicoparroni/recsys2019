@@ -496,7 +496,7 @@ class DatasetXGBoost(DatasetBase):
         return y_train
 
     def load_Xtest(self):
-        X_test, _, _ = data.dataset_xgboost_test(mode=self.mode, cluster=self.cluster, kind=self.kind)
+        X_test, _, _, _ = data.dataset_xgboost_test(mode=self.mode, cluster=self.cluster, kind=self.kind)
         return X_test
 
     def load_group_train(self):

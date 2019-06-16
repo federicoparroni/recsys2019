@@ -36,7 +36,7 @@ class PriceQuality(FeatureBase):
         clk_expanded = expand_impressions(clickout_rows).drop('index',1)
 
         # open item metadata in one hot
-        o = ImpressionFeature(mode='small')
+        o = ImpressionFeature(mode=self.mode)
         df_accomodations = o.read_feature(True)
 
         # get the stars
