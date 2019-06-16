@@ -11,6 +11,7 @@ from extract_features.personalized_top_pop import PersonalizedTopPop
 from extract_features.platform_features_similarity import PlatformFeaturesSimilarity
 from extract_features.price_quality import PriceQuality
 from extract_features.user_2_item import User2Item
+from extract_features.user_feature import UserFeature
 from preprocess_utils.merge_features import merge_features
 from utils.check_folder import check_folder
 from extract_features.impression_rating_numeric import ImpressionRatingNumeric
@@ -104,7 +105,8 @@ def create_dataset(mode, cluster):
                       PlatformReferencePercentageOfClickouts,
                       PlatformReferencePercentageOfInteractions,
                       PlatformSession,
-                      LazyUser
+                      LazyUser,
+                      PastFutureSessionFeatures
                       ]
 
     curr_dir = Path(__file__).absolute().parent
@@ -114,6 +116,24 @@ def create_dataset(mode, cluster):
 
     train_df, test_df, _, __ = merge_features(mode, cluster, features_array, onehot=False, create_not_existing_features=True)
 
+    train_df = train_df.fillna(-1)
+    test_df = test_df.fillna(-1)
+
+    train_immutate = train_df[['past_closest_action_involving_impression', 'future_closest_action_involving_impression']]
+    test_immutate = test_df[
+        ['past_closest_action_involving_impression', 'future_closest_action_involving_impression']]
+
+    train_df = train_df.replace(-1, np.nan)
+    train_df = train_df.replace(-1.0, np.nan)
+    train_df = train_df.replace('-1', np.nan)
+    test_df = test_df.replace('-1', np.nan)
+    test_df = test_df.replace(-1, np.nan)
+    test_df = test_df.replace(-1.0, np.nan)
+
+    train_df[
+        ['past_closest_action_involving_impression', 'future_closest_action_involving_impression']] = train_immutate
+    test_df[
+        ['past_closest_action_involving_impression', 'future_closest_action_involving_impression']] = test_immutate
 
     train_df.to_csv(str(data_dir) + '/train.csv', index=False)
     to_pool_dataset(train_df, path=str(data_dir) + '/catboost_train.txt')
