@@ -21,6 +21,7 @@ import copy
     preprocessing
 """
 def unroll_custom_preprocess_function(original_train, original_test):
+    original_test = original_test.drop([794769, 794770]).reset_index(drop=True)
     return unroll(original_train), unroll(original_test)
 
 def unroll(t):
@@ -56,7 +57,7 @@ def unroll(t):
         suffix += ['_'*(i+1) for j in to_append_partial[i]]
     idx += to_append
     suffix += ['' for j in to_append]
-                
+
     # modify name of users and sessions
     t_new = t.loc[idx]
     user_with_suffix = []
