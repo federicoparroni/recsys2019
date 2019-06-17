@@ -15,8 +15,8 @@ class KFoldScorer(object):
     Get the scores for the dataset by fitting each model in K-fold (except one) and
     computing the scores for the left-out fold.
     The underlying model should implement the following methods:
-    - fit_cv(x, y, x_val, y_val, **params)
-    - get_scores_cv(x)      : must return a dataframe with columns [ user_id | session_id | item_id | score ]
+    - fit_cv(x, y, groups, train_indices, test_indices, **fit_params)
+    - get_scores_cv(x, groups, test_indices)   : must return a dataframe with columns [ user_id | session_id | item_id | score ] 
     """
 
     def __init__(self, model_class, init_params:dict, k:int):
@@ -26,15 +26,15 @@ class KFoldScorer(object):
         self.scores = []
     
     # train a single model on a fold
-    def _fit_model(self, x, y, x_val, y_val, fit_params, pool_id=0):
-        print(f'start {pool_id}')
+    def _fit_model(self, x, y, groups, train_indices, test_indices, fit_params, pool_id=0):
         model = self.model_class(**self.init_params)
+        print(f'start {pool_id} on {model.name}')
         assert hasattr(model, 'fit_cv') and hasattr(model, 'get_scores_cv'), \
             'Model must implement methods: fit_cv, get_scores_cv'
-        model.fit_cv(x, y, x_val, y_val, **fit_params)
+        model.fit_cv(x, y, groups, train_indices, test_indices, **fit_params)
         print(f'fit end {pool_id}')
         # compute scores
-        return model.get_scores_cv(x_val)
+        return model.get_scores_cv(x, groups, test_indices)
 
     def fit_predict(self, dataset, fit_params={}, n_jobs=-1, save_folder='scores/') -> pd.DataFrame:
         """ Fit and compute the scores for each fold.
@@ -44,9 +44,10 @@ class KFoldScorer(object):
         save_folder (str):  folder where to save the scores
         """
         assert hasattr(dataset, 'load_Xtrain') and hasattr(dataset, 'load_Ytrain') and hasattr(dataset, 'load_Xtest'), \
-            'Dataset object must implement methods: load_Xtrain, load_Ytrain, load_Xtest'
+                    'Dataset object must implement methods: load_Xtrain, load_Ytrain, load_Xtest'
         
-        X_train, Y_train, X_test = dataset.load_Xtrain(), dataset.load_Ytrain(), dataset.load_Xtest()
+        X_train, Y_train, X_test, group_train = dataset.load_Xtrain(), dataset.load_Ytrain(), \
+                                                dataset.load_Xtest(), dataset.load_group_train()
         
         # kfold
         kf = KFold(n_splits=self.k)
@@ -54,17 +55,17 @@ class KFoldScorer(object):
         # fit in each fold
         self.scores = Parallel(backend='multiprocessing', n_jobs=n_jobs)(delayed(self._fit_model)
                                 (
-                                    X_train[train_indices,:], Y_train[train_indices,:], 
-                                    X_train[test_indices,:], Y_train[test_indices,:], 
+                                    X_train, Y_train, group_train,
+                                    train_indices, test_indices,
                                     fit_params, idx
-                                ) for idx,(train_indices,test_indices) in enumerate(kf.split(X_train)) )
+                                ) for idx,(train_indices,test_indices) in enumerate(kf.split(X_train, group_train)) )
         
         # fit in all the train and get scores for test
         print('fit whole train')
         model = self.model_class(**self.init_params)
-        model.fit_cv(X_train, Y_train, None, None, **fit_params)
+        model.fit_cv(X_train, Y_train, group_train, list(range(X_train.shape[0])), [], **fit_params)
         print('end fit whole train')
-        scores_test = model.get_scores_cv(X_test)
+        scores_test = model.get_scores_cv(X_test, None, list(range(X_test.shape[0])))
         self.scores.append( scores_test )
         
         self.scores = pd.concat(self.scores)
@@ -72,10 +73,10 @@ class KFoldScorer(object):
         # save scores
         if save_folder is not None:
             check_folder(save_folder)
-            filepath = os.path.join(save_folder, model.name, '.csv')
+            filepath = os.path.join(save_folder, model.name + '.csv.gz')
             print('Saving scores to', filepath, end=' ', flush=True)
-            self.scores.to_csv(filepath, index=False)
-            print('Done!', end=' ', flush=True)
+            self.scores.to_csv(filepath, index=False, compression='gzip')
+            print('Done!', flush=True)
         
         return self.scores
         
@@ -92,10 +93,12 @@ if __name__ == "__main__":
         'cell_type': 'gru',
         'num_recurrent_layers': 2,
         'num_recurrent_units': 64,
-        'num_dense_layers': 2
+        'num_dense_layers': 2,
+        'class_weights': dataset.get_class_weights(),
     }
-    fit_params = {'epochs': 1, 'early_stopping_patience': 4}
+    fit_params = {'epochs': 100}
 
-    kfscorer = KFoldScorer(model_class=RNNClassificationRecommender, init_params=init_params, k=2)
+    kfscorer = KFoldScorer(model_class=RNNClassificationRecommender, init_params=init_params, k=5)
 
     kfscorer.fit_predict(dataset, fit_params=fit_params)
+

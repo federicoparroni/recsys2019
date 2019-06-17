@@ -61,10 +61,10 @@ class XGBoostWrapper(RecommenderBase):
                     return
 
         if self.class_weights:
-            X_train, y_train, group, _, weights = data.dataset_xgboost_train(
+            X_train, y_train, group, _, weights, _ = data.dataset_xgboost_train(
                 mode=self.mode, cluster=self.cluster, class_weights=self.class_weights, kind=self.kind)
         else:
-            X_train, y_train, group, _ = data.dataset_xgboost_train(
+            X_train, y_train, group, _, _ = data.dataset_xgboost_train(
                 mode=self.mode, cluster=self.cluster, class_weights=self.class_weights, kind=self.kind)
         print('data for train ready')
 
@@ -77,7 +77,7 @@ class XGBoostWrapper(RecommenderBase):
         print('model saved')
 
     def recommend_batch(self):
-        X_test, _, _ = data.dataset_xgboost_test(
+        X_test, _, _, _ = data.dataset_xgboost_test(
             mode=self.mode, cluster=self.cluster, kind=self.kind)
         target_indices = data.target_indices(self.mode, self.cluster)
         full_impressions = data.full_df()
@@ -97,7 +97,7 @@ class XGBoostWrapper(RecommenderBase):
         return final_predictions
 
     def get_scores_batch(self):
-        X_test, _, _ = data.dataset_xgboost_test(
+        X_test, _, _, _ = data.dataset_xgboost_test(
             mode=self.mode, cluster=self.cluster, kind=self.kind)
         target_indices = data.target_indices(self.mode, self.cluster)
         full_impressions = data.full_df()
@@ -116,7 +116,7 @@ class XGBoostWrapper(RecommenderBase):
                 (index, list(sorted_impr), list(sorted_scores)))
             count = count + len(impressions)
 
-        X_train, _, _, train_indices = data.dataset_xgboost_train(
+        X_train, _, _, train_indices, _ = data.dataset_xgboost_train(
             mode=self.mode, cluster=self.cluster, kind=self.kind)
         full_impressions = data.full_df()
         print('data for scores train ready')
@@ -172,7 +172,24 @@ class XGBoostWrapper(RecommenderBase):
 
         return MRR
 
+    def fit_cv(self, x, y, groups, train_indices, test_indices, **fit_params):
+        X_train = x[train_indices, :]
+        y_train = y.loc[train_indices]
+        _, group = np.unique(groups[train_indices], return_counts=True)
+        self.xg.fit(X_train, y_train, group)
 
+    def get_scores_cv(self, x, groups, test_indices):
+        if x.shape[0] == len(test_indices):
+            _, _, _, user_session_item = data.dataset_xgboost_test(mode=self.mode, cluster='no_cluster', kind=self.kind)
+        else:
+            _, _, _, _, user_session_item = data.dataset_xgboost_train(mode=self.mode, cluster='no_cluster', kind=self.kind)
+        
+        X_test = x[test_indices, :]
+        preds = list(self.xg.predict(X_test))
+        user_session_item = user_session_item.loc[test_indices]
+        user_session_item['score_xgboost'] = preds
+        return user_session_item
+ 
 class XGBoostWrapperSmartValidation(XGBoostWrapper):
 
     def __init__(self, mode, cluster='no_cluster', kind='kind1', ask_to_load=True, class_weights=False, learning_rate=0.3, min_child_weight=1, n_estimators=100, max_depth=3, subsample=1, colsample_bytree=1, reg_lambda=1, reg_alpha=0):
@@ -209,11 +226,11 @@ class XGBoostWrapperSmartValidation(XGBoostWrapper):
 
     def fit(self):
         global _group_t
-        X_train, y_train, group, _ = data.dataset_xgboost_train(
+        X_train, y_train, group, _, _ = data.dataset_xgboost_train(
             mode=self.mode, cluster=self.cluster, class_weights=self.class_weights, kind=self.kind)
         print('data for train ready')
 
-        X_test, y_test, groups_test = data.dataset_xgboost_test(
+        X_test, y_test, groups_test, _ = data.dataset_xgboost_test(
             mode=self.mode, cluster=self.cluster, kind=self.kind)
         _group_t = groups_test
         print('data for evaluation ready')

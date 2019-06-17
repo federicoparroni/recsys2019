@@ -1,10 +1,17 @@
 import numpy as np
+
+from extract_features.avg_price_interactions import AvgPriceInteractions
 from extract_features.city_session import CitySession
 from extract_features.city_session_populars_only import CitySessionPopularsOnly
 from extract_features.country_searched_session import CountrySearchedSession
 from extract_features.day_moment_in_day import DayOfWeekAndMomentInDay
 from extract_features.last_clickout_filters_satisfaction import LastClickoutFiltersSatisfaction
+from extract_features.lazy_user import LazyUser
+from extract_features.personalized_top_pop import PersonalizedTopPop
+from extract_features.platform_features_similarity import PlatformFeaturesSimilarity
+from extract_features.price_quality import PriceQuality
 from extract_features.user_2_item import User2Item
+from extract_features.user_feature import UserFeature
 from preprocess_utils.merge_features import merge_features
 from utils.check_folder import check_folder
 from extract_features.impression_rating_numeric import ImpressionRatingNumeric
@@ -16,17 +23,14 @@ from extract_features.impression_price_info_session import ImpressionPriceInfoSe
 from extract_features.label import ImpressionLabel
 from extract_features.last_action_involving_impression import LastInteractionInvolvingImpression
 from extract_features.mean_price_clickout import MeanPriceClickout
-from extract_features.price_position_info_interactions import PricePositionInfoInteractedReferences
 # from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
 from extract_features.session_device import SessionDevice
 from extract_features.session_filters_active_when_clickout import SessionFilterActiveWhenClickout
 from extract_features.session_length import SessionLength
 from extract_features.session_sort_order_when_clickout import SessionSortOrderWhenClickout
-from extract_features.time_from_last_action_before_clk import TimeFromLastActionBeforeClk
 from extract_features.times_impression_appeared_in_clickouts_session import TimesImpressionAppearedInClickoutsSession
 from extract_features.times_user_interacted_with_impression import TimesUserInteractedWithImpression
 from extract_features.timing_from_last_interaction_impression import TimingFromLastInteractionImpression
-from extract_features.weights_class import WeightsClass
 from extract_features.impression_rating import ImpressionRating
 from extract_features.time_per_impression import TimePerImpression
 from extract_features.change_impression_order_position_in_session import ChangeImpressionOrderPositionInSession
@@ -65,45 +69,81 @@ def to_pool_dataset(dataset, save_dataset=True, path=''):
 
 def create_dataset(mode, cluster):
     # training
-    features_array = [ClassifierParro, ClassifierPiccio, TimePerImpression, PastFutureSessionFeatures,
-                      SessionFilterActiveWhenClickout, SessionActionNumRefDiffFromImpressions, DayOfWeekAndMomentInDay,
-                      LastClickoutFiltersSatisfaction, CitySession, CountrySearchedSession,
-                      FrenzyFactorSession, ChangeImpressionOrderPositionInSession,
-                      User2Item, PlatformSession, PlatformReferencePercentageOfInteractions,
-                      PercClickPerImpressions, PlatformReferencePercentageOfClickouts,
-                      NumImpressionsInClickout, NumTimesItemImpressed,
-                      LocationReferencePercentageOfClickouts, LocationReferencePercentageOfInteractions,
-                      StepsBeforeLastClickout, ImpressionStarsNumeric, LastActionBeforeClickout,
-                      TopPopPerImpression, TopPopInteractionClickoutPerImpression,
-                      ImpressionRatingNumeric, ActionsInvolvingImpressionSession,
-                      ImpressionLabel, ImpressionPriceInfoSession,
-                      TimingFromLastInteractionImpression, TimesUserInteractedWithImpression,
-                      ImpressionPositionSession, LastInteractionInvolvingImpression,
-                      SessionDevice, SessionSortOrderWhenClickout, MeanPriceClickout,
-                      PricePositionInfoInteractedReferences, SessionLength, TimeFromLastActionBeforeClk,
-                      TimesImpressionAppearedInClickoutsSession]
+    features_array = [
+                      #LastClickoutFiltersSatisfaction,
+                      #PriceQuality,
+                      #User2Item,
+                      ActionsInvolvingImpressionSession,
+                      ImpressionPositionSession,
+                      ImpressionPriceInfoSession,
+                      ImpressionRatingNumeric,
+                      ImpressionLabel,
+                      LastInteractionInvolvingImpression,
+                      MeanPriceClickout,
+                      AvgPriceInteractions,
+                      SessionDevice,
+                      NumImpressionsInClickout,
+                      SessionLength,
+                      TimesImpressionAppearedInClickoutsSession,
+                      TimesUserInteractedWithImpression,
+                      TimingFromLastInteractionImpression,
+                      TopPopPerImpression,
+                      TopPopInteractionClickoutPerImpression,
+                      ChangeImpressionOrderPositionInSession,
+                      FrenzyFactorSession,
+                      DayOfWeekAndMomentInDay,
+                      TimePerImpression,
+                      PersonalizedTopPop,
+                      PlatformFeaturesSimilarity,
+                      LastActionBeforeClickout,
+                      ImpressionStarsNumeric,
+                      StepsBeforeLastClickout,
+                      LocationReferencePercentageOfClickouts,
+                      LocationReferencePercentageOfInteractions,
+                      NumTimesItemImpressed,
+                      PercClickPerImpressions,
+                      PlatformReferencePercentageOfClickouts,
+                      PlatformReferencePercentageOfInteractions,
+                      PlatformSession,
+                      LazyUser,
+                      PastFutureSessionFeatures
+                      ]
 
     curr_dir = Path(__file__).absolute().parent
     data_dir = curr_dir.joinpath('..', 'dataset/preprocessed/{}/{}/catboost/'.format(cluster, mode))
     print(data_dir)
     check_folder(str(data_dir))
 
-    train_df, test_df = merge_features(mode, cluster, features_array, onehot=False)
+    train_df, test_df, _, __ = merge_features(mode, cluster, features_array, onehot=False, create_not_existing_features=True)
 
-    if os.path.isfile(str(data_dir) + '/catboost_train.txt'):
-        print('Train File già presente')
-    else:
-        train_df.to_csv(str(data_dir) + '/train.csv', index=False)
-        to_pool_dataset(train_df, path=str(data_dir) + '/catboost_train.txt')
+    train_df = train_df.fillna(-1)
+    test_df = test_df.fillna(-1)
 
-    if os.path.isfile(str(data_dir) + '/test.csv'):
-        print('Test File già presente')
-    else:
-        test_df.to_csv(str(data_dir) + '/test.csv', index=False)
-        to_pool_dataset(test_df, path=str(data_dir) + '/catboost_test.txt')
+    train_immutate = train_df[['past_closest_action_involving_impression', 'future_closest_action_involving_impression']]
+    test_immutate = test_df[
+        ['past_closest_action_involving_impression', 'future_closest_action_involving_impression']]
+
+    train_df = train_df.replace(-1, np.nan)
+    train_df = train_df.replace(-1.0, np.nan)
+    train_df = train_df.replace('-1', np.nan)
+    test_df = test_df.replace('-1', np.nan)
+    test_df = test_df.replace(-1, np.nan)
+    test_df = test_df.replace(-1.0, np.nan)
+
+    train_df[
+        ['past_closest_action_involving_impression', 'future_closest_action_involving_impression']] = train_immutate
+    test_df[
+        ['past_closest_action_involving_impression', 'future_closest_action_involving_impression']] = test_immutate
+
+    train_df.to_csv(str(data_dir) + '/train.csv', index=False)
+    to_pool_dataset(train_df, path=str(data_dir) + '/catboost_train.txt')
+
+
+    test_df.to_csv(str(data_dir) + '/test.csv', index=False)
+    to_pool_dataset(test_df, path=str(data_dir) + '/catboost_test.txt')
 
 
 if __name__ == "__main__":
     from utils.menu import mode_selection
     mode = mode_selection()
-    create_dataset(mode='small', cluster='no_cluster')
+    create_dataset(mode=mode, cluster='no_cluster')

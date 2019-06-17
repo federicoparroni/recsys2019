@@ -3,7 +3,6 @@ import math
 import pandas as pd
 import numpy as np
 from abc import abstractmethod
-
 import utils.datasetconfig as datasetconfig
 from generator import DataGenerator
 import preprocess_utils.session2vec as sess2vec
@@ -11,7 +10,8 @@ import preprocess_utils.session2vec as sess2vec
 from sklearn.externals import joblib
 from sklearn.utils.class_weight import compute_class_weight
 import utils.scaling as scale
-
+import data
+from utils.menu import single_choice
 
 ## ======= Datasets - Base class ======= ##
 
@@ -37,7 +37,17 @@ class DatasetBase(object):
         """ Load the X_test dataframe """
         pass
 
-
+    def load_group_train(self):
+        """ 
+            Loads the group array in train
+            an example of the format is:
+            [1, 1, 1, 1, 2, 2, 2, 3, 3]
+            in the case:
+            first group is composed by 4 elems
+            second group is composed by 3 elems
+            third group is composed by 2 elems
+        """
+        pass
 
 class Dataset(DatasetBase):
     """ Base class containing all info about a dataset """
@@ -467,3 +477,98 @@ class DatasetScoresClassification(Dataset):
 
     def get_class_weights(self, num_classes=25):
         return super().get_class_weights(num_classes)
+
+
+class DatasetXGBoost(DatasetBase):
+
+    def __init__(self, mode, cluster, kind):
+        super(DatasetXGBoost, self).__init__()
+        self.mode = mode
+        self.cluster = cluster
+        self.kind = kind
+
+    def load_Xtrain(self):
+        X_train, _, _, _, _ = data.dataset_xgboost_train(mode=self.mode, cluster=self.cluster, kind=self.kind)
+        return X_train
+
+    def load_Ytrain(self):
+        _, y_train, _, _, _ = data.dataset_xgboost_train(mode=self.mode, cluster=self.cluster, kind=self.kind)
+        return y_train
+
+    def load_Xtest(self):
+        X_test, _, _, _ = data.dataset_xgboost_test(mode=self.mode, cluster=self.cluster, kind=self.kind)
+        return X_test
+
+    def load_group_train(self):
+        _, _, groups, _, _ = data.dataset_xgboost_train(mode=self.mode, cluster=self.cluster, kind=self.kind)
+        g = [list(np.ones(groups[i], dtype=np.int)*i) for i in range(len(groups))]
+        g = [item for sublist in g for item in sublist]
+        return np.array(g)
+
+
+class DatasetCatboost(DatasetBase):
+
+    def __init__(self, mode, cluster):
+        super(DatasetCatboost, self).__init__()
+        self.mode = mode
+        self.cluster = cluster
+
+    def load_Xtrain(self):
+        train_df = data.dataset_catboost_train(mode=self.mode, cluster=self.cluster)
+        # Creating univoque id for each user_id / session_id pair
+
+        train_df = train_df.assign(
+            id=(train_df['user_id'] + '_' + train_df['session_id']).astype('category').cat.codes)
+
+        train_features = train_df.drop(['user_id', 'session_id', 'item_id'], axis=1)
+
+        return train_features
+
+    def load_Ytrain(self):
+        return None
+
+    def load_Xtest(self):
+        test_df = data.dataset_catboost_test(mode=self.mode, cluster=self.cluster)
+
+        target_indices = data.target_indices(self.mode, self.cluster)
+        sessi_target = data.test_df(self.mode, self.cluster).loc[target_indices].session_id.values
+
+        dict_session_trg_idx = dict(zip(sessi_target, target_indices))
+
+        test_df['id'] = test_df.apply(
+            lambda row: dict_session_trg_idx.get(row.session_id), axis=1)
+
+        print('data for test ready')
+
+        test_feat_df = test_df.drop(['user_id', 'session_id', 'item_id'], axis=1)
+
+        return test_feat_df
+
+
+    def load_group_train(self):
+        return None
+
+
+class DatasetXGBoostClassifier(DatasetBase):
+
+    def __init__(self, mode, cluster):
+        super(DatasetXGBoostClassifier, self).__init__()
+        self.mode = mode
+        self.cluster = cluster
+
+    def load_Xtrain(self):
+        train = data.dataset_xgboost_classifier_train(mode=self.mode, cluster=self.cluster)
+        train = train.drop(["user_id", "session_id", "label"], axis=1)
+        return train.values.reshape((-1, len(train.columns)))
+
+    def load_Ytrain(self):
+        train = data.dataset_xgboost_classifier_train(mode=self.mode, cluster=self.cluster)
+        return train["label"].values
+
+    def load_Xtest(self):
+        test = data.dataset_xgboost_classifier_test(mode=self.mode, cluster=self.cluster)
+        test = test.drop(["user_id", "session_id", "label"], axis=1)
+        return test.values.reshape((-1, len(test.columns)))
+
+    def load_group_train(self):
+        return None

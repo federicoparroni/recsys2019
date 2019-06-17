@@ -169,6 +169,9 @@ def create_dataset(mode, cluster, class_weights=False):
     save_npz(join(bp, 'X_train'), X_train)
     print('X_train saved')
 
+    user_session_item = train_df[['user_id', 'session_id', 'item_id']]
+    user_session_item.to_csv(join(bp, 'user_session_item_train.csv'), index=False)
+
     y_train = train_df[['label']]
     y_train.to_csv(join(bp, 'y_train.csv'))
     print('y_train saved')
@@ -189,14 +192,14 @@ def create_dataset(mode, cluster, class_weights=False):
         X_test = test_df.drop(
             ['index', 'user_id', 'session_id', 'item_id', 'label'], axis=1)
 
-    #if mode == 'full':
     X_test = X_test.to_sparse(fill_value=0)
     X_test = X_test.astype(np.float64)
     X_test = X_test.to_coo().tocsr()
     save_npz(join(bp, 'X_test'), X_test)
-    #else:
-    #    X_test.to_csv(join(bp, 'X_test.csv'))
     print('X_test saved')
+
+    user_session_item = test_df[['user_id', 'session_id', 'item_id']]
+    user_session_item.to_csv(join(bp, 'user_session_item_test.csv'), index=False)
 
     y_test = test_df[['label']]
     y_test.to_csv(join(bp, 'y_test.csv'))
