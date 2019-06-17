@@ -39,7 +39,8 @@ _group_test = None
 class lightGBM(RecommenderBase):
 
     def _load_data(self):
-        global _x_train, _x_vali, _y_train, _y_vali, _group_train, _group_test
+        global _x_train, _x_vali, _y_train, _y_vali, _group_train, _group_test, \
+                    _user_session_item_train, _user_session_item_test 
         _BASE_PATH = self._BASE_PATH
         if _x_train is None:
             start = time()
@@ -47,22 +48,22 @@ class lightGBM(RecommenderBase):
             _x_train = pd.read_hdf(f'{_BASE_PATH}/x_train.hdf', key='df')
             _y_train = np.load(f'{_BASE_PATH}/y_train.npy')
             _group_train = np.load(f'{_BASE_PATH}/groups_train.npy')
-            user_session_item_train = pd.read_csv(f'{_BASE_PATH}/user_session_item_train.csv')
+            _user_session_item_train = pd.read_csv(f'{_BASE_PATH}/user_session_item_train.csv')
             _x_vali = pd.read_hdf(f'{_BASE_PATH}/x_vali.hdf', key='df')
             _y_vali = np.load(f'{_BASE_PATH}/y_vali.npy')
             _group_test = np.load(f'{_BASE_PATH}/groups_vali.npy')
             print(f'data loaded in: {time() - start}\n')
-            user_session_item_test = pd.read_csv(f'{_BASE_PATH}/user_session_item_test.csv')
+            _user_session_item_test = pd.read_csv(f'{_BASE_PATH}/user_session_item_vali.csv')
 
         self.x_train = _x_train
         self.y_train = _y_train
         self.groups_train = _group_train
-        self.user_session_item_train = user_session_item_train
+        self.user_session_item_train = _user_session_item_train
 
         self.x_vali = _x_vali
         self.y_vali = _y_vali
         self.groups_vali = _group_test
-        self.user_session_item_test = user_session_item_test
+        self.user_session_item_test = _user_session_item_test
 
 
     def __init__(self, mode, cluster, dataset_name, params_dict):
@@ -247,9 +248,13 @@ class lightGBM(RecommenderBase):
         self.model.fit(X_train, y_train, group=group)
 
     def get_scores_cv(self, x, groups, test_indices):
-        X_test = x[test_indices, :]
+        if x.shape[0] == len(test_indices):
+            user_session_item = self.user_session_item_test
+        else:
+            user_session_item = self.user_session_item_train
+        X_test = x.loc[test_indices]
         preds = list(self.model.predict(X_test))
-        user_session_item = self.user_session_item_train.loc[test_indices]
+        user_session_item = user_session_item.loc[test_indices]
         user_session_item['score_lightgbm'] = preds
         return user_session_item
 

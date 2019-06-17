@@ -517,12 +517,10 @@ class DatasetLightGBM(DatasetBase):
 
     def _load_data(self):
         _BASE_PATH = f'dataset/preprocessed/lightGBM/{self.cluster}/{self.mode}/{self.dataset_name}'
-        self._x_train = pd.read_csv(f'{_BASE_PATH}/x_train.csv')
+        self._x_train = pd.read_hdf(f'{_BASE_PATH}/x_train.hdf', key='df')
         self._y_train = np.load(f'{_BASE_PATH}/y_train.npy')
         self._group_train = np.load(f'{_BASE_PATH}/groups_train.npy')
-        self.user_session_item_train = pd.read_csv(f'{_BASE_PATH}/user_session_item_train.csv')
-        self._x_vali = pd.read_csv(f'{_BASE_PATH}/x_vali.csv')
-        self.user_session_item_test = pd.read_csv(f'{_BASE_PATH}/user_session_item_test.csv')
+        self._x_vali = pd.read_hdf(f'{_BASE_PATH}/x_vali.hdf', key='df')
 
     def load_Xtrain(self):
         return self._x_train
