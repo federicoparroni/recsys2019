@@ -134,6 +134,18 @@ class Dataset(DatasetBase):
         weights = dict([ (i,w) for i,w in enumerate(weights) ])
         print(weights)
         return weights
+    
+    def get_sample_weights(self, num_classes):
+        y = self.load_Ytrain()
+        if y.shape[1] == 1:
+            # binary class
+            weights = compute_class_weight('balanced', np.arange(num_classes), y[:,0])
+        else:
+            # multiple classes one-hot encoded
+            y_2 = [np.where(r==1)[0][0] for r in y]
+            weights = compute_class_weight('balanced', np.arange(num_classes), y_2)
+
+        return (y @ weights.reshape(-1,1)).flatten()
 
 
 
@@ -407,6 +419,9 @@ class SequenceDatasetForClassification(Dataset):
 
     def get_class_weights(self, num_classes=25):
         return super().get_class_weights(num_classes)
+    
+    def get_sample_weights(self, num_classes=25):
+        return super().get_sample_weights(num_classes)
 
 
 
@@ -422,6 +437,9 @@ class SequenceDatasetForBinaryClassification(SequenceDatasetForClassification):
 
     def get_class_weights(self, num_classes=2):
         return super().get_class_weights(num_classes)
+    
+    def get_sample_weights(self, num_classes=2):
+        return super().get_sample_weights(num_classes)
 
 
 class DatasetScoresClassification(Dataset):
@@ -477,6 +495,9 @@ class DatasetScoresClassification(Dataset):
 
     def get_class_weights(self, num_classes=25):
         return super().get_class_weights(num_classes)
+
+    def get_sample_weights(self, num_classes=25):
+        return super().get_sample_weights(num_classes)
 
 
 class DatasetXGBoost(DatasetBase):

@@ -43,7 +43,7 @@ class RecurrentRecommender(RecommenderBase):
     
     def __init__(self, dataset, input_shape, cell_type, num_recurrent_layers, num_recurrent_units, num_dense_layers, output_size,
                 use_generator=False, validation_split=0.15, use_batch_normalization=False, bidirectional=False,
-                loss='mean_squared_error', optimizer='rmsprop', class_weights=None, #, weight_samples=False,
+                loss='mean_squared_error', optimizer='rmsprop', class_weights=None, sample_weights=None,
                 metrics=['accuracy', mrr], batch_size=64, checkpoints_path=None, tensorboard_path=None):
         """ Create the recurrent model
         dataset (Dataset):          dataset to use
@@ -69,7 +69,7 @@ class RecurrentRecommender(RecommenderBase):
         self.dataset = dataset
         self.validation_split = validation_split
         self.class_weights = class_weights
-        #self.weight_samples = weight_samples
+        self.sample_weights = sample_weights
         self.use_weights = self.class_weights is not None
 
         assert len(input_shape) == 2
@@ -133,9 +133,9 @@ class RecurrentRecommender(RecommenderBase):
                 if use_batch_normalization:
                     self.model.add( Dense(int(n), activation=None) )
                     self.model.add( BatchNormalization() )
-                    self.model.add( Activation('relu') )
+                    self.model.add( Activation('softmax') )
                 else:
-                    self.model.add( Dense(int(n), activation='relu') )
+                    self.model.add( Dense(int(n), activation='softmax') )
                 self.model.add( Dropout(rate=0.1) )
         
         # add the last dense layer
@@ -174,8 +174,8 @@ class RecurrentRecommender(RecommenderBase):
             self.X, self.Y = shuffle(self.X, self.Y)
             
             self.history = self.model.fit(self.X, self.Y, epochs=epochs, batch_size=self.batch_size,
-                                            validation_split=self.validation_split,
-                                            callbacks=callbacks, class_weight=self.class_weights)
+                                            validation_split=self.validation_split, callbacks=callbacks,
+                                            class_weight=self.class_weights, sample_weight=self.sample_weights)
 
     def fit_cv(self, x, y, groups, train_indices, test_indices, epochs, early_stopping_patience=None, early_stopping_on='val_loss', mode='min'):
         callbacks = [ TelegramBotKerasCallback(log_every_epochs=1, account='parro') ]
@@ -188,7 +188,8 @@ class RecurrentRecommender(RecommenderBase):
         # fit on the data, dropping the index
         self.model.fit(x[train_indices,:,1:], y[train_indices], epochs=epochs, batch_size=self.batch_size,
                         #validation_data=(x_val[:,:,1:], y_val),
-                        callbacks=callbacks, class_weight=self.class_weights)
+                        callbacks=callbacks,
+                        class_weight=self.class_weights, sample_weight=self.sample_weights)
 
     def save(self, folderpath, suffix=''):
         """ Save the full state of the model, including:

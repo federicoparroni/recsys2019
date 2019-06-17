@@ -22,14 +22,16 @@ class RNNClassificationRecommender(RecurrentRecommender):
     """
     
     def __init__(self, dataset, input_shape, cell_type, num_recurrent_layers, num_recurrent_units, num_dense_layers,
-                use_generator=False, validation_split=0.15, class_weights=None, output_size=25, metrics=['accuracy', mrr],
+                use_generator=False, validation_split=0.15, class_weights=None, sample_weights=None, output_size=25,
+                metrics=['accuracy', mrr],
                 optimizer='rmsprop', loss='categorical_crossentropy', batch_size=64,
                 checkpoints_path=None, tensorboard_path=None):
         
         super().__init__(dataset=dataset, input_shape=input_shape, cell_type=cell_type, num_recurrent_layers=num_recurrent_layers,
                         num_recurrent_units=num_recurrent_units, num_dense_layers=num_dense_layers,
                         use_generator=use_generator, validation_split=validation_split, output_size=output_size,
-                        loss=loss, optimizer=optimizer, class_weights=class_weights, metrics=metrics, batch_size=batch_size,
+                        loss=loss, optimizer=optimizer, class_weights=class_weights, sample_weights=sample_weights, metrics=metrics,
+                        batch_size=batch_size,
                         checkpoints_path=checkpoints_path, tensorboard_path=tensorboard_path)
         
         self.name += '_class'
@@ -150,19 +152,22 @@ if __name__ == "__main__":
             rec_layers = int(input('Insert number of recurrent layers: '))
             units = int(input('Insert number of units per layer: '))
             dense_layers = int(input('Insert number of dense layers: '))
-            weights = menu.yesno_choice('Do you want to use class weights?', lambda: True, lambda: None)
+            weights = menu.yesno_choice('Do you want to use sample weights?', lambda: True, lambda: None)
             #tb_path = menu.yesno_choice('Do you want to enable Tensorboard?', lambda: 'recommenders/tensorboard', lambda: None)
 
         pad = menu.single_choice('Which dataset?', ['Padded 6','Padded 12'], [lambda: 6, lambda: 12])
         dataset = SequenceDatasetForClassification(f'dataset/preprocessed/cluster_recurrent/{mode}/dataset_classification_p{pad}')
         
         if weights is not None:
-            weights = dataset.get_class_weights()
+            weights = dataset.get_sample_weights()
         
         model = RNNClassificationRecommender(dataset, use_generator=False, cell_type=cell_type,
                                             input_shape=(dataset.rows_per_sample, 168),
                                             num_recurrent_layers=rec_layers, num_recurrent_units=units, optimizer='adam',
-                                            num_dense_layers=dense_layers, class_weights=weights)
+                                            num_dense_layers=dense_layers,
+                                            #class_weights=weights
+                                            sample_weights=weights
+                                            )
 
         return model
 
