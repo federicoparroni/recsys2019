@@ -429,12 +429,15 @@ class CatboostRanker(RecommenderBase):
             group_id=x.id.values[test_indices],
             cat_features=self.categorical_features
         )
-
         preds = list(self.ctb.predict(test_with_weights))
-
         test_indices = list(test_indices)
-        user_session_item = data.dataset_catboost_train(mode=self.mode, cluster=self.cluster).copy()
-        user_session_item = user_session_item[['user_id', 'session_id', 'item_id']]
+
+        if x.shape[0] == len(test_indices):
+            user_session_item = data.dataset_catboost_test(mode=self.mode, cluster=self.cluster).copy()
+        else:
+            user_session_item = data.dataset_catboost_train(mode=self.mode, cluster=self.cluster).copy()
+
+        user_session_item = user_session_item[['user_id', 'session_id', 'item_id', 'index']]
         user_session_item = user_session_item.loc[test_indices]
         print('Len of resulting df is {} \nLen of test indices list is {}\nLEN OF PREDS: {}'.format(len(user_session_item), len(test_indices), len(preds)))
         import time
