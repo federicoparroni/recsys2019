@@ -236,7 +236,6 @@ def get_batches(features, labels, batch_size):
     return iterator.get_next()
   return _train_input_fn, iterator_initializer_hook
 
-
 def batch_inputs(features, labels, batch_size):
     dataset = tf.data.Dataset.from_tensor_slices((features, labels))
     return dataset.batch(batch_size)
@@ -299,7 +298,7 @@ def train_and_eval():
   global _features, _labels, _features_vali, _labels_vali
   if (_features is None) or (_labels is None):
       print('caching data train')
-      _features, _labels = load_libsvm_data(FLAGS.train_path, FLAGS.list_size)
+      _features, _labeals = load_libsvm_data(FLAGS.train_path, FLAGS.list_size)
   if (_features_vali is None) or (_labels_vali is None):
       print('caching data test')
       _features_vali, _labels_vali = load_libsvm_data(FLAGS.vali_path,
@@ -317,7 +316,7 @@ def train_and_eval():
         loss=loss,
         global_step=tf.train.get_global_step(),
         learning_rate=FLAGS.learning_rate,
-        optimizer="Adam")
+        optimizer="Adagrad")
   #Adagrad
 
   best_copier = BestCheckpointCopier(
