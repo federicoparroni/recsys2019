@@ -44,10 +44,10 @@ class lightGBM(RecommenderBase):
         if _x_train is None:
             start = time()
             print('Loading data...\n')
-            _x_train = reduce_mem_usage(pd.read_csv(f'{_BASE_PATH}/x_train.csv'))
+            _x_train = pd.read_hdf(f'{_BASE_PATH}/x_train.hdf', key='df')
             _y_train = np.load(f'{_BASE_PATH}/y_train.npy')
             _group_train = np.load(f'{_BASE_PATH}/groups_train.npy')
-            _x_vali = reduce_mem_usage(pd.read_csv(f'{_BASE_PATH}/x_vali.csv'))
+            _x_vali = pd.read_hdf(f'{_BASE_PATH}/x_vali.hdf', key='df')
             _y_vali = np.load(f'{_BASE_PATH}/y_vali.npy')
             _group_test = np.load(f'{_BASE_PATH}/groups_vali.npy')
             print(f'data loaded in: {time() - start}\n')
@@ -186,12 +186,13 @@ class lightGBM(RecommenderBase):
     def get_optimize_params(mode, cluster, dataset_name):
         space = [
             Real(0.01, 0.15, name='learning_rate'),
-            Integer(6, 256, name='num_leaves'),
-            Real(0, 10, name='reg_lambda'),
-            Real(0, 10, name='reg_alpha'),
+            Integer(6, 128, name='num_leaves'),
+            Real(0, 0.8, name='reg_lambda'),
+            Real(0, 0.8, name='reg_alpha'),
             Real(0, 0.1, name='min_split_gain'),
             Real(0, 0.1, name='min_child_weight'),
             Integer(2, 45, name='min_child_samples'),
+            #Integer(1, 300, name='min_data_in_leaf')
         ]
 
         def get_mrr(arg_list):
@@ -207,6 +208,7 @@ class lightGBM(RecommenderBase):
                 'learning_rate': learning_rate,
                 'subsample_for_bin': 200000,
                 'class_weights': None,
+                #'min_data_in_leaf': min_data_in_leaf,
                 'min_split_gain': min_split_gain,
                 'min_child_weight': min_child_weight,
                 'min_child_samples': min_child_samples,
@@ -229,7 +231,8 @@ class lightGBM(RecommenderBase):
                               f'params:\n'
                               f'num_iteration:{best_it}, learning_rate:{learning_rate}, num_leaves:{num_leaves}, '
                               f'reg_lambda{reg_lambda}, reg_alpha:{reg_alpha} , min_split_gain:{min_split_gain}'
-                              f'min_child_weight:{min_child_weight}, min_child_samples:{min_child_samples}', account='edo')
+                              f'min_child_weight:{min_child_weight}, min_child_samples:{min_child_samples},'
+                              , account='edo')
             return -mrr
         return space, get_mrr
 
@@ -238,20 +241,21 @@ class lightGBM(RecommenderBase):
 if __name__ == '__main__':
     params_dict = {
         'boosting_type':'gbdt',
-        'num_leaves': 80,
+        'num_leaves': 21,
         'max_depth': -1,
         'learning_rate': 0.1,
-        'n_estimators': 100,
+        'n_estimators': 1000,
         'subsample_for_bin': 200000,
         'class_weights': None,
         'min_split_gain': 0.0,
         'min_child_weight': 0.0,
         'min_child_samples': 20,
+        #'min_data_in_leaf':1,
         'subsample':1.0,
         'subsample_freq': 0,
         'colsample_bytree': 1,
-        'reg_alpha': 0.5,
-        'reg_lambda': 0.5,
+        'reg_alpha': 0,
+        'reg_lambda': 0,
         'random_state': None,
         'n_jobs': -1,
         'silent': False,
@@ -260,7 +264,8 @@ if __name__ == '__main__':
         'print_every': 1000,
         'first_only': True
     }
-    model = lightGBM(mode='local', cluster='no_cluster', dataset_name='prova', params_dict=params_dict)
+    dataset_name = input('dataset name: \n')
+    model = lightGBM(mode='local', cluster='no_cluster', dataset_name=dataset_name, params_dict=params_dict)
     model.validate()
     #model.plot_features_importance()
 
