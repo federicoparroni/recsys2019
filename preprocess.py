@@ -105,6 +105,9 @@ def create_full_df(custom_preprocess_function):
     train_df, test_df = custom_preprocess_function(data.original_train_df().reset_index(drop=True), \
                                                         data.original_test_df().reset_index(drop=True))
 
+    train_df = train_df.reset_index(drop=True)
+    test_df = test_df.reset_index(drop=True)
+
     # TEST
     len_original_train = train_df.shape[0]
     compressed = menu.yesno_choice(title='Do you want the compressed version? (no for the original full)',
@@ -377,10 +380,10 @@ def preprocess():
     # pick your custom preprocessing function
 
     # original
-    funct = no_custom_preprocess_function
+    # funct = no_custom_preprocess_function
     
     # unroll
-    # funct = unroll_custom_preprocess_function
+    funct = unroll_custom_preprocess_function
 
     check_folder(data.FULL_PATH)
     if os.path.isfile(data.FULL_PATH):
