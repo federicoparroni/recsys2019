@@ -50,3 +50,5 @@ scores/
 *.html
 
 dataset_backup/*
+
+dataset_unrolled/*
