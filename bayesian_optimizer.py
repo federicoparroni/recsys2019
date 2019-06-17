@@ -17,8 +17,13 @@ class OptimizerWrapper:
 
 
 if __name__ == '__main__':
-    mode=single_choice('insert mode:', ['local', 'small'])
+    opt_technique = single_choice('optimization technique', ['bayesian', 'random'])
+    mode = single_choice('insert mode:', ['local', 'small'])
     cluster = single_choice('insert cluster', ['no_cluster'])
     dataset_name = input('insert_the_dataset_name')
     opt = OptimizerWrapper(lightGBM, mode=mode, cluster=cluster, dataset_name=dataset_name)
-    opt.optimize_random()
+    if opt_technique == 'bayesian':
+        opt.optimize_bayesian()
+    else:
+        opt.optimize_random()
+
