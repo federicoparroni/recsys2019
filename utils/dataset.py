@@ -517,11 +517,43 @@ class DatasetXGBoost(DatasetBase):
         return y_train
 
     def load_Xtest(self):
-        X_test, _, _ = data.dataset_xgboost_test(mode=self.mode, cluster=self.cluster, kind=self.kind)
+        X_test, _, _, _ = data.dataset_xgboost_test(mode=self.mode, cluster=self.cluster, kind=self.kind)
         return X_test
 
     def load_group_train(self):
         _, _, groups, _, _ = data.dataset_xgboost_train(mode=self.mode, cluster=self.cluster, kind=self.kind)
+        g = [list(np.ones(groups[i], dtype=np.int)*i) for i in range(len(groups))]
+        g = [item for sublist in g for item in sublist]
+        return np.array(g)
+
+
+class DatasetLightGBM(DatasetBase):
+
+    def __init__(self, mode, cluster, dataset_name):
+        super(DatasetLightGBM, self).__init__()
+        self.mode = mode
+        self.cluster = cluster
+        self.dataset_name = dataset_name
+        self._load_data()
+
+    def _load_data(self):
+        _BASE_PATH = f'dataset/preprocessed/lightGBM/{self.cluster}/{self.mode}/{self.dataset_name}'
+        self._x_train = pd.read_hdf(f'{_BASE_PATH}/x_train.hdf', key='df')
+        self._y_train = np.load(f'{_BASE_PATH}/y_train.npy')
+        self._group_train = np.load(f'{_BASE_PATH}/groups_train.npy')
+        self._x_vali = pd.read_hdf(f'{_BASE_PATH}/x_vali.hdf', key='df')
+
+    def load_Xtrain(self):
+        return self._x_train
+
+    def load_Ytrain(self):
+        return self._y_train
+
+    def load_Xtest(self):
+        return self._x_vali
+
+    def load_group_train(self):
+        groups = self._group_train
         g = [list(np.ones(groups[i], dtype=np.int)*i) for i in range(len(groups))]
         g = [item for sublist in g for item in sublist]
         return np.array(g)
@@ -537,7 +569,7 @@ class DatasetCatboost(DatasetBase):
     def load_Xtrain(self):
         train_df = data.dataset_catboost_train(mode=self.mode, cluster=self.cluster)
         # Creating univoque id for each user_id / session_id pair
-        train_df = train_df.sort_values(by=['user_id', 'session_id'])
+
         train_df = train_df.assign(
             id=(train_df['user_id'] + '_' + train_df['session_id']).astype('category').cat.codes)
 
@@ -556,11 +588,8 @@ class DatasetCatboost(DatasetBase):
 
         dict_session_trg_idx = dict(zip(sessi_target, target_indices))
 
-        test_df['trg_idx'] = test_df.apply(
+        test_df['id'] = test_df.apply(
             lambda row: dict_session_trg_idx.get(row.session_id), axis=1)
-
-        target_indices = data.target_indices(self.mode, self.cluster)
-        target_indices.sort()
 
         print('data for test ready')
 
@@ -568,6 +597,31 @@ class DatasetCatboost(DatasetBase):
 
         return test_feat_df
 
+
+    def load_group_train(self):
+        return None
+
+
+class DatasetXGBoostClassifier(DatasetBase):
+
+    def __init__(self, mode, cluster):
+        super(DatasetXGBoostClassifier, self).__init__()
+        self.mode = mode
+        self.cluster = cluster
+
+    def load_Xtrain(self):
+        train = data.dataset_xgboost_classifier_train(mode=self.mode, cluster=self.cluster)
+        train = train.drop(["user_id", "session_id", "label"], axis=1)
+        return train.values.reshape((-1, len(train.columns)))
+
+    def load_Ytrain(self):
+        train = data.dataset_xgboost_classifier_train(mode=self.mode, cluster=self.cluster)
+        return train["label"].values
+
+    def load_Xtest(self):
+        test = data.dataset_xgboost_classifier_test(mode=self.mode, cluster=self.cluster)
+        test = test.drop(["user_id", "session_id", "label"], axis=1)
+        return test.values.reshape((-1, len(test.columns)))
 
     def load_group_train(self):
         return None

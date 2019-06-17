@@ -73,9 +73,9 @@ class KFoldScorer(object):
         # save scores
         if save_folder is not None:
             check_folder(save_folder)
-            filepath = os.path.join(save_folder, model.name + '.csv')
+            filepath = os.path.join(save_folder, model.name + '.csv.gz')
             print('Saving scores to', filepath, end=' ', flush=True)
-            self.scores.to_csv(filepath, index=False)
+            self.scores.to_csv(filepath, index=False, compression='gzip')
             print('Done!', flush=True)
         
         return self.scores

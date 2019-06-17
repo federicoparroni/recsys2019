@@ -43,9 +43,7 @@ from extract_features.personalized_top_pop import PersonalizedTopPop
 from extract_features.platform_reference_percentage_of_clickouts import PlatformReferencePercentageOfClickouts
 from extract_features.platform_reference_percentage_of_interactions import PlatformReferencePercentageOfInteractions
 from extract_features.platform_session import PlatformSession
-
 #from extract_features.price_info_session import PriceInfoSession
-
 from extract_features.price_quality import PriceQuality
 from extract_features.ref_pop_after_first_position import RefPopAfterFirstPosition
 from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
@@ -57,9 +55,7 @@ from extract_features.session_num_filter_sel import SessionNumFilterSel
 from extract_features.session_num_inter_item_image import SessionNumInterItemImage
 from extract_features.session_num_not_numeric import SessionNumNotNumeric
 from extract_features.session_sort_order_when_clickout import SessionSortOrderWhenClickout
-
 from extract_features.statistics_pos_interacted import StatisticsPosInteracted
-
 from extract_features.statistics_time_from_last_action import StatisticsTimeFromLastAction
 from extract_features.time_per_impression import TimePerImpression
 from extract_features.times_impression_appeared_in_clickouts_session import TimesImpressionAppearedInClickoutsSession
@@ -75,13 +71,14 @@ from extract_features.user_feature import UserFeature
 
 import utils.menu as menu
 
-def create_and_save_feature(feature_class, mode, cluster):
-    feature = feature_class(mode, cluster)
-    feature.save_feature(overwrite_if_exists=False)
+def create_and_save_feature(feature_class):
+    print(f'creating {str(feature_class)}')
+    feature = feature_class('small', 'no_cluster')
+    feature.save_feature(overwrite_if_exists=True)
 
 if __name__ == '__main__':
-    mode = menu.mode_selection()
-    cluster = menu.cluster_selection()
+    #mode = menu.mode_selection()
+    #cluster = menu.cluster_selection()
 
     features_array = [
         StatisticsPosInteracted,
@@ -94,11 +91,8 @@ if __name__ == '__main__':
         AdjustedPlatformReferencePercentageOfInteractions,
         AvgPriceInteractions,
         ChangeImpressionOrderPositionInSession,
-        ChangeOfSortOrderBeforeCurrent,
         CitySession,
         CitySessionPopularsOnly,
-        ClassifierParro,
-        ClassifierPiccio,
         CountrySearchedSession,
         DayOfWeekAndMomentInDay,
         FractionPosPrice,
@@ -157,11 +151,14 @@ if __name__ == '__main__':
     import multiprocessing as mp
 
     # Step 1: Init multiprocessing.Pool()
-    pool = mp.Pool(mp.cpu_count())
+    #pool = mp.Pool(mp.cpu_count())
+    pool = mp.Pool(32)
 
     # Step 2: `pool.apply` the `howmany_within_range()`
-    results = [pool.apply(create_and_save_feature,
-                          args=(feature_class, mode, cluster)) for feature_class in features_array]
+    pool.map(create_and_save_feature, [f for f in features_array])
+
+    pool.close()
+
 
 
 
