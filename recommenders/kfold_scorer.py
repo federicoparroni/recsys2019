@@ -85,7 +85,7 @@ if __name__ == "__main__":
     from utils.dataset import DatasetScoresClassification
     from recommenders.recurrent.RNNClassificationRecommender import RNNClassificationRecommender
 
-    dataset = DatasetScoresClassification(f'dataset/preprocessed/cluster_recurrent/small/dataset_classification_p6')
+    dataset = DatasetScoresClassification(f'dataset/preprocessed/cluster_recurrent/full/dataset_classification_p12')
 
     init_params = {
         'dataset': dataset,
@@ -94,7 +94,8 @@ if __name__ == "__main__":
         'num_recurrent_layers': 2,
         'num_recurrent_units': 64,
         'num_dense_layers': 2,
-        'class_weights': dataset.get_class_weights(),
+        #'class_weights': dataset.get_class_weights(),
+        'sample_weights': dataset.get_sample_weights()
     }
     fit_params = {'epochs': 100}
 
