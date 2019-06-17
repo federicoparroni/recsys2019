@@ -51,7 +51,7 @@ from extract_features.session_device import SessionDevice
 from extract_features.session_filters_active_when_clickout import SessionFilterActiveWhenClickout
 from extract_features.session_length import SessionLength
 from extract_features.session_sort_order_when_clickout import SessionSortOrderWhenClickout
-from extract_features.time_from_last_action_before_clk import TimeFromLastActionBeforeClk
+#from extract_features.time_from_last_action_before_clk import TimeFromLastActionBeforeClk
 from extract_features.time_per_impression import TimePerImpression
 from extract_features.times_impression_appeared_in_clickouts_session import TimesImpressionAppearedInClickoutsSession
 from extract_features.timing_from_last_interaction_impression import TimingFromLastInteractionImpression
@@ -169,6 +169,10 @@ def create_lightGBM_dataset(mode, cluster, features_array, dataset_name):
         groups = _create_groups(df)
         np.save(f'{_BASE_PATH}/groups_{mode}', groups)
         print(f'groups_{mode} saved at: {_BASE_PATH}/groups_{mode}.npy')
+
+        user_session_item = df[['user_id', 'session_id', 'item_id']]
+        user_session_item.to_csv(f'{_BASE_PATH}/user_session_item_{mode}.csv', index=False)
+        print(f'user_session_item_{mode} saved at: {_BASE_PATH}/user_session_item_{mode}.csv')
 
     # base save path
     _BASE_PATH = f'dataset/preprocessed/lightGBM/{cluster}/{mode}/{dataset_name}'

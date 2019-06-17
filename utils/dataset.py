@@ -506,6 +506,40 @@ class DatasetXGBoost(DatasetBase):
         return np.array(g)
 
 
+class DatasetLightGBM(DatasetBase):
+
+    def __init__(self, mode, cluster, dataset_name):
+        super(DatasetLightGBM, self).__init__()
+        self.mode = mode
+        self.cluster = cluster
+        self.dataset_name = dataset_name
+        self._load_data()
+
+    def _load_data(self):
+        _BASE_PATH = f'dataset/preprocessed/lightGBM/{self.cluster}/{self.mode}/{self.dataset_name}'
+        self._x_train = pd.read_csv(f'{_BASE_PATH}/x_train.csv')
+        self._y_train = np.load(f'{_BASE_PATH}/y_train.npy')
+        self._group_train = np.load(f'{_BASE_PATH}/groups_train.npy')
+        self.user_session_item_train = pd.read_csv(f'{_BASE_PATH}/user_session_item_train.csv')
+        self._x_vali = pd.read_csv(f'{_BASE_PATH}/x_vali.csv')
+        self.user_session_item_test = pd.read_csv(f'{_BASE_PATH}/user_session_item_test.csv')
+
+    def load_Xtrain(self):
+        return self._x_train
+
+    def load_Ytrain(self):
+        return self._y_train
+
+    def load_Xtest(self):
+        return self._x_vali
+
+    def load_group_train(self):
+        groups = self._group_train
+        g = [list(np.ones(groups[i], dtype=np.int)*i) for i in range(len(groups))]
+        g = [item for sublist in g for item in sublist]
+        return np.array(g)
+
+
 class DatasetCatboost(DatasetBase):
 
     def __init__(self, mode, cluster):

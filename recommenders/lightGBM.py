@@ -47,18 +47,22 @@ class lightGBM(RecommenderBase):
             _x_train = reduce_mem_usage(pd.read_csv(f'{_BASE_PATH}/x_train.csv'))
             _y_train = np.load(f'{_BASE_PATH}/y_train.npy')
             _group_train = np.load(f'{_BASE_PATH}/groups_train.npy')
+            user_session_item_train = pd.read_csv(f'{_BASE_PATH}/user_session_item_train.csv')
             _x_vali = reduce_mem_usage(pd.read_csv(f'{_BASE_PATH}/x_vali.csv'))
             _y_vali = np.load(f'{_BASE_PATH}/y_vali.npy')
             _group_test = np.load(f'{_BASE_PATH}/groups_vali.npy')
             print(f'data loaded in: {time() - start}\n')
+            user_session_item_test = pd.read_csv(f'{_BASE_PATH}/user_session_item_test.csv')
 
         self.x_train = _x_train
         self.y_train = _y_train
         self.groups_train = _group_train
+        self.user_session_item_train = user_session_item_train
 
         self.x_vali = _x_vali
         self.y_vali = _y_vali
         self.groups_vali = _group_test
+        self.user_session_item_test = user_session_item_test
 
 
     def __init__(self, mode, cluster, dataset_name, params_dict):
@@ -233,7 +237,18 @@ class lightGBM(RecommenderBase):
             return -mrr
         return space, get_mrr
 
+    def fit_cv(self, x, y, groups, train_indices, test_indices, **fit_params):
+        X_train = x.loc[train_indices]
+        y_train = y[train_indices]
+        _, group = np.unique(groups[train_indices], return_counts=True)
+        self.model.fit(X_train, y_train, group=group)
 
+    def get_scores_cv(self, x, groups, test_indices):
+        X_test = x[test_indices, :]
+        preds = list(self.model.predict(X_test))
+        user_session_item = self.user_session_item_train.loc[test_indices]
+        user_session_item['score_lightgbm'] = preds
+        return user_session_item
 
 if __name__ == '__main__':
     params_dict = {
