@@ -86,7 +86,7 @@ if __name__ == '__main__':
     mode = menu.mode_selection()
     cluster = menu.cluster_selection()
 
-    c = PersonalizedTopPop(mode, cluster)
+    c = PersonalizedTopPopPerSession(mode, cluster)
 
     print('Creating {} for {} {}'.format(c.name, c.mode, c.cluster))
     c.save_feature()
