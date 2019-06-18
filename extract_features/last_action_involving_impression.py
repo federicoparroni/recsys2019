@@ -20,8 +20,9 @@ class LastActionInvolvingImpression(FeatureBase):
 
     def __init__(self, mode, cluster='no_cluster'):
         name = 'last_action_involving_impression'
+        columns_to_onehot = [('last_action_involving_impression', 'single')]
         super(LastActionInvolvingImpression, self).__init__(
-            name=name, mode=mode, cluster=cluster)
+            name=name, mode=mode, cluster=cluster, columns_to_onehot=columns_to_onehot)
 
     def extract_feature(self):
         train = data.train_df(mode=self.mode, cluster=self.cluster)

@@ -226,7 +226,25 @@ class PastFutureSessionFeatures(FeatureBase):
         return df
 
     def adjust_features(self, feat, label):
-        missing_user_sess = list(set(label.session_id) - set(feat.session_id))
+        dup_sessions = ['2480cd59859f7',
+                        '2a181b2125efe',
+                        '35e9a348c9d07',
+                        '48880df1f1ac9',
+                        '54418e6c20dd6',
+                        '5ac1377bb44ec',
+                        '5ea73da580d41',
+                        '711fc00536723',
+                        '7e5ec0a512233',
+                        'a14268acc47ab',
+                        'a7255a848e9df',
+                        'a940556420c16',
+                        'a9bd5353ae089',
+                        'b76440eac54b3',
+                        'd8198666e22d6',
+                        'e6eb492282abf']
+        feat_no_sess_dup = feat[~feat.isin(dup_sessions)]
+
+        missing_user_sess = list(set(label.session_id) - set(feat_no_sess_dup.session_id))
         print('Missing sessions in user_features = {}'.format(len(missing_user_sess)))
 
         label_to_attach = label[label.session_id.isin(missing_user_sess)]
@@ -238,12 +256,50 @@ class PastFutureSessionFeatures(FeatureBase):
 
         # Add empty features to label
         for f in list(self.features.keys()):
-            label_to_attach[f] = [-1]
+            label_to_attach[f] = -1
 
         # SET empty value as string for categorical features
         label_to_attach['past_closest_action_involving_impression'] = 'not_present'
         label_to_attach['future_closest_action_involving_impression'] = 'not_present'
 
+        feat = feat_no_sess_dup
+        # Remove unuseful session from feat
+        duplicate_session_to_rem = list(set(feat.session_id) - set(label.session_id))
+
+        print('Sessions present in userfeatures not present in label = {}'.format(len(duplicate_session_to_rem)))
+        user_feat_correct = feat[~feat.session_id.isin(duplicate_session_to_rem)]
+
+        user_feat_correct = pd.concat([user_feat_correct, label_to_attach], ignore_index=True)
+        user_feat_correct = user_feat_correct.drop_duplicates()
+
+        print('FINAL: len of user_feat: {}\nlen of label_feat: {}'.format(len(user_feat_correct), len(label)))
+        print(len(list(user_feat_correct.item_id)))
+        print(len(list(label.item_id)))
+        if list(user_feat_correct.item_id).sort() == list(label.item_id).sort():
+            print('Correct items as in label')
+        else:
+            print('WARNING: error nor corrected!   \n missing items:')
+            print(len(label), len(user_feat_correct))
+
+        user_feat_us = list(user_feat_correct.session_id)
+        user_feat_it = list(user_feat_correct.item_id)
+        label_us = list(label.session_id)
+        label_it = list(label.item_id)
+        print('CHECK ROWS MORE')
+        user_tup = set(zip(user_feat_us, user_feat_it))
+        label_tup = set(zip(label_us, label_it))
+        diff = user_tup - label_tup
+        print(diff)
+        diff2 = label_tup - user_tup
+        print(diff2)
+        print(len(label_tup))
+        print(len(user_tup))
+        return user_feat_correct
+
+
+        # SET empty value as string for categorical features
+        label_to_attach['past_closest_action_involving_impression'] = 'not_present'
+        label_to_attach['future_closest_action_involving_impression'] = 'not_present'
 
         # Remove unuseful session from feat
         duplicate_session_to_rem = list(set(feat.session_id) - set(label.session_id))
