@@ -4,9 +4,6 @@ from extract_features.feature_base import FeatureBase
 import data
 import pandas as pd
 from tqdm.auto import tqdm
-import random
-
-from preprocess_utils.create_user_features_from_full import extract_features_from_full
 from preprocess_utils.last_clickout_indices import expand_impressions
 from preprocess_utils.last_clickout_indices import find as find_last_clickout
 
@@ -125,13 +122,10 @@ class PastFutureSessionFeatures(FeatureBase):
         Must distinsuish between past sessions and future sessions, and for each compute same features.
         This will help understand the moves of the user through the impressions
         """
-        if self.mode == 'full':
-            df = data.full_df()
-        else:
-            train_df = data.train_df(mode=self.mode, cluster=self.cluster)
-            test_df = data.test_df(mode=self.mode, cluster=self.cluster)
-            test_df = test_df.fillna(0)
-            df = pd.concat([train_df, test_df])
+        train_df = data.train_df(mode=self.mode, cluster=self.cluster)
+        test_df = data.test_df(mode=self.mode, cluster=self.cluster)
+        test_df = test_df.fillna(0)
+        df = pd.concat([train_df, test_df])
 
         df.sort_values(by=['user_id', 'session_id', 'timestamp'], inplace=True)
         df = df.reset_index(drop=True)
@@ -224,27 +218,84 @@ class PastFutureSessionFeatures(FeatureBase):
             print(key, len(self.features[key]))
             df[key] = self.features[key]
 
+        print('Correcting feature: add duplicate sessions with underscore...')
+        label_feat = pd.read_csv('dataset/preprocessed/{}/{}/feature/impression_label/features.csv'.format(self.cluster, self.mode))
+        df = self.adjust_features(df, label_feat)
+
         df.drop(['index', 'reference'], axis=1, inplace=True)
         return df
 
+    def adjust_features(self, feat, label):
+        missing_user_sess = list(set(label.session_id) - set(feat.session_id))
+        print('Missing sessions in user_features = {}'.format(len(missing_user_sess)))
+
+        label_to_attach = label[label.session_id.isin(missing_user_sess)]
+        label_to_attach = label_to_attach[['user_id', 'session_id', 'item_id']]
+        print('Rows to attach: {}'.format(len(label_to_attach)))
+
+        if len(label_to_attach) == 0:
+            return feat
+
+        # Add empty features to label
+        for f in list(self.features.keys()):
+            label_to_attach[f] = [-1]
+
+        # SET empty value as string for categorical features
+        label_to_attach['past_closest_action_involving_impression'] = 'not_present'
+        label_to_attach['future_closest_action_involving_impression'] = 'not_present'
+
+
+        # Remove unuseful session from feat
+        duplicate_session_to_rem = list(set(feat.session_id) - set(label.session_id))
+
+        print('Sessions present in userfeatures not present in label = {}'.format(len(duplicate_session_to_rem)))
+        user_feat_correct = feat[~feat.session_id.isin(duplicate_session_to_rem)]
+
+        user_feat_correct = pd.concat([user_feat_correct, label_to_attach], ignore_index=True)
+
+        print('FINAL: len of user_feat: {}\nlen of label_feat: {}'.format(len(user_feat_correct), len(label)))
+
+        if list(user_feat_correct.item_id).sort() == list(label.item_id).sort():
+            print('Correct items as in label')
+        else:
+            print('WARNING: error nor corrected!   \n missing items:')
+            print( len(label), len(user_feat_correct))
+
+
+
+        return user_feat_correct
+
     def add_empty_features(self, impr, mode='both'):
+
+        lenImpr = len(impr)
         future_features = []
         past_features = []
         for key in self.features.keys():
-            if 'future_' in key:
+            if 'futur' == key[:5]:
                 future_features += [key]
-            elif 'past_' in key:
+            elif 'past_' == key[:5]:
                 past_features += [key]
             else:
                 print('ERROR: feature {} not belonging to any of the present'.format(key))
                 return
 
+        # Not considering categorical: adding a string value later
+        past_features.remove('past_closest_action_involving_impression')
+        future_features.remove('future_closest_action_involving_impression')
+
         if mode == 'past' or mode == 'both':
             for key in past_features:
-                self.features[key] += [-1] * len(impr)
+                self.features[key] += [-1] * lenImpr
+
+            self.features['past_closest_action_involving_impression'] += ['not_present'] * lenImpr
+
         if mode == 'future' or mode == 'both':
             for key in future_features:
-                self.features[key] += [-1] * len(impr)
+                self.features[key] += [-1] * lenImpr
+
+            self.features['future_closest_action_involving_impression'] += ['not_present'] * lenImpr
+
+
 
     def compute_past_sessions_feat(self, df, impressions, closest_tm):
 
