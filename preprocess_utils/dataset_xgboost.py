@@ -22,7 +22,7 @@ from extract_features.impression_rating import ImpressionRating
 from extract_features.impression_rating_numeric import ImpressionRatingNumeric
 from extract_features.impression_stars_numeric import ImpressionStarsNumeric
 from extract_features.label import ImpressionLabel
-from extract_features.last_action_involving_impression import LastInteractionInvolvingImpression
+from extract_features.last_action_involving_impression import LastActionInvolvingImpression
 from extract_features.last_clickout_filters_satisfaction import LastClickoutFiltersSatisfaction
 from extract_features.last_steps_before_clickout import StepsBeforeLastClickout
 from extract_features.lazy_user import LazyUser
@@ -102,6 +102,45 @@ def create_dataset(mode, cluster, class_weights=False):
     # training
     kind = single_choice(['1', '2', '3'], ['kind1', 'kind2', 'kind3'])
     if cluster == 'no_cluster':
+        if kind == 'kind2':
+            features_array = [
+            (LazyUser, False),
+            PriceQuality,
+            PlatformFeaturesSimilarity,
+            PersonalizedTopPop,
+            TimePerImpression,
+            DayOfWeekAndMomentInDay,
+            LastClickoutFiltersSatisfaction,
+            FrenzyFactorSession,
+            ChangeImpressionOrderPositionInSession,
+            User2Item,
+            PlatformSession,
+            PlatformReferencePercentageOfInteractions,
+            PercClickPerImpressions,
+            PlatformReferencePercentageOfClickouts,
+            NumImpressionsInClickout,
+            NumTimesItemImpressed,
+            LocationReferencePercentageOfClickouts,
+            LocationReferencePercentageOfInteractions,
+            StepsBeforeLastClickout,
+            ImpressionStarsNumeric,
+            LastActionBeforeClickout,
+            TopPopPerImpression,
+            TopPopInteractionClickoutPerImpression,
+            ImpressionRatingNumeric,
+            ActionsInvolvingImpressionSession,
+            ImpressionLabel,
+            ImpressionPriceInfoSession,
+            TimingFromLastInteractionImpression,
+            TimesUserInteractedWithImpression,
+            ImpressionPositionSession,
+            LastActionInvolvingImpression,
+            SessionDevice,
+            SessionSortOrderWhenClickout,
+            MeanPriceClickout,
+            PriceInfoSession,
+            SessionLength,
+            TimesImpressionAppearedInClickoutsSession]
         if kind == 'kind1':
             features_array = [ActionsInvolvingImpressionSession,
                               (ImpressionPositionSession, False),
@@ -208,7 +247,7 @@ def create_dataset(mode, cluster, class_weights=False):
     group = create_groups(test_df)
     print(len(group))
     np.save(join(bp, 'group_test'), group)
-    
+
     print('test groups saved')
 
     print('test data completed')

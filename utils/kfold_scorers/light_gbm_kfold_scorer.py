@@ -13,10 +13,10 @@ if __name__ == "__main__":
 
     params_dict = {
         'boosting_type':'gbdt',
-        'num_leaves': 10,
+        'num_leaves': 21,
         'max_depth': -1,
         'learning_rate': 0.1,
-        'n_estimators': 10,
+        'n_estimators': 774,
         'subsample_for_bin': 200000,
         'class_weights': None,
         'min_split_gain': 0.0,

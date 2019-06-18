@@ -113,14 +113,13 @@ class BestCheckpointCopier(tf.estimator.Exporter):
           pred = np.array(list(estimator.predict(lambda: batch_inputs(self.test_x, self.test_y, batch_size))))
           pred_train = np.array(list(estimator.predict(lambda: batch_inputs(self.x, self.y, batch_size))))
 
+          pred_name_train = 'train_predictions_{}_learning_rate_{}_train_batch_size_{}_hidden_layers_dim_{}_num_train_steps_{}' \
+          '_dropout_{}_global_steps_{}_{}_mrr_{}'.format(self.params['loss'], self.params['learning_rate'], self.params['train_batch_size'], self.params['hidden_layer_dims'],
+          self.params['num_train_steps'], self.params['dropout_rate'], global_step, self.params['group_size'], eval_result_f)
 
-          pred_name_train = f'train_predictions_{self.params.loss}_learning_rate_{self.params.learning_rate}_train_batch_size_{self.params.train_batch_size}_' \
-            f'hidden_layers_dim_{self.params.hidden_layer_dims}_num_train_steps_{self.params.num_train_steps}' \
-            f'_dropout_{self.params.dropout_rate}_global_steps_{global_step}_{self.params.group_size}_mrr_{eval_result_f}'
-          pred_name = f'predictions_{self.params.loss}_learning_rate_{self.params.learning_rate}_train_batch_size_{self.params.train_batch_size}_' \
-            f'hidden_layers_dim_{self.params.hidden_layer_dims}_num_train_steps_{self.params.num_train_steps}' \
-            f'_dropout_{self.params.dropout_rate}_global_steps_{global_step}_{self.params.group_size}_mrr_{eval_result_f}'
-
+          pred_name = 'predictions_{}_learning_rate_{}_train_batch_size_{}_hidden_layers_dim_{}_num_train_steps_{}' \
+          '_dropout_{}_global_steps_{}_{}_mrr_{}'.format(self.params['loss'], self.params['learning_rate'], self.params['train_batch_size'], self.params['hidden_layer_dims'],
+          self.params['num_train_steps'], self.params['dropout_rate'], global_step, self.params['group_size'], eval_result_f)
 
           np.save(f'{self.save_path}/{pred_name_train}', pred_train)
           np.save(f'{self.save_path}/{pred_name}', pred)
@@ -137,9 +136,12 @@ class BestCheckpointCopier(tf.estimator.Exporter):
     step = eval_result['global_step']
     score = eval_result['metric/mrr']
     checkpoint = Checkpoint(path=checkpoint_path, score=score)
-    HERA.send_message(f'mode: {self.mode}\n step:{step}\nTFRANKING mrr is: {score}\n dropout:{self.params.dropout_rate}\n'
-                      f'learning_rate:{self.params.learning_rate}\n train_batch_size:{self.params.train_batch_size}\n'
-                      f'hidden_layer_dims:{self.params.hidden_layer_dims}\n loss:{self.params.loss}\n group_size:{self.params.group_size}')
+
+
+    HERA.send_message('mode: {}\n step:{}\nTFRANKING mrr is: {}\n dropout:{}\n'
+                      'learning_rate:{}\n train_batch_size:{}\n'
+                      'hidden_layer_dims:{}\n loss:{}\n group_size:{}'.format(self.mode, step, score, self.params['dropout_rate'], self.params['learning_rate'], self.params['train_batch_size'],
+    self.params['hidden_layer_dims'], self.params['loss'], self.params['group_size']))
     if self._shouldKeep(checkpoint):
       self._keepCheckpoint(checkpoint)
 
