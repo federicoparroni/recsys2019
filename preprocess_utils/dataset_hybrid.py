@@ -31,7 +31,7 @@ def create_dataset(mode, cluster, class_weights=False):
     # training
     kind = single_choice(['1', '2', '3'], ['kind1', 'kind2', 'kind3'])
     if cluster == 'no_cluster':
-        if kind == 'kind1':
+        if kind == 'kind3':
             features_array = [
                               (ImpressionPositionSession, False),
                               ImpressionLabel,

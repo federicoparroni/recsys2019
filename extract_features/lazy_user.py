@@ -15,8 +15,7 @@ class LazyUser(FeatureBase):
     def __init__(self, mode, cluster='no_cluster'):
         name = 'lazy_user'
         super(LazyUser, self).__init__(
-            name=name, mode=mode, cluster=cluster, columns_to_onehot=[('max_pos_interacted', 'single'),
-                                                                      ('last_pos_interacted', 'single')])
+            name=name, mode=mode, cluster=cluster)
 
     def extract_feature(self):
 

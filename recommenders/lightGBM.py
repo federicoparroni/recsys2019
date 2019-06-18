@@ -45,25 +45,25 @@ class lightGBM(RecommenderBase):
         if _x_train is None:
             start = time()
             print('Loading data...\n')
-            _x_train = pd.read_hdf(f'{_BASE_PATH}/x_train.hdf', key='df')
+            _x_train = pd.read_hdf(f'{_BASE_PATH}/x_train.hdf', key='df').replace(to_replace=-1, value=np.nan)
             _y_train = np.load(f'{_BASE_PATH}/y_train.npy')
             _group_train = np.load(f'{_BASE_PATH}/groups_train.npy')
-            _user_session_item_train = pd.read_csv(f'{_BASE_PATH}/user_session_item_train.csv')
-            _x_vali = pd.read_hdf(f'{_BASE_PATH}/x_vali.hdf', key='df')
+            #_user_session_item_train = pd.read_csv(f'{_BASE_PATH}/user_session_item_train.csv')
+            _x_vali = pd.read_hdf(f'{_BASE_PATH}/x_vali.hdf', key='df').replace(to_replace=-1, value=np.nan)
             _y_vali = np.load(f'{_BASE_PATH}/y_vali.npy')
             _group_test = np.load(f'{_BASE_PATH}/groups_vali.npy')
             print(f'data loaded in: {time() - start}\n')
-            _user_session_item_test = pd.read_csv(f'{_BASE_PATH}/user_session_item_vali.csv')
+            #_user_session_item_test = pd.read_csv(f'{_BASE_PATH}/user_session_item_vali.csv')
 
         self.x_train = _x_train
         self.y_train = _y_train
         self.groups_train = _group_train
-        self.user_session_item_train = _user_session_item_train
+        #self.user_session_item_train = _user_session_item_train
 
         self.x_vali = _x_vali
         self.y_vali = _y_vali
         self.groups_vali = _group_test
-        self.user_session_item_test = _user_session_item_test
+        #self.user_session_item_test = _user_session_item_test
 
 
     def __init__(self, mode, cluster, dataset_name, params_dict):
@@ -102,7 +102,7 @@ class lightGBM(RecommenderBase):
         # initialize the model
         self.model.fit(self.x_train, self.y_train, group=self.groups_train, eval_set=[(self.x_vali, self.y_vali)],
                   eval_group=[self.groups_vali], eval_metric=_mrr, eval_names=['validation_set'],
-                  early_stopping_rounds=200, verbose=50, callbacks=[eval_callback])
+                  early_stopping_rounds=200, verbose=1, callbacks=[eval_callback])
 
         mrr = self.eval_res['validation_set']['MRR'][self.model.booster_.best_iteration - 1]
 
@@ -191,19 +191,18 @@ class lightGBM(RecommenderBase):
     def get_optimize_params(mode, cluster, dataset_name):
         space = [
             Real(0.01, 0.15, name='learning_rate'),
-            Integer(6, 128, name='num_leaves'),
-            Real(0, 0.8, name='reg_lambda'),
-            Real(0, 0.8, name='reg_alpha'),
-            Real(0, 0.1, name='min_split_gain'),
-            Real(0, 0.1, name='min_child_weight'),
-            Integer(2, 45, name='min_child_samples'),
+            Integer(6, 256, name='num_leaves'),
+            #Real(0.0, 10, name='reg_lambda'),
+            #Real(0.0, 10, name='reg_alpha'),
+            Real(0.0, 0.1, name='min_split_gain'),
+            Real(0.0, 0.1, name='min_child_weight'),
+            Integer(10, 45, name='min_child_samples'),
             #Integer(1, 300, name='min_data_in_leaf')
         ]
 
         def get_mrr(arg_list):
 
-            learning_rate, num_leaves, reg_lambda, reg_alpha, min_split_gain,\
-                min_child_weight, min_child_samples = arg_list
+            learning_rate, num_leaves, min_split_gain, min_child_weight, min_child_samples = arg_list
 
             params_dict = {
                 'boosting_type': 'gbdt',
@@ -220,8 +219,8 @@ class lightGBM(RecommenderBase):
                 'subsample': 1,
                 'subsample_freq': 0,
                 'colsample_bytree': 1,
-                'reg_alpha': reg_alpha,
-                'reg_lambda': reg_lambda,
+                'reg_alpha': 0.0,
+                'reg_lambda': 0.0,
                 'random_state': None,
                 'n_jobs': -1,
                 'silent': False,
@@ -235,9 +234,7 @@ class lightGBM(RecommenderBase):
             Hera.send_message(f'MRR: {mrr}\n'
                               f'params:\n'
                               f'num_iteration:{best_it}, learning_rate:{learning_rate}, num_leaves:{num_leaves}, '
-                              f'reg_lambda{reg_lambda}, reg_alpha:{reg_alpha} , min_split_gain:{min_split_gain}'
-                              f'min_child_weight:{min_child_weight}, min_child_samples:{min_child_samples},'
-                              , account='edo')
+                              f'min_split_gain: {min_split_gain}, min_child_weight: {min_child_weight}, min_child_samples: {min_child_samples}')
             return -mrr
         return space, get_mrr
 
@@ -261,7 +258,7 @@ class lightGBM(RecommenderBase):
 if __name__ == '__main__':
     params_dict = {
         'boosting_type':'gbdt',
-        'num_leaves': 21,
+        'num_leaves': 64,
         'max_depth': -1,
         'learning_rate': 0.1,
         'n_estimators': 1000,
