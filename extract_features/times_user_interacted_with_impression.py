@@ -71,19 +71,16 @@ class TimesUserInteractedWithImpression(FeatureBase):
                                       'last_action_type_with_impr': df.at[i, 'action_type']}
 
         final_df = expand_impressions(temp[['user_id', 'session_id', 'impressions']].loc[idxs_click])
-        print(len(final_df))
-        print(len(impr_feature))
         final_df['dict'] = impr_feature
 
         features_df = pd.DataFrame(final_df.progress_apply(lambda x: tuple(x['dict'].values()), axis=1).tolist(),
                                    columns=list(final_df.iloc[0].dict.keys()))
         final_df_ = pd.concat([final_df, features_df], axis=1).drop('dict', axis=1)
-        final_df_ = final_df_.drop(['step_from_last_interaction', 'timestamp_from_last_interaction', 'last_action_type_with_impr'],axis=1)
-        return final_df_
+        return final_df_[['user_id','session_id','item_id','num_interactions_impr']]
 
 if __name__ == '__main__':
     from utils.menu import mode_selection
     mode = mode_selection()
     c = TimesUserInteractedWithImpression(mode=mode, cluster='no_cluster')
     c.save_feature()
-
+    print(c.read_feature())
