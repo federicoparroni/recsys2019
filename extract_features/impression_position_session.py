@@ -17,7 +17,7 @@ class ImpressionPositionSession(FeatureBase):
     def __init__(self, mode, cluster='no_cluster'):
         name = 'impression_position_session'
         super(ImpressionPositionSession, self).__init__(
-            name=name, mode=mode, cluster=cluster, columns_to_onehot=[('impression_position', 'single')])
+            name=name, mode=mode, cluster=cluster)
 
     def extract_feature(self):
 

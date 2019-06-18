@@ -221,8 +221,8 @@ def create_lightGBM_dataset(mode, cluster, features_array, dataset_name):
 if __name__ == '__main__':
 
     features_array = [
-        #StatisticsPosInteracted,
-        ActionsInvolvingImpressionSession,
+        StatisticsPosInteracted,
+        #ActionsInvolvingImpressionSession,
         AdjustedLocationReferencePercentageOfClickouts,
         AdjustedLocationReferencePercentageOfInteractions,
         AdjustedPercClickPerImpressions,

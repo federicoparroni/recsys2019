@@ -82,24 +82,28 @@ from extract_features.user_2_item import User2Item
 from extract_features.user_feature import UserFeature
 
 
-def dump_svmlight(df, save_path, save_num_features_path):
+def dump_hdf(df, save_path, save_num_features_path):
     print(len(df['index'].unique()))
-    qid = df['index'].values
     print(f'shape data before dropping...{df.shape}')
-    X, Y = df.drop(['session_id', 'user_id', 'label', 'item_id', 'index'], axis=1), df['label']
+    df.rename(columns={'index': 'qid'}, inplace=True)
+    X = df.drop(['session_id', 'user_id', 'item_id'], axis=1)
+
+    #save the columns names
+    columns = X.columns
+
     del df
     # scaler = MinMaxScaler(feature_range=(-1, 1), copy=False)
     scaler = MaxAbsScaler(copy=False)
     # normalize the values
     X = scaler.fit_transform(X)
-    Y_norm = Y.values
-    del Y
+
+    X = pd.DataFrame(X, columns=columns)
     print(f'shape of the final data:{X.shape}')
     print(f'SAVING NUM FEATURES... \n {save_num_features_path}')
     with open(f'{save_num_features_path}/features_num.txt', 'w+') as f:
         f.write(f'{X.shape[1]}')
     print(f'SAVING DATA... \n {save_path}')
-    dump_svmlight_file(X, Y_norm, save_path, query_id=qid, zero_based=False)
+    X.to_hdf(save_path, key='df', index=False)
     print('DONE')
 
 def merge_features_tf(mode, cluster, features_array):
@@ -181,17 +185,17 @@ def merge_features_tf(mode, cluster, features_array):
 def create_dataset(mode, cluster, features_array, dataset_name):
     _SAVE_BASE_PATH = f'dataset/preprocessed/tf_ranking/{cluster}/{mode}/{dataset_name}'
     cf.check_folder(_SAVE_BASE_PATH)
-    train_df, vali_test_df, context_features_id =merge_features_tf(mode, cluster, features_array)
+    train_df, vali_test_df, context_features_id = merge_features_tf(mode, cluster, features_array)
 
     # save context features id
     print(f'saving context feature id to: {_SAVE_BASE_PATH}/context_features_id.npy')
     np.save(f'{_SAVE_BASE_PATH}/context_features_id', context_features_id)
 
-    dump_svmlight(train_df, f'{_SAVE_BASE_PATH}/train.txt', _SAVE_BASE_PATH)
+    dump_hdf(train_df, f'{_SAVE_BASE_PATH}/train.hdf', _SAVE_BASE_PATH)
     if mode == 'full':
-        dump_svmlight(vali_test_df, f'{_SAVE_BASE_PATH}/test.txt', _SAVE_BASE_PATH)
+        dump_hdf(vali_test_df, f'{_SAVE_BASE_PATH}/test.hdf', _SAVE_BASE_PATH)
     else:
-        dump_svmlight(vali_test_df, f'{_SAVE_BASE_PATH}/vali.txt', _SAVE_BASE_PATH)
+        dump_hdf(vali_test_df, f'{_SAVE_BASE_PATH}/vali.hdf', _SAVE_BASE_PATH)
     print('PROCEDURE ENDED CORRECTLY')
 
 
@@ -199,7 +203,6 @@ if __name__ == '__main__':
 
     features_array = [
         StatisticsPosInteracted,
-        ActionsInvolvingImpressionSession,
         AdjustedLocationReferencePercentageOfClickouts,
         AdjustedLocationReferencePercentageOfInteractions,
         AdjustedPercClickPerImpressions,
@@ -247,7 +250,6 @@ if __name__ == '__main__':
         SessionSortOrderWhenClickout,
         StatisticsTimeFromLastAction,
         TimePerImpression,
-        TimesImpressionAppearedInClickoutsSession,
         TimesUserInteractedWithImpression,
         TimingFromLastInteractionImpression,
         TopPopInteractionClickoutPerImpression,
@@ -255,6 +257,7 @@ if __name__ == '__main__':
         User2Item,
         UserFeature
     ]
+
 
 
     mode = menu.mode_selection()

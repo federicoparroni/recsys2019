@@ -13,10 +13,9 @@ class StatisticsPosInteracted(FeatureBase):
     """
 
     def __init__(self, mode, cluster='no_cluster'):
-        name = 'lazy_user'
+        name = 'statistics_pos_interacted'
         super(StatisticsPosInteracted, self).__init__(
-            name=name, mode=mode, cluster=cluster, columns_to_onehot=[('min_pos_interacted', 'single'),
-                                                                      ('first_pos_interacted', 'single'),])
+            name=name, mode=mode, cluster=cluster)
 
     def extract_feature(self):
 
@@ -116,6 +115,6 @@ class StatisticsPosInteracted(FeatureBase):
 if __name__ == '__main__':
     from utils.menu import mode_selection
     mode = mode_selection()
-    c = LazyUser(mode=mode, cluster='no_cluster')
+    c = StatisticsPosInteracted(mode=mode, cluster='no_cluster')
     c.save_feature()
 

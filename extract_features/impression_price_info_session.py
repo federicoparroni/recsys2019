@@ -21,7 +21,7 @@ class ImpressionPriceInfoSession(FeatureBase):
     def __init__(self, mode, cluster='no_cluster'):
         name = 'impression_price_info_session'
         super(ImpressionPriceInfoSession, self).__init__(
-            name=name, mode=mode, cluster=cluster, columns_to_onehot=[('impression_pos_price', 'single')])
+            name=name, mode=mode, cluster=cluster)
 
     def extract_feature(self):
 
