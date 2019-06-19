@@ -133,9 +133,9 @@ class RecurrentRecommender(RecommenderBase):
                 if use_batch_normalization:
                     self.model.add( Dense(int(n), activation=None) )
                     self.model.add( BatchNormalization() )
-                    self.model.add( Activation('softmax') )
+                    self.model.add( Activation('relu') )
                 else:
-                    self.model.add( Dense(int(n), activation='softmax') )
+                    self.model.add( Dense(int(n), activation='relu') )
                 self.model.add( Dropout(rate=0.1) )
         
         # add the last dense layer

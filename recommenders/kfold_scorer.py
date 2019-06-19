@@ -97,7 +97,7 @@ if __name__ == "__main__":
 
     init_params = {
         'dataset': dataset,
-        'input_shape': (6,168),
+        'input_shape': (12,168),
         'cell_type': 'gru',
         'num_recurrent_layers': 2,
         'num_recurrent_units': 64,
