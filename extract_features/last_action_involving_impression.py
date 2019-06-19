@@ -6,7 +6,7 @@ from preprocess_utils.last_clickout_indices import find
 from preprocess_utils.last_clickout_indices import expand_impressions
 from preprocess_utils.remove_last_part_of_clk_sessions import remove_last_part_of_clk_sessions
 
-class LastActionInvolvingImpressionFAST(FeatureBase):
+class LastActionInvolvingImpression(FeatureBase):
 
     """
     FAST VERSION (se non funziona prendetevela con @teomore)
@@ -19,9 +19,10 @@ class LastActionInvolvingImpressionFAST(FeatureBase):
     """
 
     def __init__(self, mode, cluster='no_cluster'):
-        name = 'last_action_involving_impression_FAST'
-        super(LastActionInvolvingImpressionFAST, self).__init__(
-            name=name, mode=mode, cluster=cluster)
+        name = 'last_action_involving_impression'
+        columns_to_onehot = [('last_action_involving_impression', 'single')]
+        super(LastActionInvolvingImpression, self).__init__(
+            name=name, mode=mode, cluster=cluster, columns_to_onehot=columns_to_onehot)
 
     def extract_feature(self):
         train = data.train_df(mode=self.mode, cluster=self.cluster)
@@ -52,7 +53,7 @@ if __name__ == '__main__':
     mode = menu.mode_selection()
     cluster = menu.cluster_selection()
 
-    c = LastActionInvolvingImpressionFAST(mode, cluster)
+    c = LastActionInvolvingImpression(mode, cluster)
 
     print('Creating {} for {} {}'.format(c.name, c.mode, c.cluster))
     c.save_feature()
