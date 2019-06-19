@@ -64,6 +64,7 @@ from extract_features.mean_price_clickout import MeanPriceClickout
 from extract_features.avg_price_interactions import AvgPriceInteractions
 from extract_features.times_user_interacted_with_impression import TimesUserInteractedWithImpression
 from extract_features.classifier.last_action_before_clickout import LastActionBeforeClickout
+from extract_features.fraction_pos_price import FractionPosPrice
 from utils.menu import single_choice
 from preprocess_utils.merge_features import merge_features
 from os.path import join
@@ -144,7 +145,7 @@ def create_dataset(mode, cluster, class_weights=False):
 
         if kind == 'kind1':
             features_array = [
-            StatisticsPosInteracted,
+            #StatisticsPosInteracted,
             #AdjustedLocationReferencePercentageOfClickouts,
             #AdjustedLocationReferencePercentageOfInteractions,
             #AdjustedPercClickPerImpressions,
