@@ -111,8 +111,12 @@ def create_weights(df):
 
 def create_dataset(mode, cluster, class_weights=False):
     # training
-    kind = single_choice(['1', '2', '3'], ['kind1', 'kind2', 'kind3'])
+    kind = input('insert the kind: ')
     if cluster == 'no_cluster':
+
+        if kind=='impression_feature':
+            features_array = [ImpressionFeature,]
+
         if kind == 'kind2':
             features_array = [
             AdjustedLocationReferencePercentageOfClickouts,
