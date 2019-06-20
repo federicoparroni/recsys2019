@@ -68,7 +68,9 @@ class SessionLengthOld(FeatureBase):
 
 
 if __name__ == '__main__':
-    from utils.menu import mode_selection
+    from utils.menu import mode_selection, cluster_selection
+
+    cluster = cluster_selection()
     mode = mode_selection()
-    c = SessionLengthOld(mode=mode, cluster='no_cluster')
+    c = SessionLengthOld(mode=mode, cluster=cluster)
     c.save_feature()

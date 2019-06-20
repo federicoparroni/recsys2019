@@ -79,8 +79,10 @@ class TimesUserInteractedWithImpression(FeatureBase):
         return final_df_[['user_id','session_id','item_id','num_interactions_impr']]
 
 if __name__ == '__main__':
-    from utils.menu import mode_selection
+    from utils.menu import mode_selection, cluster_selection
+
+    cluster = cluster_selection()
     mode = mode_selection()
-    c = TimesUserInteractedWithImpression(mode=mode, cluster='no_cluster')
+    c = TimesUserInteractedWithImpression(mode=mode, cluster=cluster)
     c.save_feature()
     print(c.read_feature())
