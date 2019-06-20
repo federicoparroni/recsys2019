@@ -7,7 +7,7 @@ from preprocess_utils.last_clickout_indices import find as find_last_clickout_in
 tqdm.pandas()
 
 
-class SessionLength(FeatureBase):
+class SessionLengthOld(FeatureBase):
 
     """
     length of a session:
@@ -16,8 +16,8 @@ class SessionLength(FeatureBase):
     """
 
     def __init__(self, mode, cluster='no_cluster'):
-        name = 'session_length'
-        super(SessionLength, self).__init__(
+        name = 'session_length_old'
+        super(SessionLengthOld, self).__init__(
             name=name, mode=mode, cluster=cluster)
 
     def extract_feature(self):
@@ -70,5 +70,5 @@ class SessionLength(FeatureBase):
 if __name__ == '__main__':
     from utils.menu import mode_selection
     mode = mode_selection()
-    c = SessionLength(mode=mode, cluster='no_cluster')
+    c = SessionLengthOld(mode=mode, cluster='no_cluster')
     c.save_feature()

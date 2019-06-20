@@ -10,7 +10,7 @@ import os
 #os.chdir("../")
 #print(os.getcwd())
 
-class ImpressionPriceInfoSession(FeatureBase):
+class ImpressionPriceInfoSessionOld(FeatureBase):
 
     """
     absolute price of impression as it appears in the last clickut of a session and
@@ -19,8 +19,8 @@ class ImpressionPriceInfoSession(FeatureBase):
     """
 
     def __init__(self, mode, cluster='no_cluster'):
-        name = 'impression_price_info_session'
-        super(ImpressionPriceInfoSession, self).__init__(
+        name = 'impression_price_info_session_old'
+        super(ImpressionPriceInfoSessionOld, self).__init__(
             name=name, mode=mode, cluster=cluster)
 
     def extract_feature(self):
@@ -76,5 +76,5 @@ if __name__ == '__main__':
     from utils.menu import mode_selection
 
     mode = mode_selection()
-    c = ImpressionPriceInfoSession(mode=mode, cluster='no_cluster')
+    c = ImpressionPriceInfoSessionOld(mode=mode, cluster='no_cluster')
     c.save_feature()
