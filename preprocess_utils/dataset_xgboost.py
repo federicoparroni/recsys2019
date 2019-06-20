@@ -103,9 +103,12 @@ def create_dataset(mode, cluster, class_weights=False):
     # training
     kind = input('insert the kind: ')
     if cluster == 'no_cluster':
-        
+
+        if kind == 'session_filters':
+            features_array = [SessionFilterActiveWhenClickout, ImpressionLabel]
+
         if kind=='impression_feature':
-            features_array = [ImpressionFeature,]
+            features_array = [ImpressionFeature, ImpressionLabel]
 
         if kind == 'kind2':
             features_array = [
