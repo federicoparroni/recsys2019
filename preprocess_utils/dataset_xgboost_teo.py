@@ -43,6 +43,10 @@ from extract_features.session_device import SessionDevice
 from extract_features.session_filters_active_when_clickout import SessionFilterActiveWhenClickout
 from extract_features.session_length import SessionLength
 from extract_features.session_sort_order_when_clickout import SessionSortOrderWhenClickout
+from extract_features.session_num_clickouts import SessionNumClickouts
+from extract_features.session_num_filter_sel import SessionNumFilterSel
+from extract_features.session_num_inter_item_image import SessionNumInterItemImage
+from extract_features.session_num_not_numeric import SessionNumNotNumeric
 from extract_features.time_per_impression import TimePerImpression
 from extract_features.times_impression_appeared_in_clickouts_session import TimesImpressionAppearedInClickoutsSession
 from extract_features.timing_from_last_interaction_impression import TimingFromLastInteractionImpression
@@ -68,7 +72,7 @@ from extract_features.fraction_pos_price import FractionPosPrice
 from utils.menu import single_choice
 from preprocess_utils.merge_features import merge_features
 from os.path import join
-
+from extract_features.past_future_session_features import PastFutureSessionFeatures
 
 def create_groups(df):
     df = df[['user_id', 'session_id']]
@@ -105,44 +109,92 @@ def create_dataset(mode, cluster, class_weights=False):
     if cluster == 'no_cluster':
         if kind == 'kind2':
             features_array = [
-            (LazyUser, False),
-            PriceQuality,
-            PlatformFeaturesSimilarity,
-            PersonalizedTopPop,
-            TimePerImpression,
-            DayOfWeekAndMomentInDay,
-            LastClickoutFiltersSatisfaction,
-            FrenzyFactorSession,
-            ChangeImpressionOrderPositionInSession,
-            User2Item,
-            PlatformSession,
-            PlatformReferencePercentageOfInteractions,
-            PercClickPerImpressions,
-            PlatformReferencePercentageOfClickouts,
+            AdjustedLocationReferencePercentageOfClickouts,
+            AdjustedLocationReferencePercentageOfInteractions,
+            AdjustedPercClickPerImpressions,
+            AdjustedPlatformReferencePercentageOfClickouts,
+            AdjustedPlatformReferencePercentageOfInteractions,
+            SessionNumClickouts,
+            SessionNumFilterSel,
+            SessionNumInterItemImage,
+            SessionNumNotNumeric,
+            # queste sono fisse invece
+            ActionsInvolvingImpressionSession,
+            (ImpressionPositionSession, False),
+            (ImpressionPriceInfoSession, False),
+            ImpressionRatingNumeric,
+            ImpressionLabel,
+            LastActionInvolvingImpression,
+            MeanPriceClickout,
+            AvgPriceInteractions,
+            SessionDevice,
             NumImpressionsInClickout,
-            NumTimesItemImpressed,
-            LocationReferencePercentageOfClickouts,
-            LocationReferencePercentageOfInteractions,
-            StepsBeforeLastClickout,
-            ImpressionStarsNumeric,
-            LastActionBeforeClickout,
+            SessionLength,
+            TimesImpressionAppearedInClickoutsSession,
+            TimesUserInteractedWithImpression,
+            TimingFromLastInteractionImpression,
             TopPopPerImpression,
             TopPopInteractionClickoutPerImpression,
-            ImpressionRatingNumeric,
-            ActionsInvolvingImpressionSession,
-            ImpressionLabel,
-            ImpressionPriceInfoSession,
-            TimingFromLastInteractionImpression,
-            TimesUserInteractedWithImpression,
-            ImpressionPositionSession,
-            LastActionInvolvingImpression,
-            SessionDevice,
-            SessionSortOrderWhenClickout,
-            MeanPriceClickout,
-            PriceInfoSession,
-            SessionLength,
-            TimesImpressionAppearedInClickoutsSession]
-
+            ChangeImpressionOrderPositionInSession,
+            FrenzyFactorSession,
+            DayOfWeekAndMomentInDay,
+            LastClickoutFiltersSatisfaction,
+            TimePerImpression,
+            PersonalizedTopPop,
+            PriceQuality,
+            PlatformFeaturesSimilarity,
+            LastActionBeforeClickout,
+            (ImpressionStarsNumeric, False),
+            StepsBeforeLastClickout,
+            LocationReferencePercentageOfClickouts,
+            LocationReferencePercentageOfInteractions,
+            NumTimesItemImpressed,
+            PercClickPerImpressions,
+            PlatformReferencePercentageOfClickouts,
+            PlatformReferencePercentageOfInteractions,
+            PlatformSession,
+            User2Item,
+            (LazyUser, False)
+            ]
+        if kind == 'kind3':
+            # questo fa 0.6750 locale e 0.6731 in leaderboard coi parametri magici
+            features_array = [ActionsInvolvingImpressionSession,
+                              (ImpressionPositionSession, False),
+                              (ImpressionPriceInfoSession, False),
+                              ImpressionRatingNumeric,
+                              ImpressionLabel,
+                              LastActionInvolvingImpression,
+                              MeanPriceClickout,
+                              AvgPriceInteractions,
+                              SessionDevice,
+                              NumImpressionsInClickout,
+                              SessionLength,
+                              TimesImpressionAppearedInClickoutsSession,
+                              TimesUserInteractedWithImpression,
+                              TimingFromLastInteractionImpression,
+                              TopPopPerImpression,
+                              TopPopInteractionClickoutPerImpression,
+                              ChangeImpressionOrderPositionInSession,
+                              FrenzyFactorSession,
+                              DayOfWeekAndMomentInDay,
+                              LastClickoutFiltersSatisfaction,
+                              TimePerImpression,
+                              PersonalizedTopPop,
+                              PriceQuality,
+                              PlatformFeaturesSimilarity,
+                              LastActionBeforeClickout,
+                              (ImpressionStarsNumeric, False),
+                              StepsBeforeLastClickout,
+                              LocationReferencePercentageOfClickouts,
+                              LocationReferencePercentageOfInteractions,
+                              NumTimesItemImpressed,
+                              PercClickPerImpressions,
+                              PlatformReferencePercentageOfClickouts,
+                              PlatformReferencePercentageOfInteractions,
+                              PlatformSession,
+                              User2Item,
+                              (LazyUser, False),
+                              ]
         if kind == 'kind1':
             features_array = [
             #StatisticsPosInteracted,

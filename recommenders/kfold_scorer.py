@@ -36,7 +36,7 @@ class KFoldScorer(object):
         # compute scores
         return model.get_scores_cv(x, groups, test_indices)
 
-    def fit_predict(self, dataset, fit_params={}, n_jobs=-1, save_folder='scores/') -> pd.DataFrame:
+    def fit_predict(self, dataset, fit_params={}, multithreading=True, n_jobs=-1, save_folder='scores/') -> pd.DataFrame:
         """ Fit and compute the scores for each fold.
         dataset (object):   inheriting from utils.dataset.DatasetBase
         fit_params (dict):  params to fit the model
@@ -53,12 +53,20 @@ class KFoldScorer(object):
         kf = KFold(n_splits=self.k)
         
         # fit in each fold
-        self.scores = Parallel(backend='multiprocessing', n_jobs=n_jobs)(delayed(self._fit_model)
+        if multithreading:
+            self.scores = Parallel(backend='multiprocessing', n_jobs=n_jobs)(delayed(self._fit_model)
                                 (
                                     X_train, Y_train, group_train,
                                     train_indices, test_indices,
                                     fit_params, idx
                                 ) for idx,(train_indices,test_indices) in enumerate(kf.split(X_train, group_train)) )
+        else:
+            self.scores = [self._fit_model
+                                (
+                                    X_train, Y_train, group_train,
+                                    train_indices, test_indices,
+                                    fit_params, idx
+                                ) for idx,(train_indices,test_indices) in enumerate(kf.split(X_train, group_train)) ]
         
         # fit in all the train and get scores for test
         print('fit whole train')
@@ -73,9 +81,9 @@ class KFoldScorer(object):
         # save scores
         if save_folder is not None:
             check_folder(save_folder)
-            filepath = os.path.join(save_folder, model.name + '.csv')
+            filepath = os.path.join(save_folder, model.name + '.csv.gz')
             print('Saving scores to', filepath, end=' ', flush=True)
-            self.scores.to_csv(filepath, index=False)
+            self.scores.to_csv(filepath, index=False, compression='gzip')
             print('Done!', flush=True)
         
         return self.scores
@@ -84,21 +92,24 @@ class KFoldScorer(object):
 if __name__ == "__main__":
     from utils.dataset import DatasetScoresClassification
     from recommenders.recurrent.RNNClassificationRecommender import RNNClassificationRecommender
+    from keras.optimizers import Adam
 
-    dataset = DatasetScoresClassification(f'dataset/preprocessed/cluster_recurrent/small/dataset_classification_p6')
+    dataset = DatasetScoresClassification(f'dataset/preprocessed/cluster_recurrent/full/dataset_classification_p12')
 
     init_params = {
         'dataset': dataset,
-        'input_shape': (6,168),
+        'input_shape': (12,168),
         'cell_type': 'gru',
         'num_recurrent_layers': 2,
         'num_recurrent_units': 64,
         'num_dense_layers': 2,
-        'class_weights': dataset.get_class_weights(),
+        'optimizer': Adam(0.0001)
+        #'class_weights': dataset.get_class_weights(),
+        #'sample_weights': dataset.get_sample_weights()
     }
-    fit_params = {'epochs': 100}
+    fit_params = {'epochs': 400}
 
     kfscorer = KFoldScorer(model_class=RNNClassificationRecommender, init_params=init_params, k=5)
 
-    kfscorer.fit_predict(dataset, fit_params=fit_params)
+    kfscorer.fit_predict(dataset, multithreading=False, fit_params=fit_params)
 

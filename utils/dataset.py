@@ -134,6 +134,18 @@ class Dataset(DatasetBase):
         weights = dict([ (i,w) for i,w in enumerate(weights) ])
         print(weights)
         return weights
+    
+    def get_sample_weights(self, num_classes):
+        y = self.load_Ytrain()
+        if y.shape[1] == 1:
+            # binary class
+            weights = compute_class_weight('balanced', np.arange(num_classes), y[:,0])
+        else:
+            # multiple classes one-hot encoded
+            y_2 = [np.where(r==1)[0][0] for r in y]
+            weights = compute_class_weight('balanced', np.arange(num_classes), y_2)
+
+        return (y @ weights.reshape(-1,1)).flatten()
 
 
 
@@ -407,6 +419,9 @@ class SequenceDatasetForClassification(Dataset):
 
     def get_class_weights(self, num_classes=25):
         return super().get_class_weights(num_classes)
+    
+    def get_sample_weights(self, num_classes=25):
+        return super().get_sample_weights(num_classes)
 
 
 
@@ -422,6 +437,9 @@ class SequenceDatasetForBinaryClassification(SequenceDatasetForClassification):
 
     def get_class_weights(self, num_classes=2):
         return super().get_class_weights(num_classes)
+    
+    def get_sample_weights(self, num_classes=2):
+        return super().get_sample_weights(num_classes)
 
 
 class DatasetScoresClassification(Dataset):
@@ -478,6 +496,9 @@ class DatasetScoresClassification(Dataset):
     def get_class_weights(self, num_classes=25):
         return super().get_class_weights(num_classes)
 
+    def get_sample_weights(self, num_classes=25):
+        return super().get_sample_weights(num_classes)
+
 
 class DatasetXGBoost(DatasetBase):
 
@@ -496,11 +517,43 @@ class DatasetXGBoost(DatasetBase):
         return y_train
 
     def load_Xtest(self):
-        X_test, _, _ = data.dataset_xgboost_test(mode=self.mode, cluster=self.cluster, kind=self.kind)
+        X_test, _, _, _ = data.dataset_xgboost_test(mode=self.mode, cluster=self.cluster, kind=self.kind)
         return X_test
 
     def load_group_train(self):
         _, _, groups, _, _ = data.dataset_xgboost_train(mode=self.mode, cluster=self.cluster, kind=self.kind)
+        g = [list(np.ones(groups[i], dtype=np.int)*i) for i in range(len(groups))]
+        g = [item for sublist in g for item in sublist]
+        return np.array(g)
+
+
+class DatasetLightGBM(DatasetBase):
+
+    def __init__(self, mode, cluster, dataset_name):
+        super(DatasetLightGBM, self).__init__()
+        self.mode = mode
+        self.cluster = cluster
+        self.dataset_name = dataset_name
+        self._load_data()
+
+    def _load_data(self):
+        _BASE_PATH = f'dataset/preprocessed/lightGBM/{self.cluster}/{self.mode}/{self.dataset_name}'
+        self._x_train = pd.read_hdf(f'{_BASE_PATH}/x_train.hdf', key='df')
+        self._y_train = np.load(f'{_BASE_PATH}/y_train.npy')
+        self._group_train = np.load(f'{_BASE_PATH}/groups_train.npy')
+        self._x_vali = pd.read_hdf(f'{_BASE_PATH}/x_vali.hdf', key='df')
+
+    def load_Xtrain(self):
+        return self._x_train
+
+    def load_Ytrain(self):
+        return self._y_train
+
+    def load_Xtest(self):
+        return self._x_vali
+
+    def load_group_train(self):
+        groups = self._group_train
         g = [list(np.ones(groups[i], dtype=np.int)*i) for i in range(len(groups))]
         g = [item for sublist in g for item in sublist]
         return np.array(g)
@@ -516,7 +569,7 @@ class DatasetCatboost(DatasetBase):
     def load_Xtrain(self):
         train_df = data.dataset_catboost_train(mode=self.mode, cluster=self.cluster)
         # Creating univoque id for each user_id / session_id pair
-        train_df = train_df.sort_values(by=['user_id', 'session_id'])
+
         train_df = train_df.assign(
             id=(train_df['user_id'] + '_' + train_df['session_id']).astype('category').cat.codes)
 
@@ -537,9 +590,6 @@ class DatasetCatboost(DatasetBase):
 
         test_df['id'] = test_df.apply(
             lambda row: dict_session_trg_idx.get(row.session_id), axis=1)
-
-        target_indices = data.target_indices(self.mode, self.cluster)
-        target_indices.sort()
 
         print('data for test ready')
 
