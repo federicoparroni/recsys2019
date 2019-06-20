@@ -133,9 +133,9 @@ class RecurrentRecommender(RecommenderBase):
                 if use_batch_normalization:
                     self.model.add( Dense(int(n), activation=None) )
                     self.model.add( BatchNormalization() )
-                    self.model.add( Activation('softmax') )
+                    self.model.add( Activation('relu') )
                 else:
-                    self.model.add( Dense(int(n), activation='softmax') )
+                    self.model.add( Dense(int(n), activation='relu') )
                 self.model.add( Dropout(rate=0.1) )
         
         # add the last dense layer
@@ -186,10 +186,12 @@ class RecurrentRecommender(RecommenderBase):
                                             verbose=1, restore_best_weights=True) )
         
         # fit on the data, dropping the index
+        cw = None if self.class_weights is None else self.class_weights[train_indices]
+        sw = None if self.sample_weights is None else self.sample_weights[train_indices]
+        
         self.model.fit(x[train_indices,:,1:], y[train_indices], epochs=epochs, batch_size=self.batch_size,
                         #validation_data=(x_val[:,:,1:], y_val),
-                        callbacks=callbacks,
-                        class_weight=self.class_weights, sample_weight=self.sample_weights)
+                        callbacks=callbacks, class_weight=cw, sample_weight=sw)
 
     def save(self, folderpath, suffix=''):
         """ Save the full state of the model, including:
