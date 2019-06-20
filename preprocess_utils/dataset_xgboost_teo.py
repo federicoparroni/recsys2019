@@ -115,56 +115,48 @@ def create_dataset(mode, cluster, class_weights=False):
     if cluster == 'no_cluster':
 
         if kind == 'kind2':
-            features_array = [
-            AdjustedLocationReferencePercentageOfClickouts,
-            AdjustedLocationReferencePercentageOfInteractions,
-            AdjustedPercClickPerImpressions,
-            AdjustedPlatformReferencePercentageOfClickouts,
-            AdjustedPlatformReferencePercentageOfInteractions,
-            SessionNumClickouts,
-            SessionNumFilterSel,
-            SessionNumInterItemImage,
-            SessionNumNotNumeric,
-            # queste sono fisse invece
-            ActionsInvolvingImpressionSession,
-            (ImpressionPositionSession, False),
-            (ImpressionPriceInfoSession, False),
-            ImpressionRatingNumeric,
-            ImpressionLabel,
-            LastActionInvolvingImpression,
-            MeanPriceClickout,
-            AvgPriceInteractions,
-            SessionDevice,
-            NumImpressionsInClickout,
-            SessionLength,
-            TimesImpressionAppearedInClickoutsSession,
-            TimesUserInteractedWithImpression,
-            TimingFromLastInteractionImpression,
-            TopPopPerImpression,
-            TopPopInteractionClickoutPerImpression,
-            ChangeImpressionOrderPositionInSession,
-            FrenzyFactorSession,
-            DayOfWeekAndMomentInDay,
-            LastClickoutFiltersSatisfaction,
-            TimePerImpression,
-            PersonalizedTopPop,
-            PriceQuality,
-            PlatformFeaturesSimilarity,
-            LastActionBeforeClickout,
-            (ImpressionStarsNumeric, False),
-            StepsBeforeLastClickout,
-            LocationReferencePercentageOfClickouts,
-            LocationReferencePercentageOfInteractions,
-            NumTimesItemImpressed,
-            PercClickPerImpressions,
-            PlatformReferencePercentageOfClickouts,
-            PlatformReferencePercentageOfInteractions,
-            PlatformSession,
-            User2Item,
-            (LazyUser, False)
+            # questo fa 0.6755 in locale + User features
+            features_array = [ PastFutureSessionFeatures,                                                                                 │
+            ActionsInvolvingImpressionSession,                                                                   │
+            (ImpressionPositionSession, False),                                                                  │
+            (ImpressionPriceInfoSessionOld, False),                                                              │
+            ImpressionRatingNumeric,                                                                             │
+            ImpressionLabel,                                                                                     │
+            LastActionInvolvingImpression,                                                                       │
+            MeanPriceClickout,                                                                                   │
+            AvgPriceInteractions,                                                                                │
+            SessionDevice,                                                                                       │
+            NumImpressionsInClickout,                                                                            │
+            SessionLengthOld,                                                                                    │
+            TimesImpressionAppearedInClickoutsSession,                                                           │
+            TimesUserInteractedWithImpression,                                                                   │
+            TimingFromLastInteractionImpression,                                                                 │
+            TopPopPerImpression,                                                                                 │
+            TopPopInteractionClickoutPerImpression,                                                              │
+            ChangeImpressionOrderPositionInSession,                                                              │
+            FrenzyFactorSession,                                                                                 │
+            DayOfWeekAndMomentInDay,                                                                             │
+            LastClickoutFiltersSatisfaction,                                                                     │
+            TimePerImpression,                                                                                   │
+            PersonalizedTopPop,                                                                                  │
+            PriceQuality,                                                                                        │
+            PlatformFeaturesSimilarity,                                                                          │
+            LastActionBeforeClickout,                                                                            │
+            (ImpressionStarsNumeric, False),                                                                     │
+            StepsBeforeLastClickout,                                                                             │
+            LocationReferencePercentageOfClickouts,                                                              │
+            LocationReferencePercentageOfInteractions,                                                           │
+            NumTimesItemImpressed,                                                                               │
+            PercClickPerImpressions,                                                                             │
+            PlatformReferencePercentageOfClickouts,                                                              │
+            PlatformReferencePercentageOfInteractions,                                                           │
+            PlatformSession,                                                                                     │
+            User2ItemOld,                                                                                        │
+            (LazyUser, False),                                                                                   │
             ]
         if kind == 'kind3':
             # questo fa 0.6750 locale e 0.6731 in leaderboard coi parametri magici
+
             features_array = [
             ActionsInvolvingImpressionSession,
             (ImpressionPositionSession, False),
@@ -204,43 +196,44 @@ def create_dataset(mode, cluster, class_weights=False):
             (LazyUser, False),
             ]
         if kind == 'kind1':
-            features_array = [
-            ActionsInvolvingImpressionSession,
-            (ImpressionPositionSession, False),
-            (ImpressionPriceInfoSessionOld, False),
-            ImpressionRatingNumeric,
-            ImpressionLabel,
-            LastActionInvolvingImpression,
-            MeanPriceClickout,
-            AvgPriceInteractions,
-            SessionDevice,
-            NumImpressionsInClickout,
-            SessionLengthOld,
-            TimesImpressionAppearedInClickoutsSession,
-            TimesUserInteractedWithImpression,
-            TimingFromLastInteractionImpressionOld,
-            TopPopPerImpression,
-            TopPopInteractionClickoutPerImpression,
-            ChangeImpressionOrderPositionInSession,
-            FrenzyFactorSession,
-            DayOfWeekAndMomentInDay,
-            LastClickoutFiltersSatisfaction,
-            TimePerImpression,
-            PersonalizedTopPop,
-            PriceQuality,
-            PlatformFeaturesSimilarity,
-            LastActionBeforeClickout,
-            (ImpressionStarsNumeric, False),
-            StepsBeforeLastClickout,
-            LocationReferencePercentageOfClickouts,
-            LocationReferencePercentageOfInteractions,
-            NumTimesItemImpressed,
-            PercClickPerImpressions,
-            PlatformReferencePercentageOfClickouts,
-            PlatformReferencePercentageOfInteractions,
-            PlatformSession,
-            User2ItemOld,
-            (LazyUser, False),
+            # questo fa 0.6755 in locale
+            features_array = [                                                                                 │
+            ActionsInvolvingImpressionSession,                                                                   │
+            (ImpressionPositionSession, False),                                                                  │
+            (ImpressionPriceInfoSessionOld, False),                                                              │
+            ImpressionRatingNumeric,                                                                             │
+            ImpressionLabel,                                                                                     │
+            LastActionInvolvingImpression,                                                                       │
+            MeanPriceClickout,                                                                                   │
+            AvgPriceInteractions,                                                                                │
+            SessionDevice,                                                                                       │
+            NumImpressionsInClickout,                                                                            │
+            SessionLengthOld,                                                                                    │
+            TimesImpressionAppearedInClickoutsSession,                                                           │
+            TimesUserInteractedWithImpression,                                                                   │
+            TimingFromLastInteractionImpression,                                                                 │
+            TopPopPerImpression,                                                                                 │
+            TopPopInteractionClickoutPerImpression,                                                              │
+            ChangeImpressionOrderPositionInSession,                                                              │
+            FrenzyFactorSession,                                                                                 │
+            DayOfWeekAndMomentInDay,                                                                             │
+            LastClickoutFiltersSatisfaction,                                                                     │
+            TimePerImpression,                                                                                   │
+            PersonalizedTopPop,                                                                                  │
+            PriceQuality,                                                                                        │
+            PlatformFeaturesSimilarity,                                                                          │
+            LastActionBeforeClickout,                                                                            │
+            (ImpressionStarsNumeric, False),                                                                     │
+            StepsBeforeLastClickout,                                                                             │
+            LocationReferencePercentageOfClickouts,                                                              │
+            LocationReferencePercentageOfInteractions,                                                           │
+            NumTimesItemImpressed,                                                                               │
+            PercClickPerImpressions,                                                                             │
+            PlatformReferencePercentageOfClickouts,                                                              │
+            PlatformReferencePercentageOfInteractions,                                                           │
+            PlatformSession,                                                                                     │
+            User2ItemOld,                                                                                        │
+            (LazyUser, False),                                                                                   │
             ]
 
     train_df, test_df, train_idxs, _ = merge_features(mode, cluster, features_array, merge_kind='left')
