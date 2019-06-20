@@ -18,6 +18,7 @@ from extract_features.frenzy_factor_consecutive_steps import FrenzyFactorSession
 from extract_features.impression_features import ImpressionFeature
 from extract_features.impression_position_session import ImpressionPositionSession
 from extract_features.impression_price_info_session import ImpressionPriceInfoSession
+from extract_features.impression_price_info_session_old import ImpressionPriceInfoSessionOld
 from extract_features.impression_rating import ImpressionRating
 from extract_features.impression_rating_numeric import ImpressionRatingNumeric
 from extract_features.impression_stars_numeric import ImpressionStarsNumeric
@@ -56,6 +57,7 @@ from extract_features.top_pop_interaction_clickout_per_impression import TopPopI
 from extract_features.top_pop_per_impression import TopPopPerImpression
 from extract_features.top_pop_sorting_filters import TopPopSortingFilters
 from extract_features.user_2_item import User2Item
+from extract_features.user_2_item_old import User2ItemOld
 from extract_features.adjusted_location_reference_percentage_of_clickouts import AdjustedLocationReferencePercentageOfClickouts
 from extract_features.adjusted_location_reference_percentage_of_interactions import AdjustedLocationReferencePercentageOfInteractions
 from extract_features.adjusted_perc_click_per_impressions import AdjustedPercClickPerImpressions
@@ -76,8 +78,6 @@ from preprocess_utils.merge_features import merge_features
 from os.path import join
 from extract_features.past_future_session_features import PastFutureSessionFeatures
 
-# OLD FEATURES
-from extract_features.user_2_item_old import User2ItemOld
 
 
 def create_groups(df):
@@ -206,7 +206,7 @@ def create_dataset(mode, cluster, class_weights=False):
             features_array = [
             ActionsInvolvingImpressionSession,
             (ImpressionPositionSession, False),
-            (ImpressionPriceInfoSession, False),
+            (ImpressionPriceInfoSessionOld, False),
             ImpressionRatingNumeric,
             ImpressionLabel,
             LastActionInvolvingImpression,
