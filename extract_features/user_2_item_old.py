@@ -9,12 +9,12 @@ from preprocess_utils.last_clickout_indices import expand_impressions
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.metrics.pairwise import manhattan_distances
 
-class User2Item(FeatureBase):
+class User2ItemOld(FeatureBase):
 
 
     def __init__(self, mode, cluster='no_cluster'):
-        name = f'user_2_item'
-        super(User2Item, self).__init__(name=name, mode=mode, cluster=cluster)
+        name = f'user_2_item_old'
+        super(User2ItemOld, self).__init__(name=name, mode=mode, cluster=cluster)
 
     def extract_feature(self):
 
@@ -106,5 +106,5 @@ class User2Item(FeatureBase):
 if __name__ == '__main__':
     from utils.menu import mode_selection
     mode = mode_selection()
-    c = User2Item(mode=mode, cluster='no_cluster')
+    c = User2ItemOld(mode=mode, cluster='no_cluster')
     c.save_feature()

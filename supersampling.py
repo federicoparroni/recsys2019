@@ -83,10 +83,15 @@ def supersampling(mode):
     sessions_to_be_resapmled = resample_session(class_to_sessions.copy(), train)
     new = duplicate_sessions(sessions_to_be_resapmled.copy(), train, session_to_indices)
     new = pd.concat([train, new])
+    train_len = len(new)
+    test = data.test_df(mode)
+    new = pd.concat([new, test])
+    new.reset_index(inplace=True, drop=True)
     print("Supersampling ended for mode={}, saving df".format(mode))
-    new.to_csv(path + "/" + mode + "/train.csv", index=False)
-    base_path = "dataset/preprocessed/no_cluster/{}/test.csv".format(mode)
-    copyfile(base_path, path + "/" + mode + "/test.csv")
+    new_train = new.loc[train_len:]
+    new_test = new.loc[:train_len]
+    new_train.to_csv(path + "/" + mode + "/train.csv", index=True)
+    new_test.to_csv(path + "/" + mode + "/train.csv", index=True)
 
 if __name__ == '__main__':
     if already_existing():

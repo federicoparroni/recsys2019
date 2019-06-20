@@ -10,7 +10,7 @@ import os
 #os.chdir("../")
 #print(os.getcwd())
 
-class TimingFromLastInteractionImpression(FeatureBase):
+class TimingFromLastInteractionImpressionOld(FeatureBase):
 
     """
     how much time is elapsed and how many steps are passed from the last time a user
@@ -20,8 +20,8 @@ class TimingFromLastInteractionImpression(FeatureBase):
     """
 
     def __init__(self, mode, cluster='no_cluster'):
-        name = 'timing_from_last_interaction_impression'
-        super(TimingFromLastInteractionImpression, self).__init__(
+        name = 'timing_from_last_interaction_impression_old'
+        super(TimingFromLastInteractionImpressionOld, self).__init__(
             name=name, mode=mode, cluster=cluster)
 
     def extract_feature(self):
@@ -82,6 +82,5 @@ class TimingFromLastInteractionImpression(FeatureBase):
 if __name__ == '__main__':
     from utils.menu import mode_selection
     mode = mode_selection()
-    c = TimingFromLastInteractionImpression(mode=mode, cluster='no_cluster')
+    c = TimingFromLastInteractionImpressionOld(mode=mode, cluster='no_cluster')
     c.save_feature()
-
