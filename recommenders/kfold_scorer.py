@@ -92,6 +92,7 @@ class KFoldScorer(object):
 if __name__ == "__main__":
     from utils.dataset import DatasetScoresClassification
     from recommenders.recurrent.RNNClassificationRecommender import RNNClassificationRecommender
+    from keras.optimizers import Adam
 
     dataset = DatasetScoresClassification(f'dataset/preprocessed/cluster_recurrent/full/dataset_classification_p12')
 
@@ -102,10 +103,11 @@ if __name__ == "__main__":
         'num_recurrent_layers': 2,
         'num_recurrent_units': 64,
         'num_dense_layers': 2,
+        'optimizer': Adam(0.0001)
         #'class_weights': dataset.get_class_weights(),
         #'sample_weights': dataset.get_sample_weights()
     }
-    fit_params = {'epochs': 110}
+    fit_params = {'epochs': 400}
 
     kfscorer = KFoldScorer(model_class=RNNClassificationRecommender, init_params=init_params, k=5)
 
