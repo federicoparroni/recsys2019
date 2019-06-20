@@ -90,26 +90,52 @@ class KFoldScorer(object):
         
 
 if __name__ == "__main__":
-    from utils.dataset import DatasetScoresClassification
+    import utils.menu as menu
+    from utils.dataset import DatasetScoresClassification, DatasetScoresBinaryClassification
     from recommenders.recurrent.RNNClassificationRecommender import RNNClassificationRecommender
-    from keras.optimizers import Adam
+    from recommenders.recurrent.RNNBinaryClassificator import RNNBinaryClassificator
+    
+    #from keras.optimizers import Adam
 
-    dataset = DatasetScoresClassification(f'dataset/preprocessed/cluster_recurrent/full/dataset_classification_p12')
+    def scores_rnn():
+        dataset = DatasetScoresClassification(f'dataset/preprocessed/cluster_recurrent/full/dataset_classification_p12')
 
-    init_params = {
-        'dataset': dataset,
-        'input_shape': (12,168),
-        'cell_type': 'gru',
-        'num_recurrent_layers': 2,
-        'num_recurrent_units': 64,
-        'num_dense_layers': 2,
-        'optimizer': Adam(0.0001)
-        #'class_weights': dataset.get_class_weights(),
-        #'sample_weights': dataset.get_sample_weights()
-    }
-    fit_params = {'epochs': 400}
+        init_params = {
+            'dataset': dataset,
+            'input_shape': (12,168),
+            'cell_type': 'gru',
+            'num_recurrent_layers': 2,
+            'num_recurrent_units': 64,
+            'num_dense_layers': 2,
+            'optimizer': 'adam',
+            #'class_weights': dataset.get_class_weights(),
+            #'sample_weights': dataset.get_sample_weights()
+        }
+        fit_params = {'epochs': 400}
 
-    kfscorer = KFoldScorer(model_class=RNNClassificationRecommender, init_params=init_params, k=5)
+        kfscorer = KFoldScorer(model_class=RNNClassificationRecommender, init_params=init_params, k=5)
 
-    kfscorer.fit_predict(dataset, multithreading=False, fit_params=fit_params)
+        kfscorer.fit_predict(dataset, multithreading=True, fit_params=fit_params)
 
+    
+    def scores_bin():
+        dataset = DatasetScoresBinaryClassification(f'dataset/preprocessed/cluster_recurrent/full/dataset_binary_classification_p12')
+
+        init_params = {
+            'dataset': dataset,
+            'input_shape': (12,168),
+            'cell_type': 'gru',
+            'num_recurrent_layers': 2,
+            'num_recurrent_units': 64,
+            'num_dense_layers': 2,
+            'optimizer': 'adam',
+            #'class_weights': dataset.get_class_weights(),
+            'sample_weights': dataset.get_sample_weights()
+        }
+        fit_params = {'epochs': 200}
+
+        kfscorer = KFoldScorer(model_class=RNNBinaryClassificator, init_params=init_params, k=5)
+
+        kfscorer.fit_predict(dataset, multithreading=True, fit_params=fit_params)
+
+    menu.single_choice('Which model?', ['RNN', 'RNN binary'], [scores_rnn, scores_bin])
