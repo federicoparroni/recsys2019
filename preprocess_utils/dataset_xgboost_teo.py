@@ -117,42 +117,42 @@ def create_dataset(mode, cluster, class_weights=False):
         if kind == 'kind2':
             # questo fa 0.6755 in locale + User features
             features_array = [ PastFutureSessionFeatures,                                                                                 │
-            ActionsInvolvingImpressionSession,                                                                   │
-            (ImpressionPositionSession, False),                                                                  │
-            (ImpressionPriceInfoSessionOld, False),                                                              │
-            ImpressionRatingNumeric,                                                                             │
-            ImpressionLabel,                                                                                     │
-            LastActionInvolvingImpression,                                                                       │
-            MeanPriceClickout,                                                                                   │
-            AvgPriceInteractions,                                                                                │
-            SessionDevice,                                                                                       │
-            NumImpressionsInClickout,                                                                            │
-            SessionLengthOld,                                                                                    │
-            TimesImpressionAppearedInClickoutsSession,                                                           │
-            TimesUserInteractedWithImpression,                                                                   │
-            TimingFromLastInteractionImpression,                                                                 │
-            TopPopPerImpression,                                                                                 │
-            TopPopInteractionClickoutPerImpression,                                                              │
-            ChangeImpressionOrderPositionInSession,                                                              │
-            FrenzyFactorSession,                                                                                 │
-            DayOfWeekAndMomentInDay,                                                                             │
-            LastClickoutFiltersSatisfaction,                                                                     │
-            TimePerImpression,                                                                                   │
-            PersonalizedTopPop,                                                                                  │
-            PriceQuality,                                                                                        │
-            PlatformFeaturesSimilarity,                                                                          │
-            LastActionBeforeClickout,                                                                            │
-            (ImpressionStarsNumeric, False),                                                                     │
-            StepsBeforeLastClickout,                                                                             │
-            LocationReferencePercentageOfClickouts,                                                              │
-            LocationReferencePercentageOfInteractions,                                                           │
-            NumTimesItemImpressed,                                                                               │
-            PercClickPerImpressions,                                                                             │
-            PlatformReferencePercentageOfClickouts,                                                              │
-            PlatformReferencePercentageOfInteractions,                                                           │
-            PlatformSession,                                                                                     │
-            User2ItemOld,                                                                                        │
-            (LazyUser, False),                                                                                   │
+            ActionsInvolvingImpressionSession,                                                                   
+            (ImpressionPositionSession, False),
+            (ImpressionPriceInfoSessionOld, False),
+            ImpressionRatingNumeric,
+            ImpressionLabel,
+            LastActionInvolvingImpression,
+            MeanPriceClickout,
+            AvgPriceInteractions,
+            SessionDevice,
+            NumImpressionsInClickout,
+            SessionLengthOld,
+            TimesImpressionAppearedInClickoutsSession,
+            TimesUserInteractedWithImpression,
+            TimingFromLastInteractionImpression,
+            TopPopPerImpression,
+            TopPopInteractionClickoutPerImpression,
+            ChangeImpressionOrderPositionInSession,
+            FrenzyFactorSession,
+            DayOfWeekAndMomentInDay,
+            LastClickoutFiltersSatisfaction,
+            TimePerImpression,
+            PersonalizedTopPop,
+            PriceQuality,
+            PlatformFeaturesSimilarity,
+            LastActionBeforeClickout,
+            (ImpressionStarsNumeric, False),
+            StepsBeforeLastClickout,
+            LocationReferencePercentageOfClickouts,
+            LocationReferencePercentageOfInteractions,
+            NumTimesItemImpressed,
+            PercClickPerImpressions,
+            PlatformReferencePercentageOfClickouts,
+            PlatformReferencePercentageOfInteractions,
+            PlatformSession,
+            User2ItemOld,
+            (LazyUser, False),
             ]
         if kind == 'kind3':
             # questo fa 0.6750 locale e 0.6731 in leaderboard coi parametri magici
