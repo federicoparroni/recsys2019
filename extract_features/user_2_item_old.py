@@ -94,22 +94,11 @@ class User2ItemOld(FeatureBase):
                 # compute the distance between the two vectors
                 _scores_manhattan = manhattan_distances(user_feature_vec.reshape(1, -1), features_imp)
                 _scores_cosine = cosine_similarity(user_feature_vec.reshape(1, -1), features_imp)
-                _scores_jaccard_no_norm = np.dot(user_feature_vec, features_imp.T)
-
-                _scores_manhattan_clip = manhattan_distances(clipped_user_feature_vec.reshape(1, -1), features_imp)
-                _scores_cosine_clip = cosine_similarity(clipped_user_feature_vec.reshape(1, -1), features_imp)
-                _scores_jaccard_no_norm_clip = np.dot(clipped_user_feature_vec, features_imp.T)
-
-                _scores_manhattan_tr = manhattan_distances(tresholded_user_feature_vec.reshape(1, -1), features_imp)
-                _scores_cosine_tr = cosine_similarity(tresholded_user_feature_vec.reshape(1, -1), features_imp)
-                _scores_jaccard_no_norm_tr = np.dot(tresholded_user_feature_vec, features_imp.T)
 
                 # create and append a tuple on the final list
                 for i in range(len(impressions)):
                     scores.append((user, sess, impressions[i],
-                                   _scores_cosine[0][i], _scores_manhattan[0][i],_scores_jaccard_no_norm[i],
-                                   _scores_cosine_clip[0][i], _scores_manhattan_clip[0][i],_scores_jaccard_no_norm_clip[i],
-                                   _scores_cosine_tr[0][i], _scores_manhattan_tr[0][i],_scores_jaccard_no_norm_tr[i]))
+                                   _scores_cosine[0][i], _scores_manhattan[0][i]))
             return pd.DataFrame(scores, columns=['user_id', 'session_id', 'item_id',
                                                  'scores_cosine', 'scores_manhatthan'])
 
