@@ -75,7 +75,6 @@ class User2ItemOld(FeatureBase):
                 # that there weren't numeric actions in the session so initialize it with an empty vector
                 us_tuple = (user, sess)
 
-
                 if us_tuple in sess_user_dict:
                     user_feature_vec = sess_user_dict[(user, sess)]
                 else:
@@ -84,14 +83,24 @@ class User2ItemOld(FeatureBase):
                 # retrieve the features of the impression selected
                 features_imp = icm.loc[impressions].values
 
+                # create the various version of the user vector CLIPPED, TRESHOLDED
+                clipped_user_feature_vec = np.clip(user_feature_vec,0,1)
+
+                tresholded_user_feature_vec = user_feature_vec.copy()
+                if np.sum(user_feature_vec) > 0:
+                    treshold_limit = np.mean(user_feature_vec[user_feature_vec > 0])
+                    tresholded_user_feature_vec[tresholded_user_feature_vec<treshold_limit]=0
 
                 # compute the distance between the two vectors
                 _scores_manhattan = manhattan_distances(user_feature_vec.reshape(1, -1), features_imp)
                 _scores_cosine = cosine_similarity(user_feature_vec.reshape(1, -1), features_imp)
+
                 # create and append a tuple on the final list
                 for i in range(len(impressions)):
-                    scores.append((user, sess, impressions[i], _scores_cosine[0][i], _scores_manhattan[0][i]))
-            return pd.DataFrame(scores, columns=['user_id', 'session_id', 'item_id', 'scores_cosine', 'scores_manhatthan'])
+                    scores.append((user, sess, impressions[i],
+                                   _scores_cosine[0][i], _scores_manhattan[0][i]))
+            return pd.DataFrame(scores, columns=['user_id', 'session_id', 'item_id',
+                                                 'scores_cosine', 'scores_manhatthan'])
 
         train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)

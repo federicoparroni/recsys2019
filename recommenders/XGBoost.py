@@ -245,7 +245,7 @@ class XGBoostWrapperSmartValidation(XGBoostWrapper):
         MRRs = -np.array(results['eval_0']['MRR'])
         max_mrr = np.amax(MRRs)
         max_idx = np.argmax(MRRs)
-        self.fixed_params_dict['n_estimators'] = max_idx
+        # self.fixed_params_dict['n_estimators'] = max_idx
         return max_mrr
 
 _best_so_far = 0

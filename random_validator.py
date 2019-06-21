@@ -84,5 +84,5 @@ if __name__ == "__main__":
     kind = input('insert the kind: ')
     m = XGBoostWrapperSmartValidation(mode=mode, cluster=cluster, kind=kind, ask_to_load=False)
     a = XGBoostWrapper(mode='full', cluster=cluster, kind=kind)
-    v = RandomValidator(m, automatic_export=True, reference_object_for_sub_exporter=False, user='gabbo')
+    v = RandomValidator(m, automatic_export=False, reference_object_for_sub_exporter=False, user='gabbo')
     v.validate(100)
