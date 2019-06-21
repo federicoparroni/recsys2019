@@ -43,9 +43,7 @@ def preprocess_cv():
 
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
 
-    for i, t in enumerate(kf.split(user_session_df)):
-        train_index = t[0]
-        test_index = t[1]
+    for i, (train_index, test_index) in enumerate(kf.split(user_session_df)):
         print(f' train indices : {len(train_index)}, test indices : {len(test_index)}')
         save_folds(df, user_session_df, train_index, test_index, i)
 
