@@ -27,6 +27,7 @@ class ScoresXGBoostAccomodation(FeatureBase):
 
         df = pd.read_csv(path, index_col=None)
         df = df.drop_duplicates(['user_id','session_id','item_id'], keep='first')
+        df = df.rename(columns={"score_xgboost" : "score_xgboost_accomodation"})
 
         print('{} feature read'.format(self.name))
         return df
