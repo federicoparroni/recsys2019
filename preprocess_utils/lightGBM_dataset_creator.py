@@ -230,7 +230,7 @@ if __name__ == '__main__':
         # AdjustedPlatformReferencePercentageOfInteractions,
         AvgPriceInteractions,
         ChangeImpressionOrderPositionInSession,
-        CountrySearchedSession,
+        #CountrySearchedSession,
         DayOfWeekAndMomentInDay,
         FractionPosPrice,
         FrenzyFactorSession,
