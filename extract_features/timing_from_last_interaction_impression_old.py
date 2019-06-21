@@ -15,7 +15,7 @@ class TimingFromLastInteractionImpressionOld(FeatureBase):
     """
     how much time is elapsed and how many steps are passed from the last time a user
     interacted with an impression
-    | user_id | session_id | item_id | num_interactions_impr | step_from_last_interaction|timestamp_from_last_interaction | last_action_type_with_impr
+    | user_id | session_id | item_id | num_interactions_impr | step_from_last_interaction|timestamp_from_last_interaction
     """
 
     def __init__(self, mode, cluster='no_cluster'):
@@ -78,6 +78,7 @@ class TimingFromLastInteractionImpressionOld(FeatureBase):
         features_df = pd.DataFrame(final_df.progress_apply(lambda x: tuple(x['dict'].values()), axis=1).tolist(),
                                    columns=list(final_df.iloc[0].dict.keys()))
         final_df_ = pd.concat([final_df, features_df], axis=1).drop('dict', axis=1)
+        final_df_ = final_df_.drop('last_action_type_with_impr',1)
         return final_df_
 
 if __name__ == '__main__':
