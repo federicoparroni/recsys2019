@@ -9,7 +9,7 @@ class ScoresRNN(FeatureBase):
     """
 
     def __init__(self, mode, cluster='no_cluster'):
-        name = 'scores_xgboost_scoresrnn'
+        name = 'scores_rnn'
         super(ScoresRNN, self).__init__(
             name=name, mode=mode, cluster=cluster
             )
@@ -26,7 +26,7 @@ class ScoresRNN(FeatureBase):
                    \'mode/feature/scores_rnn/' )
 
         df = pd.read_csv(path, index_col=None)
-        df = df.drop_duplicates(['user_id','session_id','item_id'], keep='first')
+        df = df.drop_duplicates(['user_id','session_id','item_id'], keep='last')
 
         print('{} feature read'.format(self.name))
         return df

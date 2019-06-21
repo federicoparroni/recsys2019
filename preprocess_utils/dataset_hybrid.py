@@ -18,6 +18,7 @@ from extract_features.classifier.last_action_before_clickout import LastActionBe
 from extract_features.classifier_piccio import ClassifierPiccio
 from extract_features.scores_xgboost_danparameter import ScoresXGBoostDanParameter
 from extract_features.scores_catboost import ScoresCatboost
+from extract_features.scores_rnn import ScoresRNN
 from extract_features.scores_xgboost_accomodation import ScoresXGBoostAccomodation
 from extract_features.adjusted_platform_reference_percentage_of_clickouts import AdjustedPlatformReferencePercentageOfClickouts
 from extract_features.adjusted_location_reference_percentage_of_interactions import AdjustedLocationReferencePercentageOfInteractions
@@ -46,14 +47,15 @@ def create_dataset(mode, cluster, class_weights=False):
             features_array = [
                               (ImpressionPositionSession, False),
                               ImpressionLabel,
-                              TopPopPerImpression,
+                              #TopPopPerImpression,
                               PersonalizedTopPop,
-                              LastActionBeforeClickout,
+                              #LastActionBeforeClickout,
                               (LazyUser, False),
                 (ScoresXGBoostDanParameter, False),
                 (ClassifierPiccio, False),
                 (ScoresCatboost, False),
                 (ScoresXGBoostAccomodation, False),
+                (ScoresRNN, False),
                 AdjustedPlatformReferencePercentageOfClickouts, 
                 AdjustedLocationReferencePercentageOfInteractions, 
                 AdjustedPercClickPerImpressions,

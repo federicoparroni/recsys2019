@@ -1,3 +1,7 @@
+import os
+import sys
+sys.path.append(os.getcwd())
+
 from extract_features.feature_base import FeatureBase
 import data
 from preprocess_utils.last_clickout_indices import find as find_last_clickout_indices
