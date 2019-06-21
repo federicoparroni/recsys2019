@@ -68,7 +68,9 @@ class StatisticsTimeFromLastAction(FeatureBase):
 
 
 if __name__ == '__main__':
-    from utils.menu import mode_selection
+    from utils.menu import mode_selection, cluster_selection
+
+    cluster = cluster_selection()
     mode = mode_selection()
-    c = StatisticsTimeFromLastAction(mode=mode, cluster='no_cluster')
+    c = StatisticsTimeFromLastAction(mode=mode, cluster=cluster)
     c.save_feature()

@@ -113,8 +113,10 @@ class StatisticsPosInteracted(FeatureBase):
         return final_df_.drop(['mean_pos_interacted', 'max_pos_interacted', 'last_pos_interacted'], axis=1)
 
 if __name__ == '__main__':
-    from utils.menu import mode_selection
+    from utils.menu import mode_selection, cluster_selection
+
+    cluster = cluster_selection()
     mode = mode_selection()
-    c = StatisticsPosInteracted(mode=mode, cluster='no_cluster')
+    c = StatisticsPosInteracted(mode=mode, cluster=cluster)
     c.save_feature()
 

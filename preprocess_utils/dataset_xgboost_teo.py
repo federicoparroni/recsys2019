@@ -115,20 +115,11 @@ def create_dataset(mode, cluster, class_weights=False):
     if cluster == 'no_cluster':
 
         if kind == 'kind2':
-            features_array = [
-            AdjustedLocationReferencePercentageOfClickouts,
-            AdjustedLocationReferencePercentageOfInteractions,
-            AdjustedPercClickPerImpressions,
-            AdjustedPlatformReferencePercentageOfClickouts,
-            AdjustedPlatformReferencePercentageOfInteractions,
-            SessionNumClickouts,
-            SessionNumFilterSel,
-            SessionNumInterItemImage,
-            SessionNumNotNumeric,
-            # queste sono fisse invece
+            # questo fa 0.6755 in locale + User features
+            features_array = [ PastFutureSessionFeatures,
             ActionsInvolvingImpressionSession,
             (ImpressionPositionSession, False),
-            (ImpressionPriceInfoSession, False),
+            (ImpressionPriceInfoSessionOld, False),
             ImpressionRatingNumeric,
             ImpressionLabel,
             LastActionInvolvingImpression,
@@ -136,7 +127,7 @@ def create_dataset(mode, cluster, class_weights=False):
             AvgPriceInteractions,
             SessionDevice,
             NumImpressionsInClickout,
-            SessionLength,
+            SessionLengthOld,
             TimesImpressionAppearedInClickoutsSession,
             TimesUserInteractedWithImpression,
             TimingFromLastInteractionImpression,
@@ -160,11 +151,12 @@ def create_dataset(mode, cluster, class_weights=False):
             PlatformReferencePercentageOfClickouts,
             PlatformReferencePercentageOfInteractions,
             PlatformSession,
-            User2Item,
-            (LazyUser, False)
+            User2ItemOld,
+            (LazyUser, False),
             ]
         if kind == 'kind3':
             # questo fa 0.6750 locale e 0.6731 in leaderboard coi parametri magici
+
             features_array = [
             ActionsInvolvingImpressionSession,
             (ImpressionPositionSession, False),
@@ -204,6 +196,7 @@ def create_dataset(mode, cluster, class_weights=False):
             (LazyUser, False),
             ]
         if kind == 'kind1':
+            # questo fa 0.6755 in locale
             features_array = [
             ActionsInvolvingImpressionSession,
             (ImpressionPositionSession, False),
@@ -218,7 +211,7 @@ def create_dataset(mode, cluster, class_weights=False):
             SessionLengthOld,
             TimesImpressionAppearedInClickoutsSession,
             TimesUserInteractedWithImpression,
-            TimingFromLastInteractionImpressionOld,
+            TimingFromLastInteractionImpression,
             TopPopPerImpression,
             TopPopInteractionClickoutPerImpression,
             ChangeImpressionOrderPositionInSession,
