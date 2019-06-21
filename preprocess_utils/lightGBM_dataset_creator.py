@@ -40,7 +40,7 @@ from extract_features.impression_rating import ImpressionRating
 from extract_features.impression_rating_numeric import ImpressionRatingNumeric
 from extract_features.impression_stars_numeric import ImpressionStarsNumeric
 from extract_features.label import ImpressionLabel
-from extract_features.last_action_involving_impression import LastInteractionInvolvingImpression
+#from extract_features.last_action_involving_impression import LastInteractionInvolvingImpression
 from extract_features.last_clickout_filters_satisfaction import LastClickoutFiltersSatisfaction
 from extract_features.last_steps_before_clickout import StepsBeforeLastClickout
 from extract_features.lazy_user import LazyUser
@@ -114,7 +114,6 @@ def merge_features_lgb(mode, cluster, features_array):
     # on the target indices
 
     vali_test_idxs = data.target_indices(mode, cluster)
-
 
     # construct the validation train and test df_base
     print('construct test and vali df')
@@ -222,7 +221,7 @@ if __name__ == '__main__':
 
     features_array = [
         ImpressionLabel,
-        (StatisticsPosInteracted, False),
+        StatisticsPosInteracted,
         # AdjustedLocationReferencePercentageOfClickouts,
         # AdjustedLocationReferencePercentageOfInteractions,
         # AdjustedPercClickPerImpressions,
@@ -237,13 +236,13 @@ if __name__ == '__main__':
         FrenzyFactorSession,
         ImpressionPositionInPercentage,
         ImpressionPositionSession,
-        (ImpressionPriceInfoSession, False),
-        (ImpressionRatingNumeric, False),
-        (ImpressionStarsNumeric, False),
+        ImpressionPriceInfoSession,
+        ImpressionRatingNumeric,
+        ImpressionStarsNumeric,
         ##LastInteractionInvolvingImpression,
         LastClickoutFiltersSatisfaction,
-        (StepsBeforeLastClickout,False),
-        (LazyUser,False),
+        StepsBeforeLastClickout,
+        LazyUser,
         LocationFeaturesSimilarity,
         LocationReferencePercentageOfClickouts,
         ##LocationReferencePercentageOfInteractions,
@@ -267,7 +266,7 @@ if __name__ == '__main__':
         # SessionNumInterItemImage,
         # SessionNumNotNumeric,
         SessionSortOrderWhenClickout,
-        (StatisticsTimeFromLastAction, False),
+        StatisticsTimeFromLastAction,
         TimePerImpression,
         TimesUserInteractedWithImpression,
         TimingFromLastInteractionImpression,
