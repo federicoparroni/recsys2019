@@ -21,7 +21,7 @@ class ScoresCatboost(FeatureBase):
     def read_feature(self, one_hot=False, create_not_existing_features=True):
         if self.mode == 'full':
             path = 'dataset/preprocessed/{}/{}/feature/{}/features.csv'.format(
-                self.cluster, 'full', self.name)
+                self.cluster, 'local', self.name)
         else:
             path = 'dataset/preprocessed/{}/{}/feature/{}/features.csv'.format(
                 self.cluster, 'local', self.name)
@@ -30,6 +30,7 @@ class ScoresCatboost(FeatureBase):
                    \'mode/feature/scores_catboost/')
 
         df = pd.read_csv(path, index_col=None)
+        df = df.drop(['index'], axis=1)
         df = df.drop_duplicates(['user_id', 'session_id', 'item_id'])
 
         print('{} feature read'.format(self.name))
