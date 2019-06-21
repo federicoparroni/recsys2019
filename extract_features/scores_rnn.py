@@ -27,6 +27,8 @@ class ScoresRNN(FeatureBase):
 
         df = pd.read_csv(path, index_col=None)
         df = df.drop_duplicates(['user_id','session_id','item_id'], keep='last')
+        df = df.rename(columns={"score" : 'score_rnn'})
+
 
         print('{} feature read'.format(self.name))
-        return df
+        return df[['user_id', 'session_id', 'score_rnn']]
