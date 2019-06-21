@@ -27,8 +27,8 @@ class ScoresXGBoostAccomodation(FeatureBase):
 
         df = pd.read_csv(path, index_col=None)
         df = df.drop_duplicates(['user_id','session_id','item_id'], keep='first')
-        print(df.columns)
+        df = df.rename(columns={"score" : "score_tf_ranking"})
 
         print('{} feature read'.format(self.name))
-        return df
+        return df[['user_id', 'session_id', 'scores_tf_ranking']]
 
