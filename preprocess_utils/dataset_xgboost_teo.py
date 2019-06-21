@@ -77,7 +77,7 @@ from utils.menu import single_choice
 from preprocess_utils.merge_features import merge_features
 from os.path import join
 from extract_features.past_future_session_features import PastFutureSessionFeatures
-
+from extract_features.normalized_platform_features_similarity import NormalizedPlatformFeaturesSimilarity
 
 
 def create_groups(df):
@@ -115,8 +115,8 @@ def create_dataset(mode, cluster, class_weights=False):
     if cluster == 'no_cluster':
 
         if kind == 'kind2':
-            # questo fa 0.6755 in locale + old
-            features_array = [
+            # questo fa 0.6755 in locale + NormalizedPlatformFeaturesSimilarity, SessionNumClickouts
+            features_array = [NormalizedPlatformFeaturesSimilarity, SessionNumClickouts,
             ActionsInvolvingImpressionSession,
             (ImpressionPositionSession, False),
             (ImpressionPriceInfoSessionOld, False),
@@ -130,7 +130,7 @@ def create_dataset(mode, cluster, class_weights=False):
             SessionLengthOld,
             TimesImpressionAppearedInClickoutsSession,
             TimesUserInteractedWithImpression,
-            TimingFromLastInteractionImpressionOld,
+            TimingFromLastInteractionImpression,
             TopPopPerImpression,
             TopPopInteractionClickoutPerImpression,
             ChangeImpressionOrderPositionInSession,
@@ -195,7 +195,10 @@ def create_dataset(mode, cluster, class_weights=False):
             (LazyUser, False),
             ]
         if kind == 'kind1':
-            # questo fa 0.6755 in locale
+            # questo fa 0.6755 in locale coi param magici
+            # fa 0.67566 con i seguenti params:
+            # learning_rate=0.1366 min_child_weight=1 n_estimators=499
+            # max_depth=10 subsample=1 colsample_bytree=1 reg_lambda=4.22 reg_alpha=10.72
             features_array = [
             ActionsInvolvingImpressionSession,
             (ImpressionPositionSession, False),
