@@ -1,3 +1,7 @@
+import os
+import sys
+sys.path.append(os.getcwd())
+
 from extract_features.feature_base import FeatureBase
 import data
 from preprocess_utils.last_clickout_indices import find as find_last_clickout_indices
@@ -43,10 +47,6 @@ class ImpressionLabel(FeatureBase):
         df = expand_impressions(df)
         df['label'] = (df['item_id'] == df['reference'].astype('float'))*1
         df.drop(['index', 'reference'], axis=1, inplace=True)
-        print('len of df')
-        print(len(df))
-        print('len of groups')
-        print(len(df.groupby(['user_id', 'session_id', 'item_id'])))
 
         print(df)
         return df
