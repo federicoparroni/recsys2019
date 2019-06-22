@@ -19,7 +19,8 @@ accounts = {
     'parro': (125016709, '716431813:AAHaKh7gsBrMoexVs1Lm7gcfHct-3Y3WT4U'),
     'gabbo': (361500321, '800854524:AAGUxIYNxcVHKyjbiQk_SbU-jWj1-3lSpEA'),
     'edo': (286935646, '675236794:AAEpSgQ44Ncs1a8nh_uvc8AXaWvspI6pz1U'),
-    'teo':(295586895,'868034927:AAHdzL68dDMwO-PiaP2reI3fyfTnQXZlsVo')
+    'teo':(295586895,'868034927:AAHdzL68dDMwO-PiaP2reI3fyfTnQXZlsVo'),
+    'ale':(553968847, '890873700:AAFp-JUTR1orAxgaXtUz9rmbOludxulGXfI')
     # <insert your chat_id and token here>
 }
 

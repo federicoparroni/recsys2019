@@ -40,7 +40,7 @@ from extract_features.impression_rating import ImpressionRating
 from extract_features.impression_rating_numeric import ImpressionRatingNumeric
 from extract_features.impression_stars_numeric import ImpressionStarsNumeric
 from extract_features.label import ImpressionLabel
-from extract_features.last_action_involving_impression import LastInteractionInvolvingImpression
+#from extract_features.last_action_involving_impression import LastInteractionInvolvingImpression
 from extract_features.last_clickout_filters_satisfaction import LastClickoutFiltersSatisfaction
 from extract_features.last_steps_before_clickout import StepsBeforeLastClickout
 from extract_features.lazy_user import LazyUser
@@ -114,7 +114,6 @@ def merge_features_lgb(mode, cluster, features_array):
     # on the target indices
 
     vali_test_idxs = data.target_indices(mode, cluster)
-
 
     # construct the validation train and test df_base
     print('construct test and vali df')
@@ -221,17 +220,17 @@ def create_lightGBM_dataset(mode, cluster, features_array, dataset_name):
 if __name__ == '__main__':
 
     features_array = [
+        ImpressionLabel,
         StatisticsPosInteracted,
-        #ActionsInvolvingImpressionSession,
-        AdjustedLocationReferencePercentageOfClickouts,
-        AdjustedLocationReferencePercentageOfInteractions,
-        AdjustedPercClickPerImpressions,
+        # AdjustedLocationReferencePercentageOfClickouts,
+        # AdjustedLocationReferencePercentageOfInteractions,
+        # AdjustedPercClickPerImpressions,
         PlatformFeaturesSimilarity,
-        AdjustedPlatformReferencePercentageOfClickouts,
-        AdjustedPlatformReferencePercentageOfInteractions,
+        # AdjustedPlatformReferencePercentageOfClickouts,
+        # AdjustedPlatformReferencePercentageOfInteractions,
         AvgPriceInteractions,
         ChangeImpressionOrderPositionInSession,
-        CountrySearchedSession,
+        #CountrySearchedSession,
         DayOfWeekAndMomentInDay,
         FractionPosPrice,
         FrenzyFactorSession,
@@ -240,43 +239,41 @@ if __name__ == '__main__':
         ImpressionPriceInfoSession,
         ImpressionRatingNumeric,
         ImpressionStarsNumeric,
-        ImpressionLabel,
-        LastInteractionInvolvingImpression,
+        ##LastInteractionInvolvingImpression,
         LastClickoutFiltersSatisfaction,
         StepsBeforeLastClickout,
         LazyUser,
         LocationFeaturesSimilarity,
         LocationReferencePercentageOfClickouts,
-        LocationReferencePercentageOfInteractions,
+        ##LocationReferencePercentageOfInteractions,
         MeanPriceClickout,
         NormalizedPlatformFeaturesSimilarity,
         NumImpressionsInClickout,
         NumTimesItemImpressed,
         PercClickPerImpressions,
-        PercClickPerPos,
-        PersonalizedTopPop,
+        # PercClickPerPos,
+        # PersonalizedTopPop,
         PlatformReferencePercentageOfClickouts,
-        PlatformReferencePercentageOfInteractions,
+        ##PlatformReferencePercentageOfInteractions,
         PriceQuality,
-        RefPopAfterFirstPosition,
+        # RefPopAfterFirstPosition,
         SessionActionNumRefDiffFromImpressions,
         SessionDevice,
         SessionFilterActiveWhenClickout,
         SessionLength,
-        SessionNumClickouts,
-        SessionNumFilterSel,
-        SessionNumInterItemImage,
-        SessionNumNotNumeric,
+        # SessionNumClickouts,
+        # SessionNumFilterSel,
+        # SessionNumInterItemImage,
+        # SessionNumNotNumeric,
         SessionSortOrderWhenClickout,
         StatisticsTimeFromLastAction,
         TimePerImpression,
-        #TimesImpressionAppearedInClickoutsSession,
         TimesUserInteractedWithImpression,
         TimingFromLastInteractionImpression,
         TopPopInteractionClickoutPerImpression,
         TopPopPerImpression,
         User2Item,
-        UserFeature
+        #UserFeature
     ]
 
     mode=single_choice('select mode:', ['full', 'local', 'small'])

@@ -62,7 +62,7 @@ class ScoresCV(object):
 
         last_clk_full['index'] = last_clk_full.index
         merged = last_clk_full.merge(scores, on=['index'])
-        model_name = self.model_class.name
+        model_name = model.name
         df = assign_score(merged, model_name)
         df = df.drop(['index'], axis=1)
 
