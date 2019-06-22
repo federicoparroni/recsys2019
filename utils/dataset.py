@@ -140,7 +140,10 @@ class Dataset(DatasetBase):
         if y.shape[1] == 1:
             # binary class
             weights = compute_class_weight('balanced', np.arange(num_classes), y[:,0])
-            return (y * weights[1]).flatten()
+            w = y.flatten().astype('float')
+            w[w == 0] = weights[0]
+            w[w == 1] = weights[1]
+            return w
         else:
             # multiple classes one-hot encoded
             y_2 = [np.where(r==1)[0][0] for r in y]

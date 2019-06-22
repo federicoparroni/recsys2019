@@ -99,9 +99,9 @@ class PastFutureSessionFeatures(FeatureBase):
                          'past_pos_clicked_1': [], 'past_pos_clicked_2': [], 'past_pos_clicked_3': [], 'past_pos_clicked_4_8': [],
                          'past_pos_clicked_9_15': [], 'past_pos_clicked_16_25': [],
                          'past_times_impr_appeared': [], 'past_mean_pos_impr_appeared': [],
-                         'past_sort_order_price_only': [], 'past_sort_order_price_and_recommended': [], 'past_sort_order_rating_only': [],
-                         'past_sort_order_rating_and_recommended': [], 'past_sort_order_distance_only': [], 'past_sort_order_distance_and_recommended': [],
-                         'past_sort_order_our_recommendations': [],
+                         # 'past_sort_order_price_only': [], 'past_sort_order_price_and_recommended': [], 'past_sort_order_rating_only': [],
+                         # 'past_sort_order_rating_and_recommended': [], 'past_sort_order_distance_only': [], 'past_sort_order_distance_and_recommended': [],
+                         # 'past_sort_order_our_recommendations': [],
 
                          'future_times_interacted_impr': [], 'future_session_num': [],
                          'future_closest_action_involving_impression': [],
@@ -121,11 +121,11 @@ class PastFutureSessionFeatures(FeatureBase):
                          'future_pos_clicked_1': [], 'future_pos_clicked_2': [], 'future_pos_clicked_3': [], 'future_pos_clicked_4_8': [],
                          'future_pos_clicked_9_15': [], 'future_pos_clicked_16_25': [],
                          'future_times_impr_appeared': [], 'future_mean_pos_impr_appeared': [],
-                         'future_sort_order_price_only': [], 'future_sort_order_price_and_recommended': [],
-                         'future_sort_order_rating_only': [],
-                         'future_sort_order_rating_and_recommended': [], 'future_sort_order_distance_only': [],
-                         'future_sort_order_distance_and_recommended': [],
-                         'future_sort_order_our_recommendations': [],
+                         # 'future_sort_order_price_only': [], 'future_sort_order_price_and_recommended': [],
+                         # 'future_sort_order_rating_only': [],
+                         # 'future_sort_order_rating_and_recommended': [], 'future_sort_order_distance_only': [],
+                         # 'future_sort_order_distance_and_recommended': [],
+                         # 'future_sort_order_our_recommendations': [],
                          }
 
     def extract_feature(self):
@@ -318,31 +318,6 @@ class PastFutureSessionFeatures(FeatureBase):
         print(len(user_tup))
         return user_feat_correct
 
-
-        # SET empty value as string for categorical features
-        label_to_attach['past_closest_action_involving_impression'] = 'not_present'
-        label_to_attach['future_closest_action_involving_impression'] = 'not_present'
-
-        # Remove unuseful session from feat
-        duplicate_session_to_rem = list(set(feat.session_id) - set(label.session_id))
-
-        print('Sessions present in userfeatures not present in label = {}'.format(len(duplicate_session_to_rem)))
-        user_feat_correct = feat[~feat.session_id.isin(duplicate_session_to_rem)]
-
-        user_feat_correct = pd.concat([user_feat_correct, label_to_attach], ignore_index=True)
-
-        print('FINAL: len of user_feat: {}\nlen of label_feat: {}'.format(len(user_feat_correct), len(label)))
-
-        if list(user_feat_correct.item_id).sort() == list(label.item_id).sort():
-            print('Correct items as in label')
-        else:
-            print('WARNING: error nor corrected!   \n missing items:')
-            print( len(label), len(user_feat_correct))
-
-
-
-        return user_feat_correct
-
     def add_empty_features(self, impr, mode='both'):
 
         lenImpr = len(impr)
@@ -412,7 +387,7 @@ class PastFutureSessionFeatures(FeatureBase):
 
         self.get_action_involving_impressions(df, impressions, prefix='past')
 
-        self.get_change_sort_order_frequency(df, impressions, prefix='past')
+        #self.get_change_sort_order_frequency(df, impressions, prefix='past')
 
     def compute_future_sessions_feat(self, df, impressions, closest_tm):
 
@@ -451,7 +426,7 @@ class PastFutureSessionFeatures(FeatureBase):
 
         self.get_action_involving_impressions(df, impressions, prefix='future')
 
-        self.get_change_sort_order_frequency(df, impressions, prefix='future')
+        #self.get_change_sort_order_frequency(df, impressions, prefix='future')
 
     def get_action_involving_impressions(self, x, impr, prefix='future'):
         df_only_numeric = x[pd.to_numeric(x['reference'], errors='coerce').notnull()][[

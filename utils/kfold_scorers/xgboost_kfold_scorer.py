@@ -6,7 +6,7 @@ from utils.menu import cluster_selection
 from utils.menu import single_choice
 
 if __name__ == "__main__":
-    kind = single_choice('pick the kind', ['kind1', 'kind2', 'kind3'])
+    kind = input('insert the kind: ')
     mode = mode_selection()
     cluster = cluster_selection()
     dataset = DatasetXGBoost(mode, cluster, kind)

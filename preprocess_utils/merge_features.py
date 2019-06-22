@@ -11,7 +11,7 @@ from joblib import Parallel, delayed
     a train and test df. the test df contains just the target sessions, identified by the target indices 
     in that mode and cluster, in the order in which the target indices are
 """
-def merge_features(mode, cluster, features_array, onehot=True, merge_kind='inner', create_not_existing_features=False):
+def merge_features(mode, cluster, features_array, onehot=True, merge_kind='inner', create_not_existing_features=True):
     # load the full_df
     train_df = data.train_df(mode, cluster)
     test_df = data.test_df(mode, cluster)
@@ -53,7 +53,7 @@ def merge_features(mode, cluster, features_array, onehot=True, merge_kind='inner
     validation_test_df['dummy_step'] = np.arange(len(validation_test_df))
 
     train_df, validation_test_df = actual_merge_multithread(train_df, validation_test_df, features_array, \
-                                                                mode, create_not_existing_features, merge_kind, onehot)
+                                                                mode, cluster, create_not_existing_features, merge_kind, onehot)
 
     print('sorting by index and step...')
     # sort the dataframes
@@ -66,7 +66,7 @@ def merge_features(mode, cluster, features_array, onehot=True, merge_kind='inner
     print('after join')
     return train_df, validation_test_df, train_idxs, vali_test_idxs
 
-def actual_merge_multithread(train_df, validation_test_df, features_array, mode, create_not_existing_features, merge_kind, onehot):
+def actual_merge_multithread(train_df, validation_test_df, features_array, mode, cluster, create_not_existing_features, merge_kind, onehot):
     print('join with the features')
     print(f'train_shape: {train_df.shape}\n vali_test_shape: {validation_test_df.shape}')
 
@@ -75,7 +75,7 @@ def actual_merge_multithread(train_df, validation_test_df, features_array, mode,
     r = Parallel(backend='multiprocessing', n_jobs=-1, max_nbytes=None)(delayed(_pickled_function_merge)
                         (
                             train_df, validation_test_df, f,
-                            mode, onehot, merge_kind, 
+                            mode, cluster, onehot, merge_kind,
                             create_not_existing_features
                         ) for f in features_array)
 
@@ -93,12 +93,12 @@ def actual_merge_multithread(train_df, validation_test_df, features_array, mode,
 
     return train_df, validation_test_df
 
-def _pickled_function_merge(train_df, validation_test_df, f, mode, onehot, merge_kind, create_not_existing_features):
+def _pickled_function_merge(train_df, validation_test_df, f, mode, cluster, onehot, merge_kind, create_not_existing_features):
         print(f)
         if type(f) == tuple:
-            feature = f[0](mode=mode, cluster='no_cluster').read_feature(one_hot=f[1], create_not_existing_features=create_not_existing_features)
+            feature = f[0](mode=mode, cluster=cluster).read_feature(one_hot=f[1], create_not_existing_features=create_not_existing_features)
         else:
-            feature = f(mode=mode, cluster='no_cluster').read_feature(one_hot=onehot, create_not_existing_features=create_not_existing_features)
+            feature = f(mode=mode, cluster=cluster).read_feature(one_hot=onehot, create_not_existing_features=create_not_existing_features)
         print(f'len of feature:{len(feature)}')
         train_df = train_df.merge(feature, how=merge_kind)
         validation_test_df = validation_test_df.merge(feature, how=merge_kind)
@@ -113,14 +113,14 @@ def _pickled_function_merge(train_df, validation_test_df, f, mode, onehot, merge
         return (train_df.drop(['user_id', 'session_id', 'item_id', 'index', 'dummy_step'], axis=1),
                     validation_test_df.drop(['user_id', 'session_id', 'item_id', 'index', 'dummy_step'], axis=1))
 
-def actual_merge_one_thread(train_df, validation_test_df, features_array, mode, create_not_existing_features, merge_kind, onehot):
+def actual_merge_one_thread(train_df, validation_test_df, features_array, mode, cluster,  create_not_existing_features, merge_kind, onehot):
     print('join with the features')
     print(f'train_shape: {train_df.shape}\n vali_test_shape: {validation_test_df.shape}')
     for f in features_array:
         if type(f) == tuple:
-            feature = f[0](mode=mode, cluster='no_cluster').read_feature(one_hot=f[1], create_not_existing_features=create_not_existing_features)
+            feature = f[0](mode=mode, cluster=cluster).read_feature(one_hot=f[1], create_not_existing_features=create_not_existing_features)
         else:
-            feature = f(mode=mode, cluster='no_cluster').read_feature(one_hot=onehot, create_not_existing_features=create_not_existing_features)
+            feature = f(mode=mode, cluster=cluster).read_feature(one_hot=onehot, create_not_existing_features=create_not_existing_features)
         print(f'len of feature:{len(feature)}')
         train_df = train_df.merge(feature, how=merge_kind)
         validation_test_df = validation_test_df.merge(feature, how=merge_kind)

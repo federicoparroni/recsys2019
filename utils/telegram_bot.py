@@ -18,7 +18,9 @@ accounts = {
     'default': (-1001481984580, '819065046:AAFee77GqSpq8XBzmEnAMybLqOHuy6PJ_bg'),
     'parro': (125016709, '716431813:AAHaKh7gsBrMoexVs1Lm7gcfHct-3Y3WT4U'),
     'gabbo': (361500321, '800854524:AAGUxIYNxcVHKyjbiQk_SbU-jWj1-3lSpEA'),
-    'edo': (286935646, '675236794:AAEpSgQ44Ncs1a8nh_uvc8AXaWvspI6pz1U')
+    'edo': (286935646, '675236794:AAEpSgQ44Ncs1a8nh_uvc8AXaWvspI6pz1U'),
+    'teo':(295586895,'868034927:AAHdzL68dDMwO-PiaP2reI3fyfTnQXZlsVo'),
+    'ale':(553968847, '890873700:AAFp-JUTR1orAxgaXtUz9rmbOludxulGXfI')
     # <insert your chat_id and token here>
 }
 
@@ -32,7 +34,7 @@ def get_bot(account):
     if account not in accounts:
         print('Invalid telegram bot account!')
         return None, None
-    
+
     chat_id, token = accounts[account]
     if bots[account] is None:
         bots[account] = telepot.Bot(token)
@@ -52,7 +54,7 @@ class TelegramBotKerasCallback(keras.callbacks.Callback):
 
     # def on_train_begin(self, logs={}):
     #     pass
-    
+
     # def on_epoch_begin(self, epoch, logs={}):
     #     pass
 
@@ -69,12 +71,12 @@ class TelegramBotKerasCallback(keras.callbacks.Callback):
                 lines.append('acc: {} - val_acc: {}'.format( round(logs['acc'],4), round(logs['val_acc'],4) ))
             else:
                 lines.append('acc: {}'.format( round(logs['acc'],4) ))
-            
+
             if 'val_loss' in logs:
                 lines.append('loss: {} - val_loss: {}'.format( round(logs['loss'],4), round(logs['val_loss'],4) ))
             else:
                 lines.append('loss: {}'.format( round(logs['loss'],4) ))
-            
+
             optional_line = ''
             if 'mrr' in logs:
                 optional_line = 'mrr: {}'.format( round(logs['mrr'],4) )
@@ -82,12 +84,11 @@ class TelegramBotKerasCallback(keras.callbacks.Callback):
                     optional_line += ' - val_mrr: {}'.format( round(logs['val_mrr'],4) )
             if optional_line != '':
                 lines.append(optional_line)
-            
+
             try:
                 send_message( '\n'.join(lines), account=self.account)
             except:
                 pass
-    
+
     # def on_train_end(self, logs={}):
     #     pass
-    

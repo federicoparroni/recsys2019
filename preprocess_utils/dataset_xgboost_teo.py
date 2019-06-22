@@ -77,7 +77,7 @@ from utils.menu import single_choice
 from preprocess_utils.merge_features import merge_features
 from os.path import join
 from extract_features.past_future_session_features import PastFutureSessionFeatures
-
+from extract_features.normalized_platform_features_similarity import NormalizedPlatformFeaturesSimilarity
 
 
 def create_groups(df):
@@ -111,23 +111,15 @@ def create_weights(df):
 
 def create_dataset(mode, cluster, class_weights=False):
     # training
-    kind = single_choice(['1', '2', '3'], ['kind1', 'kind2', 'kind3'])
+    kind = input('insert the kind: ')
     if cluster == 'no_cluster':
+
         if kind == 'kind2':
-            features_array = [
-            AdjustedLocationReferencePercentageOfClickouts,
-            AdjustedLocationReferencePercentageOfInteractions,
-            AdjustedPercClickPerImpressions,
-            AdjustedPlatformReferencePercentageOfClickouts,
-            AdjustedPlatformReferencePercentageOfInteractions,
-            SessionNumClickouts,
-            SessionNumFilterSel,
-            SessionNumInterItemImage,
-            SessionNumNotNumeric,
-            # queste sono fisse invece
+            # questo fa 0.6755 in locale + NormalizedPlatformFeaturesSimilarity, SessionNumClickouts fa 0.67588
+            features_array = [NormalizedPlatformFeaturesSimilarity, SessionNumClickouts,
             ActionsInvolvingImpressionSession,
             (ImpressionPositionSession, False),
-            (ImpressionPriceInfoSession, False),
+            (ImpressionPriceInfoSessionOld, False),
             ImpressionRatingNumeric,
             ImpressionLabel,
             LastActionInvolvingImpression,
@@ -135,7 +127,7 @@ def create_dataset(mode, cluster, class_weights=False):
             AvgPriceInteractions,
             SessionDevice,
             NumImpressionsInClickout,
-            SessionLength,
+            SessionLengthOld,
             TimesImpressionAppearedInClickoutsSession,
             TimesUserInteractedWithImpression,
             TimingFromLastInteractionImpression,
@@ -159,8 +151,8 @@ def create_dataset(mode, cluster, class_weights=False):
             PlatformReferencePercentageOfClickouts,
             PlatformReferencePercentageOfInteractions,
             PlatformSession,
-            User2Item,
-            (LazyUser, False)
+            User2ItemOld,
+            (LazyUser, False),
             ]
         if kind == 'kind3':
             # questo fa 0.6750 locale e 0.6731 in leaderboard coi parametri magici
@@ -203,7 +195,14 @@ def create_dataset(mode, cluster, class_weights=False):
             (LazyUser, False),
             ]
         if kind == 'kind1':
+            # questo fa 0.6755 in locale coi param magici e senza NormalizedPlatformFeaturesSimilarity e SessionNumClickouts
+            # fa 0.67566 con i seguenti params:
+            # learning_rate=0.1366 min_child_weight=1 n_estimators=499
+            # max_depth=10 subsample=1 colsample_bytree=1 reg_lambda=4.22 reg_alpha=10.72
+            # fa 0.67588 con anche NormalizedPlatformFeaturesSimilarity e SessionNumClickouts
             features_array = [
+            NormalizedPlatformFeaturesSimilarity,
+            SessionNumClickouts,
             ActionsInvolvingImpressionSession,
             (ImpressionPositionSession, False),
             (ImpressionPriceInfoSessionOld, False),
@@ -217,7 +216,7 @@ def create_dataset(mode, cluster, class_weights=False):
             SessionLengthOld,
             TimesImpressionAppearedInClickoutsSession,
             TimesUserInteractedWithImpression,
-            TimingFromLastInteractionImpressionOld,
+            TimingFromLastInteractionImpression,
             TopPopPerImpression,
             TopPopInteractionClickoutPerImpression,
             ChangeImpressionOrderPositionInSession,
