@@ -53,7 +53,7 @@ class SessionNumNotNumeric(FeatureBase):
             perc.append((t[0]*100)/t[1])
         feature['perc_not_numeric'] = perc
 
-        return feature[['user_id','session_id','item_id','num_not_numeric_interactions','perc_not_numeric']]
+        return feature[['user_id','session_id','item_id','perc_not_numeric']]
 
 if __name__ == '__main__':
     import utils.menu as menu
