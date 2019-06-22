@@ -88,8 +88,8 @@ def supersampling(mode):
     new = pd.concat([new, test])
     new.reset_index(inplace=True, drop=True)
     print("Supersampling ended for mode={}, saving df".format(mode))
-    new_train = new.loc[train_len:]
-    new_test = new.loc[:train_len]
+    new_train = new.loc[:train_len]
+    new_test = new.loc[train_len:]
     new_train.to_csv(path + "/" + mode + "/train.csv", index=True)
     new_test.to_csv(path + "/" + mode + "/train.csv", index=True)
 
