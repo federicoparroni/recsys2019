@@ -115,7 +115,7 @@ def create_dataset(mode, cluster, class_weights=False):
     if cluster == 'no_cluster':
 
         if kind == 'kind2':
-            # questo fa 0.6755 in locale + NormalizedPlatformFeaturesSimilarity, SessionNumClickouts
+            # questo fa 0.6755 in locale + NormalizedPlatformFeaturesSimilarity, SessionNumClickouts fa 0.67588
             features_array = [NormalizedPlatformFeaturesSimilarity, SessionNumClickouts,
             ActionsInvolvingImpressionSession,
             (ImpressionPositionSession, False),
@@ -195,11 +195,14 @@ def create_dataset(mode, cluster, class_weights=False):
             (LazyUser, False),
             ]
         if kind == 'kind1':
-            # questo fa 0.6755 in locale coi param magici
+            # questo fa 0.6755 in locale coi param magici e senza NormalizedPlatformFeaturesSimilarity e SessionNumClickouts
             # fa 0.67566 con i seguenti params:
             # learning_rate=0.1366 min_child_weight=1 n_estimators=499
             # max_depth=10 subsample=1 colsample_bytree=1 reg_lambda=4.22 reg_alpha=10.72
+            # fa 0.67588 con anche NormalizedPlatformFeaturesSimilarity e SessionNumClickouts
             features_array = [
+            NormalizedPlatformFeaturesSimilarity,
+            SessionNumClickouts,
             ActionsInvolvingImpressionSession,
             (ImpressionPositionSession, False),
             (ImpressionPriceInfoSessionOld, False),
