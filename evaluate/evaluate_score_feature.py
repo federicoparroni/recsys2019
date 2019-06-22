@@ -41,10 +41,11 @@ def _compute_mrr(a):
     mrr = sum(rrs)/len(rrs)
     return mrr
 
-def get_scores_mrr(mode, score_path):
+def get_scores_mrr(mode, scores):
     o = ImpressionLabel(mode)
     f = o.read_feature()
-    scores = pd.read_csv(score_path)
+    if isinstance(scores, str):
+        scores = pd.read_csv(scores)
     m = f.merge(scores, how='left')
     m = m.dropna()
     m = m.groupby(['user_id', 'session_id', 'item_id']).last().reset_index()
