@@ -61,7 +61,7 @@ class CatboostRanker(RecommenderBase):
             'max_depth': math.ceil(max_depth),
             'colsample_bylevel': math.ceil(colsample_bylevel),
             'reg_lambda': reg_lambda,
-            'leaf_estimation_iterations': leaf_estimation_iterations,
+            'leaf_estimation_iterations': math.ceil(leaf_estimation_iterations),
             'leaf_estimation_method': 'Newton',
             'boosting_type': 'Plain',
             'loss_function': loss_function,
