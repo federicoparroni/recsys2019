@@ -3,6 +3,7 @@ import data
 from tqdm import tqdm
 from random import randint
 import os
+import numpy as np
 from shutil import copyfile, rmtree
 from preprocess_utils.last_clickout_indices import find as find_last_clickout_indices
 from utils import menu
@@ -85,13 +86,19 @@ def supersampling(mode):
     new = pd.concat([train, new])
     train_len = len(new)
     test = data.test_df(mode)
+    old_starting_index = test.index[0]
     new = pd.concat([new, test])
     new.reset_index(inplace=True, drop=True)
     print("Supersampling ended for mode={}, saving df".format(mode))
-    new_train = new.loc[:train_len]
+    new_train = new.loc[:train_len-1]
     new_test = new.loc[train_len:]
+    new_starting_index = new_test.index[0]
+    offset = new_starting_index - old_starting_index
+    target_indices = data.target_indices(mode, "no_cluster")
+    target_indices += offset
+    np.save(path + "/" + mode + "/target_indices", target_indices)
     new_train.to_csv(path + "/" + mode + "/train.csv", index=True)
-    new_test.to_csv(path + "/" + mode + "/train.csv", index=True)
+    new_test.to_csv(path + "/" + mode + "/test.csv", index=True)
 
 if __name__ == '__main__':
     if already_existing():
