@@ -6,9 +6,9 @@ from sklearn.model_selection import KFold
 import numpy as np
 import os.path
 
-def preprocess_cv():
+def preprocess_cv(mode='full'):
 
-    def save_folds(df, user_session_df, train_index, test_index, count):
+    def save_folds(df, user_session_df, train_index, test_index, count, mode):
         u_s_train = list(user_session_df.loc[train_index]['user_session'].values)
         u_s_test = list(user_session_df.loc[test_index]['user_session'].values)
 
@@ -22,7 +22,7 @@ def preprocess_cv():
         np.save(os.path.join(path, 'train_indices'), train_indices)
 
         test = df[df['user_session'].isin(u_s_test)]
-        target_indices = find(test)
+        target_indices = sorted(find(test))
         test.at[target_indices, 'reference'] = np.nan
         test = test.drop(['user_session'], axis=1)
         test.to_csv(os.path.join(path, 'test.csv'))
@@ -34,9 +34,7 @@ def preprocess_cv():
         print(f'Train shape : {train.shape} , Test shape : {test.shape}')
         print(f'Last clickout indices : {len(target_indices)}')
 
-
-
-    df = data.train_df(mode='full', cluster='no_cluster')
+    df = data.train_df(mode=mode, cluster='no_cluster')
     df['user_session'] = df['user_id'].values + '_' + df['session_id'].values
     user_session_df = df.drop_duplicates('user_session')
     user_session_df = user_session_df.reset_index(drop=True)
@@ -45,7 +43,8 @@ def preprocess_cv():
 
     for i, (train_index, test_index) in enumerate(kf.split(user_session_df)):
         print(f' train indices : {len(train_index)}, test indices : {len(test_index)}')
-        save_folds(df, user_session_df, train_index, test_index, i)
+        save_folds(df, user_session_df, train_index, test_index, i, mode)
 
 if __name__ == '__main__':
     preprocess_cv()
+    #preprocess_cv('small')
