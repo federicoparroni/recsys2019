@@ -41,18 +41,23 @@ def _compute_mrr(a):
     mrr = sum(rrs)/len(rrs)
     return mrr
 
-if __name__ == "__main__":
-    path = input('put the path of the score feature to eval: ')
-
-    o = ImpressionLabel('local')
+def get_scores_mrr(mode, scores):
+    o = ImpressionLabel(mode)
     f = o.read_feature()
-    scores = pd.read_csv(path)
+    if isinstance(scores, str):
+        scores = pd.read_csv(scores)
     m = f.merge(scores, how='left')
     m = m.dropna()
     m = m.groupby(['user_id', 'session_id', 'item_id']).last().reset_index()
-    tl = pd.read_csv('dataset/preprocessed/no_cluster/local/test.csv', usecols=["user_id", "session_id"])
+    tl = pd.read_csv(f'dataset/preprocessed/no_cluster/{mode}/test.csv', usecols=['user_id', 'session_id'])
     
     print('mrr in full train data is: {}'.format(_compute_mrr(m)))
 
     a = m[m.user_id.isin(tl.user_id.values) & m.session_id.isin(tl.session_id.values)]
     print('mrr in just local test (ie a slice of full train) is: {}'.format(_compute_mrr(a)))
+
+
+if __name__ == "__main__":
+    path = input('put the path of the score feature to eval: ')
+
+    get_scores_mrr(mode='local', score_path=path)

@@ -239,19 +239,22 @@ class lightGBM(RecommenderBase):
         return space, get_mrr
 
     def fit_cv(self, x, y, groups, train_indices, test_indices, **fit_params):
-        X_train = x.loc[train_indices]
+        X_train = x.reset_index(drop=True).loc[train_indices]
         y_train = y[train_indices]
         _, group = np.unique(groups[train_indices], return_counts=True)
         self.model.fit(X_train, y_train, group=group)
 
     def get_scores_cv(self, x, groups, test_indices):
+        # check if x is the dataset for train or test
         if x.shape[0] == len(test_indices):
             user_session_item = self.user_session_item_test
         else:
             user_session_item = self.user_session_item_train
-        X_test = x.loc[test_indices]
+        # filter by index
+        X_test = x.reset_index(drop=True).loc[test_indices]
         preds = list(self.model.predict(X_test))
-        user_session_item = user_session_item.loc[test_indices]
+        # add scores to dataset
+        user_session_item = user_session_item.reset_index(drop=True).loc[test_indices]
         user_session_item['score_lightgbm'] = preds
         return user_session_item
 
