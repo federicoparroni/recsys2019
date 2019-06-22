@@ -108,7 +108,7 @@ def create_dataset(mode, cluster, class_weights=False):
             features_array = [SessionFilterActiveWhenClickout, ImpressionLabel]
 
         if kind=='impression_feature':
-            features_array = [ImpressionFeature, ImpressionLabel]
+            features_array = [ImpressionFeature, ImpressionLabel, SessionFilterActiveWhenClickout]
 
         if kind == 'kind2':
             features_array = [

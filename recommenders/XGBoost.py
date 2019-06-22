@@ -281,7 +281,7 @@ if __name__ == '__main__':
                              'smart evaluate', 'normal recommender'])
 
     if modality == 'normal recommender':
-        kind = single_choice('pick the kind', ['kind1', 'kind2', 'kind3'])
+        kind = input('pick the kind: ')
         mode = mode_selection()
         cluster = cluster_selection()
         sel = options(['evaluate', 'export the sub', 'export the scores'], ['evaluate', 'export the sub',
@@ -297,8 +297,9 @@ if __name__ == '__main__':
             model.run(export_sub=False, export_scores=True)
 
     else:
+        kind = input('pick the kind: ')
         mode = mode_selection()
         cluster = cluster_selection()
-        model = XGBoostWrapperSmartValidation(mode=mode, cluster=cluster)
+        model = XGBoostWrapperSmartValidation(mode=mode, cluster=cluster, kind=kind)
         model.fit()
         print(model.evaluate())
