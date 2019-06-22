@@ -12,7 +12,7 @@ def preprocess_cv(mode='full'):
         u_s_train = list(user_session_df.loc[train_index]['user_session'].values)
         u_s_test = list(user_session_df.loc[test_index]['user_session'].values)
 
-        path = 'dataset/preprocessed/{}/{}'.format('fold_' + str(count) , 'local')
+        path = 'dataset/preprocessed/{}/{}'.format('fold_' + str(count) , mode)
         check_folder(path)
 
         train = df[df['user_session'].isin(u_s_train)]
