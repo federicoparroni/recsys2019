@@ -12,7 +12,7 @@ class SessionNumInterItemImage(FeatureBase):
     This feature says for each session the number of interaction with images,
     both flat and percentage
 
-    user_id | session_id | item_id | num_inter_item_image | perc_inter_item_image
+    user_id | session_id | item_id | perc_inter_item_image
 
     """
 
@@ -55,7 +55,7 @@ class SessionNumInterItemImage(FeatureBase):
             perc.append((t[0]*100)/t[1])
         final_feature['perc_inter_item_image'] = perc
 
-        return final_feature[['user_id','session_id','item_id','num_inter_item_image','perc_inter_item_image']]
+        return final_feature[['user_id','session_id','item_id','perc_inter_item_image']]
 
 if __name__ == '__main__':
     import utils.menu as menu

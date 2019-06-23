@@ -12,7 +12,7 @@ class SessionNumFilterSel(FeatureBase):
     This feature says for each session the number of filter selections,
     both flat and percentage
 
-    user_id | session_id | item_id | num_filter_sel | perc_filter_sel
+    user_id | session_id | item_id | perc_filter_sel
 
     """
 
@@ -55,7 +55,7 @@ class SessionNumFilterSel(FeatureBase):
             perc.append((t[0]*100)/t[1])
         final_feature['perc_filter_sel'] = perc
 
-        return final_feature[['user_id','session_id','item_id','num_filter_sel','perc_filter_sel']]
+        return final_feature[['user_id','session_id','item_id','perc_filter_sel']]
 
 if __name__ == '__main__':
     import utils.menu as menu

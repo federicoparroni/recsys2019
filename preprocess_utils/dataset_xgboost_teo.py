@@ -116,7 +116,7 @@ def create_dataset(mode, cluster, class_weights=False):
 
         if kind == 'kind2':
             # questo fa 0.6755 in locale + NormalizedPlatformFeaturesSimilarity, SessionNumClickouts fa 0.67588
-            features_array = [NormalizedPlatformFeaturesSimilarity, SessionNumClickouts,
+            features_array = [PastFutureSessionFeatures, NormalizedPlatformFeaturesSimilarity, SessionNumClickouts,
             ActionsInvolvingImpressionSession,
             (ImpressionPositionSession, False),
             (ImpressionPriceInfoSessionOld, False),

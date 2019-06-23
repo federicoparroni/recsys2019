@@ -13,6 +13,7 @@ import pickle
 import pandas as pd
 import os
 from utils.check_folder import check_folder
+from random_validator import RandomValidator
 
 tqdm.pandas()
 
@@ -26,9 +27,9 @@ class CatboostRanker(RecommenderBase):
     """
 
     def __init__(self, mode, cluster='no_cluster', learning_rate=0.25, iterations=100, max_depth=11, reg_lambda=7.23,
-                 colsample_bylevel=1, algo='catboost', one_hot_max_size=46,
+                 colsample_bylevel=1, algo='catboost', one_hot_max_size=46, leaf_estimation_iterations=25,
                  custom_metric='AverageGain:top=1', include_test=True,
-                 file_to_load=None,
+                 file_to_load=None, loss_function='QuerySoftMax', train_dir='QuerySoftMax',
                  file_to_store=None, limit_trees=False, features_to_one_hot=None):
         """
         :param mode:
@@ -60,21 +61,22 @@ class CatboostRanker(RecommenderBase):
             'max_depth': math.ceil(max_depth),
             'colsample_bylevel': math.ceil(colsample_bylevel),
             'reg_lambda': reg_lambda,
-            'leaf_estimation_iterations': 25,
+            'leaf_estimation_iterations': math.ceil(leaf_estimation_iterations),
             'leaf_estimation_method': 'Newton',
             'boosting_type': 'Plain',
-            'loss_function': 'QuerySoftMax',
-            'train_dir': 'QuerySoftMax',
+            'loss_function': loss_function,
+            'train_dir': train_dir,
             'logging_level': 'Verbose',
             'one_hot_max_size': math.ceil(one_hot_max_size),
         }
 
         # create hyperparameters dictionary
-        self.hyperparameters_dict = {'iterations': (2000, 2000),
+        self.hyperparameters_dict = {'iterations': (100, 100),
                                      'max_depth': (11, 11),
-                                     'learning_rate': (0.05, 0.05),
-                                     'reg_lambda': (7.2, 8.7),
-                                     'one_hot_max_size': (511, 511)
+                                     'learning_rate': (0.25, 0.25),
+                                     'reg_lambda': (7.2, 7.9),
+                                     'one_hot_max_size': (45, 45),
+                                     'leaf_estimation_iterations': (15, 40)
                                      }
 
         self.fixed_params_dict = {
@@ -294,11 +296,12 @@ class CatboostRanker(RecommenderBase):
             predictions = scores[count:count + len(impressions)]
             couples = list(zip(predictions, impressions))
             couples.sort(key=lambda x: x[0], reverse=True)
-            scores_impr, sorted_impr = zip(*couples)
-            count = count + len(impressions)
+            if len(couples)>0:
+                scores_impr, sorted_impr = zip(*couples)
+                count = count + len(impressions)
 
-            self.predictions.append((index, list(sorted_impr)))
-            self.scores_batch.append((index, list(sorted_impr), scores_impr))
+                self.predictions.append((index, list(sorted_impr)))
+                self.scores_batch.append((index, list(sorted_impr), scores_impr))
 
 
         if self.file_to_store is not None:
@@ -454,6 +457,8 @@ if __name__ == '__main__':
     from utils.menu import mode_selection
     mode = mode_selection()
     model = CatboostRanker(mode=mode, cluster='no_cluster', iterations=10, learning_rate=0.5, algo='catboost')
-    model.evaluate(send_MRR_on_telegram=True)
+    #model.evaluate(send_MRR_on_telegram=True)
+    r = RandomValidator(model, automatic_export=False)
+    r.validate(100)
 
 
