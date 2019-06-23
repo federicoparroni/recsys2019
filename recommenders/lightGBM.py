@@ -190,19 +190,22 @@ class lightGBM(RecommenderBase):
     @staticmethod
     def get_optimize_params(mode, cluster, dataset_name):
         space = [
-            Real(0.01, 0.15, name='learning_rate'),
-            Integer(6, 256, name='num_leaves'),
+            Real(0.01, 0.3, name='learning_rate'),
+            Integer(6, 350, name='num_leaves'),
             #Real(0.0, 10, name='reg_lambda'),
             #Real(0.0, 10, name='reg_alpha'),
             Real(0.0, 0.1, name='min_split_gain'),
             Real(0.0, 0.1, name='min_child_weight'),
             Integer(10, 45, name='min_child_samples'),
-            #Integer(1, 300, name='min_data_in_leaf')
+            #Integer(1, 300, name='min_data_in_leaf'),
+            Real(0.1, 1, name='bagging_freq'),
+            Real(0.6, 1, name='feature_fraction'),
         ]
 
         def get_mrr(arg_list):
 
-            learning_rate, num_leaves, min_split_gain, min_child_weight, min_child_samples = arg_list
+            learning_rate, num_leaves, min_split_gain, min_child_weight, \
+                min_child_samples, bagging_freq, feature_fraction = arg_list
 
             params_dict = {
                 'boosting_type': 'gbdt',
@@ -216,6 +219,8 @@ class lightGBM(RecommenderBase):
                 'min_split_gain': min_split_gain,
                 'min_child_weight': min_child_weight,
                 'min_child_samples': min_child_samples,
+                'bagging_freq': bagging_freq
+                'feature_fraction': feature_fraction,
                 'subsample': 1,
                 'subsample_freq': 0,
                 'colsample_bytree': 1,
