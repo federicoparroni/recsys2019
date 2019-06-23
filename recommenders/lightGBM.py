@@ -219,7 +219,7 @@ class lightGBM(RecommenderBase):
                 'min_split_gain': min_split_gain,
                 'min_child_weight': min_child_weight,
                 'min_child_samples': min_child_samples,
-                'bagging_freq': bagging_freq
+                'bagging_freq': bagging_freq,
                 'feature_fraction': feature_fraction,
                 'subsample': 1,
                 'subsample_freq': 0,
