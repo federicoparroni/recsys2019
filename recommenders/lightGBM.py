@@ -198,7 +198,7 @@ class lightGBM(RecommenderBase):
             Real(0.0, 0.1, name='min_child_weight'),
             Integer(10, 45, name='min_child_samples'),
             #Integer(1, 300, name='min_data_in_leaf'),
-            Real(0.1, 1, name='bagging_freq'),
+            Integer(0, 20, name='bagging_freq'),
             Real(0.6, 1, name='feature_fraction'),
         ]
 
