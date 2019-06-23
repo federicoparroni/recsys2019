@@ -27,12 +27,12 @@ class RNNBinaryClassificator(RNNClassificationRecommender):
     """
     
     def __init__(self, dataset, input_shape, cell_type, num_recurrent_layers, num_recurrent_units, num_dense_layers,
-                use_generator=False, validation_split=0.15, class_weights=None, metrics=['accuracy'],
+                use_generator=False, validation_split=0.15, class_weights=None, sample_weights=None, metrics=['accuracy'],
                 optimizer='adam', batch_size=64, checkpoints_path=None, tensorboard_path=None):
         
         super().__init__(dataset=dataset, input_shape=input_shape, cell_type=cell_type, num_recurrent_layers=num_recurrent_layers,
                         num_recurrent_units=num_recurrent_units, num_dense_layers=num_dense_layers, output_size=1,
-                        use_generator=use_generator, validation_split=validation_split, metrics=metrics,
+                        use_generator=use_generator, validation_split=validation_split, metrics=metrics, sample_weights=sample_weights,
                         loss='binary_crossentropy', optimizer=optimizer, class_weights=class_weights, batch_size=batch_size,
                         checkpoints_path=checkpoints_path, tensorboard_path=tensorboard_path)
         
@@ -149,6 +149,21 @@ class RNNBinaryClassificator(RNNClassificationRecommender):
 
     def get_scores_batch(self):
         return None
+    
+    def get_scores_cv(self, x, groups, test_indices):
+        """ Return scores for a fold """
+        x_val = x[test_indices]
+        indices = x_val[:,:,0][:,self.dataset.rows_per_sample-1]
+
+        predictions = self.model.predict(x_val[:,:,1:])
+
+        # take the target rows
+        res_df = data.full_df()[['user_id','session_id']].loc[indices].copy()
+
+        # add the scores as a new column
+        res_df['scores'] = predictions
+
+        return res_df
 
 
 if __name__ == "__main__":

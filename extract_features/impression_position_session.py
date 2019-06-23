@@ -45,7 +45,8 @@ class ImpressionPositionSession(FeatureBase):
         return df
 
 if __name__ == '__main__':
-    from utils.menu import mode_selection
+    from utils.menu import mode_selection, cluster_selection
     mode = mode_selection()
-    c = ImpressionPositionSession(mode=mode, cluster='no_cluster')
+    cluster = cluster_selection()
+    c = ImpressionPositionSession(mode=mode, cluster=cluster)
     c.save_feature()

@@ -140,12 +140,15 @@ class Dataset(DatasetBase):
         if y.shape[1] == 1:
             # binary class
             weights = compute_class_weight('balanced', np.arange(num_classes), y[:,0])
+            w = y.flatten().astype('float')
+            w[w == 0] = weights[0]
+            w[w == 1] = weights[1]
+            return w
         else:
             # multiple classes one-hot encoded
             y_2 = [np.where(r==1)[0][0] for r in y]
             weights = compute_class_weight('balanced', np.arange(num_classes), y_2)
-
-        return (y @ weights.reshape(-1,1)).flatten()
+            return (y @ weights.reshape(-1,1)).flatten()
 
 
 
@@ -497,6 +500,14 @@ class DatasetScoresClassification(Dataset):
         return super().get_class_weights(num_classes)
 
     def get_sample_weights(self, num_classes=25):
+        return super().get_sample_weights(num_classes)
+
+class DatasetScoresBinaryClassification(DatasetScoresClassification):
+
+    def get_class_weights(self, num_classes=2):
+        return super().get_class_weights(num_classes)
+
+    def get_sample_weights(self, num_classes=2):
         return super().get_sample_weights(num_classes)
 
 

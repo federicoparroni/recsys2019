@@ -4,7 +4,7 @@ import pandas as pd
 from tqdm.auto import tqdm
 from preprocess_utils.last_clickout_indices import find
 from preprocess_utils.last_clickout_indices import expand_impressions
-
+from preprocess_utils.remove_last_part_of_clk_sessions import remove_last_part_of_clk_sessions
 
 class SessionNumInterItemImage(FeatureBase):
 
@@ -12,7 +12,7 @@ class SessionNumInterItemImage(FeatureBase):
     This feature says for each session the number of interaction with images,
     both flat and percentage
 
-    user_id | session_id | item_id | num_inter_item_image | perc_inter_item_image
+    user_id | session_id | item_id | perc_inter_item_image
 
     """
 
@@ -22,22 +22,6 @@ class SessionNumInterItemImage(FeatureBase):
             name=name, mode=mode, cluster=cluster)
 
     def extract_feature(self):
-        def remove_last_part_of_clk_sessions(df):
-            last_indices = find(df)
-            last_clks = df.loc[last_indices]
-            clks_sessions = last_clks.session_id.unique().tolist()
-            clks_users = last_clks.user_id.unique().tolist()
-            df_last_clks_sess_only = df[(df.session_id.isin(clks_sessions))&(df.user_id.isin(clks_users))][['user_id','session_id','action_type']]
-            df_last_clks_sess_only_no_dupl = df_last_clks_sess_only.drop_duplicates(['user_id','session_id'])
-            df_last_clks_sess_only_no_dupl['last_index'] = sorted(last_indices)
-            df_last_clks_sess_only_no_dupl = df_last_clks_sess_only_no_dupl.drop('action_type',1)
-            merged = pd.merge(df_last_clks_sess_only, df_last_clks_sess_only_no_dupl, how='left',on=['user_id','session_id']).set_index(df_last_clks_sess_only.index)
-            indices_to_remove = []
-            for t in tqdm(zip(merged.index, merged.last_index)):
-                if t[0]>t[1]:
-                    indices_to_remove.append(t[0])
-            return df.drop(indices_to_remove)
-
         train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)
         df = pd.concat([train, test])
@@ -71,7 +55,7 @@ class SessionNumInterItemImage(FeatureBase):
             perc.append((t[0]*100)/t[1])
         final_feature['perc_inter_item_image'] = perc
 
-        return final_feature[['user_id','session_id','item_id','num_inter_item_image','perc_inter_item_image']]
+        return final_feature[['user_id','session_id','item_id','perc_inter_item_image']]
 
 if __name__ == '__main__':
     import utils.menu as menu

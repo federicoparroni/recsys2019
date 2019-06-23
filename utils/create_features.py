@@ -24,7 +24,6 @@ from extract_features.impression_rating import ImpressionRating
 from extract_features.impression_rating_numeric import ImpressionRatingNumeric
 from extract_features.impression_stars_numeric import ImpressionStarsNumeric
 from extract_features.label import ImpressionLabel
-from extract_features.last_action_involving_impression import LastInteractionInvolvingImpression
 from extract_features.last_clickout_filters_satisfaction import LastClickoutFiltersSatisfaction
 from extract_features.last_steps_before_clickout import StepsBeforeLastClickout
 from extract_features.lazy_user import LazyUser
@@ -71,12 +70,12 @@ from extract_features.classifier.last_action_before_clickout import LastActionBe
 import gc
 import utils.menu as menu
 from functools import partial
+from joblib import Parallel, delayed
 
 def create_and_save_feature(mode, cluster, feature_class):
     print(f'creating {str(feature_class)}')
     feature = feature_class(mode, cluster)
     feature.save_feature(overwrite_if_exists=True)
-    gc.collect()
 
 if __name__ == '__main__':
     features_array = [
@@ -85,7 +84,6 @@ if __name__ == '__main__':
         ImpressionPriceInfoSession,
         ImpressionRatingNumeric,
         ImpressionLabel,
-        LastInteractionInvolvingImpression,
         MeanPriceClickout,
         AvgPriceInteractions,
         SessionDevice,
@@ -118,19 +116,20 @@ if __name__ == '__main__':
         LazyUser,
         ]
 
-    # Parallelizing using Pool.apply()
     import multiprocessing as mp
+    from utils.menu import yesno_choice
+
+    jobs = int(input('how many jobs?'))
+    mp = yesno_choice('do you want mp or not?')
 
     mode = menu.mode_selection()
     cluster = menu.cluster_selection()
 
-    n = int(input('how many features in parallel?'))
-
-    # Step 1: Init multiprocessing.Pool()
-    #pool = mp.Pool(mp.cpu_count())
-    pool = mp.Pool(32)
-
-    func = partial(create_and_save_feature, mode, cluster)
-    pool.map(func, [f for f in features_array])
-
-    pool.close()
+    if mp == 'y':
+        Parallel(backend='multiprocessing', n_jobs=jobs, max_nbytes=None)(delayed(create_and_save_feature)
+            (
+                mode, cluster, f
+            ) for f in features_array)
+    else:
+        for f in features_array:
+            create_and_save_feature(mode, cluster, f)

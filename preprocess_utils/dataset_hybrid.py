@@ -11,14 +11,26 @@ from os.path import join
 from extract_features.lazy_user import LazyUser
 from extract_features.impression_position_session import ImpressionPositionSession
 from extract_features.label import ImpressionLabel
-from extract_features.last_action_involving_impression import LastInteractionInvolvingImpression
+from extract_features.last_action_involving_impression import LastActionInvolvingImpression
 from extract_features.personalized_top_pop import PersonalizedTopPop
 from extract_features.top_pop_per_impression import TopPopPerImpression
 from extract_features.classifier.last_action_before_clickout import LastActionBeforeClickout
 from extract_features.classifier_piccio import ClassifierPiccio
 from extract_features.scores_xgboost_danparameter import ScoresXGBoostDanParameter
 from extract_features.scores_catboost import ScoresCatboost
-
+from extract_features.scores_rnn import ScoresRNN
+from extract_features.scores_xgboost_accomodation import ScoresXGBoostAccomodation
+from extract_features.adjusted_platform_reference_percentage_of_clickouts import AdjustedPlatformReferencePercentageOfClickouts
+from extract_features.adjusted_location_reference_percentage_of_interactions import AdjustedLocationReferencePercentageOfInteractions
+from extract_features.adjusted_perc_click_per_impressions import AdjustedPercClickPerImpressions
+from extract_features.adjusted_platform_reference_percentage_of_interactions import AdjustedPlatformReferencePercentageOfInteractions
+from extract_features.adjusted_location_reference_percentage_of_clickouts import AdjustedLocationReferencePercentageOfClickouts
+from extract_features.perc_click_per_pos import PercClickPerPos
+from extract_features.ref_pop_after_first_position import RefPopAfterFirstPosition
+from extract_features.session_num_clickouts import SessionNumClickouts
+from extract_features.session_num_filter_sel import SessionNumFilterSel
+from extract_features.session_num_inter_item_image import SessionNumInterItemImage
+from extract_features.session_num_not_numeric import SessionNumNotNumeric
 
 def create_groups(df):
     df = df[['user_id', 'session_id']]
@@ -29,19 +41,32 @@ def create_groups(df):
 
 def create_dataset(mode, cluster, class_weights=False):
     # training
-    kind = single_choice(['1', '2', '3'], ['kind1', 'kind2', 'kind3'])
+    kind = input('insert the kind: ')
     if cluster == 'no_cluster':
-        if kind == 'kind1':
+        if kind == 'kind3':
             features_array = [
                               (ImpressionPositionSession, False),
                               ImpressionLabel,
-                              TopPopPerImpression,
+                              #TopPopPerImpression,
                               PersonalizedTopPop,
-                              LastActionBeforeClickout,
+                              #LastActionBeforeClickout,
                               (LazyUser, False),
                 (ScoresXGBoostDanParameter, False),
                 (ClassifierPiccio, False),
-                (ScoresCatboost, False)
+                (ScoresCatboost, False),
+                (ScoresXGBoostAccomodation, False),
+                (ScoresRNN, False),
+                AdjustedPlatformReferencePercentageOfClickouts, 
+                AdjustedLocationReferencePercentageOfInteractions, 
+                AdjustedPercClickPerImpressions,
+                AdjustedPlatformReferencePercentageOfInteractions,
+                AdjustedLocationReferencePercentageOfClickouts,
+                PercClickPerPos,
+                RefPopAfterFirstPosition,
+                SessionNumClickouts,
+                SessionNumFilterSel, 
+                SessionNumInterItemImage, 
+                SessionNumNotNumeric
                               ]
 
     train_df, test_df, train_idxs, _ = merge_features(mode, cluster, features_array, merge_kind='left')
@@ -73,7 +98,7 @@ def create_dataset(mode, cluster, class_weights=False):
     print('X_train saved')
 
     user_session_item = train_df[['user_id', 'session_id', 'item_id']]
-    user_session_item.to_csv(join(bp, 'user_session_item.csv'), index=False)
+    user_session_item.to_csv(join(bp, 'user_session_item_train.csv'), index=False)
 
     y_train = train_df[['label']]
     y_train.to_csv(join(bp, 'y_train.csv'))
@@ -100,6 +125,9 @@ def create_dataset(mode, cluster, class_weights=False):
     X_test = X_test.to_coo().tocsr()
     save_npz(join(bp, 'X_test'), X_test)
     print('X_test saved')
+
+    user_session_item = test_df[['user_id', 'session_id', 'item_id']]
+    user_session_item.to_csv(join(bp, 'user_session_item_test.csv'), index=False)
 
     y_test = test_df[['label']]
     y_test.to_csv(join(bp, 'y_test.csv'))
