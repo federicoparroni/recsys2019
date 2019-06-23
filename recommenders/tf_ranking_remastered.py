@@ -50,88 +50,27 @@ def example_feature_columns():
           name, shape=(1,), default_value=0.0) for name in feature_names
   }
 
-def load_data(path, list_size):
-  """Returns features and labels in numpy.array."""
-  global flags_dict
-  tf.logging.info("Loading data from {}".format(path))
+def load_data(path, mode):
+    assert mode in ['train', 'test']
+    feature_map = np.load(f'{path}/feature_map_{mode}.npy')
+    feature_map = feature_map.item()
+    label_list = np.load(f'{path}/label_list_{mode}.npy')
 
-  df = pd.read_hdf(path, key='df')
+    context_features_id = []
+    example_features_id = []
+    for k in tqdm(feature_map):
+        if k in flags_dict['context_features_id']:
+            # convert the shape of the feature to a context feature shape
+            feature_map[k] = feature_map[k][:, 0, :]
+            context_features_id.append(k)
+        else:
+            example_features_id.append(k)
+    print(context_features_id)
 
-  # retrieve the qid and
-  qid_list = df.pop('qid')
-  labels = df.pop('label')
-  assert (len(qid_list) == len(labels)), 'ATTENTION LEN OF QID AND LABEL_LIST IS NOT EQUAL!'
+    flags_dict[f'{mode}_context_features_id'] = context_features_id
+    flags_dict[f'{mode}_per_example_features_id'] = example_features_id
 
-  # rename the columns with increasing numbers starting from 1
-  tf.logging.info('Renaming columns')
-  columns_names = df.columns
-  new_names = np.arange(df.shape[1]) + 1
-  dict_columns_names = dict(zip(columns_names, new_names))
-  df.rename(columns=dict_columns_names, inplace=True)
-  features_list = df.to_dict('records')
-
-  # The 0-based index assigned to a query.
-  qid_to_index = {}
-  # The number of docs seen so far for a query.
-  qid_to_ndoc = {}
-  # Each feature is mapped an array with [num_queries, list_size, 1]. Label has
-  # a shape of [num_queries, list_size]. We use list for each of them due to the
-  # unknown number of quries.
-  feature_map = {k: [] for k in example_feature_columns()}
-  label_list = []
-  total_docs = 0
-  discarded_docs = 0
-
-  for i in tqdm(range(len(qid_list))):
-    qid = qid_list[i]
-    label = labels[i]
-    features = features_list[i]
-
-    if qid not in qid_to_index:
-        # Create index and allocate space for a new query.
-        qid_to_index[qid] = len(qid_to_index)
-        qid_to_ndoc[qid] = 0
-        for k in feature_map:
-          feature_map[k].append(np.zeros([list_size, 1], dtype=np.float32))
-        label_list.append(np.ones([list_size], dtype=np.float32) * -1.)
-    total_docs += 1
-    batch_idx = qid_to_index[qid]
-    doc_idx = qid_to_ndoc[qid]
-    qid_to_ndoc[qid] += 1
-    # Keep the first 'list_size' docs only.
-    if doc_idx >= list_size:
-        discarded_docs += 1
-        continue
-    for k, v in six.iteritems(features):
-        k = str(k)
-        assert k in feature_map, "Key {} not found in features.".format(k)
-        feature_map[k][batch_idx][doc_idx, 0] = v
-    label_list[batch_idx][doc_idx] = label
-
-  tf.logging.info("Number of queries: {}".format(len(qid_to_index)))
-  tf.logging.info("Number of documents in total: {}".format(total_docs))
-  tf.logging.info("Number of documents discarded: {}".format(discarded_docs))
-
-  # Convert everything to np.array.
-
-  context_features_id = []
-  example_features_id = []
-  for k in feature_map:
-    feature_map[k] = np.array(feature_map[k])
-    f_values = [el[0] for el in feature_map[k][0]]
-    if k in flags_dict['context_features_id']:
-        # convert the shape of the feature to a context feature shape
-        feature_map[k] = feature_map[k][:, 0, :]
-        context_features_id.append(k)
-    else:
-        example_features_id.append(k)
-  print(context_features_id)
-
-  _mode = path.split('/')[-1].split('.')[0]
-  flags_dict[f'{_mode}_context_features_id'] = context_features_id
-  flags_dict[f'{_mode}_per_example_features_id'] = example_features_id
-  
-  return feature_map, np.array(label_list)
+    return feature_map, label_list
 
 def get_train_inputs(features, labels, batch_size):
   """Set up training input in batches."""
@@ -201,9 +140,13 @@ def make_score_fn():
       ]
       """
       per_ex_features = tf.concat([tf.layers.flatten(group_features[name]) for name in flags_dict['train_per_example_features_id']],1)
-      context_features = tf.concat([tf.layers.flatten(unused_context_features[name]) for name in flags_dict['train_context_features_id']], 1)
+      if len(unused_context_features) > 0:
+        context_features = tf.concat([tf.layers.flatten(unused_context_features[name]) for name in flags_dict['train_context_features_id']], 1)
+        input_layer = tf.concat([per_ex_features, context_features], axis=1)
+      else:
+        input_layer = per_ex_features
 
-      input_layer = tf.concat([per_ex_features, context_features], axis=1)
+
       tf.summary.scalar("input_sparsity", tf.nn.zero_fraction(input_layer))
       tf.summary.scalar("input_max", tf.reduce_max(input_layer))
 
@@ -234,17 +177,102 @@ def get_eval_metric_fns():
   })
   return metric_fns
 
+
+def get_scores_cv(k):
+    df_scores = []
+    for i in range(k):
+        i = i + 1
+        HERA.send_message(f'fold_{i} start')
+        base_path = '{}/fold_{}'.format(flags_dict['save_path'], i)
+
+        # load usi
+        usi_df = pd.read_csv(f'{base_path}/usi.csv')
+        pred = np.array(train_cv(base_path))
+
+        # create the df of the scores
+        usi_df['score_tf'] = pred.flatten()
+
+        #append the score df
+        df_scores.append(usi_df)
+        HERA.send_message(f'fold_{i} end')
+
+    _BASE_PATH = 'dataset/preprocessed/tf_ranking/no_cluster/full/{}'.format(flags_dict['dataset_name'])
+
+
+    HERA.send_message('retrieving the score for full')
+
+    # retrieve the full scores
+    pred = train_cv(_BASE_PATH)
+
+    # load usi of the full
+    usi_df = pd.read_csv(f'{_BASE_PATH}/usi.csv')
+    usi_df['score_tf'] = pred.flatten()
+
+    # append the full scores
+    df_scores.append(usi_df)
+
+    # concat all the scores
+    final_scores = pd.concat(df_scores)
+
+    # save the scores
+    save_path = flags_dict['save_path']
+    _loss = flags_dict['loss']
+    final_scores.to_csv(f'{save_path}/scores_{_loss}.csv.gz', compression='gzip', index=False)
+
+    HERA.send_message(f'SCORES SAVED SUCCESFULLY')
+
+
+def train_cv(path):
+    features, labels = load_data(path, 'train')
+    train_input_fn, train_hook = get_train_inputs(features, labels,
+                                                  flags_dict['train_batch_size'])
+    features_test, labels_test = load_data(path, 'test')
+
+    def _train_op_fn(loss):
+        """Defines train op used in ranking head."""
+        return tf.contrib.layers.optimize_loss(
+            loss=loss,
+            global_step=tf.train.get_global_step(),
+            learning_rate=flags_dict['learning_rate'],
+            optimizer="Adagrad")
+
+    if flags_dict['loss'] == 'list_mle_loss':
+        lambda_weight = tfr.losses.create_p_list_mle_lambda_weight(list_size=25)
+    elif flags_dict['loss'] == 'approx_ndcg_loss':
+        lambda_weight = tfr.losses.create_ndcg_lambda_weight(topn=25)
+    else:
+        lambda_weight = tfr.losses.create_reciprocal_rank_lambda_weight(topn=25)
+    ranking_head = tfr.head.create_ranking_head(
+        loss_fn=tfr.losses.make_loss_fn(flags_dict['loss'], lambda_weight=lambda_weight),
+        eval_metric_fns=get_eval_metric_fns(),
+        train_op_fn=_train_op_fn)
+    # tfr.losses.create_p_list_mle_lambda_weight(25)
+    # lambda_weight=tfr.losses.create_reciprocal_rank_lambda_weight()
+
+    estimator = tf.estimator.Estimator(
+        model_fn=tfr.model.make_groupwise_ranking_fn(
+            group_score_fn=make_score_fn(),
+            group_size=flags_dict['group_size'],
+            transform_fn=tfr.feature.make_identity_transform_fn(flags_dict['train_context_features_id']),
+            ranking_head=ranking_head))
+
+    estimator.train(train_input_fn, hooks=[train_hook], steps=flags_dict['num_train_steps'])
+    pred = np.array(list(estimator.predict(lambda: batch_inputs(features_test, labels_test, 128))))
+    return pred
+
+
+
 def train_and_eval():
   """Train and Evaluate."""
 
+  path = flags_dict['save_path']
   global _features, _labels, _features_vali, _labels_vali
   if (_features is None) or (_labels is None):
       print('caching data train')
-      _features, _labels = load_data(flags_dict['train_path'], flags_dict['list_size'])
+      _features, _labels = load_data(path, 'train')
   if (_features_vali is None) or (_labels_vali is None):
       print('caching data test')
-      _features_vali, _labels_vali = load_data(flags_dict['vali_path'],
-                                                flags_dict['list_size'])
+      _features_vali, _labels_vali = load_data(path, 'test')
 
   train_input_fn, train_hook = get_train_inputs(_features, _labels,
                                                 flags_dict['train_batch_size'])
@@ -325,11 +353,11 @@ def train_and_eval():
   tf.estimator.train_and_evaluate(estimator, train_spec, vali_spec)
 
 def train_and_test():
-    features, labels = load_data(flags_dict['train_path'], flags_dict['list_size'])
+    path = flags_dict['save_path']
+    features, labels = load_data(path, 'train')
     train_input_fn, train_hook = get_train_inputs(features, labels,
                                                   flags_dict['train_batch_size'])
-    features_test, labels_test = load_data(flags_dict['test_path'],
-                                                  flags_dict['list_size'])
+    features_test, labels_test = load_data(path, 'test')
 
     def _train_op_fn(loss):
         """Defines train op used in ranking head."""
@@ -410,12 +438,12 @@ if __name__ == '__main__':
     _TEST_PATH = f'{_BASE_PATH}/test.hdf'
     _VALI_PATH = f'{_BASE_PATH}/vali.hdf'
 
-    min_mrr = input('insert the min_MRR from which export the sub: \n')
+    min_mrr = float(input('insert the min_MRR from which export the sub: \n'))
 
     # lets load the context features id
     context_features_id = list(np.load(f'{_BASE_PATH}/context_features_id.npy'))
     print(f'context features id are: {context_features_id}')
-    flags_dict['context_features_id']=context_features_id
+    flags_dict['context_features_id'] = context_features_id
 
     # retrieve the number of features
     with open(f'{_BASE_PATH}/features_num.txt') as f:
@@ -429,12 +457,12 @@ if __name__ == '__main__':
     flags_dict['save_path'] = _BASE_PATH
     flags_dict['train_path'] = _TRAIN_PATH
     flags_dict['vali_path'] = _VALI_PATH
-    flags_dict['test_path'] =_TEST_PATH
-    flags_dict['mode']= _MODE
+    flags_dict['test_path'] = _TEST_PATH
+    flags_dict['mode'] = _MODE
     flags_dict['dataset_name'] = _DATASET_NAME
     flags_dict['num_features'] = num_features
     flags_dict['list_size'] = 25
-    flags_dict['save_checkpoints_steps'] =save_check_steps
+    flags_dict['save_checkpoints_steps'] = save_check_steps
     flags_dict['min_mrr_start'] = min_mrr
 
     cf.check_folder(f'{_BASE_PATH}/output_dir_{datetime.datetime.now().strftime("%Y-%m-%d_%H:%M")}')
@@ -455,16 +483,11 @@ if __name__ == '__main__':
                                                   'list_mle_loss',
                                                   'approx_ndcg_loss'])
 
-    if _MODE == 'full':
-        num_train_steps = input('insert_num_train_step')
-    else:
-        num_train_steps = None
-
     group_size = int(input('insert the group_size:\n'))
 
-    #update flag dict
+    # update flag dict
     flags_dict['train_batch_size'] = train_batch_size
-    flags_dict['num_train_steps'] = num_train_steps
+
     flags_dict['learning_rate'] = learning_rate
     flags_dict['dropout_rate'] = dropout_rate
     flags_dict['hidden_layer_dims'] = hidden_layer_dims
@@ -472,9 +495,19 @@ if __name__ == '__main__':
     flags_dict['loss'] = loss
 
     if _MODE == 'full':
+        num_train_steps = input('insert_num_train_step')
+        flags_dict['num_train_steps'] = int(num_train_steps)
         train_and_test()
     else:
-        train_and_eval()
+        choice = menu.single_choice('what you want to do?', ['train eval', 'get scores cv'])
+        if choice == 'train eval':
+            num_train_steps = None
+            flags_dict['num_train_steps'] = num_train_steps
+            train_and_eval()
+        else:
+            num_train_steps = input('insert_num_train_step')
+            flags_dict['num_train_steps'] = int(num_train_steps)
+            get_scores_cv(5)
 
 
 

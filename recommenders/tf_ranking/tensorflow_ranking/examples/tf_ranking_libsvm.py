@@ -74,6 +74,8 @@ import datetime
 from utils.best_checkpoint_copier import BestCheckpointCopier
 from random import randint
 import sys
+import pandas as pd
+from tqdm import tqdm
 
 _features = None
 _labels = None
@@ -109,6 +111,89 @@ def example_feature_columns():
       name: tf.feature_column.numeric_column(
           name, shape=(1,), default_value=0.0) for name in feature_names
   }
+
+
+def load_data(path, list_size):
+    global flags_dict
+    tf.logging.info("Loading data from {}".format(path))
+
+    df = pd.read_hdf(path, key='df')
+
+    # retrieve the qid and
+    qid_list = df.pop('qid')
+    labels = df.pop('label')
+    assert (len(qid_list) == len(labels)), 'ATTENTION LEN OF QID AND LABEL_LIST IS NOT EQUAL!'
+
+    # rename the columns with increasing numbers starting from 1
+    tf.logging.info('Renaming columns')
+    columns_names = df.columns
+    new_names = np.arange(df.shape[1]) + 1
+    dict_columns_names = dict(zip(columns_names, new_names))
+    df.rename(columns=dict_columns_names, inplace=True)
+    features_list = df.to_dict('records')
+
+    # The 0-based index assigned to a query.
+    qid_to_index = {}
+    # The number of docs seen so far for a query.
+    qid_to_ndoc = {}
+    # Each feature is mapped an array with [num_queries, list_size, 1]. Label has
+    # a shape of [num_queries, list_size]. We use list for each of them due to the
+    # unknown number of quries.
+    feature_map = {k: [] for k in example_feature_columns()}
+    label_list = []
+    total_docs = 0
+    discarded_docs = 0
+
+    for i in tqdm(range(len(qid_list))):
+        qid = qid_list[i]
+        label = labels[i]
+        features = features_list[i]
+
+        if qid not in qid_to_index:
+            # Create index and allocate space for a new query.
+            qid_to_index[qid] = len(qid_to_index)
+            qid_to_ndoc[qid] = 0
+            for k in feature_map:
+                feature_map[k].append(np.zeros([list_size, 1], dtype=np.float32))
+            label_list.append(np.ones([list_size], dtype=np.float32) * -1.)
+        total_docs += 1
+        batch_idx = qid_to_index[qid]
+        doc_idx = qid_to_ndoc[qid]
+        qid_to_ndoc[qid] += 1
+        # Keep the first 'list_size' docs only.
+        if doc_idx >= list_size:
+            discarded_docs += 1
+            continue
+        for k, v in six.iteritems(features):
+            k = str(k)
+            assert k in feature_map, "Key {} not found in features.".format(k)
+            feature_map[k][batch_idx][doc_idx, 0] = v
+        label_list[batch_idx][doc_idx] = label
+
+    tf.logging.info("Number of queries: {}".format(len(qid_to_index)))
+    tf.logging.info("Number of documents in total: {}".format(total_docs))
+    tf.logging.info("Number of documents discarded: {}".format(discarded_docs))
+
+    # Convert everything to np.array.
+
+    context_features_id = []
+    example_features_id = []
+    for k in feature_map:
+        feature_map[k] = np.array(feature_map[k])
+        f_values = [el[0] for el in feature_map[k][0]]
+        if k in flags_dict['context_features_id']:
+            # convert the shape of the feature to a context feature shape
+            feature_map[k] = feature_map[k][:, 0, :]
+            context_features_id.append(k)
+        else:
+            example_features_id.append(k)
+    print(context_features_id)
+
+    _mode = path.split('/')[-1].split('.')[0]
+    flags_dict[f'{_mode}_context_features_id'] = context_features_id
+    flags_dict[f'{_mode}_per_example_features_id'] = example_features_id
+
+    return feature_map, np.array(label_list)
 
 
 def load_libsvm_data(path, list_size):
