@@ -62,5 +62,5 @@ def preprocess_cv(mode='full'):
         save_folds(df, user_session_df, train_index, test_index, i, mode)
 
 if __name__ == '__main__':
-    #preprocess_cv()
-    preprocess_cv('small')
+    preprocess_cv()
+    #preprocess_cv('small')
