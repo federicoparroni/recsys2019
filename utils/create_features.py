@@ -117,13 +117,19 @@ if __name__ == '__main__':
         ]
 
     import multiprocessing as mp
+    from utils.menu import yesno_choice
 
     jobs = int(input('how many jobs?'))
+    mp = yesno_choice('do you want mp or not?')
 
     mode = menu.mode_selection()
     cluster = menu.cluster_selection()
 
-    Parallel(backend='multiprocessing', n_jobs=jobs, max_nbytes=None)(delayed(create_and_save_feature)
-        (
-            mode, cluster, f
-        ) for f in features_array)
+    if mp == 'y':
+        Parallel(backend='multiprocessing', n_jobs=jobs, max_nbytes=None)(delayed(create_and_save_feature)
+            (
+                mode, cluster, f
+            ) for f in features_array)
+    else:
+        for f in features_array:
+            create_and_save_feature(mode, cluster, f)

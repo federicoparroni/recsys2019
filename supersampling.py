@@ -3,6 +3,7 @@ import data
 from tqdm import tqdm
 from random import randint
 import os
+import numpy as np
 from shutil import copyfile, rmtree
 from preprocess_utils.last_clickout_indices import find as find_last_clickout_indices
 from utils import menu
@@ -82,16 +83,25 @@ def supersampling(mode):
     session_to_indices = get_session_to_indices_dict(train)
     sessions_to_be_resapmled = resample_session(class_to_sessions.copy(), train)
     new = duplicate_sessions(sessions_to_be_resapmled.copy(), train, session_to_indices)
+    test = data.test_df(mode)
+    max_test_index = max(test.index)
+    max_train_index = max(train.index)
+    max_index = max(max_test_index, max_train_index)
+    new.index += max_index + 1
     new = pd.concat([train, new])
     train_len = len(new)
-    test = data.test_df(mode)
+    old_starting_index = test.index[0]
     new = pd.concat([new, test])
-    new.reset_index(inplace=True, drop=True)
     print("Supersampling ended for mode={}, saving df".format(mode))
-    new_train = new.loc[:train_len]
-    new_test = new.loc[train_len:]
+    new_train = new.iloc[:train_len-1]
+    new_test = new.iloc[train_len:]
+#    new_starting_index = new_test.index[0]
+#    offset = new_starting_index - old_starting_index
+#    target_indices += offset
+    target_indices = data.target_indices(mode, "no_cluster")
+    np.save(path + "/" + mode + "/target_indices", target_indices)
     new_train.to_csv(path + "/" + mode + "/train.csv", index=True)
-    new_test.to_csv(path + "/" + mode + "/train.csv", index=True)
+    new_test.to_csv(path + "/" + mode + "/test.csv", index=True)
 
 if __name__ == '__main__':
     if already_existing():
