@@ -137,6 +137,9 @@ class XGBoostWrapper(RecommenderBase):
         RR = 0
         print("Calculating MRR (hoping for a 0.99)")
         for i in tqdm(range(len_rec)):
+            if correct_clickouts[i] not in impression[i].split('|'):
+                print(f'Reference {correct_clickouts[i]} not in impression')
+                continue
             if impression[i].split('|').index(correct_clickouts[i]) != 0 or not self.class_weights:
                 correct_clickout = int(correct_clickouts[i])
                 if correct_clickout in predictions[i][1]:
