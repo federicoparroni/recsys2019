@@ -39,7 +39,6 @@ from extract_features.impression_rating import ImpressionRating
 from extract_features.impression_rating_numeric import ImpressionRatingNumeric
 from extract_features.impression_stars_numeric import ImpressionStarsNumeric
 from extract_features.label import ImpressionLabel
-from extract_features.last_action_involving_impression import LastInteractionInvolvingImpression
 from extract_features.last_clickout_filters_satisfaction import LastClickoutFiltersSatisfaction
 from extract_features.last_steps_before_clickout import StepsBeforeLastClickout
 from extract_features.lazy_user import LazyUser
@@ -378,9 +377,6 @@ def create_dataset(mode, cluster, features_array, dataset_name, stacking_scores_
 if __name__ == '__main__':
 
 
-    features_array = [ImpressionLabel]
-
-    """
     features_array = [
         ImpressionLabel,
         (StatisticsPosInteracted, False),
@@ -437,7 +433,7 @@ if __name__ == '__main__':
         User2Item,
         #UserFeature
     ]
-    """
+    
 
 
 
