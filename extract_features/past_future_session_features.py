@@ -11,7 +11,7 @@ from preprocess_utils.last_clickout_indices import find as find_last_clickout
 dict_sess_bast = dict([('9b400754ac6c7', 57), ('07093a858ac92', 2),
                        ('15e8515f6d309', 1), ('14ffe9351be7c', 1), ('1892588e0a4fc', 4),
                        ('4fabc39bd9b72', 4), ('614181ac68ab3', 91), ('7a37b2c63a02f', 59),
-                       ('907cb2db5cec5', 1), ('96c35e1a5d439', 1), ('c0c2730fdde6c', 157), ('83f57fe1ea009', 2),
+                       ('907cb2db5cec5', 1), ('96c35e1a5d439', 1), ('c0c2730fdde6c', 16), ('83f57fe1ea009', 2),
                        ('a0163701c3369', 335), ('b17811d6b42e7', 19), ('e7c4ab1b14a1a', 1), ('ff7fb4c84e640', 4),
                        ('0ed0c1aa802bb', 1), ('1acf57dcc79e9', 1), ('4460f125f4ebe', 4), ('96cca06c66451', 2)])
 

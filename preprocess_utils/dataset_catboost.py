@@ -1,16 +1,28 @@
 import numpy as np
 
+from extract_features.adjusted_platform_reference_percentage_of_interactions import \
+    AdjustedPlatformReferencePercentageOfInteractions
 from extract_features.avg_price_interactions import AvgPriceInteractions
 from extract_features.city_session import CitySession
 from extract_features.city_session_populars_only import CitySessionPopularsOnly
 from extract_features.country_searched_session import CountrySearchedSession
 from extract_features.day_moment_in_day import DayOfWeekAndMomentInDay
+from extract_features.fraction_pos_price import FractionPosPrice
+from extract_features.impression_position_in_percentage import ImpressionPositionInPercentage
+from extract_features.impression_price_info_session_old import ImpressionPriceInfoSessionOld
+from extract_features.last_action_involving_impression import LastActionInvolvingImpression
 from extract_features.last_clickout_filters_satisfaction import LastClickoutFiltersSatisfaction
 from extract_features.lazy_user import LazyUser
+from extract_features.location_features_similarity import LocationFeaturesSimilarity
+from extract_features.normalized_platform_features_similarity import NormalizedPlatformFeaturesSimilarity
 from extract_features.personalized_top_pop import PersonalizedTopPop
 from extract_features.platform_features_similarity import PlatformFeaturesSimilarity
 from extract_features.price_quality import PriceQuality
+from extract_features.session_length_old import SessionLengthOld
+from extract_features.statistics_pos_interacted import StatisticsPosInteracted
+from extract_features.statistics_time_from_last_action import StatisticsTimeFromLastAction
 from extract_features.user_2_item import User2Item
+from extract_features.user_2_item_old import User2ItemOld
 from extract_features.user_feature import UserFeature
 from preprocess_utils.merge_features import merge_features
 from utils.check_folder import check_folder
@@ -21,9 +33,7 @@ from extract_features.impression_features import ImpressionFeature
 from extract_features.impression_position_session import ImpressionPositionSession
 from extract_features.impression_price_info_session import ImpressionPriceInfoSession
 from extract_features.label import ImpressionLabel
-from extract_features.last_action_involving_impression import LastInteractionInvolvingImpression
 from extract_features.mean_price_clickout import MeanPriceClickout
-# from extract_features.session_actions_num_ref_diff_from_impressions import SessionActionNumRefDiffFromImpressions
 from extract_features.session_device import SessionDevice
 from extract_features.session_filters_active_when_clickout import SessionFilterActiveWhenClickout
 from extract_features.session_length import SessionLength
@@ -53,6 +63,7 @@ from extract_features.platform_reference_percentage_of_interactions import Platf
 from extract_features.platform_session import PlatformSession
 import os
 from pathlib import Path
+from utils.check_folder import check_folder
 
 
 def to_pool_dataset(dataset, save_dataset=True, path=''):
@@ -68,46 +79,45 @@ def to_pool_dataset(dataset, save_dataset=True, path=''):
 
 
 def create_dataset(mode, cluster):
-    # training
     features_array = [
-                      #LastClickoutFiltersSatisfaction,
-                      #PriceQuality,
-                      #User2Item,
-                      ActionsInvolvingImpressionSession,
-                      ImpressionPositionSession,
-                      ImpressionPriceInfoSession,
-                      ImpressionRatingNumeric,
-                      ImpressionLabel,
-                      LastInteractionInvolvingImpression,
-                      MeanPriceClickout,
-                      AvgPriceInteractions,
-                      SessionDevice,
-                      NumImpressionsInClickout,
-                      SessionLength,
-                      TimesImpressionAppearedInClickoutsSession,
-                      TimesUserInteractedWithImpression,
-                      TimingFromLastInteractionImpression,
-                      TopPopPerImpression,
-                      TopPopInteractionClickoutPerImpression,
-                      ChangeImpressionOrderPositionInSession,
-                      FrenzyFactorSession,
-                      DayOfWeekAndMomentInDay,
-                      TimePerImpression,
-                      PersonalizedTopPop,
-                      PlatformFeaturesSimilarity,
-                      LastActionBeforeClickout,
-                      ImpressionStarsNumeric,
-                      StepsBeforeLastClickout,
-                      LocationReferencePercentageOfClickouts,
-                      LocationReferencePercentageOfInteractions,
-                      NumTimesItemImpressed,
-                      PercClickPerImpressions,
-                      PlatformReferencePercentageOfClickouts,
-                      PlatformReferencePercentageOfInteractions,
-                      PlatformSession,
-                      LazyUser,
-                      PastFutureSessionFeatures
-                      ]
+        ActionsInvolvingImpressionSession,
+        ImpressionPositionSession,
+        ImpressionPriceInfoSessionOld,
+        ImpressionRatingNumeric,
+        ImpressionLabel,
+        LastActionInvolvingImpression,
+        MeanPriceClickout,
+        AvgPriceInteractions,
+        SessionDevice,
+        NumImpressionsInClickout,
+        SessionLengthOld,
+        TimesImpressionAppearedInClickoutsSession,
+        TimesUserInteractedWithImpression,
+        TimingFromLastInteractionImpression,
+        TopPopPerImpression,
+        TopPopInteractionClickoutPerImpression,
+        ChangeImpressionOrderPositionInSession,
+        FrenzyFactorSession,
+        DayOfWeekAndMomentInDay,
+        LastClickoutFiltersSatisfaction,
+        TimePerImpression,
+        PersonalizedTopPop,
+        PriceQuality,
+        PlatformFeaturesSimilarity,
+        LastActionBeforeClickout,
+        ImpressionStarsNumeric,
+        StepsBeforeLastClickout,
+        LocationReferencePercentageOfClickouts,
+        LocationReferencePercentageOfInteractions,
+        NumTimesItemImpressed,
+        PercClickPerImpressions,
+        PlatformReferencePercentageOfClickouts,
+        PlatformReferencePercentageOfInteractions,
+        PlatformSession,
+        User2ItemOld,
+        LazyUser,
+        PastFutureSessionFeatures
+    ]
 
     curr_dir = Path(__file__).absolute().parent
     data_dir = curr_dir.joinpath('..', 'dataset/preprocessed/{}/{}/catboost/'.format(cluster, mode))
@@ -119,25 +129,9 @@ def create_dataset(mode, cluster):
     train_df = train_df.fillna(-1)
     test_df = test_df.fillna(-1)
 
-    train_immutate = train_df[['past_closest_action_involving_impression', 'future_closest_action_involving_impression']]
-    test_immutate = test_df[
-        ['past_closest_action_involving_impression', 'future_closest_action_involving_impression']]
-
-    train_df = train_df.replace(-1, np.nan)
-    train_df = train_df.replace(-1.0, np.nan)
-    train_df = train_df.replace('-1', np.nan)
-    test_df = test_df.replace('-1', np.nan)
-    test_df = test_df.replace(-1, np.nan)
-    test_df = test_df.replace(-1.0, np.nan)
-
-    train_df[
-        ['past_closest_action_involving_impression', 'future_closest_action_involving_impression']] = train_immutate
-    test_df[
-        ['past_closest_action_involving_impression', 'future_closest_action_involving_impression']] = test_immutate
 
     train_df.to_csv(str(data_dir) + '/train.csv', index=False)
     to_pool_dataset(train_df, path=str(data_dir) + '/catboost_train.txt')
-
 
     test_df.to_csv(str(data_dir) + '/test.csv', index=False)
     to_pool_dataset(test_df, path=str(data_dir) + '/catboost_test.txt')
