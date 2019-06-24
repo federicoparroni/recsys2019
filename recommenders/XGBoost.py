@@ -17,7 +17,7 @@ from cython_files.mrr import mrr as mrr_cython
 
 class XGBoostWrapper(RecommenderBase):
 
-    def __init__(self, mode, cluster='no_cluster', kind='kind1', ask_to_load=True, class_weights=False, learning_rate=0.3, min_child_weight=1, n_estimators=100, max_depth=3, subsample=1, colsample_bytree=1, reg_lambda=1, reg_alpha=0):
+    def __init__(self, mode, cluster='no_cluster', kind='kind1', ask_to_load=True, class_weights=False, learning_rate=0.01, min_child_weight=1, n_estimators=100, max_depth=3, subsample=1, colsample_bytree=1, reg_lambda=1, reg_alpha=0):
         name = 'xgboost_ranker_mode={}_cluster={}_kind={}_class_weights={}_learning_rate={}_min_child_weight={}_n_estimators={}_max_depth={}_subsample={}_colsample_bytree={}_reg_lambda={}_reg_alpha={}'.format(
             mode, cluster, kind, class_weights, learning_rate, min_child_weight, n_estimators, max_depth, subsample, colsample_bytree, reg_lambda, reg_alpha
         )
@@ -116,25 +116,7 @@ class XGBoostWrapper(RecommenderBase):
                 (index, list(sorted_impr), list(sorted_scores)))
             count = count + len(impressions)
 
-        X_train, _, _, train_indices, _ = data.dataset_xgboost_train(
-            mode=self.mode, cluster=self.cluster, kind=self.kind)
-        full_impressions = data.full_df()
-        print('data for scores train ready')
-        scores = list(self.xg.predict(X_train))
-        final_predictions_with_scores_train = []
-        count = 0
-        for index in tqdm(train_indices):
-            impressions = list(
-                map(int, full_impressions.loc[index]['impressions'].split('|')))
-            predictions = scores[count:count + len(impressions)]
-            couples = list(zip(predictions, impressions))
-            couples.sort(key=lambda x: x[0], reverse=True)
-            sorted_scores, sorted_impr = zip(*couples)
-            final_predictions_with_scores_train.append(
-                (index, list(sorted_impr), list(sorted_scores)))
-            count = count + len(impressions)
-
-        return final_predictions_with_scores_train, final_predictions_with_scores_test
+        return final_predictions_with_scores_test
 
     def compute_MRR(self, predictions):
         """
@@ -155,6 +137,9 @@ class XGBoostWrapper(RecommenderBase):
         RR = 0
         print("Calculating MRR (hoping for a 0.99)")
         for i in tqdm(range(len_rec)):
+            if correct_clickouts[i] not in impression[i].split('|'):
+                print(f'Reference {correct_clickouts[i]} not in impression')
+                continue
             if impression[i].split('|').index(correct_clickouts[i]) != 0 or not self.class_weights:
                 correct_clickout = int(correct_clickouts[i])
                 if correct_clickout in predictions[i][1]:
