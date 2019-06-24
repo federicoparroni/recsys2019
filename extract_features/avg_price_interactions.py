@@ -23,8 +23,8 @@ class AvgPriceInteractions(FeatureBase):
             name=name, mode=mode, cluster=cluster)
 
     def extract_feature(self):
-        train = data.train_df(self.mode)
-        test = data.test_df(self.mode)
+        train = data.train_df(self.mode, cluster=self.cluster)
+        test = data.test_df(self.mode, cluster=self.cluster)
         df = pd.concat([train, test])
         idxs_click = sorted(find_last_clickout_indices(df))
 

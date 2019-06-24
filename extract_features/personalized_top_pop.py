@@ -58,7 +58,7 @@ class PersonalizedTopPop(FeatureBase):
         )
         df_item_clicks = df_item_clicks.rename(columns={'reference':'item_id'})
         df_item_clicks['item_id'] = df_item_clicks['item_id'].astype(int)
-        df_item_clicks
+        #df_item_clicks
 
         clk_expanded = expand_impressions(clickout_rows)
         final_feature = pd.merge(clk_expanded, df_item_clicks, how='left', on=['item_id']).fillna(0)
