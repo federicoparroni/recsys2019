@@ -24,6 +24,9 @@ class SessionLength(FeatureBase):
         train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)
         df = pd.concat([train, test])
+
+        df = df.reset_index(drop=True)
+
         idxs_click = find_last_clickout_indices(df)
         temp = df[['user_id', 'session_id', 'step', 'timestamp']]
         session_id_l = []
@@ -63,8 +66,7 @@ class SessionLength(FeatureBase):
 
         final_df['std_last_action'] = abs(final_df['elapsed_last_action_click'] - final_df['mean_time_action'])
 
-        final_df.drop(['timestamp_last_action', 'final_timestamp', 'mean_time_action', \
-                       'elapsed_last_action_click_log', 'variance_last_action', 'std_last_action'], axis=1, inplace=True)
+        final_df.drop(['timestamp_last_action', 'final_timestamp', 'mean_time_action','elapsed_last_action_click_log', 'variance_last_action', 'std_last_action'], axis=1, inplace=True)
         return final_df
 
 
