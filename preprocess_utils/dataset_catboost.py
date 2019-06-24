@@ -80,7 +80,6 @@ def to_pool_dataset(dataset, save_dataset=True, path=''):
 
 def create_dataset(mode, cluster):
     features_array = [
-        ActionsInvolvingImpressionSession,
         ImpressionPositionSession,
         ImpressionPriceInfoSessionOld,
         ImpressionRatingNumeric,
@@ -116,7 +115,11 @@ def create_dataset(mode, cluster):
         PlatformSession,
         User2ItemOld,
         LazyUser,
-        PastFutureSessionFeatures
+        PastFutureSessionFeatures,
+        
+        SessionSortOrderWhenClickout,
+        SessionActionNumRefDiffFromImpressions,
+        ActionsInvolvingImpressionSession
     ]
 
     curr_dir = Path(__file__).absolute().parent
