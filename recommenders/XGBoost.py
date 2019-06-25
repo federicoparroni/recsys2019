@@ -197,12 +197,12 @@ class XGBoostWrapper(RecommenderBase):
 
 class XGBoostWrapperSmartValidation(XGBoostWrapper):
 
-    def __init__(self, mode, cluster='no_cluster', kind='kind1', ask_to_load=True, class_weights=False, learning_rate=0.3, min_child_weight=1, n_estimators=100, max_depth=3, subsample=1, colsample_bytree=1, reg_lambda=1, reg_alpha=0):
+    def __init__(self, mode, cluster='no_cluster', kind='kind1', ask_to_load=True, class_weights=False, learning_rate=0.3, min_child_weight=1, n_estimators=100, max_depth=3, subsample=1, colsample_bytree=1, reg_lambda=1, reg_alpha=0, weights_position=False, log_weights=False):
         super(XGBoostWrapperSmartValidation, self).__init__(mode, cluster=cluster, kind=kind, ask_to_load=False, class_weights=False,
                                                             learning_rate=learning_rate, min_child_weight=min_child_weight,
                                                             n_estimators=n_estimators, max_depth=max_depth, subsample=subsample,
                                                             colsample_bytree=colsample_bytree, reg_lambda=reg_lambda, reg_alpha=reg_alpha,
-                                                            weights_position=False, log_weights=False)
+                                                            weights_position=weights_position, log_weights=log_weights)
         self.name = 'lr={} min_child_weight={} n_estimators={}, max_depth={}, subsample={}, colsample_bytree={}, reg_lambda={}, reg_alpha={}, weights_position={}, log_weights={}'.format(
             learning_rate, min_child_weight, n_estimators, max_depth, subsample, colsample_bytree, reg_lambda, reg_alpha, weights_position, log_weights)
 
