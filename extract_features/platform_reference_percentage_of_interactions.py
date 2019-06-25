@@ -30,9 +30,7 @@ class PlatformReferencePercentageOfInteractions(FeatureBase):
         train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)
         df = pd.concat([train, test])
-        # preprocess needed
-        df = df.sort_values(by=['user_id','session_id','timestamp','step']).reset_index(drop=True)
-        df = remove_last_part_of_clk_sessions(df)
+
         last_clickout_indices = find(df)
         clickout_rows = df.loc[last_clickout_indices, ['user_id','session_id','platform','action_type','impressions']]
 
