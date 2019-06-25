@@ -25,6 +25,7 @@ class XGBoostWrapper(RecommenderBase):
             name=name, mode=mode, cluster=cluster)
         self.class_weights = class_weights
         self.weights_position = weights_position
+        self.log_weights = log_weights
         self.kind = kind
         self.ask_to_load = ask_to_load
 
