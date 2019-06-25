@@ -1,4 +1,4 @@
-import pands as pd
+import pandas as pd
 import numpy as np
 import math
 import os
@@ -63,9 +63,9 @@ if __name__ == "__main__":
     cluster = cluster_selection()
     kind = input('insert the kind: ')
 
-    train_path = f'dataset/preprocessed/{cluster}/{mode}/xgboost/{kind}/train_df.csv'
-    train_df = pd.read_csv(train_path)
+    folder = f'dataset/preprocessed/{cluster}/{mode}/xgboost/{kind}/'
+    train_df = pd.read_csv(os.path.join(folder, 'train_df.csv'))
 
     lg_w = create_log_weights(train_df)
-    np.save(os.path.join(bp, 'log_weights'), lg_w)
+    np.save(os.path.join(folder, 'log_weights'), lg_w)
     print('log_weights saved')
