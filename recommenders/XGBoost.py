@@ -201,9 +201,10 @@ class XGBoostWrapperSmartValidation(XGBoostWrapper):
         super(XGBoostWrapperSmartValidation, self).__init__(mode, cluster=cluster, kind=kind, ask_to_load=False, class_weights=False,
                                                             learning_rate=learning_rate, min_child_weight=min_child_weight,
                                                             n_estimators=n_estimators, max_depth=max_depth, subsample=subsample,
-                                                            colsample_bytree=colsample_bytree, reg_lambda=reg_lambda, reg_alpha=reg_alpha)
-        self.name = 'lr={} min_child_weight={} n_estimators={}, max_depth={}, subsample={}, colsample_bytree={}, reg_lambda={}, reg_alpha={}'.format(
-            learning_rate, min_child_weight, n_estimators, max_depth, subsample, colsample_bytree, reg_lambda, reg_alpha)
+                                                            colsample_bytree=colsample_bytree, reg_lambda=reg_lambda, reg_alpha=reg_alpha,
+                                                            weights_position=False, log_weights=False)
+        self.name = 'lr={} min_child_weight={} n_estimators={}, max_depth={}, subsample={}, colsample_bytree={}, reg_lambda={}, reg_alpha={}, weights_position={}, log_weights={}'.format(
+            learning_rate, min_child_weight, n_estimators, max_depth, subsample, colsample_bytree, reg_lambda, reg_alpha, weights_position, log_weights)
 
         self.fixed_params_dict = {
             'mode': mode,
@@ -240,9 +241,22 @@ class XGBoostWrapperSmartValidation(XGBoostWrapper):
         _group_t = groups_test
         print('data for evaluation ready')
 
-        self.xg.fit(X_train, y_train, group, eval_set=[
-                    (X_test, y_test)], eval_group=[groups_test], eval_metric=_mrr, verbose=False, callbacks=[callbak],
-                    early_stopping_rounds=200)
+        #self.xg.fit(X_train, y_train, group, eval_set=[
+        #            (X_test, y_test)], eval_group=[groups_test], eval_metric=_mrr, verbose=False, callbacks=[callbak],
+        #            early_stopping_rounds=200)
+
+        if self.weights_position:
+            bp = 'dataset/preprocessed/{}/{}/xgboost/{}/'.format(cluster, mode, kind)
+            w = np.load(os.path.join(bp, 'weights_position.npy'))
+            print(w.size)
+            print(group.shape)
+            self.xg.fit(X_train, y_train, group, eval_set=[
+                        (X_test, y_test)], eval_group=[groups_test], eval_metric=_mrr, verbose=False, callbacks=[callbak],
+                        early_stopping_rounds=200, sample_weight=w)
+        else:
+            self.xg.fit(X_train, y_train, group, eval_set=[
+                        (X_test, y_test)], eval_group=[groups_test], eval_metric=_mrr, verbose=False, callbacks=[callbak],
+                        early_stopping_rounds=200)
 
     def evaluate(self):
         self.fit()
