@@ -17,9 +17,9 @@ from cython_files.mrr import mrr as mrr_cython
 
 class XGBoostWrapper(RecommenderBase):
 
-    def __init__(self, mode, cluster='no_cluster', kind='kind1', ask_to_load=True, class_weights=False, learning_rate=0.01, min_child_weight=1, n_estimators=100, max_depth=3, subsample=1, colsample_bytree=1, reg_lambda=1, reg_alpha=0, weights_position=False):
-        name = 'xgboost_ranker_mode={}_cluster={}_kind={}_class_weights={}_learning_rate={}_min_child_weight={}_n_estimators={}_max_depth={}_subsample={}_colsample_bytree={}_reg_lambda={}_reg_alpha={}_weights_position={}'.format(
-            mode, cluster, kind, class_weights, learning_rate, min_child_weight, n_estimators, max_depth, subsample, colsample_bytree, reg_lambda, reg_alpha, weights_position
+    def __init__(self, mode, cluster='no_cluster', kind='kind1', ask_to_load=True, class_weights=False, learning_rate=0.01, min_child_weight=1, n_estimators=100, max_depth=3, subsample=1, colsample_bytree=1, reg_lambda=1, reg_alpha=0, weights_position=False, log_weights=False):
+        name = 'xgboost_ranker_mode={}_cluster={}_kind={}_class_weights={}_learning_rate={}_min_child_weight={}_n_estimators={}_max_depth={}_subsample={}_colsample_bytree={}_reg_lambda={}_reg_alpha={}_weights_position={}_log_weights={}'.format(
+            mode, cluster, kind, class_weights, learning_rate, min_child_weight, n_estimators, max_depth, subsample, colsample_bytree, reg_lambda, reg_alpha, weights_position, log_weights
         )
         super(XGBoostWrapper, self).__init__(
             name=name, mode=mode, cluster=cluster)
@@ -73,10 +73,19 @@ class XGBoostWrapper(RecommenderBase):
             self.xg.fit(X_train, y_train, group, sample_weight=weights)
         else:
             self.xg.fit(X_train, y_train, group)
-            
+
         if self.weights_position:
             bp = 'dataset/preprocessed/{}/{}/xgboost/{}/'.format(cluster, mode, kind)
             w = np.load(os.path.join(bp, 'weights_position.npy'))
+            print(w.size)
+            print(group.shape)
+            self.xg.fit(X_train, y_train, group, sample_weight=w)
+        else:
+            self.xg.fit(X_train, y_train, group)
+
+        if self.log_weights:
+            bp = 'dataset/preprocessed/{}/{}/xgboost/{}/'.format(cluster, mode, kind)
+            w = np.load(os.path.join(bp, 'log_weights.npy'))
             print(w.size)
             print(group.shape)
             self.xg.fit(X_train, y_train, group, sample_weight=w)
