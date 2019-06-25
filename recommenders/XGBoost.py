@@ -258,6 +258,19 @@ class XGBoostWrapperSmartValidation(XGBoostWrapper):
                         (X_test, y_test)], eval_group=[groups_test], eval_metric=_mrr, verbose=False, callbacks=[callbak],
                         early_stopping_rounds=200)
 
+        if self.log_weights:
+            bp = 'dataset/preprocessed/{}/{}/xgboost/{}/'.format(self.cluster, self.mode, self.kind)
+            w = np.load(os.path.join(bp, 'log_weights.npy'))
+            print(w.size)
+            print(group.shape)
+            self.xg.fit(X_train, y_train, group, eval_set=[
+                        (X_test, y_test)], eval_group=[groups_test], eval_metric=_mrr, verbose=False, callbacks=[callbak],
+                        early_stopping_rounds=200, sample_weight=w)
+        else:
+            self.xg.fit(X_train, y_train, group, eval_set=[
+                        (X_test, y_test)], eval_group=[groups_test], eval_metric=_mrr, verbose=False, callbacks=[callbak],
+                        early_stopping_rounds=200)
+
     def evaluate(self):
         self.fit()
         results = self.xg.evals_result
