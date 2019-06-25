@@ -246,7 +246,7 @@ class XGBoostWrapperSmartValidation(XGBoostWrapper):
         #            early_stopping_rounds=200)
 
         if self.weights_position:
-            bp = 'dataset/preprocessed/{}/{}/xgboost/{}/'.format(cluster, mode, kind)
+            bp = 'dataset/preprocessed/{}/{}/xgboost/{}/'.format(self.cluster, self.mode, self.kind)
             w = np.load(os.path.join(bp, 'weights_position.npy'))
             print(w.size)
             print(group.shape)
