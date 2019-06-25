@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 import math
 import os
+import data
+from tqdm import tqdm
 
 def create_weights_position(train_df, mode,cluster):
     train = data.train_df(mode, cluster)
@@ -105,6 +107,6 @@ if __name__ == "__main__":
     folder = f'dataset/preprocessed/{cluster}/{mode}/xgboost/{kind}/'
     train_df = pd.read_csv(os.path.join(folder, 'train_df.csv'))
 
-    balanced_w = create_balanced_weights_position(train_df)
-    np.save(os.path.join(folder, 'balanced_weights'), lg_w)
+    balanced_w = create_balanced_weights_position(train_df, mode,cluster)
+    np.save(os.path.join(folder, 'balanced_weights'), balanced_w)
     print('balanced_weights saved')
