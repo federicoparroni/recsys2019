@@ -78,7 +78,7 @@ from preprocess_utils.merge_features import merge_features
 from os.path import join
 from extract_features.past_future_session_features import PastFutureSessionFeatures
 from extract_features.normalized_platform_features_similarity import NormalizedPlatformFeaturesSimilarity
-
+import math
 
 def create_groups(df):
     df = df[['user_id', 'session_id']]
@@ -132,7 +132,6 @@ def create_weights_position(train_df, mode,cluster):
     # assign weight
     gr = train_df[train_df.label==1][['user_id','session_id','impression_position']]
     new_col = []
-    new_col = []
     for p in gr.impression_position:
         if p not in range(1,26):
             new_col.append(0)
@@ -143,15 +142,36 @@ def create_weights_position(train_df, mode,cluster):
     sample_weights = final['weight'].values
     return sample_weights
 
+def create_log_weights(train_df):
+    d = {}
+    for i in range(1,26):
+        d[i]=math.sqrt(math.log(1+i, 26))
+    # group per user-session
+    group = train_df.drop_duplicates(['user_id','session_id'])[['user_id','session_id']].reset_index(drop=True)
+    # assign weight
+    gr = train_df[train_df.label==1][['user_id','session_id','impression_position']]
+    new_col = []
+    for p in gr.impression_position:
+        if p not in range(1,26):
+            new_col.append(0)
+        else:
+            new_col.append(d[p])
+    gr['weight'] = new_col
+    final = pd.merge(group, gr, how='left', on=['user_id','session_id']).fillna(0)
+    sample_weights = final['weight'].values
+    return sample_weights
 
-def create_dataset(mode, cluster, class_weights=False, weights_position=True):
+
+def create_dataset(mode, cluster, class_weights=False, weights_position=True, log_weights=True):
     # training
     kind = input('insert the kind: ')
     if cluster == 'no_cluster':
 
         if kind == 'kind2':
             # questo fa 0.6755 in locale + NormalizedPlatformFeaturesSimilarity, SessionNumClickouts fa 0.67588
-                features_array = [PastFutureSessionFeatures, NormalizedPlatformFeaturesSimilarity, SessionNumClickouts,
+                features_array = [
+                NormalizedPlatformFeaturesSimilarity,
+                SessionNumClickouts,
                 ActionsInvolvingImpressionSession,
                 (ImpressionPositionSession, False),
                 (ImpressionPriceInfoSessionOld, False),
@@ -188,6 +208,7 @@ def create_dataset(mode, cluster, class_weights=False, weights_position=True):
                 PlatformSession,
                 User2ItemOld,
                 (LazyUser, False),
+                PastFutureSessionFeatures
                 ]
         if kind == 'kind3':
             # questo è quello che usa dani su cat
@@ -311,6 +332,12 @@ def create_dataset(mode, cluster, class_weights=False, weights_position=True):
         print(len(weights))
         np.save(join(bp, 'weights_position'), weights)
         print('weights_position saved')
+
+    if log_weights:
+        lg_w = create_log_weights(train_df)
+        print(len(lg_w))
+        np.save(join(bp, 'log_weights'), lg_w)
+        print('log_weights saved')
 
     print(','.join(X_train.columns.values))
     X_train = X_train.to_sparse(fill_value=0)
