@@ -237,7 +237,7 @@ class CatboostRanker(RecommenderBase):
             self.fit()
             self.recommend_batch()
 
-        return [], self.scores_batch
+        return self.scores_batch
 
 
     def recommend_batch(self):
