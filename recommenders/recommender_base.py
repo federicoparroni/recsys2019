@@ -83,9 +83,7 @@ class RecommenderBase(ABC):
             out.create_sub(recommendations, submission_name=self.name)
         if export_scores:
             check_folder('scores')
-            scores_batch_train, scores_batch_test = self.get_scores_batch()
-            path = 'scores/{}_train_{}'.format(self.name, time.strftime('%H-%M-%S'))
-            np.save(path, scores_batch_train)
+            scores_batch_test = self.get_scores_batch()
             path = 'scores/{}_test_{}'.format(self.name, time.strftime('%H-%M-%S'))
             np.save(path, scores_batch_test)
             print('scores exported in {}'.format(path))
