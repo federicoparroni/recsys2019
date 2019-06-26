@@ -103,8 +103,8 @@ class XGBoostWrapper(RecommenderBase):
             self.xg.fit(X_train, y_train, group)
 
         print('fit done')
-        self.xg.save_model('models/{}.model'.format(self.name))
-        print('model saved')
+        #self.xg.save_model('models/{}.model'.format(self.name))
+        #print('model saved')
 
     def recommend_batch(self):
         X_test, _, _, _ = data.dataset_xgboost_test(
