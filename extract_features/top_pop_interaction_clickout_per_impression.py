@@ -28,8 +28,8 @@ class TopPopInteractionClickoutPerImpression(FeatureBase):
         f['popularity'] = 0
         pop = dict(zip(f.item_id.values, f.popularity.values))
 
-        train = data.train_df(mode=self.mode)
-        test = data.test_df(mode=self.mode)
+        train = data.train_df(mode=self.mode, cluster=self.cluster)
+        test = data.test_df(mode=self.mode, cluster=self.cluster)
         df = pd.concat([train, test])
         last_clickout_indices = find(df)
         df_dropped_last_clickouts = df.drop(last_clickout_indices)

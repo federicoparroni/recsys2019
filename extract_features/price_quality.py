@@ -147,7 +147,7 @@ if __name__ == '__main__':
     mode = menu.mode_selection()
     cluster = menu.cluster_selection()
 
-    c = PriceQuality(mode, cluster)
+    c = PriceQuality(mode=mode, cluster=cluster)
 
     print('Creating {} for {} {}'.format(c.name, c.mode, c.cluster))
     c.save_feature()

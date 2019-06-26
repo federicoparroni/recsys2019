@@ -22,7 +22,7 @@ class ImpressionRating(FeatureBase):
 
     def extract_feature(self):
         from extract_features.impression_features import ImpressionFeature
-        o = ImpressionFeature(mode='small')
+        o = ImpressionFeature(mode=self.mode)
         f = o.read_feature(True)
         f_ratings = f[['item_id', 'impression_featuresExcellent Rating',
                        'impression_featuresVery Good Rating',

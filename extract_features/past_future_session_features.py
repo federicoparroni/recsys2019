@@ -6,6 +6,7 @@ import pandas as pd
 from tqdm.auto import tqdm
 from preprocess_utils.last_clickout_indices import expand_impressions
 from preprocess_utils.last_clickout_indices import find as find_last_clickout
+import traceback
 
 # Contains, for each session, the maximum step allowed (then, it will cut)
 dict_sess_bast = dict([('9b400754ac6c7', 57), ('07093a858ac92', 2),
@@ -236,9 +237,21 @@ class PastFutureSessionFeatures(FeatureBase):
 
         df = expand_impressions(df.iloc[idxs_click, :][['user_id', 'session_id', 'reference', 'impressions']])
 
-        for key in self.features.keys():
-            print(key, len(self.features[key]))
-            df[key] = self.features[key]
+        #df = df[:len(self.features['past_times_interacted_impr'])]
+        try:
+            for key in self.features.keys():
+                print(key, len(self.features[key]))
+                print(df.shape)
+                df[key] = self.features[key]
+        except Exception as e:
+            traceback.print_exc()
+            print(e)
+            print(f'Normal past_future_session not works: Edited version is used')
+            df = df[:len(self.features['past_times_interacted_impr'])]
+            for key in self.features.keys():
+                print(key, len(self.features[key]))
+                print(df.shape)
+                df[key] = self.features[key]
 
         print('Correcting feature: add duplicate sessions with underscore...')
         label_feat = pd.read_csv('dataset/preprocessed/{}/{}/feature/impression_label/features.csv'.format(self.cluster, self.mode))

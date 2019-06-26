@@ -17,13 +17,20 @@ from cython_files.mrr import mrr as mrr_cython
 
 class XGBoostWrapper(RecommenderBase):
 
-    def __init__(self, mode, cluster='no_cluster', kind='kind1', ask_to_load=True, class_weights=False, learning_rate=0.01, min_child_weight=1, n_estimators=100, max_depth=3, subsample=1, colsample_bytree=1, reg_lambda=1, reg_alpha=0):
-        name = 'xgboost_ranker_mode={}_cluster={}_kind={}_class_weights={}_learning_rate={}_min_child_weight={}_n_estimators={}_max_depth={}_subsample={}_colsample_bytree={}_reg_lambda={}_reg_alpha={}'.format(
-            mode, cluster, kind, class_weights, learning_rate, min_child_weight, n_estimators, max_depth, subsample, colsample_bytree, reg_lambda, reg_alpha
+    def __init__(self, mode, cluster='no_cluster', kind='kind1', ask_to_load=True,
+                    class_weights=False, learning_rate=0.01, min_child_weight=1,
+                    n_estimators=100, max_depth=3, subsample=1, colsample_bytree=1,
+                    reg_lambda=1, reg_alpha=0, max_delta_step=0, scale_pos_weight=1,
+                    gamma = 0,
+                    weights_position=False, log_weights=False):
+        name = 'xgboost_ranker_mode={}_cluster={}_kind={}_class_weights={}_learning_rate={}_min_child_weight={}_n_estimators={}_max_depth={}_subsample={}_colsample_bytree={}_reg_lambda={}_reg_alpha={}_max_delta_step={}_scale_pos_weight={}_gamma={}_weights_position={}_log_weights={}'.format(
+            mode, cluster, kind, class_weights, learning_rate, min_child_weight, n_estimators, max_depth, subsample, colsample_bytree, reg_lambda, reg_alpha, max_delta_step, scale_pos_weight,gamma, weights_position, log_weights
         )
         super(XGBoostWrapper, self).__init__(
             name=name, mode=mode, cluster=cluster)
         self.class_weights = class_weights
+        self.weights_position = weights_position
+        self.log_weights = log_weights
         self.kind = kind
         self.ask_to_load = ask_to_load
 
@@ -31,7 +38,8 @@ class XGBoostWrapper(RecommenderBase):
             learning_rate=learning_rate, min_child_weight=min_child_weight, max_depth=math.ceil(
                 max_depth),
             n_estimators=math.ceil(
-                n_estimators),
+                n_estimators), gamma = gamma,
+            max_delta_step = max_delta_step, scale_pos_weight=scale_pos_weight,
             subsample=subsample, colsample_bytree=colsample_bytree, reg_lambda=reg_lambda, reg_alpha=reg_alpha, n_jobs=-1, objective='rank:pairwise')
 
         self.fixed_params_dict = {
@@ -42,6 +50,9 @@ class XGBoostWrapper(RecommenderBase):
             'min_child_weight': 1,
             'subsample': 1,
             'colsample_bytree': 1,
+            'max_delta_step': 0,
+            'scale_pos_weight': 1,
+            'gamma': 0
         }
 
         # create hyperparameters dictionary
@@ -72,6 +83,25 @@ class XGBoostWrapper(RecommenderBase):
             self.xg.fit(X_train, y_train, group, sample_weight=weights)
         else:
             self.xg.fit(X_train, y_train, group)
+
+        if self.weights_position:
+            bp = 'dataset/preprocessed/{}/{}/xgboost/{}/'.format(cluster, mode, kind)
+            w = np.load(os.path.join(bp, 'weights_position.npy'))
+            print(w.size)
+            print(group.shape)
+            self.xg.fit(X_train, y_train, group, sample_weight=w)
+        else:
+            self.xg.fit(X_train, y_train, group)
+
+        if self.log_weights:
+            bp = 'dataset/preprocessed/{}/{}/xgboost/{}/'.format(cluster, mode, kind)
+            w = np.load(os.path.join(bp, 'log_weights.npy'))
+            print(w.size)
+            print(group.shape)
+            self.xg.fit(X_train, y_train, group, sample_weight=w)
+        else:
+            self.xg.fit(X_train, y_train, group)
+
         print('fit done')
         self.xg.save_model('models/{}.model'.format(self.name))
         print('model saved')
@@ -168,39 +198,48 @@ class XGBoostWrapper(RecommenderBase):
             _, _, _, user_session_item = data.dataset_xgboost_test(mode=self.mode, cluster='no_cluster', kind=self.kind)
         else:
             _, _, _, _, user_session_item = data.dataset_xgboost_train(mode=self.mode, cluster='no_cluster', kind=self.kind)
-        
+
         X_test = x[test_indices, :]
         preds = list(self.xg.predict(X_test))
         user_session_item = user_session_item.loc[test_indices]
         user_session_item['score_xgboost'] = preds
         return user_session_item
- 
+
 class XGBoostWrapperSmartValidation(XGBoostWrapper):
 
-    def __init__(self, mode, cluster='no_cluster', kind='kind1', ask_to_load=True, class_weights=False, learning_rate=0.3, min_child_weight=1, n_estimators=100, max_depth=3, subsample=1, colsample_bytree=1, reg_lambda=1, reg_alpha=0):
+    def __init__(self, mode, cluster='no_cluster', kind='kind1', ask_to_load=True, class_weights=False, learning_rate=0.3, min_child_weight=1, n_estimators=100, max_depth=3, subsample=1, colsample_bytree=1, reg_lambda=1, reg_alpha=0, max_delta_step=0, scale_pos_weight=1, gamma=0, weights_position=False, log_weights=False):
         super(XGBoostWrapperSmartValidation, self).__init__(mode, cluster=cluster, kind=kind, ask_to_load=False, class_weights=False,
                                                             learning_rate=learning_rate, min_child_weight=min_child_weight,
                                                             n_estimators=n_estimators, max_depth=max_depth, subsample=subsample,
-                                                            colsample_bytree=colsample_bytree, reg_lambda=reg_lambda, reg_alpha=reg_alpha)
-        self.name = 'lr={} min_child_weight={} n_estimators={}, max_depth={}, subsample={}, colsample_bytree={}, reg_lambda={}, reg_alpha={}'.format(
-            learning_rate, min_child_weight, n_estimators, max_depth, subsample, colsample_bytree, reg_lambda, reg_alpha)
+                                                            colsample_bytree=colsample_bytree, reg_lambda=reg_lambda, reg_alpha=reg_alpha,
+                                                            max_delta_step=max_delta_step, scale_pos_weight=scale_pos_weight, gamma=gamma,
+                                                            weights_position=weights_position, log_weights=log_weights)
+        self.name = 'lr={} min_child_weight={} n_estimators={}, max_depth={}, subsample={}, colsample_bytree={}, reg_lambda={}, reg_alpha={}, max_delta_step={}, scale_pos_weight={}, gamma={},weights_position={}, log_weights={}'.format(
+            learning_rate, min_child_weight, n_estimators, max_depth, subsample, colsample_bytree, reg_lambda, reg_alpha, max_delta_step, scale_pos_weight, gamma,weights_position, log_weights)
 
         self.fixed_params_dict = {
             'mode': mode,
             'cluster': cluster,
             'kind': kind,
             'ask_to_load': False,
-            'min_child_weight': 1,
+            #'min_child_weight': 1,
             'subsample': 1,
             'colsample_bytree': 1,
-            'n_estimators': 100000,
+            'n_estimators': 100,
+            #'max_delta_step': 0,
+            #'scale_pos_weight': 1,
+            #'gamma': 0
         }
 
         # create hyperparameters dictionary
-        self.hyperparameters_dict = {'learning_rate': (0.1, 0.2),
-                                     'max_depth': (6, 9),
-                                     'reg_lambda': (2, 4),
-                                     'reg_alpha': (7, 10)
+        self.hyperparameters_dict = {'learning_rate': [0.25],
+                                     'max_depth': [11],
+                                     'reg_lambda': [3.651],
+                                     'reg_alpha': [8.18],
+                                     'min_child_weight': [1],
+                                     'max_delta_step': [8],
+                                     'scale_pos_weight': [40],
+                                     'gamma': [0.01]
                                      }
         global _best_so_far
         global _group_t
@@ -220,9 +259,26 @@ class XGBoostWrapperSmartValidation(XGBoostWrapper):
         _group_t = groups_test
         print('data for evaluation ready')
 
-        self.xg.fit(X_train, y_train, group, eval_set=[
-                    (X_test, y_test)], eval_group=[groups_test], eval_metric=_mrr, verbose=False, callbacks=[callbak],
-                    early_stopping_rounds=200)
+        if self.weights_position:
+            bp = 'dataset/preprocessed/{}/{}/xgboost/{}/'.format(self.cluster, self.mode, self.kind)
+            w = np.load(os.path.join(bp, 'weights_position.npy'))
+            print(w.size)
+            print(group.shape)
+            self.xg.fit(X_train, y_train, group, eval_set=[
+                        (X_test, y_test)], eval_group=[groups_test], eval_metric=_mrr, verbose=False, callbacks=[callbak],
+                        early_stopping_rounds=200, sample_weight=w)
+        elif self.log_weights:
+            bp = 'dataset/preprocessed/{}/{}/xgboost/{}/'.format(self.cluster, self.mode, self.kind)
+            w = np.load(os.path.join(bp, 'log_weights.npy'))
+            print(w.size)
+            print(group.shape)
+            self.xg.fit(X_train, y_train, group, eval_set=[
+                        (X_test, y_test)], eval_group=[groups_test], eval_metric=_mrr, verbose=False, callbacks=[callbak],
+                        early_stopping_rounds=200, sample_weight=w)
+        else:
+            self.xg.fit(X_train, y_train, group, eval_set=[
+                        (X_test, y_test)], eval_group=[groups_test], eval_metric=_mrr, verbose=False, callbacks=[callbak],
+                        early_stopping_rounds=200)
 
     def evaluate(self):
         self.fit()
@@ -241,9 +297,9 @@ def callbak(obj):
     global _best_so_far
     if -obj[6][1][1] > _best_so_far:
         _best_so_far = -obj[6][1][1]
-        if _best_so_far > 0.67:
+        if _best_so_far > 0.6765:
             HERA.send_message('xgboost {} iteration {} mrr is {}'. format(
-                _kind, obj.iteration, _best_so_far), 'edo')
+                _kind, obj.iteration, _best_so_far), 'teo')
         print('xgboost iteration {} mrr is {}'. format(obj.iteration, _best_so_far))
 
 
