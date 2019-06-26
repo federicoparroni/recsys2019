@@ -52,7 +52,7 @@ class XGBoostWrapper(RecommenderBase):
             'colsample_bytree': 1,
             'max_delta_step': 0,
             'scale_pos_weight': 1,
-            'gamma' = 0
+            'gamma': 0
         }
 
         # create hyperparameters dictionary
@@ -222,20 +222,24 @@ class XGBoostWrapperSmartValidation(XGBoostWrapper):
             'cluster': cluster,
             'kind': kind,
             'ask_to_load': False,
-            'min_child_weight': 1,
+            #'min_child_weight': 1,
             'subsample': 1,
             'colsample_bytree': 1,
-            'n_estimators': 100000,
-            'max_delta_step': 0,
-            'scale_pos_weight': 1,
-            'gamma': 0
+            'n_estimators': 100,
+            #'max_delta_step': 0,
+            #'scale_pos_weight': 1,
+            #'gamma': 0
         }
 
         # create hyperparameters dictionary
-        self.hyperparameters_dict = {'learning_rate': (0.1, 0.2),
-                                     'max_depth': (6, 9),
-                                     'reg_lambda': (2, 4),
-                                     'reg_alpha': (7, 10)
+        self.hyperparameters_dict = {'learning_rate': [0.25],
+                                     'max_depth': [11],
+                                     'reg_lambda': [3.651],
+                                     'reg_alpha': [8.18],
+                                     'min_child_weight': [1],
+                                     'max_delta_step': [8],
+                                     'scale_pos_weight': [40],
+                                     'gamma': [0.01]
                                      }
         global _best_so_far
         global _group_t
@@ -293,9 +297,9 @@ def callbak(obj):
     global _best_so_far
     if -obj[6][1][1] > _best_so_far:
         _best_so_far = -obj[6][1][1]
-        if _best_so_far > 0.67:
+        if _best_so_far > 0.6765:
             HERA.send_message('xgboost {} iteration {} mrr is {}'. format(
-                _kind, obj.iteration, _best_so_far), 'edo')
+                _kind, obj.iteration, _best_so_far), 'teo')
         print('xgboost iteration {} mrr is {}'. format(obj.iteration, _best_so_far))
 
 
