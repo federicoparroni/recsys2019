@@ -1,5 +1,4 @@
 import math
-import time
 import utils.telegram_bot as HERA
 from pathlib import Path
 import numpy as np
@@ -28,7 +27,7 @@ class CatboostRanker(RecommenderBase):
 
     def __init__(self, mode, cluster='no_cluster', learning_rate=0.25, iterations=50, max_depth=12, reg_lambda=13.465,
                  colsample_bylevel=1, algo='catboost', one_hot_max_size=42, leaf_estimation_iterations=25,
-                 custom_metric='AverageGain:top=1', include_test=True, scale_pos_weight=None, model_size_reg=None,
+                 custom_metric='AverageGain:top=1', include_test=True,
                  file_to_load=None, loss_function='YetiRank', train_dir='YetiRank',
                  file_to_store=None, limit_trees=False, features_to_one_hot=None):
         """
@@ -68,8 +67,6 @@ class CatboostRanker(RecommenderBase):
             'train_dir': train_dir,
             'logging_level': 'Verbose',
             'one_hot_max_size': math.ceil(one_hot_max_size),
-            'model_size_reg': model_size_reg,
-            #'scale_pos_weight': math.ceil(scale_pos_weight)
         }
 
         # create hyperparameters dictionary
@@ -78,9 +75,7 @@ class CatboostRanker(RecommenderBase):
                                      'learning_rate': (0.25, 0.25),
                                      'reg_lambda': (13.465, 13.465),
                                      'one_hot_max_size': (42, 42),
-                                     'leaf_estimation_iterations': (25, 25),
-                                     'model_size_reg': (0, 3),
-                                     #'scale_pos_weight': (20, 40)
+                                     'leaf_estimation_iterations': [20, 22, 24, 25, 27, 29, 31, 33, 35]
                                      }
 
         self.fixed_params_dict = {
@@ -236,28 +231,14 @@ class CatboostRanker(RecommenderBase):
             check_folder(_path)
             pickle.dump(self.ctb, open(_path, 'wb'))
 
-    # def fit_cv(self, x, y, x_val, y_val, ...params):
-    #
-    #     params = {....}
-    #
-    #     # fit on the data, dropping the index
-    #     self.ctb.fit_model(train_pool=x, additional_params=params)
 
     def get_scores_batch(self, save=False):
         if self.scores_batch is None:
             self.fit()
             self.recommend_batch()
 
-        _path = f'dataset/preprocessed/{self.cluster}/{self.mode}/predictions/{self.dataset_name}.pickle'
-        check_folder(_path)
-        if save:
-            with open(_path, 'wb') as f:
-                pickle.dump(self.scores_batch, f)
-            print(f'saved at: {_path}')
-        else:
-            return [], self.scores_batch
+        return [], self.scores_batch
 
-        return self.scores_batch
 
     def recommend_batch(self):
         test = data.test_df(self.mode, self.cluster)

@@ -1,5 +1,3 @@
-import os
-
 from extract_features.feature_base import FeatureBase
 import data
 import pandas as pd
@@ -100,9 +98,9 @@ class PastFutureSessionFeatures(FeatureBase):
                          'past_pos_clicked_1': [], 'past_pos_clicked_2': [], 'past_pos_clicked_3': [], 'past_pos_clicked_4_8': [],
                          'past_pos_clicked_9_15': [], 'past_pos_clicked_16_25': [],
                          'past_times_impr_appeared': [], 'past_mean_pos_impr_appeared': [],
-                         # 'past_sort_order_price_only': [], 'past_sort_order_price_and_recommended': [], 'past_sort_order_rating_only': [],
-                         # 'past_sort_order_rating_and_recommended': [], 'past_sort_order_distance_only': [], 'past_sort_order_distance_and_recommended': [],
-                         # 'past_sort_order_our_recommendations': [],
+                         'past_sort_order_price_only': [], 'past_sort_order_price_and_recommended': [], 'past_sort_order_rating_only': [],
+                         'past_sort_order_rating_and_recommended': [], 'past_sort_order_distance_only': [], 'past_sort_order_distance_and_recommended': [],
+                         'past_sort_order_our_recommendations': [],
 
                          'future_times_interacted_impr': [], 'future_session_num': [],
                          'future_closest_action_involving_impression': [],
@@ -122,11 +120,11 @@ class PastFutureSessionFeatures(FeatureBase):
                          'future_pos_clicked_1': [], 'future_pos_clicked_2': [], 'future_pos_clicked_3': [], 'future_pos_clicked_4_8': [],
                          'future_pos_clicked_9_15': [], 'future_pos_clicked_16_25': [],
                          'future_times_impr_appeared': [], 'future_mean_pos_impr_appeared': [],
-                         # 'future_sort_order_price_only': [], 'future_sort_order_price_and_recommended': [],
-                         # 'future_sort_order_rating_only': [],
-                         # 'future_sort_order_rating_and_recommended': [], 'future_sort_order_distance_only': [],
-                         # 'future_sort_order_distance_and_recommended': [],
-                         # 'future_sort_order_our_recommendations': [],
+                         'future_sort_order_price_only': [], 'future_sort_order_price_and_recommended': [],
+                         'future_sort_order_rating_only': [],
+                         'future_sort_order_rating_and_recommended': [], 'future_sort_order_distance_only': [],
+                         'future_sort_order_distance_and_recommended': [],
+                         'future_sort_order_our_recommendations': [],
                          }
 
     def extract_feature(self):
@@ -237,21 +235,9 @@ class PastFutureSessionFeatures(FeatureBase):
 
         df = expand_impressions(df.iloc[idxs_click, :][['user_id', 'session_id', 'reference', 'impressions']])
 
-        #df = df[:len(self.features['past_times_interacted_impr'])]
-        try:
-            for key in self.features.keys():
-                print(key, len(self.features[key]))
-                print(df.shape)
-                df[key] = self.features[key]
-        except Exception as e:
-            traceback.print_exc()
-            print(e)
-            print(f'Normal past_future_session not works: Edited version is used')
-            df = df[:len(self.features['past_times_interacted_impr'])]
-            for key in self.features.keys():
-                print(key, len(self.features[key]))
-                print(df.shape)
-                df[key] = self.features[key]
+        for key in self.features.keys():
+            print(key, len(self.features[key]))
+            df[key] = self.features[key]
 
         print('Correcting feature: add duplicate sessions with underscore...')
         label_feat = pd.read_csv('dataset/preprocessed/{}/{}/feature/impression_label/features.csv'.format(self.cluster, self.mode))
@@ -400,7 +386,7 @@ class PastFutureSessionFeatures(FeatureBase):
 
         self.get_action_involving_impressions(df, impressions, prefix='past')
 
-        #self.get_change_sort_order_frequency(df, impressions, prefix='past')
+        self.get_change_sort_order_frequency(df, impressions, prefix='past')
 
     def compute_future_sessions_feat(self, df, impressions, closest_tm):
 
@@ -439,7 +425,7 @@ class PastFutureSessionFeatures(FeatureBase):
 
         self.get_action_involving_impressions(df, impressions, prefix='future')
 
-        #self.get_change_sort_order_frequency(df, impressions, prefix='future')
+        self.get_change_sort_order_frequency(df, impressions, prefix='future')
 
     def get_action_involving_impressions(self, x, impr, prefix='future'):
         df_only_numeric = x[pd.to_numeric(x['reference'], errors='coerce').notnull()][[
