@@ -165,7 +165,7 @@ def create_log_weights(train_df):
 def create_dataset(mode, cluster, class_weights=False, weights_position=True, log_weights=True):
     # training
     kind = input('insert the kind: ')
-    if cluster == 'no_cluster':
+    if cluster == 'no_cluster' or True:
 
         if kind == 'kind2':
             # questo fa 0.6755 in locale + NormalizedPlatformFeaturesSimilarity, SessionNumClickouts fa 0.67588
@@ -257,13 +257,8 @@ def create_dataset(mode, cluster, class_weights=False, weights_position=True, lo
             # learning_rate=0.1366 min_child_weight=1 n_estimators=499
             # max_depth=10 subsample=1 colsample_bytree=1 reg_lambda=4.22 reg_alpha=10.72
             # fa 0.67588 con anche NormalizedPlatformFeaturesSimilarity e SessionNumClickouts
-
-            """
-            NormalizedPlatformFeaturesSimilarity,
-            SessionNumClickouts,
-            ActionsInvolvingImpressionSession,
-            (ImpressionPositionSession, False),
-            (ImpressionPriceInfoSessionOld, False),
+            ImpressionPositionSession,
+            ImpressionPriceInfoSessionOld,
             ImpressionRatingNumeric,
             ImpressionLabel,
             LastActionInvolvingImpression,
@@ -286,7 +281,7 @@ def create_dataset(mode, cluster, class_weights=False, weights_position=True, lo
             PriceQuality,
             PlatformFeaturesSimilarity,
             LastActionBeforeClickout,
-            (ImpressionStarsNumeric, False),
+            ImpressionStarsNumeric,
             StepsBeforeLastClickout,
             LocationReferencePercentageOfClickouts,
             LocationReferencePercentageOfInteractions,
@@ -296,12 +291,12 @@ def create_dataset(mode, cluster, class_weights=False, weights_position=True, lo
             PlatformReferencePercentageOfInteractions,
             PlatformSession,
             User2ItemOld,
-            (LazyUser, False),
-            """
-            features_array = [
-                ImpressionLabel,
-                (ImpressionPositionSession, False),
-                PersonalizedTopPop,
+            LazyUser,
+            PastFutureSessionFeatures,
+            SessionSortOrderWhenClickout,
+            SessionActionNumRefDiffFromImpressions,
+            ActionsInvolvingImpressionSession,
+            SessionNumClickouts
             ]
 
     train_df, test_df, train_idxs, _ = merge_features(mode, cluster, features_array, merge_kind='left')
