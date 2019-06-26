@@ -25,7 +25,7 @@ class CatboostRanker(RecommenderBase):
     Custom_metric is @1 for maximizing first result as good
     """
 
-    def __init__(self, mode, cluster='no_cluster', learning_rate=0.25, iterations=50, max_depth=12, reg_lambda=13.465,
+    def __init__(self, mode, cluster='no_cluster', learning_rate=0.25, iterations=150, max_depth=12, reg_lambda=13.465,
                  colsample_bylevel=1, algo='catboost', one_hot_max_size=42, leaf_estimation_iterations=25,
                  custom_metric='AverageGain:top=1', include_test=True,
                  file_to_load=None, loss_function='YetiRank', train_dir='YetiRank',
@@ -443,12 +443,14 @@ if __name__ == '__main__':
 
     mode = mode_selection()
     cluster = cluster_selection()
-    model = CatboostRanker(mode=mode, cluster=cluster, iterations=50, learning_rate=0.25, algo='catboost')
+    model = CatboostRanker(mode=mode, cluster=cluster, iterations=150, learning_rate=0.25, algo='catboost')
 
     sel = options(['evaluate', 'export the sub', 'export the scores'], ['evaluate', 'export the sub',
                                                                         'export the scores'],
                   'what do you want to do after model fitting and the recommendations?')
 
+    import time
+    time.sleep(0)
     if 'evaluate' in sel:
         model.evaluate(True)
     if 'export the sub' in sel and 'export the scores' in sel:

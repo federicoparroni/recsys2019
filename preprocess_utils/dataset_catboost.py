@@ -123,6 +123,7 @@ def create_dataset(mode, cluster):
 
 
 if __name__ == "__main__":
-    from utils.menu import mode_selection
+    from utils.menu import mode_selection, cluster_selection
     mode = mode_selection()
-    create_dataset(mode=mode, cluster='no_cluster')
+    cluster = cluster_selection()
+    create_dataset(mode=mode, cluster=cluster)
