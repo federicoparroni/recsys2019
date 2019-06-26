@@ -13,7 +13,7 @@ import scipy.sparse as sps
 tqdm.pandas()
 import utils.telegram_bot as HERA
 from cython_files.mrr import mrr as mrr_cython
-
+import time
 
 class XGBoostWrapper(RecommenderBase):
 
@@ -327,6 +327,8 @@ if __name__ == '__main__':
         cluster = cluster_selection()
         sel = options(['evaluate', 'export the sub', 'export the scores'], ['evaluate', 'export the sub',
                                                                             'export the scores'], 'what do you want to do after model fitting and the recommendations?')
+
+        time.sleep(10800)
         model = XGBoostWrapper(mode=mode, cluster=cluster, kind=kind)
         if 'evaluate' in sel:
             model.evaluate(True)
