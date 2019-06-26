@@ -26,10 +26,10 @@ class CatboostRanker(RecommenderBase):
     Custom_metric is @1 for maximizing first result as good
     """
 
-    def __init__(self, mode, cluster='no_cluster', learning_rate=0.25, iterations=100, max_depth=11, reg_lambda=7.23,
-                 colsample_bylevel=1, algo='catboost', one_hot_max_size=46, leaf_estimation_iterations=25,
-                 custom_metric='AverageGain:top=1', include_test=True,
-                 file_to_load=None, loss_function='QuerySoftMax', train_dir='QuerySoftMax',
+    def __init__(self, mode, cluster='no_cluster', learning_rate=0.25, iterations=50, max_depth=12, reg_lambda=13.465,
+                 colsample_bylevel=1, algo='catboost', one_hot_max_size=42, leaf_estimation_iterations=25,
+                 custom_metric='AverageGain:top=1', include_test=True, scale_pos_weight=None, model_size_reg=None,
+                 file_to_load=None, loss_function='YetiRank', train_dir='YetiRank',
                  file_to_store=None, limit_trees=False, features_to_one_hot=None):
         """
         :param mode:
@@ -68,15 +68,19 @@ class CatboostRanker(RecommenderBase):
             'train_dir': train_dir,
             'logging_level': 'Verbose',
             'one_hot_max_size': math.ceil(one_hot_max_size),
+            'model_size_reg': model_size_reg,
+            #'scale_pos_weight': math.ceil(scale_pos_weight)
         }
 
         # create hyperparameters dictionary
-        self.hyperparameters_dict = {'iterations': (100, 100),
-                                     'max_depth': (11, 11),
+        self.hyperparameters_dict = {'iterations': (50, 50),
+                                     'max_depth': (12, 12),
                                      'learning_rate': (0.25, 0.25),
-                                     'reg_lambda': (7.2, 7.9),
-                                     'one_hot_max_size': (45, 45),
-                                     'leaf_estimation_iterations': (15, 40)
+                                     'reg_lambda': (13.465, 13.465),
+                                     'one_hot_max_size': (42, 42),
+                                     'leaf_estimation_iterations': (25, 25),
+                                     'model_size_reg': (0, 3),
+                                     #'scale_pos_weight': (20, 40)
                                      }
 
         self.fixed_params_dict = {
@@ -251,7 +255,7 @@ class CatboostRanker(RecommenderBase):
                 pickle.dump(self.scores_batch, f)
             print(f'saved at: {_path}')
         else:
-            return self.scores_batch
+            return [], self.scores_batch
 
         return self.scores_batch
 
@@ -454,9 +458,25 @@ class CatboostRanker(RecommenderBase):
 
 
 if __name__ == '__main__':
-    from utils.menu import mode_selection
+    from utils.menu import mode_selection, options, cluster_selection
+
     mode = mode_selection()
-    model = CatboostRanker(mode=mode, cluster='no_cluster', iterations=10, learning_rate=0.5, algo='catboost')
+    cluster = cluster_selection()
+    model = CatboostRanker(mode=mode, cluster=cluster, iterations=50, learning_rate=0.25, algo='catboost')
+
+    sel = options(['evaluate', 'export the sub', 'export the scores'], ['evaluate', 'export the sub',
+                                                                        'export the scores'],
+                  'what do you want to do after model fitting and the recommendations?')
+
+    if 'evaluate' in sel:
+        model.evaluate(True)
+    if 'export the sub' in sel and 'export the scores' in sel:
+        model.run(export_sub=True, export_scores=True)
+    elif 'export the sub' in sel and 'export the scores' not in sel:
+        model.run(export_sub=True, export_scores=False)
+    elif 'export the sub' not in sel and 'export the scores' in sel:
+        model.run(export_sub=False, export_scores=True)
+
     #model.evaluate(send_MRR_on_telegram=True)
     r = RandomValidator(model, automatic_export=False)
     r.validate(100)
