@@ -92,7 +92,6 @@ class RecommenderBase(ABC):
         """
         Validate the model on local data
         """
-        assert self.mode == 'local' or self.mode == 'small'
 
         print('\nevaluating {}'.format(self.name))
         
@@ -118,7 +117,6 @@ class RecommenderBase(ABC):
         :param verboose: if True print the MRR
         :return: MRR of the given predictions
         """
-        assert (self.mode == 'local' or self.mode == 'small')
 
         train_df = data.train_df('full')   #data.train_df("full", cluster=self.cluster)
 
