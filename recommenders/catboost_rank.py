@@ -50,7 +50,10 @@ class CatboostRanker(RecommenderBase):
         self.data_dir = self.curr_dir.joinpath('..', 'dataset/preprocessed/{}/{}/catboost/'.format(cluster, mode))
         self.target_indices = data.target_indices(mode=mode, cluster=cluster)
         self.features_to_drop = []
+
         self.include_test = include_test
+        if self.mode=='full':
+            self.include_test = False
         self.dataset_name = 'catboost_rank'
 
         self.default_parameters = {
