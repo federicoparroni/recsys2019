@@ -236,8 +236,10 @@ class CatboostRanker(RecommenderBase):
 
 
     def get_scores_batch(self, save=False):
-        if self.scores_batch is None:
+        if self.ctb is None:
             self.fit()
+
+        if self.scores_batch is None:
             self.recommend_batch()
 
         return self.scores_batch
