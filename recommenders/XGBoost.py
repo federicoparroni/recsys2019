@@ -147,9 +147,14 @@ class XGBoostWrapper(RecommenderBase):
         :param predictions:
         :return: MRR computed on just the sessions where the clickout is not on the first impression
         """
-        assert (self.mode == 'local' or self.mode == 'small')
-        train_df = pd.read_csv('dataset/preprocessed/no_cluster/full/train.csv'.format(
-            self.cluster), usecols=['reference', 'impressions'])
+        #assert (self.mode == 'local' or self.mode == 'small')
+        #train_df = pd.read_csv('dataset/preprocessed/no_cluster/full/train.csv'.format(
+        #        self.cluster), usecols=['reference', 'impressions'])
+
+        if self.mode == 'full':
+            train_df = data.full_df()
+        else:
+            train_df = data.train_df('full')
 
         target_indices, recs = zip(*predictions)
         target_indices = list(target_indices)
