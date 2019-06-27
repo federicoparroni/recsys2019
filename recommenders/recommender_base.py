@@ -59,7 +59,7 @@ class RecommenderBase(ABC):
             print("The list has lenght > 25. It will be cut")
         self.weight_per_position = list_weight[:25]
 
-    def run(self, export_sub=True, export_scores=False):
+    def run(self, export_sub=True, export_scores=False, evaluate=False):
         """
         Handle all the operations needed to run this model a single time.
         In particular, performs the fit and get the recommendations.
@@ -78,6 +78,7 @@ class RecommenderBase(ABC):
             else:
                 print("I gonna fit the model and recommend the accomodations")
         self.fit()
+
         if export_sub:
             recommendations = self.recommend_batch()
             out.create_sub(recommendations, submission_name=self.name)
@@ -87,8 +88,14 @@ class RecommenderBase(ABC):
             path = 'scores/{}_test_{}'.format(self.name, time.strftime('%H-%M-%S'))
             np.save(path, scores_batch_test)
             print('scores exported in {}'.format(path))
+        if evaluate:
+            recommendations = self.recommend_batch()
+            print('recommendations created')
+            MRR = self.compute_MRR(recommendations)
+            HERA.send_message(
+                'evaluating recommender {} on {}.\n MRR is: {}\n\n'.format(self.name, self.cluster, MRR))
 
-    def evaluate(self, send_MRR_on_telegram = False):
+    def evaluate(self, send_MRR_on_telegram = False, already_fitted=False):
         """
         Validate the model on local data
         """
@@ -99,7 +106,8 @@ class RecommenderBase(ABC):
         perc = len(data.target_indices(self.mode, self.cluster))/len(data.target_indices(self.mode, data.SPLIT_USED))
         print('\nevaluating with mode {} on {} percent of the targets\n'.format(self.mode, perc*100))
 
-        self.fit()
+        if not already_fitted:
+            self.fit()
         recommendations = self.recommend_batch()
         print('recommendations created')
         MRR = self.compute_MRR(recommendations)

@@ -328,14 +328,17 @@ if __name__ == '__main__':
                                                                             'export the scores'], 'what do you want to do after model fitting and the recommendations?')
 
         model = XGBoostWrapper(mode=mode, cluster=cluster, kind=kind)
-        if 'evaluate' in sel:
-            model.evaluate(True)
         if 'export the sub' in sel and 'export the scores' in sel:
             model.run(export_sub=True, export_scores=True)
         elif 'export the sub' in sel and 'export the scores' not in sel:
             model.run(export_sub=True, export_scores=False)
         elif 'export the sub' not in sel and 'export the scores' in sel:
             model.run(export_sub=False, export_scores=True)
+
+        if 'evaluate' in sel and ('export the sub' in sel or 'export the scores' in sel):
+            model.evaluate(send_MRR_on_telegram=True, already_fitted=True)
+        elif 'evaluate' in sel:
+            model.evaluate(send_MRR_on_telegram=True, already_fitted=False)
 
     else:
         kind = input('pick the kind: ')
