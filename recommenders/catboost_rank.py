@@ -235,9 +235,11 @@ class CatboostRanker(RecommenderBase):
             pickle.dump(self.ctb, open(_path, 'wb'))
 
 
-    def get_scores_batch(self, save=False):
-        if self.scores_batch is None:
+    def get_scores_batch(self):
+        if self.ctb is None:
             self.fit()
+
+        if self.scores_batch is None:
             self.recommend_batch()
 
         return self.scores_batch
@@ -291,9 +293,6 @@ class CatboostRanker(RecommenderBase):
                 self.predictions.append((index, list(sorted_impr)))
                 self.scores_batch.append((index, list(sorted_impr), scores_impr))
 
-
-        if self.file_to_store is not None:
-            self.get_scores_batch(save=True)
 
         return self.predictions
 
@@ -454,14 +453,17 @@ if __name__ == '__main__':
 
     import time
     time.sleep(0)
-    if 'evaluate' in sel:
-        model.evaluate(True)
     if 'export the sub' in sel and 'export the scores' in sel:
         model.run(export_sub=True, export_scores=True)
     elif 'export the sub' in sel and 'export the scores' not in sel:
         model.run(export_sub=True, export_scores=False)
     elif 'export the sub' not in sel and 'export the scores' in sel:
         model.run(export_sub=False, export_scores=True)
+
+    if 'evaluate' in sel and ('export the sub' in sel or 'export the scores' in sel):
+        model.evaluate(send_MRR_on_telegram=True, already_fitted=True)
+    elif 'evaluate' in sel:
+        model.evaluate(send_MRR_on_telegram=True, already_fitted=False)
 
     #model.evaluate(send_MRR_on_telegram=True)
     r = RandomValidator(model, automatic_export=False)

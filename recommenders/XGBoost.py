@@ -19,7 +19,7 @@ class XGBoostWrapper(RecommenderBase):
 
     def __init__(self, mode, cluster='no_cluster', kind='kind1', ask_to_load=True,
                     class_weights=False, learning_rate=0.08, min_child_weight=1,
-                    n_estimators=502, max_depth=11, subsample=1, colsample_bytree=1,
+                    n_estimators=100, max_depth=11, subsample=1, colsample_bytree=1,
                     reg_lambda=3.651, reg_alpha=8.18, max_delta_step=8, scale_pos_weight=40,
                     gamma = 0.01,
                     weights_position=False, log_weights=False):
@@ -81,19 +81,13 @@ class XGBoostWrapper(RecommenderBase):
 
         if self.class_weights:
             self.xg.fit(X_train, y_train, group, sample_weight=weights)
-        else:
-            self.xg.fit(X_train, y_train, group)
-
-        if self.weights_position:
+        elif self.weights_position:
             bp = 'dataset/preprocessed/{}/{}/xgboost/{}/'.format(cluster, mode, kind)
             w = np.load(os.path.join(bp, 'weights_position.npy'))
             print(w.size)
             print(group.shape)
             self.xg.fit(X_train, y_train, group, sample_weight=w)
-        else:
-            self.xg.fit(X_train, y_train, group)
-
-        if self.log_weights:
+        elif self.log_weights:
             bp = 'dataset/preprocessed/{}/{}/xgboost/{}/'.format(cluster, mode, kind)
             w = np.load(os.path.join(bp, 'log_weights.npy'))
             print(w.size)
@@ -103,7 +97,7 @@ class XGBoostWrapper(RecommenderBase):
             self.xg.fit(X_train, y_train, group)
 
         print('fit done')
-        self.xg.save_model('models/{}.model'.format(self.name))
+        #self.xg.save_model('models/{}.model'.format(self.name))
         print('model saved')
 
     def recommend_batch(self):
@@ -153,9 +147,14 @@ class XGBoostWrapper(RecommenderBase):
         :param predictions:
         :return: MRR computed on just the sessions where the clickout is not on the first impression
         """
-        assert (self.mode == 'local' or self.mode == 'small')
-        train_df = pd.read_csv('dataset/preprocessed/no_cluster/full/train.csv'.format(
-            self.cluster), usecols=['reference', 'impressions'])
+        #assert (self.mode == 'local' or self.mode == 'small')
+        #train_df = pd.read_csv('dataset/preprocessed/no_cluster/full/train.csv'.format(
+        #        self.cluster), usecols=['reference', 'impressions'])
+
+        if self.mode == 'full':
+            train_df = data.full_df()
+        else:
+            train_df = data.train_df('full')
 
         target_indices, recs = zip(*predictions)
         target_indices = list(target_indices)
@@ -328,16 +327,18 @@ if __name__ == '__main__':
         sel = options(['evaluate', 'export the sub', 'export the scores'], ['evaluate', 'export the sub',
                                                                             'export the scores'], 'what do you want to do after model fitting and the recommendations?')
 
-        time.sleep(10800)
         model = XGBoostWrapper(mode=mode, cluster=cluster, kind=kind)
-        if 'evaluate' in sel:
-            model.evaluate(True)
         if 'export the sub' in sel and 'export the scores' in sel:
             model.run(export_sub=True, export_scores=True)
         elif 'export the sub' in sel and 'export the scores' not in sel:
             model.run(export_sub=True, export_scores=False)
         elif 'export the sub' not in sel and 'export the scores' in sel:
             model.run(export_sub=False, export_scores=True)
+
+        if 'evaluate' in sel and ('export the sub' in sel or 'export the scores' in sel):
+            model.evaluate(send_MRR_on_telegram=True, already_fitted=True)
+        elif 'evaluate' in sel:
+            model.evaluate(send_MRR_on_telegram=True, already_fitted=False)
 
     else:
         kind = input('pick the kind: ')
