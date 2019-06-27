@@ -13,15 +13,15 @@ import scipy.sparse as sps
 tqdm.pandas()
 import utils.telegram_bot as HERA
 from cython_files.mrr import mrr as mrr_cython
-
+import time
 
 class XGBoostWrapper(RecommenderBase):
 
     def __init__(self, mode, cluster='no_cluster', kind='kind1', ask_to_load=True,
-                    class_weights=False, learning_rate=0.01, min_child_weight=1,
-                    n_estimators=100, max_depth=3, subsample=1, colsample_bytree=1,
-                    reg_lambda=1, reg_alpha=0, max_delta_step=0, scale_pos_weight=1,
-                    gamma = 0,
+                    class_weights=False, learning_rate=0.08, min_child_weight=1,
+                    n_estimators=502, max_depth=11, subsample=1, colsample_bytree=1,
+                    reg_lambda=3.651, reg_alpha=8.18, max_delta_step=8, scale_pos_weight=40,
+                    gamma = 0.01,
                     weights_position=False, log_weights=False):
         name = 'xgboost_ranker_mode={}_cluster={}_kind={}_class_weights={}_learning_rate={}_min_child_weight={}_n_estimators={}_max_depth={}_subsample={}_colsample_bytree={}_reg_lambda={}_reg_alpha={}_max_delta_step={}_scale_pos_weight={}_gamma={}_weights_position={}_log_weights={}'.format(
             mode, cluster, kind, class_weights, learning_rate, min_child_weight, n_estimators, max_depth, subsample, colsample_bytree, reg_lambda, reg_alpha, max_delta_step, scale_pos_weight,gamma, weights_position, log_weights
@@ -103,8 +103,8 @@ class XGBoostWrapper(RecommenderBase):
             self.xg.fit(X_train, y_train, group)
 
         print('fit done')
-        #self.xg.save_model('models/{}.model'.format(self.name))
-        #print('model saved')
+        self.xg.save_model('models/{}.model'.format(self.name))
+        print('model saved')
 
     def recommend_batch(self):
         X_test, _, _, _ = data.dataset_xgboost_test(
@@ -327,6 +327,8 @@ if __name__ == '__main__':
         cluster = cluster_selection()
         sel = options(['evaluate', 'export the sub', 'export the scores'], ['evaluate', 'export the sub',
                                                                             'export the scores'], 'what do you want to do after model fitting and the recommendations?')
+
+        time.sleep(10800)
         model = XGBoostWrapper(mode=mode, cluster=cluster, kind=kind)
         if 'evaluate' in sel:
             model.evaluate(True)
