@@ -81,19 +81,13 @@ class XGBoostWrapper(RecommenderBase):
 
         if self.class_weights:
             self.xg.fit(X_train, y_train, group, sample_weight=weights)
-        else:
-            self.xg.fit(X_train, y_train, group)
-
-        if self.weights_position:
+        elif self.weights_position:
             bp = 'dataset/preprocessed/{}/{}/xgboost/{}/'.format(cluster, mode, kind)
             w = np.load(os.path.join(bp, 'weights_position.npy'))
             print(w.size)
             print(group.shape)
             self.xg.fit(X_train, y_train, group, sample_weight=w)
-        else:
-            self.xg.fit(X_train, y_train, group)
-
-        if self.log_weights:
+        elif self.log_weights:
             bp = 'dataset/preprocessed/{}/{}/xgboost/{}/'.format(cluster, mode, kind)
             w = np.load(os.path.join(bp, 'log_weights.npy'))
             print(w.size)
