@@ -118,7 +118,10 @@ class RecommenderBase(ABC):
         :return: MRR of the given predictions
         """
 
-        train_df = data.train_df('full')   #data.train_df("full", cluster=self.cluster)
+        if self.mode == 'full':
+            train_df = data.full_df()
+        else:
+            train_df = data.train_df('full')
 
         target_indices, recs = zip(*predictions)
         target_indices = list(target_indices)
