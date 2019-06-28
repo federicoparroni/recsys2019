@@ -31,7 +31,7 @@ class ScoresCatboost(FeatureBase):
                    \'mode/feature/scores_catboost/')
 
         df = pd.read_csv(path, index_col=None)
-        df = df.drop(['index'], axis=1)
+        #df = df.drop(['index'], axis=1)
         df = df.drop_duplicates(['user_id', 'session_id', 'item_id'])
 
         # Score normalization
