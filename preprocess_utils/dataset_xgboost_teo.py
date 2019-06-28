@@ -170,46 +170,7 @@ def create_dataset(mode, cluster, class_weights=False, weights_position=True, lo
         if kind == 'kind2':
             # questo fa 0.6755 in locale + NormalizedPlatformFeaturesSimilarity, SessionNumClickouts fa 0.67588
                 features_array = [
-                """
-                NormalizedPlatformFeaturesSimilarity,
-                SessionNumClickouts,
-                ActionsInvolvingImpressionSession,
-                (ImpressionPositionSession, False),
-                (ImpressionPriceInfoSessionOld, False),
-                ImpressionRatingNumeric,
                 ImpressionLabel,
-                LastActionInvolvingImpression,
-                MeanPriceClickout,
-                AvgPriceInteractions,
-                SessionDevice,
-                NumImpressionsInClickout,
-                SessionLengthOld,
-                TimesImpressionAppearedInClickoutsSession,
-                TimesUserInteractedWithImpression,
-                TimingFromLastInteractionImpression,
-                TopPopPerImpression,
-                TopPopInteractionClickoutPerImpression,
-                ChangeImpressionOrderPositionInSession,
-                FrenzyFactorSession,
-                DayOfWeekAndMomentInDay,
-                LastClickoutFiltersSatisfaction,
-                TimePerImpression,
-                PersonalizedTopPop,
-                PriceQuality,
-                PlatformFeaturesSimilarity,
-                LastActionBeforeClickout,
-                (ImpressionStarsNumeric, False),
-                StepsBeforeLastClickout,
-                LocationReferencePercentageOfClickouts,
-                LocationReferencePercentageOfInteractions,
-                NumTimesItemImpressed,
-                PercClickPerImpressions,
-                PlatformReferencePercentageOfClickouts,
-                PlatformReferencePercentageOfInteractions,
-                PlatformSession,
-                User2ItemOld,
-                (LazyUser, False),
-                """
                 PastFutureSessionFeatures
                 ]
         if kind == 'kind3':
