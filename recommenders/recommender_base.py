@@ -81,11 +81,11 @@ class RecommenderBase(ABC):
 
         if export_sub:
             recommendations = self.recommend_batch()
-            out.create_sub(recommendations, submission_name=self.name)
+            out.create_sub(recommendations, submission_name=self.name[:10])
         if export_scores:
             check_folder('scores')
             scores_batch_test = self.get_scores_batch()
-            path = 'scores/{}_test_{}'.format(self.name, time.strftime('%H-%M-%S'))
+            path = 'scores/{}_test_{}'.format(self.name[:10], time.strftime('%H-%M-%S'))
             np.save(path, scores_batch_test)
             print('scores exported in {}'.format(path))
         if evaluate:
