@@ -170,6 +170,7 @@ def create_dataset(mode, cluster, class_weights=False, weights_position=True, lo
         if kind == 'kind2':
             # questo fa 0.6755 in locale + NormalizedPlatformFeaturesSimilarity, SessionNumClickouts fa 0.67588
                 features_array = [
+                """
                 NormalizedPlatformFeaturesSimilarity,
                 SessionNumClickouts,
                 ActionsInvolvingImpressionSession,
@@ -208,6 +209,7 @@ def create_dataset(mode, cluster, class_weights=False, weights_position=True, lo
                 PlatformSession,
                 User2ItemOld,
                 (LazyUser, False),
+                """
                 PastFutureSessionFeatures
                 ]
         if kind == 'kind3':
