@@ -10,7 +10,7 @@ class ScoresSupersampling(FeatureBase):
 
     def __init__(self, mode, cluster='no_cluster'):
         name = 'scores_supersampling'
-        super(ScoresXGBoostDanParameter, self).__init__(
+        super(ScoresSupersampling, self).__init__(
             name=name, mode=mode, cluster=cluster
             )
 
