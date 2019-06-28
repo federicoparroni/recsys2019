@@ -30,7 +30,7 @@ class ScoresXGBoostDanParameter(FeatureBase):
         df = df.drop_duplicates(['user_id','session_id','item_id'], keep='first')
 
         # Score normalization
-        x = df.drop(['user_id', 'session_id', 'item_id'])
+        x = df.drop(['user_id', 'session_id', 'item_id'], axis=1)
         x = x.values.astype(float)
         min_max_scaler = preprocessing.MinMaxScaler()
         x_scaled = min_max_scaler.fit_transform(x)
