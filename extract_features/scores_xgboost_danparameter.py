@@ -1,6 +1,7 @@
 from extract_features.feature_base import FeatureBase
 import os
 import pandas as pd
+from sklearn import preprocessing
 
 class ScoresXGBoostDanParameter(FeatureBase):
 
@@ -27,6 +28,14 @@ class ScoresXGBoostDanParameter(FeatureBase):
 
         df = pd.read_csv(path, index_col=None)
         df = df.drop_duplicates(['user_id','session_id','item_id'], keep='first')
+
+        # Score normalization
+        x = df.drop(['user_id', 'session_id', 'item_id'])
+        x = x.values.astype(float)
+        min_max_scaler = preprocessing.MinMaxScaler()
+        x_scaled = min_max_scaler.fit_transform(x)
+        df['normalized_xgb'] = x_scaled
+        df = df[['user_id', 'session_id', 'item_id', 'normalized_xgb']]
 
         print('{} feature read'.format(self.name))
         return df
