@@ -115,8 +115,7 @@ def create_dataset(mode, cluster, class_weights=False):
     if cluster == 'no_cluster':
 
         if 'content':
-            features_array = 
-                [
+            features_array = [
                     ImpressionPriceInfoSessionOld,
                     ImpressionRatingNumeric,
                     ImpressionLabel,
