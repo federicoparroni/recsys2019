@@ -114,6 +114,44 @@ def create_dataset(mode, cluster, class_weights=False):
     kind = input('insert the kind: ')
     if cluster == 'no_cluster':
 
+        if kind == 'no_bias':
+            features_array = [
+            PlatformSession,
+            PlatformFeaturesSimilarity,
+            AvgPriceInteractions,
+            ChangeImpressionOrderPositionInSession,
+            DayOfWeekAndMomentInDay,
+            FrenzyFactorSession,
+            ImpressionPositionSession,
+            ImpressionPriceInfoSessionOld,
+            ImpressionRatingNumeric,
+            ActionsInvolvingImpressionSession,
+            SessionNumClickouts,
+            ImpressionStarsNumeric,
+            ImpressionLabel,
+            LastActionInvolvingImpression,
+            LastActionBeforeClickout,
+            TimesImpressionAppearedInClickoutsSession,
+            LastClickoutFiltersSatisfaction,
+            StepsBeforeLastClickout,
+            LazyUser,
+            MeanPriceClickout,
+            NumImpressionsInClickout,
+            SessionLengthOld,
+            NumTimesItemImpressed,
+            PercClickPerImpressions,
+            PlatformReferencePercentageOfClickouts,
+            PriceQuality,
+            SessionDevice,
+            SessionSortOrderWhenClickout,
+            TimePerImpression,
+            TimesUserInteractedWithImpression,
+            TimingFromLastInteractionImpression,
+            TopPopInteractionClickoutPerImpression,
+            TopPopPerImpression,
+            User2ItemOld,
+            ]
+
         if 'content':
             features_array = [
                     ImpressionPriceInfoSessionOld,
