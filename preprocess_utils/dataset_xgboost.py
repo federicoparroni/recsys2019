@@ -18,6 +18,7 @@ from extract_features.frenzy_factor_consecutive_steps import FrenzyFactorSession
 from extract_features.impression_features import ImpressionFeature
 from extract_features.impression_position_session import ImpressionPositionSession
 from extract_features.impression_price_info_session import ImpressionPriceInfoSession
+from extract_features.impression_price_info_session_old import ImpressionPriceInfoSessionOld
 from extract_features.impression_rating import ImpressionRating
 from extract_features.impression_rating_numeric import ImpressionRatingNumeric
 from extract_features.impression_stars_numeric import ImpressionStarsNumeric
@@ -42,14 +43,21 @@ from extract_features.session_actions_num_ref_diff_from_impressions import Sessi
 from extract_features.session_device import SessionDevice
 from extract_features.session_filters_active_when_clickout import SessionFilterActiveWhenClickout
 from extract_features.session_length import SessionLength
+from extract_features.session_length_old import SessionLengthOld
 from extract_features.session_sort_order_when_clickout import SessionSortOrderWhenClickout
+from extract_features.session_num_clickouts import SessionNumClickouts
+from extract_features.session_num_filter_sel import SessionNumFilterSel
+from extract_features.session_num_inter_item_image import SessionNumInterItemImage
+from extract_features.session_num_not_numeric import SessionNumNotNumeric
 from extract_features.time_per_impression import TimePerImpression
 from extract_features.times_impression_appeared_in_clickouts_session import TimesImpressionAppearedInClickoutsSession
 from extract_features.timing_from_last_interaction_impression import TimingFromLastInteractionImpression
+from extract_features.timing_from_last_interaction_impression_old import TimingFromLastInteractionImpressionOld
 from extract_features.top_pop_interaction_clickout_per_impression import TopPopInteractionClickoutPerImpression
 from extract_features.top_pop_per_impression import TopPopPerImpression
 from extract_features.top_pop_sorting_filters import TopPopSortingFilters
 from extract_features.user_2_item import User2Item
+from extract_features.user_2_item_old import User2ItemOld
 from extract_features.adjusted_location_reference_percentage_of_clickouts import AdjustedLocationReferencePercentageOfClickouts
 from extract_features.adjusted_location_reference_percentage_of_interactions import AdjustedLocationReferencePercentageOfInteractions
 from extract_features.adjusted_perc_click_per_impressions import AdjustedPercClickPerImpressions
@@ -65,6 +73,8 @@ from extract_features.avg_price_interactions import AvgPriceInteractions
 from extract_features.times_user_interacted_with_impression import TimesUserInteractedWithImpression
 from extract_features.classifier.last_action_before_clickout import LastActionBeforeClickout
 from extract_features.fraction_pos_price import FractionPosPrice
+from extract_features.past_future_session_features import PastFutureSessionFeatures
+from extract_features.normalized_platform_features_similarity import NormalizedPlatformFeaturesSimilarity
 from utils.menu import single_choice
 from preprocess_utils.merge_features import merge_features
 from os.path import join
@@ -103,6 +113,41 @@ def create_dataset(mode, cluster, class_weights=False):
     # training
     kind = input('insert the kind: ')
     if cluster == 'no_cluster':
+
+        if 'content':
+            features_array = 
+                [
+                    ImpressionPriceInfoSessionOld,
+                    ImpressionRatingNumeric,
+                    ImpressionLabel,
+                    MeanPriceClickout,
+                    SessionDevice,
+                    NumImpressionsInClickout,
+                    SessionLengthOld,
+                    TopPopPerImpression,
+                    TopPopInteractionClickoutPerImpression,
+                    ChangeImpressionOrderPositionInSession,
+                    FrenzyFactorSession,
+                    DayOfWeekAndMomentInDay,
+                    LastClickoutFiltersSatisfaction,
+                    PersonalizedTopPop,
+                    PriceQuality,
+                    PlatformFeaturesSimilarity,
+                    LastActionBeforeClickout,
+                    ImpressionStarsNumeric,
+                    StepsBeforeLastClickout,
+                    LocationReferencePercentageOfClickouts,
+                    LocationReferencePercentageOfInteractions,
+                    NumTimesItemImpressed,
+                    PercClickPerImpressions,
+                    PlatformReferencePercentageOfClickouts,
+                    PlatformReferencePercentageOfInteractions,
+                    User2ItemOld,
+                    LazyUser,
+                    SessionSortOrderWhenClickout,
+                    SessionActionNumRefDiffFromImpressions,
+                    SessionNumClickouts
+                ]
 
         if kind == 'session_filters':
             features_array = [SessionFilterActiveWhenClickout, ImpressionLabel]
