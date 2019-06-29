@@ -180,7 +180,6 @@ def create_dataset(mode, cluster, class_weights=False):
                     PlatformReferencePercentageOfClickouts,
                     PlatformReferencePercentageOfInteractions,
                     User2ItemOld,
-                    LazyUser,
                     SessionSortOrderWhenClickout,
                     SessionActionNumRefDiffFromImpressions,
                     SessionNumClickouts
