@@ -152,7 +152,7 @@ def create_dataset(mode, cluster, class_weights=False):
             User2ItemOld,
             ]
 
-        if 'content':
+        if kind=='content':
             features_array = [
                     ImpressionPriceInfoSessionOld,
                     ImpressionRatingNumeric,
