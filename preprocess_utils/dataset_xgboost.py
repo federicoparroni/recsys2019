@@ -287,7 +287,7 @@ def create_dataset(mode, cluster, class_weights=False):
         #UserFeature
         ]
 
-    train_df, test_df, train_idxs, _ = merge_features(mode, cluster, features_array, merge_kind='left', multithread=True)
+    train_df, test_df, train_idxs, _ = merge_features(mode, cluster, features_array, merge_kind='left', multithread=False)
 
     train_df = train_df.replace(-1, np.nan)
     test_df = test_df.replace(-1, np.nan)
