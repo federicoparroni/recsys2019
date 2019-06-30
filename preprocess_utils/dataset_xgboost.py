@@ -22,6 +22,7 @@ from extract_features.impression_price_info_session_old import ImpressionPriceIn
 from extract_features.impression_rating import ImpressionRating
 from extract_features.impression_rating_numeric import ImpressionRatingNumeric
 from extract_features.impression_stars_numeric import ImpressionStarsNumeric
+from extract_features.impression_features_cleaned import ImpressionFeatureCleaned
 from extract_features.label import ImpressionLabel
 from extract_features.last_action_involving_impression import LastActionInvolvingImpression
 from extract_features.last_clickout_filters_satisfaction import LastClickoutFiltersSatisfaction
@@ -187,7 +188,7 @@ def create_dataset(mode, cluster, class_weights=False):
         features_array = [SessionFilterActiveWhenClickout, ImpressionLabel]
 
     if kind=='impression_feature':
-        features_array = [ImpressionFeature, ImpressionLabel, SessionFilterActiveWhenClickout]
+        features_array = [ImpressionFeatureCleaned, ImpressionLabel]
 
     if kind == 'kind2':
         features_array = [
