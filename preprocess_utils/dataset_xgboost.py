@@ -292,7 +292,7 @@ def create_dataset(mode, cluster, class_weights=False):
 
     if len(scores_array) > 0:
         for path in scores_array:
-            score = pd.read_csv(path)
+            score = pd.read_csv('scores/{}'.format(path))
 
             if 'item_id' in score.columns:
                 print('item_id found')
