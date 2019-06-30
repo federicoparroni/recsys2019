@@ -279,13 +279,13 @@ def create_dataset(mode, cluster, class_weights=False):
         ]
 
     scores_array = [
-        # rnn_classifier.csv.gz, 
-        # rnn_no_bias_balanced.csv.gz,
-        # scores_softmax_loss.csv.gz,
-        # xgboost_impr_features.csv.gz,
-        # rnn_GRU_2layers_64units_2dense_noclass0.csv.gz,
-        # scores_pairwise_soft_zero_one_loss.csv.gz,
-        # xgb_forte_700.csv.gz,
+        # 'rnn_classifier.csv.gz', 
+        # 'rnn_no_bias_balanced.csv.gz',
+        # 'scores_softmax_loss.csv.gz',
+        # 'xgboost_impr_features.csv.gz',
+        # 'rnn_GRU_2layers_64units_2dense_noclass0.csv.gz',
+        # 'scores_pairwise_soft_zero_one_loss.csv.gz',
+        # 'xgb_forte_700.csv.gz',
     ]
 
     train_df, test_df, train_idxs, _ = merge_features(mode, cluster, features_array, merge_kind='left', multithread=False)
