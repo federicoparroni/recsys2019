@@ -207,9 +207,9 @@ class XGBoostWrapper(RecommenderBase):
 class XGBoostWrapperSmartValidation(XGBoostWrapper):
 
     def __init__(self, mode, cluster='no_cluster', kind='kind1', ask_to_load=True,
-                    class_weights=False, learning_rate=0.08, min_child_weight=1,
-                    n_estimators=1000, max_depth=11, subsample=1, colsample_bytree=1,
-                    reg_lambda=3.651, reg_alpha=8.18, max_delta_step=8, scale_pos_weight=40,
+                    class_weights=False, learning_rate=0.1, min_child_weight=1,
+                    n_estimators=50, max_depth=11, subsample=1, colsample_bytree=1,
+                    reg_lambda=3.651, reg_alpha=8.18, max_delta_step=8, scale_pos_weight=25,
                     gamma = 0.01,
                     weights_position=False, log_weights=False):
         super(XGBoostWrapperSmartValidation, self).__init__(mode, cluster=cluster, kind=kind, ask_to_load=False, class_weights=False,
