@@ -117,15 +117,19 @@ def create_dataset(mode, cluster, class_weights=False):
         PlatformSession,
         User2ItemOld,
         LazyUser,
-        PastFutureSessionFeatures,
         SessionSortOrderWhenClickout,
         SessionActionNumRefDiffFromImpressions,
         ActionsInvolvingImpressionSession,
         SessionNumClickouts
     ]
 
-    train_df, test_df, train_idxs, _ = merge_features(mode, cluster, features_array, merge_kind='left', multithread=False)
+    train_df, test_df, train_idxs, _ = merge_features(mode, cluster, features_array, merge_kind='left', multithread=True)
     
+    o = PastFutureSessionFeatures('model', 'cluster')
+    f = o.read_feature(True)
+    train_df = train_df.merge(f, how='left')
+    test_df = test_df.merge(f, how='left')
+
     kind = 'base_dataset_stacking'
     bp = 'dataset/preprocessed/{}/{}/xgboost/{}/'.format(cluster, mode, kind)
     check_folder(bp)
