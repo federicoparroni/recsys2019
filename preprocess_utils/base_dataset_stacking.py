@@ -132,10 +132,8 @@ def create_dataset(mode, cluster, class_weights=False):
 
     np.save(join(bp, 'train_indices'), train_idxs)
 
-    train_df.to_hdf(f'{bp}/base.hdf', key='train', index=False)
-    test_df.to_hdf(f'{bp}/base.hdf', key='test', index=False)
-
-
+    train_df.to_hdf(f'{bp}/base.hdf', key='train', index=False, format='table')
+    test_df.to_hdf(f'{bp}/base.hdf', key='test', index=False, format='table')
 
 if __name__ == "__main__":
     from utils.menu import mode_selection
