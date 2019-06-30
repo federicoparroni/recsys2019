@@ -125,7 +125,7 @@ def create_dataset(mode, cluster, class_weights=False):
 
     train_df, test_df, train_idxs, _ = merge_features(mode, cluster, features_array, merge_kind='left', multithread=True)
     
-    o = PastFutureSessionFeatures('model', 'cluster')
+    o = PastFutureSessionFeatures(mode, cluster)
     f = o.read_feature(True)
     train_df = train_df.merge(f, how='left')
     test_df = test_df.merge(f, how='left')
