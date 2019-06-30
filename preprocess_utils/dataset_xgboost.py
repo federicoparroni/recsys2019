@@ -113,6 +113,10 @@ def create_weights(df):
 def create_dataset(mode, cluster, class_weights=False):
     # training
     kind = input('insert the kind: ')
+
+    if kind == 'label':
+        features_array = [ImpressionLabel]
+
     if kind == 'no_bias':
         features_array = [
         PlatformSession,
@@ -288,7 +292,39 @@ def create_dataset(mode, cluster, class_weights=False):
         #UserFeature
         ]
 
+    scores_array = [
+        # rnn_classifier.csv.gz, 
+        # rnn_no_bias_balanced.csv.gz,
+        # scores_softmax_loss.csv.gz,
+        # xgboost_impr_features.csv.gz,
+        # rnn_GRU_2layers_64units_2dense_noclass0.csv.gz,
+        # scores_pairwise_soft_zero_one_loss.csv.gz,
+        # xgb_forte_700.csv.gz,
+    ]
+
     train_df, test_df, train_idxs, _ = merge_features(mode, cluster, features_array, merge_kind='left', multithread=False)
+
+    if len(scores_array) > 0:
+        for path in scores_array:
+            score = pd.read_csv(path)
+
+            if 'item_id' in score.columns:
+                print('item_id found')
+                cols = [c for c in score.columns if c in ['user_id', 'session_id', 'item_id'] or 'score' in c]
+                score = score[cols]
+                score = score.groupby(['user_id', 'session_id', 'item_id'], as_index=False).last()
+                train_df = train_df.merge(score, on=['user_id', 'session_id', 'item_id'], how='left')
+                test_df = test_df.merge(score, on=['user_id', 'session_id', 'item_id'], how='left')
+                print(f'train_shape: {train_df.shape}\n vali_shape: {test_df.shape}')
+            
+            else:
+                print('item_id not found')
+                cols = [c for c in score.columns if c in ['user_id', 'session_id'] or 'score' in c]
+                score = score[cols]
+                score = score.groupby(['user_id', 'session_id'], as_index=False).last()
+                train_df = train_df.merge(score, on=['user_id', 'session_id'], how='left')
+                test_df = test_df.merge(score, on=['user_id', 'session_id'], how='left')
+                print(f'train_shape: {train_df.shape}\n vali_shape: {test_df.shape}')
 
     train_df = train_df.replace(-1, np.nan)
     test_df = test_df.replace(-1, np.nan)
@@ -316,8 +352,8 @@ def create_dataset(mode, cluster, class_weights=False):
     save_npz(join(bp, 'X_train'), X_train)
     print('X_train saved')
 
-    user_session_item = train_df[['user_id', 'session_id', 'item_id']]
-    user_session_item.to_csv(join(bp, 'user_session_item_train.csv'), index=False)
+    #user_session_item = train_df[['user_id', 'session_id', 'item_id']]
+    #user_session_item.to_csv(join(bp, 'user_session_item_train.csv'), index=False)
 
     y_train = train_df[['label']]
     y_train.to_csv(join(bp, 'y_train.csv'))
@@ -345,8 +381,8 @@ def create_dataset(mode, cluster, class_weights=False):
     save_npz(join(bp, 'X_test'), X_test)
     print('X_test saved')
 
-    user_session_item = test_df[['user_id', 'session_id', 'item_id']]
-    user_session_item.to_csv(join(bp, 'user_session_item_test.csv'), index=False)
+    #user_session_item = test_df[['user_id', 'session_id', 'item_id']]
+    #user_session_item.to_csv(join(bp, 'user_session_item_test.csv'), index=False)
 
     y_test = test_df[['label']]
     y_test.to_csv(join(bp, 'y_test.csv'))
