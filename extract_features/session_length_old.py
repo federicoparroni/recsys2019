@@ -24,6 +24,9 @@ class SessionLengthOld(FeatureBase):
         train = data.train_df(mode=self.mode, cluster=self.cluster)
         test = data.test_df(mode=self.mode, cluster=self.cluster)
         df = pd.concat([train, test])
+
+        df = df.reset_index(drop=True)
+
         idxs_click = find_last_clickout_indices(df)
         temp = df[['user_id', 'session_id', 'step', 'timestamp']]
         session_id_l = []

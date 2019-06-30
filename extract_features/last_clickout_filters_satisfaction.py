@@ -22,14 +22,14 @@ class LastClickoutFiltersSatisfaction(FeatureBase):
         name = 'last_clickout_filters_satisfaction'
         columns_to_onehot = []
 
-        super().__init__(name=name, mode=mode, columns_to_onehot=columns_to_onehot, save_index=False)
+        super().__init__(name=name, mode=mode, cluster=cluster, columns_to_onehot=columns_to_onehot, save_index=False)
 
 
     def extract_feature(self):
         tqdm.pandas()
 
-        tr = data.train_df(self.mode)
-        te = data.test_df(self.mode)
+        tr = data.train_df(self.mode, cluster=self.cluster)
+        te = data.test_df(self.mode, cluster=self.cluster)
         df = pd.concat([tr, te])
         accom_df = data.accomodations_one_hot()
 

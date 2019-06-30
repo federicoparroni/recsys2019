@@ -11,7 +11,7 @@ from joblib import Parallel, delayed
     a train and test df. the test df contains just the target sessions, identified by the target indices 
     in that mode and cluster, in the order in which the target indices are
 """
-def merge_features(mode, cluster, features_array, onehot=True, merge_kind='inner', create_not_existing_features=True):
+def merge_features(mode, cluster, features_array, onehot=True, merge_kind='inner', create_not_existing_features=True, multithread=False):
     # load the full_df
     train_df = data.train_df(mode, cluster)
     test_df = data.test_df(mode, cluster)
@@ -52,8 +52,12 @@ def merge_features(mode, cluster, features_array, onehot=True, merge_kind='inner
     validation_test_df = expand_impressions(validation_test_df)[['user_id', 'session_id', 'item_id', 'index']]
     validation_test_df['dummy_step'] = np.arange(len(validation_test_df))
 
-    train_df, validation_test_df = actual_merge_multithread(train_df, validation_test_df, features_array, \
-                                                                mode, cluster, create_not_existing_features, merge_kind, onehot)
+    if not multithread:
+        train_df, validation_test_df = actual_merge_one_thread(train_df, validation_test_df, features_array, \
+                                                                    mode, cluster, create_not_existing_features, merge_kind, onehot)
+    else:
+        train_df, validation_test_df = actual_merge_multithread(train_df, validation_test_df, features_array, \
+                                                                    mode, cluster, create_not_existing_features, merge_kind, onehot)
 
     print('sorting by index and step...')
     # sort the dataframes

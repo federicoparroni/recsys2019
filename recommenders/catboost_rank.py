@@ -1,5 +1,4 @@
 import math
-import time
 import utils.telegram_bot as HERA
 from pathlib import Path
 import numpy as np
@@ -26,10 +25,10 @@ class CatboostRanker(RecommenderBase):
     Custom_metric is @1 for maximizing first result as good
     """
 
-    def __init__(self, mode, cluster='no_cluster', learning_rate=0.25, iterations=100, max_depth=11, reg_lambda=7.23,
-                 colsample_bylevel=1, algo='catboost', one_hot_max_size=46, leaf_estimation_iterations=25,
+    def __init__(self, mode, cluster='no_cluster', learning_rate=0.25, iterations=150, max_depth=12, reg_lambda=13.465,
+                 colsample_bylevel=1, algo='catboost', one_hot_max_size=42, leaf_estimation_iterations=25,
                  custom_metric='AverageGain:top=1', include_test=True,
-                 file_to_load=None, loss_function='QuerySoftMax', train_dir='QuerySoftMax',
+                 file_to_load=None, loss_function='YetiRank', train_dir='YetiRank',
                  file_to_store=None, limit_trees=False, features_to_one_hot=None):
         """
         :param mode:
@@ -51,7 +50,10 @@ class CatboostRanker(RecommenderBase):
         self.data_dir = self.curr_dir.joinpath('..', 'dataset/preprocessed/{}/{}/catboost/'.format(cluster, mode))
         self.target_indices = data.target_indices(mode=mode, cluster=cluster)
         self.features_to_drop = []
+
         self.include_test = include_test
+        if self.mode=='full':
+            self.include_test = False
         self.dataset_name = 'catboost_rank'
 
         self.default_parameters = {
@@ -71,12 +73,12 @@ class CatboostRanker(RecommenderBase):
         }
 
         # create hyperparameters dictionary
-        self.hyperparameters_dict = {'iterations': (100, 100),
-                                     'max_depth': (11, 11),
+        self.hyperparameters_dict = {'iterations': (50, 50),
+                                     'max_depth': (12, 12),
                                      'learning_rate': (0.25, 0.25),
-                                     'reg_lambda': (7.2, 7.9),
-                                     'one_hot_max_size': (45, 45),
-                                     'leaf_estimation_iterations': (15, 40)
+                                     'reg_lambda': (13.465, 13.465),
+                                     'one_hot_max_size': (42, 42),
+                                     'leaf_estimation_iterations': [20, 22, 24, 25, 27, 29, 31, 33, 35]
                                      }
 
         self.fixed_params_dict = {
@@ -232,28 +234,16 @@ class CatboostRanker(RecommenderBase):
             check_folder(_path)
             pickle.dump(self.ctb, open(_path, 'wb'))
 
-    # def fit_cv(self, x, y, x_val, y_val, ...params):
-    #
-    #     params = {....}
-    #
-    #     # fit on the data, dropping the index
-    #     self.ctb.fit_model(train_pool=x, additional_params=params)
 
-    def get_scores_batch(self, save=False):
-        if self.scores_batch is None:
+    def get_scores_batch(self):
+        if self.ctb is None:
             self.fit()
+
+        if self.scores_batch is None:
             self.recommend_batch()
 
-        _path = f'dataset/preprocessed/{self.cluster}/{self.mode}/predictions/{self.dataset_name}.pickle'
-        check_folder(_path)
-        if save:
-            with open(_path, 'wb') as f:
-                pickle.dump(self.scores_batch, f)
-            print(f'saved at: {_path}')
-        else:
-            return self.scores_batch
-
         return self.scores_batch
+
 
     def recommend_batch(self):
         test = data.test_df(self.mode, self.cluster)
@@ -303,9 +293,6 @@ class CatboostRanker(RecommenderBase):
                 self.predictions.append((index, list(sorted_impr)))
                 self.scores_batch.append((index, list(sorted_impr), scores_impr))
 
-
-        if self.file_to_store is not None:
-            self.get_scores_batch(save=True)
 
         return self.predictions
 
@@ -454,9 +441,30 @@ class CatboostRanker(RecommenderBase):
 
 
 if __name__ == '__main__':
-    from utils.menu import mode_selection
+    from utils.menu import mode_selection, options, cluster_selection
+
     mode = mode_selection()
-    model = CatboostRanker(mode=mode, cluster='no_cluster', iterations=10, learning_rate=0.5, algo='catboost')
+    cluster = cluster_selection()
+    model = CatboostRanker(mode=mode, cluster=cluster, iterations=150, learning_rate=0.25, algo='catboost')
+
+    sel = options(['evaluate', 'export the sub', 'export the scores'], ['evaluate', 'export the sub',
+                                                                        'export the scores'],
+                  'what do you want to do after model fitting and the recommendations?')
+
+    import time
+    time.sleep(0)
+    if 'export the sub' in sel and 'export the scores' in sel:
+        model.run(export_sub=True, export_scores=True)
+    elif 'export the sub' in sel and 'export the scores' not in sel:
+        model.run(export_sub=True, export_scores=False)
+    elif 'export the sub' not in sel and 'export the scores' in sel:
+        model.run(export_sub=False, export_scores=True)
+
+    if 'evaluate' in sel and ('export the sub' in sel or 'export the scores' in sel):
+        model.evaluate(send_MRR_on_telegram=True, already_fitted=True)
+    elif 'evaluate' in sel:
+        model.evaluate(send_MRR_on_telegram=True, already_fitted=False)
+
     #model.evaluate(send_MRR_on_telegram=True)
     r = RandomValidator(model, automatic_export=False)
     r.validate(100)
