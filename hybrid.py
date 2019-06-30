@@ -134,8 +134,9 @@ def hybrid(scores_array):
 
 
 if __name__ == '__main__':
-    scores_cat = pd.read_csv('catboost_rank.csv.gz')  # , nrows=100000)
+    #scores_cat = pd.read_csv('catboost_rank.csv.gz')  # , nrows=100000)
     # scores_rnn = pd.read_csv('rnn_GRU_2layers_64units_2dense_noclass0.csv.gz', nrows=100000)
     scores_xg = pd.read_csv('xgb_forte_700.csv.gz')  # , nrows=100000)
-    scores_tf = pd.read_csv('scores_pairwise.csv.gz')
-    a = hybrid([scores_tf, scores_xg])
+    #scores_tf = pd.read_csv('scores_pairwise.csv.gz')
+    scores_tf2 = pd.read_csv('scores_softmax.csv.gz')
+    a = hybrid([scores_tf2, scores_xg])
