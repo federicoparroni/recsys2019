@@ -31,8 +31,8 @@ class CitySessionPopularsOnly(FeatureBase):
 
             return items[:100]#TODO: formalize
 
-        train = data.train_df(mode=self.mode)
-        test = data.test_df(mode=self.mode)
+        train = data.train_df(mode=self.mode, cluster=self.cluster)
+        test = data.test_df(mode=self.mode, cluster=self.cluster)
         df = pd.concat([train, test])
 
         user_ids = df.user_id.values

@@ -1,17 +1,16 @@
-import os
-
 from extract_features.feature_base import FeatureBase
 import data
 import pandas as pd
 from tqdm.auto import tqdm
 from preprocess_utils.last_clickout_indices import expand_impressions
 from preprocess_utils.last_clickout_indices import find as find_last_clickout
+import traceback
 
 # Contains, for each session, the maximum step allowed (then, it will cut)
 dict_sess_bast = dict([('9b400754ac6c7', 57), ('07093a858ac92', 2),
                        ('15e8515f6d309', 1), ('14ffe9351be7c', 1), ('1892588e0a4fc', 4),
                        ('4fabc39bd9b72', 4), ('614181ac68ab3', 91), ('7a37b2c63a02f', 59),
-                       ('907cb2db5cec5', 1), ('96c35e1a5d439', 1), ('c0c2730fdde6c', 157), ('83f57fe1ea009', 2),
+                       ('907cb2db5cec5', 1), ('96c35e1a5d439', 1), ('c0c2730fdde6c', 16), ('83f57fe1ea009', 2),
                        ('a0163701c3369', 335), ('b17811d6b42e7', 19), ('e7c4ab1b14a1a', 1), ('ff7fb4c84e640', 4),
                        ('0ed0c1aa802bb', 1), ('1acf57dcc79e9', 1), ('4460f125f4ebe', 4), ('96cca06c66451', 2)])
 
@@ -99,9 +98,9 @@ class PastFutureSessionFeatures(FeatureBase):
                          'past_pos_clicked_1': [], 'past_pos_clicked_2': [], 'past_pos_clicked_3': [], 'past_pos_clicked_4_8': [],
                          'past_pos_clicked_9_15': [], 'past_pos_clicked_16_25': [],
                          'past_times_impr_appeared': [], 'past_mean_pos_impr_appeared': [],
-                         # 'past_sort_order_price_only': [], 'past_sort_order_price_and_recommended': [], 'past_sort_order_rating_only': [],
-                         # 'past_sort_order_rating_and_recommended': [], 'past_sort_order_distance_only': [], 'past_sort_order_distance_and_recommended': [],
-                         # 'past_sort_order_our_recommendations': [],
+                         'past_sort_order_price_only': [], 'past_sort_order_price_and_recommended': [], 'past_sort_order_rating_only': [],
+                         'past_sort_order_rating_and_recommended': [], 'past_sort_order_distance_only': [], 'past_sort_order_distance_and_recommended': [],
+                         'past_sort_order_our_recommendations': [],
 
                          'future_times_interacted_impr': [], 'future_session_num': [],
                          'future_closest_action_involving_impression': [],
@@ -121,11 +120,11 @@ class PastFutureSessionFeatures(FeatureBase):
                          'future_pos_clicked_1': [], 'future_pos_clicked_2': [], 'future_pos_clicked_3': [], 'future_pos_clicked_4_8': [],
                          'future_pos_clicked_9_15': [], 'future_pos_clicked_16_25': [],
                          'future_times_impr_appeared': [], 'future_mean_pos_impr_appeared': [],
-                         # 'future_sort_order_price_only': [], 'future_sort_order_price_and_recommended': [],
-                         # 'future_sort_order_rating_only': [],
-                         # 'future_sort_order_rating_and_recommended': [], 'future_sort_order_distance_only': [],
-                         # 'future_sort_order_distance_and_recommended': [],
-                         # 'future_sort_order_our_recommendations': [],
+                         'future_sort_order_price_only': [], 'future_sort_order_price_and_recommended': [],
+                         'future_sort_order_rating_only': [],
+                         'future_sort_order_rating_and_recommended': [], 'future_sort_order_distance_only': [],
+                         'future_sort_order_distance_and_recommended': [],
+                         'future_sort_order_our_recommendations': [],
                          }
 
     def extract_feature(self):
@@ -387,7 +386,7 @@ class PastFutureSessionFeatures(FeatureBase):
 
         self.get_action_involving_impressions(df, impressions, prefix='past')
 
-        #self.get_change_sort_order_frequency(df, impressions, prefix='past')
+        self.get_change_sort_order_frequency(df, impressions, prefix='past')
 
     def compute_future_sessions_feat(self, df, impressions, closest_tm):
 
@@ -426,7 +425,7 @@ class PastFutureSessionFeatures(FeatureBase):
 
         self.get_action_involving_impressions(df, impressions, prefix='future')
 
-        #self.get_change_sort_order_frequency(df, impressions, prefix='future')
+        self.get_change_sort_order_frequency(df, impressions, prefix='future')
 
     def get_action_involving_impressions(self, x, impr, prefix='future'):
         df_only_numeric = x[pd.to_numeric(x['reference'], errors='coerce').notnull()][[

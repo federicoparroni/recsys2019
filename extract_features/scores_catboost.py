@@ -1,6 +1,7 @@
 from extract_features.feature_base import FeatureBase
 import os
 import pandas as pd
+from sklearn import preprocessing
 
 class ScoresCatboost(FeatureBase):
 
@@ -30,8 +31,16 @@ class ScoresCatboost(FeatureBase):
                    \'mode/feature/scores_catboost/')
 
         df = pd.read_csv(path, index_col=None)
-        df = df.drop(['index'], axis=1)
+        #df = df.drop(['index'], axis=1)
         df = df.drop_duplicates(['user_id', 'session_id', 'item_id'])
+
+        # Score normalization
+        x = df.drop(['user_id', 'session_id', 'item_id'], axis=1)
+        x = x.values.astype(float)
+        min_max_scaler = preprocessing.MinMaxScaler()
+        x_scaled = min_max_scaler.fit_transform(x)
+        df['normalized_cat'] = x_scaled
+        df = df[['user_id', 'session_id', 'item_id', 'normalized_cat']]
 
         print('{} feature read'.format(self.name))
         return df

@@ -78,7 +78,7 @@ from preprocess_utils.merge_features import merge_features
 from os.path import join
 from extract_features.past_future_session_features import PastFutureSessionFeatures
 from extract_features.normalized_platform_features_similarity import NormalizedPlatformFeaturesSimilarity
-
+import math
 
 def create_groups(df):
     df = df[['user_id', 'session_id']]
@@ -108,91 +108,111 @@ def create_weights(df):
             found = True
     return weights
 
+def create_weights_position(train_df, mode,cluster):
+    train = data.train_df(mode, cluster)
+    test = data.test_df(mode, cluster)
+    df = pd.concat([train, test])
+    # get for each user-session the position of the clicked item
+    df_clks = df[(df['reference'].str.isnumeric()==True)&(df['action_type']=='clickout item')][['user_id','session_id','reference','impressions']]
+    df_clks.impressions = df_clks.impressions.str.split('|')
+    new_col = []
+    for t in tqdm(zip(df_clks.reference, df_clks.impressions)):
+        if t[0] in t[1]:
+            new_col.append(t[1].index(t[0])+1)
+        else:
+            new_col.append(-1)
+    df_clks['pos_clicked'] = new_col
+    pos_clicked_list = df_clks.pos_clicked.tolist()
+    # create dictionary {pos:score}
+    dict_pos_score = {}
+    for i in tqdm(range(1,26)):
+        dict_pos_score[i] = 1-(pos_clicked_list.count(i)/len(pos_clicked_list)) # the function is 1-(#pos/tot_rowså)
+    # group per user-session
+    group = train_df.drop_duplicates(['user_id','session_id'])[['user_id','session_id']].reset_index(drop=True)
+    # assign weight
+    gr = train_df[train_df.label==1][['user_id','session_id','impression_position']]
+    new_col = []
+    for p in gr.impression_position:
+        if p not in range(1,26):
+            new_col.append(0)
+        else:
+            new_col.append(dict_pos_score[p])
+    gr['weight'] = new_col
+    final = pd.merge(group, gr, how='left', on=['user_id','session_id']).fillna(0)
+    sample_weights = final['weight'].values
+    return sample_weights
 
-def create_dataset(mode, cluster, class_weights=False):
+def create_log_weights(train_df):
+    d = {}
+    for i in range(1,26):
+        d[i]=math.sqrt(math.log(1+i, 26))
+    # group per user-session
+    group = train_df.drop_duplicates(['user_id','session_id'])[['user_id','session_id']].reset_index(drop=True)
+    # assign weight
+    gr = train_df[train_df.label==1][['user_id','session_id','impression_position']]
+    new_col = []
+    for p in gr.impression_position:
+        if p not in range(1,26):
+            new_col.append(0)
+        else:
+            new_col.append(d[p])
+    gr['weight'] = new_col
+    final = pd.merge(group, gr, how='left', on=['user_id','session_id']).fillna(0)
+    sample_weights = final['weight'].values
+    return sample_weights
+
+
+def create_dataset(mode, cluster, class_weights=False, weights_position=True, log_weights=True):
     # training
     kind = input('insert the kind: ')
-    if cluster == 'no_cluster':
+    if cluster == 'no_cluster' or True:
 
         if kind == 'kind2':
             # questo fa 0.6755 in locale + NormalizedPlatformFeaturesSimilarity, SessionNumClickouts fa 0.67588
-            features_array = [PastFutureSessionFeatures, NormalizedPlatformFeaturesSimilarity, SessionNumClickouts,
-            ActionsInvolvingImpressionSession,
-            (ImpressionPositionSession, False),
-            (ImpressionPriceInfoSessionOld, False),
-            ImpressionRatingNumeric,
-            ImpressionLabel,
-            LastActionInvolvingImpression,
-            MeanPriceClickout,
-            AvgPriceInteractions,
-            SessionDevice,
-            NumImpressionsInClickout,
-            SessionLengthOld,
-            TimesImpressionAppearedInClickoutsSession,
-            TimesUserInteractedWithImpression,
-            TimingFromLastInteractionImpression,
-            TopPopPerImpression,
-            TopPopInteractionClickoutPerImpression,
-            ChangeImpressionOrderPositionInSession,
-            FrenzyFactorSession,
-            DayOfWeekAndMomentInDay,
-            LastClickoutFiltersSatisfaction,
-            TimePerImpression,
-            PersonalizedTopPop,
-            PriceQuality,
-            PlatformFeaturesSimilarity,
-            LastActionBeforeClickout,
-            (ImpressionStarsNumeric, False),
-            StepsBeforeLastClickout,
-            LocationReferencePercentageOfClickouts,
-            LocationReferencePercentageOfInteractions,
-            NumTimesItemImpressed,
-            PercClickPerImpressions,
-            PlatformReferencePercentageOfClickouts,
-            PlatformReferencePercentageOfInteractions,
-            PlatformSession,
-            User2ItemOld,
-            (LazyUser, False),
-            ]
+                features_array = [
+                ImpressionLabel,
+                PastFutureSessionFeatures
+                ]
         if kind == 'kind3':
-            # questo fa 0.6750 locale e 0.6731 in leaderboard coi parametri magici
+            # questo è quello che usa dani su cat
             features_array = [
-            ActionsInvolvingImpressionSession,
-            (ImpressionPositionSession, False),
-            (ImpressionPriceInfoSession, False),
-            ImpressionRatingNumeric,
-            ImpressionLabel,
-            LastActionInvolvingImpression,
-            MeanPriceClickout,
-            AvgPriceInteractions,
-            SessionDevice,
-            NumImpressionsInClickout,
-            SessionLength,
-            TimesImpressionAppearedInClickoutsSession,
-            TimesUserInteractedWithImpression,
-            TimingFromLastInteractionImpression,
-            TopPopPerImpression,
-            TopPopInteractionClickoutPerImpression,
-            ChangeImpressionOrderPositionInSession,
-            FrenzyFactorSession,
-            DayOfWeekAndMomentInDay,
-            LastClickoutFiltersSatisfaction,
-            TimePerImpression,
-            PersonalizedTopPop,
-            PriceQuality,
-            PlatformFeaturesSimilarity,
-            LastActionBeforeClickout,
-            (ImpressionStarsNumeric, False),
-            StepsBeforeLastClickout,
-            LocationReferencePercentageOfClickouts,
-            LocationReferencePercentageOfInteractions,
-            NumTimesItemImpressed,
-            PercClickPerImpressions,
-            PlatformReferencePercentageOfClickouts,
-            PlatformReferencePercentageOfInteractions,
-            PlatformSession,
-            User2Item,
-            (LazyUser, False),
+                ActionsInvolvingImpressionSession,
+                ImpressionPositionSession,
+                ImpressionPriceInfoSessionOld,
+                ImpressionRatingNumeric,
+                ImpressionLabel,
+                LastActionInvolvingImpression,
+                MeanPriceClickout,
+                AvgPriceInteractions,
+                SessionDevice,
+                NumImpressionsInClickout,
+                SessionLengthOld,
+                TimesImpressionAppearedInClickoutsSession,
+                TimesUserInteractedWithImpression,
+                TimingFromLastInteractionImpression,
+                TopPopPerImpression,
+                TopPopInteractionClickoutPerImpression,
+                ChangeImpressionOrderPositionInSession,
+                FrenzyFactorSession,
+                DayOfWeekAndMomentInDay,
+                LastClickoutFiltersSatisfaction,
+                TimePerImpression,
+                PersonalizedTopPop,
+                PriceQuality,
+                PlatformFeaturesSimilarity,
+                LastActionBeforeClickout,
+                ImpressionStarsNumeric,
+                StepsBeforeLastClickout,
+                LocationReferencePercentageOfClickouts,
+                LocationReferencePercentageOfInteractions,
+                NumTimesItemImpressed,
+                PercClickPerImpressions,
+                PlatformReferencePercentageOfClickouts,
+                PlatformReferencePercentageOfInteractions,
+                PlatformSession,
+                User2ItemOld,
+                LazyUser,
+                PastFutureSessionFeatures
             ]
         if kind == 'kind1':
             # questo fa 0.6755 in locale coi param magici e senza NormalizedPlatformFeaturesSimilarity e SessionNumClickouts
@@ -201,44 +221,46 @@ def create_dataset(mode, cluster, class_weights=False):
             # max_depth=10 subsample=1 colsample_bytree=1 reg_lambda=4.22 reg_alpha=10.72
             # fa 0.67588 con anche NormalizedPlatformFeaturesSimilarity e SessionNumClickouts
             features_array = [
-            NormalizedPlatformFeaturesSimilarity,
-            SessionNumClickouts,
-            ActionsInvolvingImpressionSession,
-            (ImpressionPositionSession, False),
-            (ImpressionPriceInfoSessionOld, False),
-            ImpressionRatingNumeric,
-            ImpressionLabel,
-            LastActionInvolvingImpression,
-            MeanPriceClickout,
-            AvgPriceInteractions,
-            SessionDevice,
-            NumImpressionsInClickout,
-            SessionLengthOld,
-            TimesImpressionAppearedInClickoutsSession,
-            TimesUserInteractedWithImpression,
-            TimingFromLastInteractionImpression,
-            TopPopPerImpression,
-            TopPopInteractionClickoutPerImpression,
-            ChangeImpressionOrderPositionInSession,
-            FrenzyFactorSession,
-            DayOfWeekAndMomentInDay,
-            LastClickoutFiltersSatisfaction,
-            TimePerImpression,
-            PersonalizedTopPop,
-            PriceQuality,
-            PlatformFeaturesSimilarity,
-            LastActionBeforeClickout,
-            (ImpressionStarsNumeric, False),
-            StepsBeforeLastClickout,
-            LocationReferencePercentageOfClickouts,
-            LocationReferencePercentageOfInteractions,
-            NumTimesItemImpressed,
-            PercClickPerImpressions,
-            PlatformReferencePercentageOfClickouts,
-            PlatformReferencePercentageOfInteractions,
-            PlatformSession,
-            User2ItemOld,
-            (LazyUser, False),
+                ImpressionPositionSession,
+                ImpressionPriceInfoSessionOld,
+                ImpressionRatingNumeric,
+                ImpressionLabel,
+                LastActionInvolvingImpression,
+                MeanPriceClickout,
+                AvgPriceInteractions,
+                SessionDevice,
+                NumImpressionsInClickout,
+                SessionLengthOld,
+                TimesImpressionAppearedInClickoutsSession,
+                TimesUserInteractedWithImpression,
+                TimingFromLastInteractionImpression,
+                TopPopPerImpression,
+                TopPopInteractionClickoutPerImpression,
+                ChangeImpressionOrderPositionInSession,
+                FrenzyFactorSession,
+                DayOfWeekAndMomentInDay,
+                LastClickoutFiltersSatisfaction,
+                TimePerImpression,
+                PersonalizedTopPop,
+                PriceQuality,
+                PlatformFeaturesSimilarity,
+                LastActionBeforeClickout,
+                ImpressionStarsNumeric,
+                StepsBeforeLastClickout,
+                LocationReferencePercentageOfClickouts,
+                LocationReferencePercentageOfInteractions,
+                NumTimesItemImpressed,
+                PercClickPerImpressions,
+                PlatformReferencePercentageOfClickouts,
+                PlatformReferencePercentageOfInteractions,
+                PlatformSession,
+                User2ItemOld,
+                LazyUser,
+                PastFutureSessionFeatures,
+                SessionSortOrderWhenClickout,
+                SessionActionNumRefDiffFromImpressions,
+                ActionsInvolvingImpressionSession,
+                SessionNumClickouts
             ]
 
     train_df, test_df, train_idxs, _ = merge_features(mode, cluster, features_array, merge_kind='left')
@@ -248,6 +270,7 @@ def create_dataset(mode, cluster, class_weights=False):
 
     bp = 'dataset/preprocessed/{}/{}/xgboost/{}/'.format(cluster, mode, kind)
     check_folder(bp)
+    train_df.to_csv(join(bp, 'train_df.csv'))
 
     if class_weights:
         weights = train_df[['user_id', 'session_id',
@@ -262,6 +285,19 @@ def create_dataset(mode, cluster, class_weights=False):
     else:
         X_train = train_df.drop(
             ['index', 'user_id', 'session_id', 'item_id', 'label'], axis=1)
+
+    if weights_position:
+        weights = create_weights_position(train_df, mode,cluster)
+        print(len(weights))
+        np.save(join(bp, 'weights_position'), weights)
+        print('weights_position saved')
+
+    if log_weights:
+        lg_w = create_log_weights(train_df)
+        print(len(lg_w))
+        np.save(join(bp, 'log_weights'), lg_w)
+        print('log_weights saved')
+
     print(','.join(X_train.columns.values))
     X_train = X_train.to_sparse(fill_value=0)
     X_train = X_train.astype(np.float64)

@@ -34,10 +34,26 @@ def preprocess_cv(mode='full'):
         print(f'Train shape : {train.shape} , Test shape : {test.shape}')
         print(f'Last clickout indices : {len(target_indices)}')
 
-    df = data.train_df(mode=mode, cluster='no_cluster')
-    df['user_session'] = df['user_id'].values + '_' + df['session_id'].values
+    train_df = data.train_df(mode=mode, cluster='no_cluster')
+    train_df['user_session'] = train_df['user_id'].values + '_' + train_df['session_id'].values
+
+    test_df = data.test_df(mode=mode, cluster='no_cluster')
+    test_df['user_session'] = test_df['user_id'].values + '_' + test_df['session_id'].values
+
+    df = pd.concat([train_df, test_df])
+
+    # extract user_session referring to target_indices
+    target_indices = data.target_indices(mode=mode, cluster='no_cluster')
+    test_target_u_s = test_df.loc[target_indices].drop_duplicates('user_session')['user_session'].to_list()
+    print(f'Number of user_session in target_indices : {len(test_target_u_s)}')
+
+    # remove those sessions from df
+    df = df[~df['user_session'].isin(test_target_u_s)]
+
+    #df['user_session'] = df['user_id'].values + '_' + df['session_id'].values
     user_session_df = df.drop_duplicates('user_session')
     user_session_df = user_session_df.reset_index(drop=True)
+    print(f'Number of user_session NOT in target_indices : {user_session_df.shape[0]}')
 
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
 

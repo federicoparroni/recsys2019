@@ -79,6 +79,7 @@ from extract_features.normalized_platform_features_similarity import NormalizedP
 from utils.menu import single_choice
 from preprocess_utils.merge_features import merge_features
 from os.path import join
+from shutil import copyfile
 
 
 def create_groups(df):
@@ -114,170 +115,6 @@ def create_dataset(mode, cluster, class_weights=False):
     # training
     kind = input('insert the kind: ')
 
-    if kind == 'label':
-        features_array = [ImpressionLabel]
-
-    if kind == 'no_bias':
-        features_array = [
-        PlatformSession,
-        PlatformFeaturesSimilarity,
-        AvgPriceInteractions,
-        ChangeImpressionOrderPositionInSession,
-        DayOfWeekAndMomentInDay,
-        FrenzyFactorSession,
-        ImpressionPositionSession,
-        ImpressionPriceInfoSessionOld,
-        ImpressionRatingNumeric,
-        ActionsInvolvingImpressionSession,
-        SessionNumClickouts,
-        ImpressionStarsNumeric,
-        ImpressionLabel,
-        LastActionInvolvingImpression,
-        LastActionBeforeClickout,
-        TimesImpressionAppearedInClickoutsSession,
-        LastClickoutFiltersSatisfaction,
-        StepsBeforeLastClickout,
-        LazyUser,
-        MeanPriceClickout,
-        NumImpressionsInClickout,
-        SessionLengthOld,
-        NumTimesItemImpressed,
-        PercClickPerImpressions,
-        PlatformReferencePercentageOfClickouts,
-        PriceQuality,
-        SessionDevice,
-        SessionSortOrderWhenClickout,
-        TimePerImpression,
-        TimesUserInteractedWithImpression,
-        TimingFromLastInteractionImpression,
-        TopPopInteractionClickoutPerImpression,
-        TopPopPerImpression,
-        User2ItemOld,
-        ]
-
-    if kind=='content':
-        features_array = [
-                ImpressionPriceInfoSessionOld,
-                ImpressionRatingNumeric,
-                ImpressionLabel,
-                MeanPriceClickout,
-                SessionDevice,
-                NumImpressionsInClickout,
-                SessionLengthOld,
-                TopPopPerImpression,
-                TopPopInteractionClickoutPerImpression,
-                ChangeImpressionOrderPositionInSession,
-                FrenzyFactorSession,
-                DayOfWeekAndMomentInDay,
-                LastClickoutFiltersSatisfaction,
-                PersonalizedTopPop,
-                PriceQuality,
-                PlatformFeaturesSimilarity,
-                LastActionBeforeClickout,
-                ImpressionStarsNumeric,
-                StepsBeforeLastClickout,
-                LocationReferencePercentageOfClickouts,
-                LocationReferencePercentageOfInteractions,
-                NumTimesItemImpressed,
-                PercClickPerImpressions,
-                PlatformReferencePercentageOfClickouts,
-                PlatformReferencePercentageOfInteractions,
-                User2ItemOld,
-                SessionSortOrderWhenClickout,
-                SessionActionNumRefDiffFromImpressions,
-                SessionNumClickouts
-            ]
-
-    if kind == 'session_filters':
-        features_array = [SessionFilterActiveWhenClickout, ImpressionLabel]
-
-    if kind=='impression_feature':
-        features_array = [ImpressionFeatureCleaned, ImpressionLabel]
-
-    if kind == 'kind2':
-        features_array = [
-        (LazyUser, False),
-        PriceQuality,
-        PlatformFeaturesSimilarity,
-        PersonalizedTopPop,
-        TimePerImpression,
-        DayOfWeekAndMomentInDay,
-        LastClickoutFiltersSatisfaction,
-        FrenzyFactorSession,
-        ChangeImpressionOrderPositionInSession,
-        User2Item,
-        PlatformSession,
-        PlatformReferencePercentageOfInteractions,
-        PercClickPerImpressions,
-        PlatformReferencePercentageOfClickouts,
-        NumImpressionsInClickout,
-        NumTimesItemImpressed,
-        LocationReferencePercentageOfClickouts,
-        LocationReferencePercentageOfInteractions,
-        StepsBeforeLastClickout,
-        ImpressionStarsNumeric,
-        LastActionBeforeClickout,
-        TopPopPerImpression,
-        TopPopInteractionClickoutPerImpression,
-        ImpressionRatingNumeric,
-        ActionsInvolvingImpressionSession,
-        ImpressionLabel,
-        ImpressionPriceInfoSession,
-        TimingFromLastInteractionImpression,
-        TimesUserInteractedWithImpression,
-        ImpressionPositionSession,
-        LastActionInvolvingImpression,
-        SessionDevice,
-        SessionSortOrderWhenClickout,
-        MeanPriceClickout,
-        PriceInfoSession,
-        SessionLength,
-        TimesImpressionAppearedInClickoutsSession]
-
-    if kind == 'kind1':
-        features_array = [
-            ImpressionPositionSession,
-            ImpressionPriceInfoSessionOld,
-            ImpressionRatingNumeric,
-            ImpressionLabel,
-            LastActionInvolvingImpression,
-            MeanPriceClickout,
-            AvgPriceInteractions,
-            SessionDevice,
-            NumImpressionsInClickout,
-            SessionLengthOld,
-            TimesImpressionAppearedInClickoutsSession,
-            TimesUserInteractedWithImpression,
-            TimingFromLastInteractionImpression,
-            TopPopPerImpression,
-            TopPopInteractionClickoutPerImpression,
-            ChangeImpressionOrderPositionInSession,
-            FrenzyFactorSession,
-            DayOfWeekAndMomentInDay,
-            LastClickoutFiltersSatisfaction,
-            TimePerImpression,
-            PersonalizedTopPop,
-            PriceQuality,
-            PlatformFeaturesSimilarity,
-            LastActionBeforeClickout,
-            ImpressionStarsNumeric,
-            StepsBeforeLastClickout,
-            LocationReferencePercentageOfClickouts,
-            LocationReferencePercentageOfInteractions,
-            NumTimesItemImpressed,
-            PercClickPerImpressions,
-            PlatformReferencePercentageOfClickouts,
-            PlatformReferencePercentageOfInteractions,
-            PlatformSession,
-            User2ItemOld,
-            LazyUser,
-            PastFutureSessionFeatures,
-            SessionSortOrderWhenClickout,
-            SessionActionNumRefDiffFromImpressions,
-            ActionsInvolvingImpressionSession,
-            SessionNumClickouts
-        ]
-
     scores_array = [
         # 'rnn_classifier.csv.gz', 
         # 'rnn_no_bias_balanced.csv.gz',
@@ -288,7 +125,9 @@ def create_dataset(mode, cluster, class_weights=False):
         # 'xgb_forte_700.csv.gz',
     ]
 
-    train_df, test_df, train_idxs, _ = merge_features(mode, cluster, features_array, merge_kind='left', multithread=False)
+    path_hdf = 'dataset/preprocessed/{}/{}/xgboost/{}/base.hdf'.format(cluster, mode, 'base_dataset_stacking')
+    train_df = pd.read_hdf(path_hdf, key = 'train')
+    test_df = pd.read_hdf(path_hdf, key = 'test')
 
     if len(scores_array) > 0:
         for path in scores_array:
@@ -350,7 +189,9 @@ def create_dataset(mode, cluster, class_weights=False):
     np.save(join(bp, 'group_train'), group)
     print('train groups saved')
 
-    np.save(join(bp, 'train_indices'), train_idxs)
+    # np.save(join(bp, 'train_indices'), train_idxs)
+    copyfile('dataset/preprocessed/{}/{}/xgboost/{}/train_indices.npy'.format(cluster, mode, 'base_dataset_stacking'),
+                join(bp, 'train_indices.npy'))
 
     print('train data completed')
 

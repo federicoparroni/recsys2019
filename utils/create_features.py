@@ -34,7 +34,7 @@ from extract_features.mean_price_clickout import MeanPriceClickout
 from extract_features.normalized_platform_features_similarity import NormalizedPlatformFeaturesSimilarity
 from extract_features.num_impressions_in_clickout import NumImpressionsInClickout
 from extract_features.num_times_item_impressed import NumTimesItemImpressed
-#from extract_features.past_future_session_features import PastFutureSessionFeatures
+from extract_features.past_future_session_features import PastFutureSessionFeatures
 from extract_features.perc_click_per_impressions import PercClickPerImpressions
 from extract_features.perc_click_per_pos import PercClickPerPos
 from extract_features.personalized_top_pop import PersonalizedTopPop
@@ -67,44 +67,48 @@ from extract_features.top_pop_sorting_filters import TopPopSortingFilters
 from extract_features.user_2_item import User2Item
 from extract_features.user_feature import UserFeature
 from extract_features.classifier.last_action_before_clickout import LastActionBeforeClickout
+from extract_features.session_length_old import SessionLengthOld
+from extract_features.user_2_item_old import User2ItemOld
+from extract_features.normalized_platform_features_similarity import NormalizedPlatformFeaturesSimilarity
 import gc
 import utils.menu as menu
 from functools import partial
 from joblib import Parallel, delayed
+import traceback
 
 def create_and_save_feature(mode, cluster, feature_class):
     print(f'creating {str(feature_class)}')
-    feature = feature_class(mode, cluster)
+    feature = feature_class(mode=mode, cluster=cluster)
     feature.save_feature(overwrite_if_exists=True)
 
 if __name__ == '__main__':
     features_array = [
-        ActionsInvolvingImpressionSession,
-        ImpressionPositionSession,
-        ImpressionPriceInfoSession,
-        ImpressionRatingNumeric,
-        ImpressionLabel,
-        MeanPriceClickout,
-        AvgPriceInteractions,
-        SessionDevice,
-        NumImpressionsInClickout,
-        SessionLength,
-        TimesImpressionAppearedInClickoutsSession,
-        TimesUserInteractedWithImpression,
-        TimingFromLastInteractionImpression,
-        TopPopPerImpression,
-        TopPopInteractionClickoutPerImpression,
-        ChangeImpressionOrderPositionInSession,
-        FrenzyFactorSession,
-        DayOfWeekAndMomentInDay,
-        LastClickoutFiltersSatisfaction,
-        TimePerImpression,
-        PersonalizedTopPop,
-        PriceQuality,
-        PlatformFeaturesSimilarity,
-        LastActionBeforeClickout,
-        ImpressionStarsNumeric,
-        StepsBeforeLastClickout,
+       #ActionsInvolvingImpressionSession,
+       #ImpressionPositionSession,
+       #ImpressionPriceInfoSession,
+       #ImpressionRatingNumeric,
+       #ImpressionLabel,
+       #MeanPriceClickout,
+       #AvgPriceInteractions,
+       #SessionDevice,
+       #NumImpressionsInClickout,
+       #SessionLengthOld,
+       #TimesImpressionAppearedInClickoutsSession,
+       #TimesUserInteractedWithImpression,
+       #TimingFromLastInteractionImpression,
+       #TopPopPerImpression,
+       #TopPopInteractionClickoutPerImpression,
+       #ChangeImpressionOrderPositionInSession,
+       #FrenzyFactorSession,
+       #DayOfWeekAndMomentInDay,
+       # LastClickoutFiltersSatisfaction,
+       # TimePerImpression,
+       # PersonalizedTopPop,
+       # PriceQuality,
+       # PlatformFeaturesSimilarity,
+       # LastActionBeforeClickout,
+        # ImpressionStarsNumeric,
+         StepsBeforeLastClickout,
         LocationReferencePercentageOfClickouts,
         LocationReferencePercentageOfInteractions,
         NumTimesItemImpressed,
@@ -112,8 +116,10 @@ if __name__ == '__main__':
         PlatformReferencePercentageOfClickouts,
         PlatformReferencePercentageOfInteractions,
         PlatformSession,
-        User2Item,
+        User2ItemOld,
         LazyUser,
+        NormalizedPlatformFeaturesSimilarity,
+      # PastFutureSessionFeatures,
         ]
 
     import multiprocessing as mp
@@ -132,4 +138,10 @@ if __name__ == '__main__':
             ) for f in features_array)
     else:
         for f in features_array:
-            create_and_save_feature(mode, cluster, f)
+            try:
+                create_and_save_feature(mode, cluster, f)
+            except Exception as e:
+                print(f" {f.name} throws an exception during feature creation")
+                print(e)
+                traceback.print_exc()
+                continue

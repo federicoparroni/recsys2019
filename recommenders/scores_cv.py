@@ -10,16 +10,23 @@ from preprocess_utils.extract_scores import assign_score
 
 class ScoresCV(object):
 
-    def __init__(self, model_class, init_params):
+    def __init__(self, mode, model_class, model_name,  init_params):
+        """
+
+        :param mode:
+        :param model_class:
+        :param model_name: name to insert in the score column: model_name = 'xgb' --> score_xgb
+        :param init_params:
+        """
         self.model_class = model_class
         self.init_params = init_params
+        self.model_name = model_name
         self.scores = []
-
+        self.mode = mode
 
     def _fit_model(self, i):
-        mode = 'small'
         cluster = 'fold_' + str(i)
-        model = self.model_class(mode=mode, cluster=cluster, **self.init_params)
+        model = self.model_class(mode=self.mode, cluster=cluster, **self.init_params)
         model.fit()
         scores = model.get_scores_batch()
         return scores
@@ -36,13 +43,15 @@ class ScoresCV(object):
             self.scores = [self._fit_model(i) for i in range(5)]
             print(len(self.scores))
 
-        model = self.model_class(mode='full', cluster='no_cluster', **self.init_params)
+        model = self.model_class(mode=self.mode, cluster='no_cluster', **self.init_params)
         model.fit()
         scores_test = model.get_scores_batch()
         self.scores.append(scores_test)
 
         self.scores = [item for sublist in self.scores for item in sublist]
         scores = pd.DataFrame(self.scores, columns=['index', 'item_recommendations','scores'])
+        scores = scores.sort_values(by='index')
+        print(scores)
         idx_scores = set(scores['index'].values)
 
         train_full = data.train_df(mode='full', cluster='no_cluster')
@@ -63,7 +72,7 @@ class ScoresCV(object):
         last_clk_full['index'] = last_clk_full.index
         merged = last_clk_full.merge(scores, on=['index'])
         model_name = model.name
-        df = assign_score(merged, model_name)
+        df = assign_score(merged, self.model_name)
         df = df.drop(['index'], axis=1)
 
         if save_folder is not None:
@@ -77,20 +86,24 @@ class ScoresCV(object):
 
 if __name__=='__main__':
     from recommenders.XGBoost import XGBoostWrapper
+    import utils.menu as menu
+
+    mode = menu.mode_selection()
+    kind = input('pick the kind: ')
 
     init_params = {
-        'kind' : 'impression_feature',
+        'kind' : kind,
         'min_child_weight': 1,
         'subsample': 1,
         'colsample_bytree': 1,
         'learning_rate': 0.01,
         'max_depth': 3,
-         'n_estimators': 400,
+         'n_estimators': 100,
          'reg_lambda': 1.0,
          'reg_alpha': 0.0
          }
 
-    scoresCV = ScoresCV(XGBoostWrapper, init_params)
+    scoresCV = ScoresCV(mode=mode, model_class=XGBoostWrapper, init_params=init_params)
     scoresCV.fit_predict(multithreading=False)
 
 
