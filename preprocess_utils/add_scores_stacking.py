@@ -116,13 +116,13 @@ def create_dataset(mode, cluster, class_weights=False):
     kind = input('insert the kind: ')
 
     scores_array = [
-        # 'rnn_classifier.csv.gz', 
-        # 'rnn_no_bias_balanced.csv.gz',
-        # 'scores_softmax_loss.csv.gz',
-        # 'xgboost_impr_features.csv.gz',
-        # 'rnn_GRU_2layers_64units_2dense_noclass0.csv.gz',
-        # 'scores_pairwise_soft_zero_one_loss.csv.gz',
-        # 'xgb_forte_700.csv.gz',
+        'rnn_classifier.csv.gz',
+        'rnn_no_bias_balanced.csv.gz',
+        'scores_softmax_loss.csv.gz',
+        'xgboost_impr_features.csv.gz',
+        'rnn_GRU_2layers_64units_2dense_noclass0.csv.gz',
+        'scores_pairwise_soft_zero_one_loss.csv.gz',
+        'xgb_forte_700.csv.gz',
     ]
 
     path_hdf = 'dataset/preprocessed/{}/{}/xgboost/{}/base.hdf'.format(cluster, mode, 'base_dataset_stacking')
