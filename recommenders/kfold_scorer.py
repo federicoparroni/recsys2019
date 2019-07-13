@@ -111,7 +111,7 @@ if __name__ == "__main__":
             #'class_weights': dataset.get_class_weights(),
             #'sample_weights': dataset.get_sample_weights()
         }
-        fit_params = {'epochs': 400}
+        fit_params = {'epochs': int(input('Insert number of epochs: '))}
 
         kfscorer = KFoldScorer(model_class=RNNClassificationRecommender, init_params=init_params, k=5)
 
@@ -119,11 +119,11 @@ if __name__ == "__main__":
 
     
     def scores_bin():
-        dataset = DatasetScoresBinaryClassification(f'dataset/preprocessed/cluster_recurrent/full/dataset_binary_classification_p12')
+        dataset = DatasetScoresBinaryClassification(f'dataset/preprocessed/cluster_recurrent/small/dataset_binary_classification_p6')
 
         init_params = {
             'dataset': dataset,
-            'input_shape': (12,168),
+            'input_shape': (6,168),
             'cell_type': 'gru',
             'num_recurrent_layers': 2,
             'num_recurrent_units': 64,
@@ -132,7 +132,7 @@ if __name__ == "__main__":
             #'class_weights': dataset.get_class_weights(),
             'sample_weights': dataset.get_sample_weights()
         }
-        fit_params = {'epochs': 200}
+        fit_params = {'epochs': int(input('Insert number of epochs: '))}
 
         kfscorer = KFoldScorer(model_class=RNNBinaryClassificator, init_params=init_params, k=5)
 
