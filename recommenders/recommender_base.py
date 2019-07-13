@@ -81,7 +81,7 @@ class RecommenderBase(ABC):
 
         if export_sub:
             recommendations = self.recommend_batch()
-            out.create_sub(recommendations, submission_name=self.name[:10])
+            out.create_sub(recommendations, submission_name=self.name[20:])
         if export_scores:
             check_folder('scores')
             scores_batch_test = self.get_scores_batch()
