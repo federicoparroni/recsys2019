@@ -23,9 +23,10 @@ class XGBoostWrapper(RecommenderBase):
                     reg_lambda=65.0, reg_alpha=50.0, max_delta_step=2, scale_pos_weight=20,
                     gamma = 0.01,
                     weights_position=False, log_weights=False):
-        name = 'xgboost_ranker_mode={}_cluster={}_kind={}_class_weights={}_learning_rate={}_min_child_weight={}_n_estimators={}_max_depth={}_subsample={}_colsample_bytree={}_reg_lambda={}_reg_alpha={}_max_delta_step={}_scale_pos_weight={}_gamma={}_weights_position={}_log_weights={}'.format(
-            mode, cluster, kind, class_weights, learning_rate, min_child_weight, n_estimators, max_depth, subsample, colsample_bytree, reg_lambda, reg_alpha, max_delta_step, scale_pos_weight,gamma, weights_position, log_weights
-        )
+        #name = 'xgboost_ranker_mode={}_cluster={}_kind={}_class_weights={}_learning_rate={}_min_child_weight={}_n_estimators={}_max_depth={}_subsample={}_colsample_bytree={}_reg_lambda={}_reg_alpha={}_max_delta_step={}_scale_pos_weight={}_gamma={}_weights_position={}_log_weights={}'.format(
+        #    mode, cluster, kind, class_weights, learning_rate, min_child_weight, n_estimators, max_depth, subsample, colsample_bytree, reg_lambda, reg_alpha, max_delta_step, scale_pos_weight,gamma, weights_position, log_weights
+        #)
+        name = 'final_stacking'
         super(XGBoostWrapper, self).__init__(
             name=name, mode=mode, cluster=cluster)
         self.class_weights = class_weights
