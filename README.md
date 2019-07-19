@@ -43,10 +43,13 @@ Run this to preprocess the original data:
 ````python
 python preprocess.py
 ````
-Files will be saved inside: dataset/preprocessed and dataset/matrices.
+Files will be saved inside: dataset/preprocessed. It is possibile to work with different modes:
+* *full*: all the samples from train.csv are used as training set and all the test samples are used as test set
+* *local*: 80% of the train.csv is used, the remaining 20% is stashed as validation set
+* *small*: only a small number of sample is taken from the train.csv (you can choose how many, default is 100k samples). This is useful for debugging purposes.
 
 ### Features
-One of the hardest phase of the competition was *feature engineering*. We managed to craft around a hundred different features. You can find all of them in the folder `extract_features`. Each file contains a description of the feature that it creates.
+One of the hardest phase of the competition was *feature engineering*. We managed to craft around a hundred different features. You can find all of them in the folder `extract_features`. Each file creates a single feature and contains a description of it.
 
 ### Models
 You can find all the recommenders we developed inside the folder `recommenders`.
