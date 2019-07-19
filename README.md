@@ -18,6 +18,21 @@ It’s in the interest of the traveler, advertising booking site, and trivago to
 
 Visit [the challenge website](https://recsys.trivago.cloud/challenge/) for more information about the challenge.
 
+## Team members
+We partecipated in the challenge as PoliCloud8, a team of 8 MSc students from Politecnico di Milano:
+
+* **[D'Amico Edoardo](https://github.com/damicoedoardo)**
+* **[Gabbolini Giovanni](https://github.com/GiovanniGabbolini)**
+* **[Montesi Daniele](https://github.com/danmontesi)**
+* **[Moreschini Matteo](https://github.com/teomores)**
+* **[Parroni Federico](https://github.com/keyblade95)**
+* **[Piccinini Federico](https://github.com/APPiccio)**
+* **[Rossettini Alberto](https://github.com/albeRoss)**
+* **[Russo Introito Alessio](https://github.com/russointroitoa)**
+
+We worked under the supervision of two PhD students:
+* **[Cesare Bernardis](https://github.com/cesarebernardis)**
+* **[Maurizio Ferrari Dacrema](https://github.com/maurizioFD)**
 
 ## Dataset
 The dataset can be found at this link: [dataset](https://recsys.trivago.cloud/challenge/dataset). You must register to download it.
@@ -30,7 +45,10 @@ python preprocess.py
 ````
 Files will be saved inside: dataset/preprocessed and dataset/matrices.
 
-### Recommenders
+### Features
+One of the hardest phase of the competition was *feature engineering*. We managed to craft around a hundred different features. You can find all of them in the folder `extract_features`. Each file contains a description of the feature that it creates.
+
+### Models
 You can find all the recommenders we developed inside the folder `recommenders`.
 They inherit from a common base class called `RecommenderBase`. This abstract class exposes some useful methods, like:
 ```python
@@ -49,7 +67,6 @@ evaluate()
 Return the MRR computed on the local test set.
 
 
-## Models
 We developed several models that have been finally ensembled:
    * XGBoost
    * Tensorflow Ranking
