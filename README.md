@@ -108,237 +108,240 @@ We trained a new model in a new training set composed by the predictions of the 
 
 We report below an analysis of the **permutation importance** of the various features of the ensemble.
 
-| Weight                         | Feature        |
-|--------------------------------|----------------|
-| 0.4177 ± 0.0013 | xgb_700 |
-| 0.0029 ± 0.0003 | scores_softmax_loss |
-| 0.0027 ± 0.0002 | rnn_no_bias_balanced |
-| 0.0025 ± 0.0003 | rnn_classifier |
-| 0.0009 ± 0.0003 | xgboost_impr_features |
-| 0.0009 ± 0.0002 | past_actions_involving_impression_session_clickout_item |
-| 0.0008 ± 0.0003 | personalized_popularity |
-| 0.0007 ± 0.0001 | future_actions_involving_impression_session_clickout_item |
-| 0.0005 ± 0.0002 | num_impressoins_in_clickout |
-| 0.0004 ± 0.0002 | last_pos_interacted |
-| 0.0003 ± 0.0001 | scores_pairwise_soft_zero_one_loss |
-| 0.0003 ± 0.0000 | num_clickouts |
-| 0.0003 ± 0.0003 | length_timestamp |
-| 0.0003 ± 0.0002 | past_time_from_closest_interaction_impression |
-| 0.0002 ± 0.0002 | rnn_GRU_2layers_64units_2dense_noclass0 |
-| 0.0002 ± 0.0001 | top_pop_per_impression |
-| 0.0002 ± 0.0001 | impression_position |
-| 0.0002 ± 0.0002 | elapsed_last_action_click |
-| 0.0002 ± 0.0002 | session_length_timestamp |
-| 0.0002 ± 0.0001 | step_from_last_interaction |
-| 0.0002 ± 0.0001 | future_time_from_closest_interaction_impression |
-| 0.0002 ± 0.0001 | impression_time |
-| 0.0001 ± 0.0001 | fraction_pos_price |
-| 0.0001 ± 0.0001 | times_impression_appeared_in_clickouts_session |
-| 0.0001 ± 0.0002 | frenzy_factor |
-| 0.0001 ± 0.0001 | platform_similarity |
-| 0.0001 ± 0.0000 | past_actions_involving_impression_session_search_for_item |
-| 0.0001 ± 0.0001 | timestamp_from_last_interaction |
-| 0.0001 ± 0.0001 | feature |
-| 0.0001 ± 0.0001 | mean_price_interacted |
-| 0.0001 ± 0.0002 | mean_pos_interacted |
-| 0.0001 ± 0.0000 | actions_num_ref_diff_from_impressions_clickout_item |
-| 0.0001 ± 0.0001 | mean_time_action |
-| 0.0001 ± 0.0001 | past_mean_cheap_pos_interacted |
-| 0.0001 ± 0.0002 | variance_last_action |
-| 0.0001 ± 0.0001 | price |
-| 0.0001 ± 0.0001 | mean_time_per_step |
-| 0.0001 ± 0.0001 | scores_cosine |
-| 0.0001 ± 0.0001 | destination_change_distance_from_first_action |
-| 0 ± 0.0001      | max_pos_interacted |
-| 0 ± 0.0001      | percentage_of_total_city_clk |
-| 0 ± 0.0001      | perc_click_appeared |
-| 0 ± 0.0000      | past_pos_clicked_4_8 |
-| 0 ± 0.0002      | elapsed_last_action_click_log |
-| 0 ± 0.0000      | future_pos_clicked_4_8 |
-| 0 ± 0.0000      | past_pos_clicked_2 |
-| 0 ± 0.0000      | past_pos_clicked_3 |
-| 0 ± 0.0000      | actions_involving_impression_session_clickout_item |
-| 0 ± 0.0000      | past_pos_closest_reference |
-| 0 ± 0.0001      | session_length_step |
-| 0 ± 0.0001      | length_step |
-| 0 ± 0.0000      | num_interactions_impr |
-| 0 ± 0.0000      | search_for_poi_distance_from_first_action |
-| 0 ± 0.0000      | search_for_poi_distance_from_last_clickout |
-| 0 ± 0.0000      | satisfaction_percentage |
-| 0 ± 0.0001      | top_pop_interaction_clickout_per_impression |
-| 0 ± 0.0001      | past_actions_involving_impression_session_item_deals |
-| 0 ± 0.0001      | past_times_interacted_impr |
-| 0 ± 0.0001      | num_times_item_impressed |
-| 0 ± 0.0000      | actions_num_ref_diff_from_impressions_interaction_item_rating |
-| 0 ± 0.0000      | actions_num_ref_diff_from_impressions_interaction_item_info |
-| 0 ± 0.0000      | past_pos_clicked_9_15 |
-| 0 ± 0.0001      | perc_clickouts |
-| 0 ± 0.0000      | past_session_num |
-| 0 ± 0.0000      | actions_involving_impression_session_interaction_item_rating |
-| 0 ± 0.0000      | actions_num_ref_diff_from_impressions_search_for_item |
-| 0 ± 0.0000      | past_pos_clicked_16_25 |
-| 0 ± 0.0000      | future_pos_clicked_3 |
-| 0 ± 0.0000      | actions_involving_impression_session_interaction_item_info |
-| 0 ± 0.0001      | destination_change_distance_from_last_clickout |
-| 0 ± 0.0000      | platform_FI |
-| 0 ± 0.0000      | last_action_search for item |
-| 0 ± 0.0000      | platform_FR |
-| 0 ± 0.0000      | platform_CZ |
-| 0 ± 0.0000      | last_action_search for destination |
-| 0 ± 0.0000      | last_action_interaction item rating |
-| 0 ± 0.0000      | last_action_search for poi |
-| 0 ± 0.0000      | platform_GR |
-| 0 ± 0.0000      | platform_DE |
-| 0 ± 0.0000      | last_action_no_action |
-| 0 ± 0.0000      | platform_CH |
-| 0 ± 0.0000      | platform_AR |
-| 0 ± 0.0000      | platform_CO |
-| 0 ± 0.0000      | platform_AA |
-| 0 ± 0.0000      | platform_AE |
-| 0 ± 0.0000      | platform_AT |
-| 0 ± 0.0000      | platform_AU |
-| 0 ± 0.0000      | platform_BE |
-| 0 ± 0.0000      | platform_BG |
-| 0 ± 0.0000      | platform_ES |
-| 0 ± 0.0000      | last_action_interaction item info |
-| 0 ± 0.0000      | platform_EC |
-| 0 ± 0.0000      | platform_BR |
-| 0 ± 0.0000      | platform_CN |
-| 0 ± 0.0000      | platform_DK |
-| 0 ± 0.0000      | platform_CL |
-| 0 ± 0.0000      | platform_CA |
-| 0 ± 0.0000      | past_closest_action_involving_impression_no_action |
-| 0 ± 0.0000      | day_6 |
-| 0 ± 0.0000      | last_action_interaction item image |
-| 0 ± 0.0000      | future_closest_action_involving_impression_no_action |
-| 0 ± 0.0000      | price_log |
-| 0 ± 0.0000      | last_action_involving_impression_clickout item |
-| 0 ± 0.0000      | last_action_involving_impression_interaction item deals |
-| 0 ± 0.0000      | last_action_involving_impression_interaction item image |
-| 0 ± 0.0000      | last_action_involving_impression_interaction item info |
-| 0 ± 0.0000      | last_action_involving_impression_interaction item rating |
-| 0 ± 0.0000      | last_action_involving_impression_no_action |
-| 0 ± 0.0000      | last_action_involving_impression_search for item |
-| 0 ± 0.0000      | session_device_d |
-| 0 ± 0.0000      | session_device_m |
-| 0 ± 0.0000      | session_device_t |
-| 0 ± 0.0000      | future_closest_action_involving_impression_search for item |
-| 0 ± 0.0000      | future_closest_action_involving_impression_not_present |
-| 0 ± 0.0000      | std_last_action |
-| 0 ± 0.0000      | day_0 |
-| 0 ± 0.0000      | last_action_interaction item deals |
-| 0 ± 0.0000      | day_1 |
-| 0 ± 0.0000      | day_2 |
-| 0 ± 0.0000      | day_3 |
-| 0 ± 0.0000      | day_4 |
-| 0 ± 0.0000      | day_5 |
-| 0 ± 0.0000      | platform_HR |
-| 0 ± 0.0000      | moment_A |
-| 0 ± 0.0000      | moment_E |
-| 0 ± 0.0000      | moment_M |
-| 0 ± 0.0000      | moment_N |
-| 0 ± 0.0000      | future_closest_action_involving_impression_interaction item rating |
-| 0 ± 0.0000      | last_action_change of sort order |
-| 0 ± 0.0000      | last_action_clickout item |
-| 0 ± 0.0000      | last_action_filter selection |
-| 0 ± 0.0000      | platform_HK |
-| 0 ± 0.0000      | platform_KR |
-| 0 ± 0.0000      | platform_HU |
-| 0 ± 0.0000      | platform_TR |
-| 0 ± 0.0000      | platform_UK |
-| 0 ± 0.0000      | platform_US |
-| 0 ± 0.0000      | platform_UY |
-| 0 ± 0.0000      | platform_VN |
-| 0 ± 0.0000      | platform_ZA |
-| 0 ± 0.0000      | future_closest_action_involving_impression_interaction item  |image
-| 0 ± 0.0000      | sort_order_active_when_clickout_distance and recommended |
-| 0 ± 0.0000      | sort_order_active_when_clickout_distance only |
-| 0 ± 0.0000      | sort_order_active_when_clickout_interaction sort button |
-| 0 ± 0.0000      | sort_order_active_when_clickout_our recommendations |
-| 0 ± 0.0000      | sort_order_active_when_clickout_price and recommended |
-| 0 ± 0.0000      | sort_order_active_when_clickout_price only |
-| 0 ± 0.0000      | sort_order_active_when_clickout_rating and recommended |
-| 0 ± 0.0000      | sort_order_active_when_clickout_rating only |
-| 0 ± 0.0000      | actions_num_ref_diff_from_impressions_no_action |
-| 0 ± 0.0000      | platform_ID |
-| 0 ± 0.0000      | actions_involving_impression_session_no_action |
-| 0 ± 0.0000      | future_closest_action_involving_impression_interaction item  |deals
-| 0 ± 0.0000      | future_closest_action_involving_impression_clickout item |
-| 0 ± 0.0000      | past_closest_action_involving_impression_search for item |
-| 0 ± 0.0000      | past_closest_action_involving_impression_not_present |
-| 0 ± 0.0000      | past_closest_action_involving_impression_clickout item |
-| 0 ± 0.0000      | past_closest_action_involving_impression_interaction item deals |
-| 0 ± 0.0000      | past_closest_action_involving_impression_interaction item image |
-| 0 ± 0.0000      | past_closest_action_involving_impression_interaction item info |
-| 0 ± 0.0000      | platform_TW |
-| 0 ± 0.0000      | actions_involving_impression_session_interaction_item_deals |
-| 0 ± 0.0000      | platform_TH |
-| 0 ± 0.0000      | platform_PH |
-| 0 ± 0.0000      | platform_IE |
-| 0 ± 0.0000      | platform_IL |
-| 0 ± 0.0000      | platform_IN |
-| 0 ± 0.0000      | platform_IT |
-| 0 ± 0.0000      | platform_JP |
-| 0 ± 0.0000      | past_closest_action_involving_impression_interaction item rating |
-| 0 ± 0.0000      | platform_MX |
-| 0 ± 0.0000      | platform_MY |
-| 0 ± 0.0000      | platform_NL |
-| 0 ± 0.0000      | platform_NO |
-| 0 ± 0.0000      | platform_NZ |
-| 0 ± 0.0000      | platform_PE |
-| 0 ± 0.0000      | platform_PL |
-| 0 ± 0.0000      | future_closest_action_involving_impression_interaction item info |
-| 0 ± 0.0000      | platform_RU |
-| 0 ± 0.0000      | platform_SI |
-| 0 ± 0.0000      | platform_SG |
-| 0 ± 0.0000      | platform_SE |
-| 0 ± 0.0000      | platform_PT |
-| 0 ± 0.0000      | platform_RS |
-| 0 ± 0.0000      | platform_RO |
-| 0 ± 0.0000      | platform_SK |
-| 0 ± 0.0000      | past_actions_involving_impression_session_item_info |
-| 0 ± 0.0000      | future_actions_involving_impression_session_item_rating |
-| 0 ± 0.0000      | past_mean_pos |
-| 0 ± 0.0000      | actions_involving_impression_session_search_for_item |
-| 0 ± 0.0000      | actions_num_ref_diff_from_impressions_interaction_item_deals |
-| 0 ± 0.0000      | future_position_impression_same_closest_clickout |
-| 0 ± 0.0001      | mean_price_clickout |
-| 0 ± 0.0000      | past_times_impr_appeared |
-| 0 ± 0.0000      | change_sort_order_distance_from_last_clickout |
-| 0 ± 0.0000      | future_pos_clicked_2 |
-| 0 ± 0.0001      | mean_cheap_pos_interacted |
-| 0 ± 0.0000      | past_actions_involving_impression_session_item_rating |
-| 0 ± 0.0001      | percentage_of_total_plat_inter |
-| 0 ± 0.0001      | future_actions_involving_impression_session_search_for_item |
-| 0 ± 0.0000      | future_mean_cheap_pos_interacted |
-| 0 ± 0.0000      | actions_involving_impression_session_interaction_item_image |
-| 0 ± 0.0001      | future_pos_closest_reference |
-| 0 ± 0.0000      | past_mean_price_interacted |
-| 0 ± 0.0000      | future_pos_clicked_1 |
-| 0 ± 0.0000      | future_mean_price_interacted |
-| 0 ± 0.0002      | percentage_of_total_city_inter |
-| 0 ± 0.0001      | past_times_user_interacted_impression |
-| 0 ± 0.0000      | future_session_num |
-| 0 ± 0.0001      | actions_num_ref_diff_from_impressions_interaction_item_image |
-| 0 ± 0.0001      | scores_manhatthan |
-| 0 ± 0.0000      | past_pos_clicked_1 |
-| 0 ± 0.0001      | change_sort_order_distance_from_first_action |
-| 0 ± 0.0000      | future_mean_pos_impr_appeared |
-| 0 ± 0.0000      | past_position_impression_same_closest_clickout |
-| 0 ± 0.0000      | future_actions_involving_impression_session_item_image |
-| 0 ± 0.0000      | future_mean_pos |
-| 0 ± 0.0001      | impression_pos_price |
-| 0 ± 0.0001      | past_actions_involving_impression_session_no_action |
-| 0 ± 0.0000      | future_times_interacted_impr |
-| 0 ± 0.0000      | future_pos_clicked_16_25 |
-| 0 ± 0.0001      | rating |
-| 0 ± 0.0000      | past_mean_pos_impr_appeared |
-| 0 ± 0.0000      | future_times_impr_appeared |
-| 0 ± 0.0000      | future_actions_involving_impression_session_item_info |
-| 0 ± 0.0000      | past_actions_involving_impression_session_item_image |
-|-0.0001 ± 0.0000 | future_actions_involving_impression_session_no_action |
-|-0.0001 ± 0.0001 | future_actions_involving_impression_session_item_deals |
-|-0.0001 ± 0.0000 | future_times_user_interacted_impression |
-|-0.0001 ± 0.0000 | future_pos_clicked_9_15 |
-|-0.0001 ± 0.0001 | percentage_of_total_plat_clk |
-|-0.0001 ± 0.0001 | stars |
+<table>
+<thead><tr style="display:block;"><td style="width:110px;"><b>Weight</b></td><td><b>Feature</b></td></tr></thead>
+<tbody style="display:block; overflow:auto; height:400px;">
+<tr><td>0.4177 ± 0.0013</td><td>xgb_700</td></tr>
+<tr><td>0.0029 ± 0.0003</td><td>scores_softmax_loss</td></tr>
+<tr><td>0.0027 ± 0.0002</td><td>rnn_no_bias_balanced</td></tr>
+<tr><td>0.0025 ± 0.0003</td><td>rnn_classifier</td></tr>
+<tr><td>0.0009 ± 0.0003</td><td>xgboost_impr_features</td></tr>
+<tr><td>0.0009 ± 0.0002</td><td>past_actions_involving_impression_session_clickout_item</td></tr>
+<tr><td>0.0008 ± 0.0003</td><td>personalized_popularity</td></tr>
+<tr><td>0.0007 ± 0.0001</td><td>future_actions_involving_impression_session_clickout_item</td></tr>
+<tr><td>0.0005 ± 0.0002</td><td>num_impressoins_in_clickout</td></tr>
+<tr><td>0.0004 ± 0.0002</td><td>last_pos_interacted</td></tr>
+<tr><td>0.0003 ± 0.0001</td><td>scores_pairwise_soft_zero_one_loss</td></tr>
+<tr><td>0.0003 ± 0.0000</td><td>num_clickouts</td></tr>
+<tr><td>0.0003 ± 0.0003</td><td>length_timestamp</td></tr>
+<tr><td>0.0003 ± 0.0002</td><td>past_time_from_closest_interaction_impression</td></tr>
+<tr><td>0.0002 ± 0.0002</td><td>rnn_GRU_2layers_64units_2dense_noclass0</td></tr>
+<tr><td>0.0002 ± 0.0001</td><td>top_pop_per_impression</td></tr>
+<tr><td>0.0002 ± 0.0001</td><td>impression_position</td></tr>
+<tr><td>0.0002 ± 0.0002</td><td>elapsed_last_action_click</td></tr>
+<tr><td>0.0002 ± 0.0002</td><td>session_length_timestamp</td></tr>
+<tr><td>0.0002 ± 0.0001</td><td>step_from_last_interaction</td></tr>
+<tr><td>0.0002 ± 0.0001</td><td>future_time_from_closest_interaction_impression</td></tr>
+<tr><td>0.0002 ± 0.0001</td><td>impression_time</td></tr>
+<tr><td>0.0001 ± 0.0001</td><td>fraction_pos_price</td></tr>
+<tr><td>0.0001 ± 0.0001</td><td>times_impression_appeared_in_clickouts_session</td></tr>
+<tr><td>0.0001 ± 0.0002</td><td>frenzy_factor</td></tr>
+<tr><td>0.0001 ± 0.0001</td><td>platform_similarity</td></tr>
+<tr><td>0.0001 ± 0.0000</td><td>past_actions_involving_impression_session_search_for_item</td></tr>
+<tr><td>0.0001 ± 0.0001</td><td>timestamp_from_last_interaction</td></tr>
+<tr><td>0.0001 ± 0.0001</td><td>feature</td></tr>
+<tr><td>0.0001 ± 0.0001</td><td>mean_price_interacted</td></tr>
+<tr><td>0.0001 ± 0.0002</td><td>mean_pos_interacted</td></tr>
+<tr><td>0.0001 ± 0.0000</td><td>actions_num_ref_diff_from_impressions_clickout_item</td></tr>
+<tr><td>0.0001 ± 0.0001</td><td>mean_time_action</td></tr>
+<tr><td>0.0001 ± 0.0001</td><td>past_mean_cheap_pos_interacted</td></tr>
+<tr><td>0.0001 ± 0.0002</td><td>variance_last_action</td></tr>
+<tr><td>0.0001 ± 0.0001</td><td>price</td></tr>
+<tr><td>0.0001 ± 0.0001</td><td>mean_time_per_step</td></tr>
+<tr><td>0.0001 ± 0.0001</td><td>scores_cosine</td></tr>
+<tr><td>0.0001 ± 0.0001</td><td>destination_change_distance_from_first_action</td></tr>
+<tr><td>0 ± 0.0001     </td><td>max_pos_interacted</td></tr>
+<tr><td>0 ± 0.0001     </td><td>percentage_of_total_city_clk</td></tr>
+<tr><td>0 ± 0.0001     </td><td>perc_click_appeared</td></tr>
+<tr><td>0 ± 0.0000     </td><td>past_pos_clicked_4_8</td></tr>
+<tr><td>0 ± 0.0002     </td><td>elapsed_last_action_click_log</td></tr>
+<tr><td>0 ± 0.0000     </td><td>future_pos_clicked_4_8</td></tr>
+<tr><td>0 ± 0.0000     </td><td>past_pos_clicked_2</td></tr>
+<tr><td>0 ± 0.0000     </td><td>past_pos_clicked_3</td></tr>
+<tr><td>0 ± 0.0000     </td><td>actions_involving_impression_session_clickout_item</td></tr>
+<tr><td>0 ± 0.0000     </td><td>past_pos_closest_reference</td></tr>
+<tr><td>0 ± 0.0001     </td><td>session_length_step</td></tr>
+<tr><td>0 ± 0.0001     </td><td>length_step</td></tr>
+<tr><td>0 ± 0.0000     </td><td>num_interactions_impr</td></tr>
+<tr><td>0 ± 0.0000     </td><td>search_for_poi_distance_from_first_action</td></tr>
+<tr><td>0 ± 0.0000     </td><td>search_for_poi_distance_from_last_clickout</td></tr>
+<tr><td>0 ± 0.0000     </td><td>satisfaction_percentage</td></tr>
+<tr><td>0 ± 0.0001     </td><td>top_pop_interaction_clickout_per_impression</td></tr>
+<tr><td>0 ± 0.0001     </td><td>past_actions_involving_impression_session_item_deals</td></tr>
+<tr><td>0 ± 0.0001     </td><td>past_times_interacted_impr</td></tr>
+<tr><td>0 ± 0.0001     </td><td>num_times_item_impressed</td></tr>
+<tr><td>0 ± 0.0000     </td><td>actions_num_ref_diff_from_impressions_interaction_item_rating</td></tr>
+<tr><td>0 ± 0.0000     </td><td>actions_num_ref_diff_from_impressions_interaction_item_info</td></tr>
+<tr><td>0 ± 0.0000     </td><td>past_pos_clicked_9_15</td></tr>
+<tr><td>0 ± 0.0001     </td><td>perc_clickouts</td></tr>
+<tr><td>0 ± 0.0000     </td><td>past_session_num</td></tr>
+<tr><td>0 ± 0.0000     </td><td>actions_involving_impression_session_interaction_item_rating</td></tr>
+<tr><td>0 ± 0.0000     </td><td>actions_num_ref_diff_from_impressions_search_for_item</td></tr>
+<tr><td>0 ± 0.0000     </td><td>past_pos_clicked_16_25</td></tr>
+<tr><td>0 ± 0.0000     </td><td>future_pos_clicked_3</td></tr>
+<tr><td>0 ± 0.0000     </td><td>actions_involving_impression_session_interaction_item_info</td></tr>
+<tr><td>0 ± 0.0001     </td><td>destination_change_distance_from_last_clickout</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_FI</td></tr>
+<tr><td>0 ± 0.0000     </td><td>last_action_search for item</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_FR</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_CZ</td></tr>
+<tr><td>0 ± 0.0000     </td><td>last_action_search for destination</td></tr>
+<tr><td>0 ± 0.0000     </td><td>last_action_interaction item rating</td></tr>
+<tr><td>0 ± 0.0000     </td><td>last_action_search for poi</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_GR</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_DE</td></tr>
+<tr><td>0 ± 0.0000     </td><td>last_action_no_action</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_CH</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_AR</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_CO</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_AA</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_AE</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_AT</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_AU</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_BE</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_BG</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_ES</td></tr>
+<tr><td>0 ± 0.0000     </td><td>last_action_interaction item info</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_EC</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_BR</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_CN</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_DK</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_CL</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_CA</td></tr>
+<tr><td>0 ± 0.0000     </td><td>past_closest_action_involving_impression_no_action</td></tr>
+<tr><td>0 ± 0.0000     </td><td>day_6</td></tr>
+<tr><td>0 ± 0.0000     </td><td>last_action_interaction item image</td></tr>
+<tr><td>0 ± 0.0000     </td><td>future_closest_action_involving_impression_no_action</td></tr>
+<tr><td>0 ± 0.0000     </td><td>price_log</td></tr>
+<tr><td>0 ± 0.0000     </td><td>last_action_involving_impression_clickout item</td></tr>
+<tr><td>0 ± 0.0000     </td><td>last_action_involving_impression_interaction item deals</td></tr>
+<tr><td>0 ± 0.0000     </td><td>last_action_involving_impression_interaction item image</td></tr>
+<tr><td>0 ± 0.0000     </td><td>last_action_involving_impression_interaction item info</td></tr>
+<tr><td>0 ± 0.0000     </td><td>last_action_involving_impression_interaction item rating</td></tr>
+<tr><td>0 ± 0.0000     </td><td>last_action_involving_impression_no_action</td></tr>
+<tr><td>0 ± 0.0000     </td><td>last_action_involving_impression_search for item</td></tr>
+<tr><td>0 ± 0.0000     </td><td>session_device_d</td></tr>
+<tr><td>0 ± 0.0000     </td><td>session_device_m</td></tr>
+<tr><td>0 ± 0.0000     </td><td>session_device_t</td></tr>
+<tr><td>0 ± 0.0000     </td><td>future_closest_action_involving_impression_search for item</td></tr>
+<tr><td>0 ± 0.0000     </td><td>future_closest_action_involving_impression_not_present</td></tr>
+<tr><td>0 ± 0.0000     </td><td>std_last_action</td></tr>
+<tr><td>0 ± 0.0000     </td><td>day_0</td></tr>
+<tr><td>0 ± 0.0000     </td><td>last_action_interaction item deals</td></tr>
+<tr><td>0 ± 0.0000     </td><td>day_1</td></tr>
+<tr><td>0 ± 0.0000     </td><td>day_2</td></tr>
+<tr><td>0 ± 0.0000     </td><td>day_3</td></tr>
+<tr><td>0 ± 0.0000     </td><td>day_4</td></tr>
+<tr><td>0 ± 0.0000     </td><td>day_5</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_HR</td></tr>
+<tr><td>0 ± 0.0000     </td><td>moment_A</td></tr>
+<tr><td>0 ± 0.0000     </td><td>moment_E</td></tr>
+<tr><td>0 ± 0.0000     </td><td>moment_M</td></tr>
+<tr><td>0 ± 0.0000     </td><td>moment_N</td></tr>
+<tr><td>0 ± 0.0000     </td><td>future_closest_action_involving_impression_interaction item rating</td></tr>
+<tr><td>0 ± 0.0000     </td><td>last_action_change of sort order</td></tr>
+<tr><td>0 ± 0.0000     </td><td>last_action_clickout item</td></tr>
+<tr><td>0 ± 0.0000     </td><td>last_action_filter selection</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_HK</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_KR</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_HU</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_TR</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_UK</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_US</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_UY</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_VN</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_ZA</td></tr>
+<tr><td>0 ± 0.0000     </td><td>future_closest_action_involving_impression_interaction item  |image
+<tr><td>0 ± 0.0000     </td><td>sort_order_active_when_clickout_distance and recommended</td></tr>
+<tr><td>0 ± 0.0000     </td><td>sort_order_active_when_clickout_distance only</td></tr>
+<tr><td>0 ± 0.0000     </td><td>sort_order_active_when_clickout_interaction sort button</td></tr>
+<tr><td>0 ± 0.0000     </td><td>sort_order_active_when_clickout_our recommendations</td></tr>
+<tr><td>0 ± 0.0000     </td><td>sort_order_active_when_clickout_price and recommended</td></tr>
+<tr><td>0 ± 0.0000     </td><td>sort_order_active_when_clickout_price only</td></tr>
+<tr><td>0 ± 0.0000     </td><td>sort_order_active_when_clickout_rating and recommended</td></tr>
+<tr><td>0 ± 0.0000     </td><td>sort_order_active_when_clickout_rating only</td></tr>
+<tr><td>0 ± 0.0000     </td><td>actions_num_ref_diff_from_impressions_no_action</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_ID</td></tr>
+<tr><td>0 ± 0.0000     </td><td>actions_involving_impression_session_no_action</td></tr>
+<tr><td>0 ± 0.0000     </td><td>future_closest_action_involving_impression_interaction item  |deals
+<tr><td>0 ± 0.0000     </td><td>future_closest_action_involving_impression_clickout item</td></tr>
+<tr><td>0 ± 0.0000     </td><td>past_closest_action_involving_impression_search for item</td></tr>
+<tr><td>0 ± 0.0000     </td><td>past_closest_action_involving_impression_not_present</td></tr>
+<tr><td>0 ± 0.0000     </td><td>past_closest_action_involving_impression_clickout item</td></tr>
+<tr><td>0 ± 0.0000     </td><td>past_closest_action_involving_impression_interaction item deals</td></tr>
+<tr><td>0 ± 0.0000     </td><td>past_closest_action_involving_impression_interaction item image</td></tr>
+<tr><td>0 ± 0.0000     </td><td>past_closest_action_involving_impression_interaction item info</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_TW</td></tr>
+<tr><td>0 ± 0.0000     </td><td>actions_involving_impression_session_interaction_item_deals</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_TH</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_PH</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_IE</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_IL</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_IN</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_IT</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_JP</td></tr>
+<tr><td>0 ± 0.0000     </td><td>past_closest_action_involving_impression_interaction item rating</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_MX</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_MY</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_NL</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_NO</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_NZ</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_PE</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_PL</td></tr>
+<tr><td>0 ± 0.0000     </td><td>future_closest_action_involving_impression_interaction item info</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_RU</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_SI</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_SG</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_SE</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_PT</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_RS</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_RO</td></tr>
+<tr><td>0 ± 0.0000     </td><td>platform_SK</td></tr>
+<tr><td>0 ± 0.0000     </td><td>past_actions_involving_impression_session_item_info</td></tr>
+<tr><td>0 ± 0.0000     </td><td>future_actions_involving_impression_session_item_rating</td></tr>
+<tr><td>0 ± 0.0000     </td><td>past_mean_pos</td></tr>
+<tr><td>0 ± 0.0000     </td><td>actions_involving_impression_session_search_for_item</td></tr>
+<tr><td>0 ± 0.0000     </td><td>actions_num_ref_diff_from_impressions_interaction_item_deals</td></tr>
+<tr><td>0 ± 0.0000     </td><td>future_position_impression_same_closest_clickout</td></tr>
+<tr><td>0 ± 0.0001     </td><td>mean_price_clickout</td></tr>
+<tr><td>0 ± 0.0000     </td><td>past_times_impr_appeared</td></tr>
+<tr><td>0 ± 0.0000     </td><td>change_sort_order_distance_from_last_clickout</td></tr>
+<tr><td>0 ± 0.0000     </td><td>future_pos_clicked_2</td></tr>
+<tr><td>0 ± 0.0001     </td><td>mean_cheap_pos_interacted</td></tr>
+<tr><td>0 ± 0.0000     </td><td>past_actions_involving_impression_session_item_rating</td></tr>
+<tr><td>0 ± 0.0001     </td><td>percentage_of_total_plat_inter</td></tr>
+<tr><td>0 ± 0.0001     </td><td>future_actions_involving_impression_session_search_for_item</td></tr>
+<tr><td>0 ± 0.0000     </td><td>future_mean_cheap_pos_interacted</td></tr>
+<tr><td>0 ± 0.0000     </td><td>actions_involving_impression_session_interaction_item_image</td></tr>
+<tr><td>0 ± 0.0001     </td><td>future_pos_closest_reference</td></tr>
+<tr><td>0 ± 0.0000     </td><td>past_mean_price_interacted</td></tr>
+<tr><td>0 ± 0.0000     </td><td>future_pos_clicked_1</td></tr>
+<tr><td>0 ± 0.0000     </td><td>future_mean_price_interacted</td></tr>
+<tr><td>0 ± 0.0002     </td><td>percentage_of_total_city_inter</td></tr>
+<tr><td>0 ± 0.0001     </td><td>past_times_user_interacted_impression</td></tr>
+<tr><td>0 ± 0.0000     </td><td>future_session_num</td></tr>
+<tr><td>0 ± 0.0001     </td><td>actions_num_ref_diff_from_impressions_interaction_item_image</td></tr>
+<tr><td>0 ± 0.0001     </td><td>scores_manhatthan</td></tr>
+<tr><td>0 ± 0.0000     </td><td>past_pos_clicked_1</td></tr>
+<tr><td>0 ± 0.0001     </td><td>change_sort_order_distance_from_first_action</td></tr>
+<tr><td>0 ± 0.0000     </td><td>future_mean_pos_impr_appeared</td></tr>
+<tr><td>0 ± 0.0000     </td><td>past_position_impression_same_closest_clickout</td></tr>
+<tr><td>0 ± 0.0000     </td><td>future_actions_involving_impression_session_item_image</td></tr>
+<tr><td>0 ± 0.0000     </td><td>future_mean_pos</td></tr>
+<tr><td>0 ± 0.0001     </td><td>impression_pos_price</td></tr>
+<tr><td>0 ± 0.0001     </td><td>past_actions_involving_impression_session_no_action</td></tr>
+<tr><td>0 ± 0.0000     </td><td>future_times_interacted_impr</td></tr>
+<tr><td>0 ± 0.0000     </td><td>future_pos_clicked_16_25</td></tr>
+<tr><td>0 ± 0.0001     </td><td>rating</td></tr>
+<tr><td>0 ± 0.0000     </td><td>past_mean_pos_impr_appeared</td></tr>
+<tr><td>0 ± 0.0000     </td><td>future_times_impr_appeared</td></tr>
+<tr><td>0 ± 0.0000     </td><td>future_actions_involving_impression_session_item_info</td></tr>
+<tr><td>0 ± 0.0000     </td><td>past_actions_involving_impression_session_item_image</td></tr>
+<tr><td>-0.0001 ± 0.0000</td><td>future_actions_involving_impression_session_no_action</td></tr>
+<tr><td>-0.0001 ± 0.0001</td><td>future_actions_involving_impression_session_item_deals</td></tr>
+<tr><td>-0.0001 ± 0.0000</td><td>future_times_user_interacted_impression</td></tr>
+<tr><td>-0.0001 ± 0.0000</td><td>future_pos_clicked_9_15</td></tr>
+<tr><td>-0.0001 ± 0.0001</td><td>percentage_of_total_plat_clk</td></tr>
+<tr><td>-0.0001 ± 0.0001</td><td>stars</td></tr>
+</tbody>
+</table>
