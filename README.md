@@ -10,7 +10,7 @@
 </p>
 
 ## About the challenge
-Trivago is a global hotel search platform focused on reshaping the way travelers search for and compare hotels, while enabling advertisers of hotels to grow their businesses by providing access to a broad audience of travelers via our websites and apps. We provide aggregated information about the characteristics of each accommodation to help travelers to make an informed decision and find their ideal place to stay. Once a choice is made, the users get redirected to the selected booking site to complete the booking.
+[Trivago](https://www.trivago.com) is a global hotel search platform focused on reshaping the way travelers search for and compare hotels, while enabling advertisers of hotels to grow their businesses by providing access to a broad audience of travelers via our websites and apps. We provide aggregated information about the characteristics of each accommodation to help travelers to make an informed decision and find their ideal place to stay. Once a choice is made, the users get redirected to the selected booking site to complete the booking.
 
 It’s in the interest of the traveler, advertising booking site, and trivago to suggest suitable accommodations that fit the needs of the traveler best to increase the chance of a redirect (click­out) to a booking site. We face a few challenges when it comes to recommending the best options for our visitors, so it’s important to effectively make use of the explicit and implicit user signals within a session (clicks, search refinement, filter usage) to detect the users’ intent as quickly as possible and to update the recommendations to tailor the result list to these needs.
 
@@ -35,7 +35,9 @@ We worked under the supervision of two PhD students:
 * **[Maurizio Ferrari Dacrema](https://github.com/maurizioFD)**
 
 ## Dataset
-The dataset can be found at this link: [dataset](https://recsys.trivago.cloud/challenge/dataset). You must register to download it.
+The dataset can be found at this link: [dataset](https://recsys.trivago.cloud/challenge/dataset). You must be registered to download it.
+<br/>
+<br/>
 
 ## Run the code
 ### Preprocessing
@@ -54,21 +56,25 @@ One of the hardest phase of the competition was *feature engineering*. We manage
 ### Models
 You can find all the recommenders we developed inside the folder `recommenders`.
 They inherit from a common base class called `RecommenderBase`. This abstract class exposes some useful methods, like:
+
 ```python
 fit()
 ```
 Fit the model on the data. Inherited class should extend this method in the appropriate way.
-
+<br/>
+<br/>
 ```python
 recommend_batch()
 ```
 Return the list of recommendations.
-
+<br/>
+<br/>
 ```python
 evaluate()
 ```
 Return the MRR computed on the local test set.
-
+<br/>
+<br/>
 
 We developed several models that have been finally ensembled:
    * XGBoost
@@ -78,11 +84,12 @@ We developed several models that have been finally ensembled:
    * LightGBM
 
 Read the paper for more details.
-
+<br/>
+<br/>
 ## Ensemble
 We trained a new model in a new training set composed by the predictions of the previously trained models (stacking), together with all the other feature we crafted.
 
-We report below an analysis of the *permutation importance* of the various features of the ensemble.
+We report below an analysis of the **permutation importance** of the various features of the ensemble.
 
 | Weight                         | Feature        |
 |--------------------------------|----------------|
