@@ -35,7 +35,7 @@ We worked under the supervision of two PhD students:
 * **[Maurizio Ferrari Dacrema](https://github.com/maurizioFD)**
 
 ## Dataset
-The dataset can be found at this link: [dataset](https://recsys.trivago.cloud/challenge/dataset). You must be registered to download it.
+The dataset can be found at this link: [challenge dataset page](https://recsys.trivago.cloud/challenge/dataset). You must be registered to download it.
 <br/>
 <br/>
 
@@ -49,6 +49,23 @@ Files will be saved inside: dataset/preprocessed. It is possibile to work with d
 * *full*: all the samples from train.csv are used as training set and all the test samples are used as test set
 * *local*: 80% of the train.csv is used, the remaining 20% is stashed as validation set
 * *small*: only a small number of sample is taken from the train.csv (you can choose how many, default is 100k samples). This is useful for debugging purposes.
+
+### Training and test set
+Inside the folder `preprocess_utils`, there are files used to create the datasets suitable for each model:
+
+**Core models**
+* `dataset_xgboost.py`: create the dataset for XGBoost
+* `create_dataset_classification_rnn.py`: create the dataset for RNN
+* `tfranking_dataset_creator_2.py`: create the dataset for TensorflowRanking
+* `dataset_catboost.py.py`: create the dataset for Catboost
+* `dataset_lightGBM.py.py`: create the dataset for LightGBM
+
+**Support models**
+* `dataset_xgboost_classifier.py`: create the dataset for XGBoost classifier
+* `create_dataset_binary_classification_rnn.py`: create the dataset for RNN classifier
+
+**Stacking Ensemble**
+* `dataset_stacking.py`: create the dataset for the Stacking Ensemble
 
 ### Features
 One of the hardest phase of the competition was *feature engineering*. We managed to craft around a hundred different features. You can find all of them in the folder `extract_features`. Each file creates a single feature and contains a description of it.
