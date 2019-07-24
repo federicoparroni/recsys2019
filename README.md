@@ -18,6 +18,8 @@ It’s in the interest of the traveler, advertising booking site, and trivago to
 
 Visit [the challenge website](https://recsys.trivago.cloud/challenge/) for more information about the challenge.
 
+You can read the article in which we describe our work [here](paper/article_acm2019.pdf).
+
 ## Team members
 We partecipated in the challenge as PoliCloud8, a team of 8 MSc students from Politecnico di Milano:
 
