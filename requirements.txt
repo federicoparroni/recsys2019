@@ -194,7 +194,7 @@ tables==3.5.1
 tblib==1.3.2
 telepot==12.7
 tensorboard==1.13.1
-tensorflow==2.5.3
+tensorflow==2.6.4
 tensorflow-estimator==1.13.0
 termcolor==1.1.0
 terminado==0.8.1
