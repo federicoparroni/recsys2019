@@ -146,7 +146,7 @@ pyflakes==2.1.1
 Pygments==2.15.0
 pylint==2.3.1
 pyodbc==4.0.26
-pyOpenSSL==19.0.0
+pyOpenSSL==26.0.0
 pyparsing==2.3.1
 pyreadline==2.1
 pyrsistent==0.14.11
